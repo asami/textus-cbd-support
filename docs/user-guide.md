@@ -56,6 +56,12 @@ that version. If the catalog lists the version without detail, identity remains
 available but artifact, runtime, dependency, and model-metadata fields are
 absent with a warning.
 
+Catalog snapshots have a 15-minute lifetime. Retrieval operations reuse a
+fresh snapshot and automatically attempt refresh at or after `expiresAt`. A
+failed attempt retains the stale last-known-good snapshot. Use `listCatalogs`
+to inspect `cacheStatus`, `refreshedAt`, `expiresAt`,
+`lastRefreshAttemptAt`, and any warning.
+
 ## SIE Handoff
 
 SIE component discovery returns only `ComponentReference`. The shared fields
@@ -72,7 +78,8 @@ catalog data into SIE merely to make component development tools available.
 - `not-started`: no catalog has been loaded yet. Invoke a retrieval operation
   or run the administrative refresh command.
 - `degraded` with retained components: the latest refresh failed and the last
-  known good snapshot remains active.
+  known good snapshot remains active, or a snapshot is stale. Inspect
+  `cacheStatus`, expiry, last attempt, and warning together.
 - `degraded` with zero components: every initial catalog load failed. Check the
   configured base URI and the two metadata index paths.
 - `no-match`: no catalog evidence satisfied the identity and filters. Remove

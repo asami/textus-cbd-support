@@ -128,7 +128,7 @@ CatalogListResponse
 
 ##### DESCRIPTION
 
-List configured catalog sources and their current refresh state.
+List configured catalog sources and their current readiness, cache freshness, expiry, and refresh-attempt state.
 
 #### status
 
@@ -471,7 +471,10 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | priority | int | 1 |
 | status | CbdResultStatus | 1 |
 | componentCount | int | 1 |
+| cacheStatus | CbdResultStatus | 1 |
 | refreshedAt | CatalogRefreshTime | ? |
+| expiresAt | CatalogRefreshTime | ? |
+| lastRefreshAttemptAt | CatalogRefreshTime | ? |
 | warning | CbdWarning | ? |
 
 ## CatalogSourceId

@@ -320,7 +320,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "priority" -> state.source.priority,
       "status" -> state.status,
       "componentCount" -> state.componentCount,
+      "cacheStatus" -> state.cacheStatus,
       "refreshedAt" -> state.refreshedAt.map(_.toString),
+      "expiresAt" -> state.expiresAt.map(_.toString),
+      "lastRefreshAttemptAt" -> state.lastRefreshAttemptAt.map(_.toString),
       "warning" -> state.warning
     )
 

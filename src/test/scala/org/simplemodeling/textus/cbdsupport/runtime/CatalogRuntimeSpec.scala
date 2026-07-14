@@ -1,7 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
-import java.time.Instant
+import java.time.{Clock, Duration, Instant, ZoneId, ZoneOffset}
 
 import org.goldenport.Consequence
 import org.scalatest.GivenWhenThen
@@ -277,21 +277,64 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       results.map(_.profile.name) shouldBe Vector("textus-order")
     }
 
-    "preserve a last-known-good snapshot when refresh fails" in {
-      Given("a provider that succeeds once and fails on the next refresh")
+    "refresh a catalog only after its bounded cache lifetime expires" in {
+      Given("a five-minute cache policy and a controllable clock")
       val source = CatalogSource("switchable", URI.create("https://switchable.example/"), 100, true)
       val provider = new SwitchableCatalogProvider(_component_profile(source.id))
-      val runtime = CbdRuntime.create(Vector(source), provider)
-      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
-      provider.fail = true
+      val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        provider,
+        CatalogCachePolicy(Duration.ofMinutes(5)),
+        clock
+      )
 
-      When("the catalog refresh fails")
-      runtime.refresh(None, EmptyCatalogFetcher).isSuccess shouldBe true
+      When("readiness is checked before and at the cache expiry boundary")
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      clock.advance(Duration.ofMinutes(4))
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      provider.readCount shouldBe 1
+      clock.advance(Duration.ofMinutes(1))
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
       val state = runtime.sourceStates(includeDisabled = false).head
 
-      Then("the source is degraded while the previous component remains searchable")
+      Then("the fresh snapshot is reused and the expired snapshot is refreshed with observable times")
+      provider.readCount shouldBe 2
+      state.status shouldBe "ready"
+      state.cacheStatus shouldBe "fresh"
+      state.refreshedAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
+      state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+    }
+
+    "preserve a stale last-known-good snapshot when automatic refresh fails" in {
+      Given("a provider that fails after its first snapshot reaches cache expiry")
+      val source = CatalogSource("switchable", URI.create("https://switchable.example/"), 100, true)
+      val provider = new SwitchableCatalogProvider(_component_profile(source.id))
+      val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        provider,
+        CatalogCachePolicy(Duration.ofMinutes(5)),
+        clock
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      clock.advance(Duration.ofMinutes(5))
+      provider.fail = true
+
+      When("readiness automatically retries the expired catalog")
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      val state = runtime.sourceStates(includeDisabled = false).head
+
+      Then("the source exposes stale degraded state while the previous component remains searchable")
+      provider.readCount shouldBe 2
       state.status shouldBe "degraded"
+      state.cacheStatus shouldBe "stale"
       state.componentCount shouldBe 1
+      state.refreshedAt shouldBe Some(Instant.parse("2026-07-14T00:00:00Z"))
+      state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      state.warning.exists(_.contains("Catalog unavailable")) shouldBe true
       runtime.get("textus-order", None, None, None, None) should not be empty
     }
 
@@ -588,13 +631,27 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
 
   private final class SwitchableCatalogProvider(profile: ComponentProfile) extends ComponentCatalogProvider {
     var fail = false
+    var readCount = 0
 
-    def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
+    def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
+      readCount += 1
       if (fail) Consequence.serviceUnavailable(s"Catalog unavailable: ${source.id}")
       else Consequence.success(CatalogSnapshot(source, Vector(profile), Instant.now(), None))
+    }
 
     def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =
       Consequence.success(ComponentUsage(profile, Vector.empty, Vector.empty, Vector.empty))
+  }
+
+  private final class MutableClock(private var _current: Instant) extends Clock {
+    override def getZone: ZoneId = ZoneOffset.UTC
+
+    override def withZone(zone: ZoneId): Clock = Clock.fixed(_current, zone)
+
+    override def instant(): Instant = _current
+
+    def advance(duration: Duration): Unit =
+      _current = _current.plus(duration)
   }
 
   private final class PerSourceCatalogProvider(profiles: Map[String, Vector[ComponentProfile]])

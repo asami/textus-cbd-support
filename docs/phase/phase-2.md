@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Version-specific profile projection (`P2-02`) is implemented and under post-implementation review.
+- Current step: Bounded snapshot caching and refresh observability (`P2-21`, `P2-22`) are implemented and under post-implementation review.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-2-checklist.md`.
 
@@ -42,6 +42,12 @@ model-metadata evidence. Explicit-version search and lookup project only that
 evidence. A listed version without detail remains selectable by identity but
 clears version-sensitive fields and reports the missing evidence.
 
+The third slice gives every catalog snapshot a finite 15-minute default
+lifetime. Readiness reuses fresh snapshots, refreshes missing or expired
+sources, and preserves stale last-known-good evidence on failure. Source state
+exposes cache freshness, expiry, last successful refresh, last refresh attempt,
+and the failure warning.
+
 ## Verification Evidence
 
 - Focused dependency/runtime and MCP projection specifications: 16 tests passed
@@ -55,6 +61,9 @@ clears version-sensitive fields and reports the missing evidence.
 - CML lint: no findings on 2026-07-14.
 - Focused version-selection, dependency/runtime, and MCP projection
   specifications: 18 tests passed on 2026-07-14.
+- Focused cache-lifetime, refresh-observation, version-selection,
+  dependency/runtime, and MCP projection specifications: 19 tests passed on
+  2026-07-14.
 
 ## Closure Basis
 

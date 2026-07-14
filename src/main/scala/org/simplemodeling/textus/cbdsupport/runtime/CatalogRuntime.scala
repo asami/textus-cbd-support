@@ -1,7 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
-import java.time.Instant
+import java.time.{Clock, Duration, Instant}
 import scala.util.control.NonFatal
 
 import io.circe.Json
@@ -19,6 +19,17 @@ final case class CatalogSource(
   priority: Int,
   enabled: Boolean
 )
+
+final case class CatalogCachePolicy(ttl: Duration) {
+  require(!ttl.isZero && !ttl.isNegative, "Catalog cache TTL must be positive.")
+  require(ttl.compareTo(CatalogCachePolicy.MAXIMUM_TTL) <= 0, "Catalog cache TTL must not exceed 24 hours.")
+}
+
+object CatalogCachePolicy {
+  val DEFAULT_TTL: Duration = Duration.ofMinutes(15)
+  val MAXIMUM_TTL: Duration = Duration.ofHours(24)
+  val DEFAULT: CatalogCachePolicy = CatalogCachePolicy(DEFAULT_TTL)
+}
 
 final case class ComponentDependency(
   name: String,
@@ -138,6 +149,9 @@ final case class CatalogSourceState(
   status: String,
   componentCount: Int,
   refreshedAt: Option[Instant],
+  expiresAt: Option[Instant],
+  lastRefreshAttemptAt: Option[Instant],
+  cacheStatus: String,
   warning: Option[String]
 )
 
@@ -617,14 +631,21 @@ final class InMemoryComponentCatalogProvider(
 
 final class CbdRuntime(
   val sources: Vector[CatalogSource],
-  provider: ComponentCatalogProvider
+  provider: ComponentCatalogProvider,
+  cachepolicy: CatalogCachePolicy,
+  clock: Clock
 ) {
   private var _snapshots = Map.empty[String, CatalogSnapshot]
   private var _failures = Map.empty[String, String]
+  private var _last_refresh_attempts = Map.empty[String, Instant]
 
   def ensureReady(fetcher: CatalogFetcher): Consequence[Unit] = synchronized {
-    if (_snapshots.nonEmpty) Consequence.success(())
-    else refresh(None, fetcher).flatMap { _ =>
+    val now = clock.instant()
+    val selected = sources.filter(_.enabled).filter { source =>
+      _snapshots.get(source.id).forall(_is_stale(_, now))
+    }
+    val refreshed = if (selected.nonEmpty) _refresh_sources(selected, fetcher) else Consequence.success(sourceStates(includeDisabled = true))
+    refreshed.flatMap { _ =>
       if (_snapshots.nonEmpty) Consequence.success(())
       else Consequence.serviceUnavailable(_failures.values.toVector.sorted.mkString("; "))
     }
@@ -637,20 +658,7 @@ final class CbdRuntime(
     val selected = sources.filter(_.enabled).filter(x => sourceid.forall(_ == x.id))
     if (selected.isEmpty)
       Consequence.failure(s"No enabled catalog source matched: ${sourceid.getOrElse("all")}")
-    else {
-      selected.foreach { source =>
-        provider.read(source, fetcher) match {
-          case Consequence.Success(snapshot) => synchronized {
-            _snapshots = _snapshots.updated(source.id, snapshot)
-            _failures = _failures.removed(source.id)
-          }
-          case Consequence.Failure(conclusion) => synchronized {
-            _failures = _failures.updated(source.id, conclusion.display)
-          }
-        }
-      }
-      Consequence.success(sourceStates(includeDisabled = true))
-    }
+    else _refresh_sources(selected, fetcher)
   }
 
   def search(
@@ -792,14 +800,19 @@ final class CbdRuntime(
   }
 
   def sourceStates(includeDisabled: Boolean): Vector[CatalogSourceState] = synchronized {
+    val now = clock.instant()
     sources.filter(x => includeDisabled || x.enabled).sortBy(x => (x.priority, x.id)).map { source =>
       val snapshot = _snapshots.get(source.id)
       val failure = _failures.get(source.id).orElse(snapshot.flatMap(_.warning))
+      val stale = snapshot.exists(_is_stale(_, now))
       CatalogSourceState(
         source,
-        if (!source.enabled) "disabled" else if (failure.nonEmpty) "degraded" else if (snapshot.nonEmpty) "ready" else "not-started",
+        if (!source.enabled) "disabled" else if (failure.nonEmpty || stale) "degraded" else if (snapshot.nonEmpty) "ready" else "not-started",
         snapshot.map(_.profiles.size).getOrElse(0),
         snapshot.map(_.refreshedAt),
+        snapshot.map(_expires_at),
+        _last_refresh_attempts.get(source.id),
+        if (!source.enabled) "disabled" else if (snapshot.isEmpty) "empty" else if (stale) "stale" else "fresh",
         failure
       )
     }
@@ -818,6 +831,34 @@ final class CbdRuntime(
   private def _profiles: Vector[ComponentProfile] = synchronized {
     _snapshots.values.toVector.sortBy(x => (x.source.priority, x.source.id)).flatMap(_.profiles)
   }
+
+  private def _refresh_sources(
+    selected: Vector[CatalogSource],
+    fetcher: CatalogFetcher
+  ): Consequence[Vector[CatalogSourceState]] = {
+    selected.foreach { source =>
+      val attemptedat = clock.instant()
+      synchronized {
+        _last_refresh_attempts = _last_refresh_attempts.updated(source.id, attemptedat)
+      }
+      provider.read(source, fetcher) match {
+        case Consequence.Success(snapshot) => synchronized {
+          _snapshots = _snapshots.updated(source.id, snapshot.copy(source = source, refreshedAt = clock.instant()))
+          _failures = _failures.removed(source.id)
+        }
+        case Consequence.Failure(conclusion) => synchronized {
+          _failures = _failures.updated(source.id, conclusion.display)
+        }
+      }
+    }
+    Consequence.success(sourceStates(includeDisabled = true))
+  }
+
+  private def _expires_at(snapshot: CatalogSnapshot): Instant =
+    snapshot.refreshedAt.plus(cachepolicy.ttl)
+
+  private def _is_stale(snapshot: CatalogSnapshot, now: Instant): Boolean =
+    !now.isBefore(_expires_at(snapshot))
 
   private def _source_priority(sourceid: String): Int =
     sources.find(_.id == sourceid).map(_.priority).getOrElse(Int.MaxValue)
@@ -892,13 +933,25 @@ object CbdRuntime {
   def create(): CbdRuntime = {
     val cozy = new CozyComponentCatalogProvider()
     val publication = new SimpleModelingPublicationCatalogProvider()
-    new CbdRuntime(CatalogSourceConfig.load(), new CompatibleComponentCatalogProvider(cozy, publication))
+    new CbdRuntime(
+      CatalogSourceConfig.load(),
+      new CompatibleComponentCatalogProvider(cozy, publication),
+      CatalogCachePolicy.DEFAULT,
+      Clock.systemUTC()
+    )
   }
 
   def create(
     sources: Vector[CatalogSource],
     provider: ComponentCatalogProvider
-  ): CbdRuntime = new CbdRuntime(sources, provider)
+  ): CbdRuntime = new CbdRuntime(sources, provider, CatalogCachePolicy.DEFAULT, Clock.systemUTC())
+
+  def create(
+    sources: Vector[CatalogSource],
+    provider: ComponentCatalogProvider,
+    cachepolicy: CatalogCachePolicy,
+    clock: Clock
+  ): CbdRuntime = new CbdRuntime(sources, provider, cachepolicy, clock)
 }
 
 object CatalogSourceConfig {

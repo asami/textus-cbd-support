@@ -52,7 +52,10 @@ Cozy indexes provide the richer contract, including runtime, dependency, and
 generated operation metadata. Publication compatibility mode provides
 identity, version, artifact, and documentation evidence and reports unavailable
 operation metadata from `getUsage`. Failed refreshes preserve the last known
-good snapshot and report the source as `degraded`.
+good snapshot and report the source as `degraded`. Snapshots are fresh for 15
+minutes; the next retrieval after expiry attempts a refresh before serving.
+`listCatalogs` exposes fresh/stale/empty cache state, expiry, and the latest
+refresh-attempt time.
 
 A `runtimeVersion` search constraint accepts only profiles that publish an
 affirmative runtime minimum. Missing runtime evidence is not treated as
@@ -75,7 +78,8 @@ inherit fields from the catalog-selected version.
   and explicit version-conflict evidence. Selected component version and
   dependency-metadata version remain separate, so metadata is not reused for a
   different explicitly requested version.
-- `listCatalogs`: inspect source state.
+- `listCatalogs`: inspect source readiness, cache freshness, expiry, and refresh
+  attempt state.
 - `status`: inspect aggregate readiness.
 
 `refreshCatalog` is an administrative CNCF command and is not published as an

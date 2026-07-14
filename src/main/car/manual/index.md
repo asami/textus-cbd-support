@@ -73,13 +73,16 @@ data is an empty evidence set, not an assertion of no dependencies.
 ### listCatalogs
 
 Returns source identity, base URI, priority, readiness, component count,
-refresh time, and warning. Disabled sources are included only when requested.
+cache status, refresh time, expiry time, latest refresh-attempt time, and
+warning. `cacheStatus` is `fresh`, `stale`, `empty`, or `disabled`. Disabled
+sources are included only when requested.
 
 ### status
 
 Returns aggregate state and counts. `ready` means at least one current source
-is ready; `degraded` means a source failed or all initial loads failed;
-`not-started` means no enabled source has been attempted.
+is ready; `degraded` means a source failed, a retained snapshot is stale, or
+all initial loads failed; `not-started` means no enabled source has been
+attempted.
 
 ## CbdCatalogAdmin Operation
 
@@ -88,6 +91,12 @@ is ready; `degraded` means a source failed or all initial loads failed;
 Refreshes one source ID or every enabled source. A failed refresh records the
 failure and preserves any previous snapshot. The operation is excluded from
 MCP because it changes runtime state and may cause external traffic.
+
+Snapshots have a default finite TTL of 15 minutes and the runtime cache policy
+rejects non-positive lifetimes or lifetimes over 24 hours. Retrieval readiness
+reuses a fresh snapshot and automatically refreshes a missing or expired
+snapshot. If automatic refresh fails, the stale last-known-good snapshot stays
+available and the source becomes `degraded`.
 
 ## Catalog Contract
 
@@ -118,6 +127,8 @@ successfully loaded entries. Snapshot project versions are never labeled as
 - All enabled sources failing initial load causes retrieval operations to fail.
 - Refresh failure with an existing snapshot returns degraded state and keeps
   serving the old snapshot.
+- Cache expiry is inclusive: a snapshot is stale at `expiresAt`, and the next
+  retrieval readiness check attempts refresh.
 - Optional missing fields produce warnings where the contract can continue.
 - Search is deterministic lexical metadata matching in Phase 1; it is not a
   claim of semantic compatibility.

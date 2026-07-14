@@ -38,7 +38,8 @@ exists.
    every resolution status and conflict rather than assuming a selected winner.
 6. Select a component only when the returned catalog evidence supports the
    requested version and runtime. A runtime-constrained search excludes
-   profiles that do not publish runtime compatibility evidence.
+   profiles that do not publish runtime compatibility evidence or whose
+   inclusive minimum/maximum range excludes the requested runtime.
 
 CBD Support never invents missing versions, dependencies, operations, or
 documentation. Missing optional data is returned as warnings.
@@ -55,6 +56,12 @@ When `version` is explicit, search and exact lookup project only evidence for
 that version. If the catalog lists the version without detail, identity remains
 available but artifact, runtime, dependency, and model-metadata fields are
 absent with a warning.
+
+Rich Cozy profiles retain the selected version's channel, status, component,
+publication time, runtime minimum/maximum/tested versions, artifact SHA-256,
+and model-metadata sidecar. `runtimeTested` is supporting evidence, not an
+exclusive allowlist. Cozy repository diagnostics remain source warnings even
+when the affected catalog entry can still be used.
 
 Catalog snapshots have a 15-minute lifetime. Retrieval operations reuse a
 fresh snapshot and automatically attempt refresh at or after `expiresAt`. A
@@ -94,6 +101,10 @@ catalog data into SIE merely to make component development tools available.
 - Missing operations: the catalog did not publish a model-metadata sidecar or
   it could not be read. Use the warning and evidence URI to diagnose the
   publisher.
+- Cozy archive diagnostic: inspect the warning code, artifact, and version.
+  Missing or JSON `null` descriptor/ABI metadata means dependency evidence is
+  unavailable; an explicit empty dependency array means authoritative no
+  dependencies.
 - Partial publication failure: successfully loaded components remain available,
   but the source is degraded and lists each unreadable component entry.
 - Rejected configured source: inspect catalog warnings for an invalid source

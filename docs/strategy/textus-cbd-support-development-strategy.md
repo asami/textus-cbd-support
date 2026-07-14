@@ -43,12 +43,14 @@ tests, compatibility governance, and release/publish evidence.
 
 ## Current Priority
 
-Phase 1 is complete and Phase 2 is in progress. Current slices provide bounded,
+Phase 1 and Phase 2 are complete. Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
 state. Additional catalog sources now require explicit exact-origin
 authorization and expose rejected configuration without network access. The
 default public source's missing rich indexes are recorded as a publisher-owned
-future candidate with deployment acceptance gates. The remaining Phase 2
-boundary is Cozy schema fidelity followed by full documentation and
-verification closure, without changing the SIE/CBD ownership split.
+future candidate with deployment acceptance gates. Cozy schema fidelity is now
+fixed to revision-pinned producer evidence, including runtime ranges, archive
+checksums, nested ABI dependencies, sidecars, and diagnostics. Full tests, CAR
+build, CML lint, CAR lint, and representative MCP projection close the phase
+without changing the SIE/CBD ownership split. Phase 3 remains not started.

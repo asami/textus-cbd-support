@@ -263,10 +263,17 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "dependencyMetadataVersion" -> profile.dependencyMetadataVersion,
       "latestStable" -> profile.latestStable,
       "latestSnapshot" -> profile.latestSnapshot,
+      "selectedChannel" -> profile.selectedChannel,
+      "selectedStatus" -> profile.selectedStatus,
+      "selectedComponent" -> profile.selectedComponent,
+      "selectedPublishedAt" -> profile.selectedPublishedAt,
       "runtimeMinimum" -> profile.runtimeMinimum,
+      "runtimeMaximum" -> profile.runtimeMaximum,
+      "runtimeTested" -> profile.runtimeTested,
       "tags" -> profile.tags,
       "terms" -> profile.terms,
       "artifactUri" -> profile.artifactUri.map(_.toString),
+      "artifactChecksumSha256" -> profile.artifactChecksumSha256,
       "evidenceUri" -> profile.evidenceUri.toString,
       "warnings" -> profile.warnings
     )

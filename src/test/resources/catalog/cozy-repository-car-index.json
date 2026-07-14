@@ -1,0 +1,110 @@
+{
+  "entries" : [
+    {
+      "artifact_id" : "textus-georesolver",
+      "aliases" : [
+      ],
+      "tags" : [
+      ],
+      "terms" : [
+      ],
+      "status" : "active",
+      "recommended" : "0.1.0",
+      "latest_stable" : "0.2.0",
+      "latest_snapshot" : null,
+      "source_path" : "warehouse/repository/catalog/car/textus-georesolver.yaml",
+      "sidecars" : {
+        "cml" : "repository/catalog/car/textus-georesolver.cml",
+        "model_metadata_json" : "repository/catalog/car/textus-georesolver.model-metadata.json",
+        "model_metadata_yaml" : "repository/catalog/car/textus-georesolver.model-metadata.yaml"
+      },
+      "versions" : [
+        {
+          "version" : "0.1.0",
+          "channel" : "stable",
+          "status" : "active",
+          "component" : "textus-georesolver",
+          "published_at" : "2026-07-05T20:54:28.506716+09:00",
+          "file" : "repository/car/textus-georesolver/0.1.0/textus-georesolver-0.1.0.car",
+          "runtime" : {
+            "cncf" : {
+              "minimum" : "0.4.13",
+              "maximum" : null,
+              "tested" : [
+                "0.4.13"
+              ]
+            }
+          },
+          "checksum" : {
+            "sha256" : "7757268b5f0c986e2cb902310a2eb9ecbbf4091bbc48ad54d5293d2a5b7074d9"
+          },
+          "component_descriptor" : null,
+          "abi_manifest" : null
+        },
+        {
+          "version" : "0.2.0",
+          "channel" : "stable",
+          "status" : "active",
+          "component" : "textus-georesolver",
+          "published_at" : "2026-07-12T23:07:40.304594+09:00",
+          "file" : "repository/car/textus-georesolver/0.2.0/textus-georesolver-0.2.0.car",
+          "runtime" : {
+            "cncf" : {
+              "minimum" : "0.5.0",
+              "maximum" : null,
+              "tested" : [
+                "0.5.0"
+              ]
+            }
+          },
+          "checksum" : {
+            "sha256" : "5561f32790e4edb211f5dce85050b2407439bf06ebe9052acfed7a979c6d975e"
+          },
+          "component_descriptor" : {
+            "name" : "textus-georesolver",
+            "version" : "0.2.0",
+            "component" : "textus-georesolver",
+            "boundedContext" : "georesolver",
+            "domain" : "geo-resolution",
+            "componentlets" : [
+            ]
+          },
+          "abi_manifest" : {
+            "format" : "cozy.car.abi-manifest.v1",
+            "car" : {
+              "name" : "textus-georesolver",
+              "version" : "0.2.0"
+            },
+            "abi" : {
+              "version" : 1,
+              "exports" : {
+                "components" : [
+                  {
+                    "name" : "textus-georesolver"
+                  }
+                ],
+                "operations" : [
+                ],
+                "entities" : [
+                ]
+              },
+              "dependencies" : [
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "diagnostics" : [
+    {
+      "code" : "catalog-without-project",
+      "artifact_id" : "textus-georesolver",
+      "version" : null,
+      "metadata_name" : null,
+      "metadata_version" : null,
+      "project_path" : null,
+      "project_title" : null
+    }
+  ]
+}

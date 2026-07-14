@@ -96,7 +96,14 @@ final case class ComponentVersionEvidence(
   dependencies: Vector[ComponentDependency],
   artifactUri: Option[URI],
   modelMetadataUri: Option[URI],
-  hasDependencyMetadata: Boolean
+  hasDependencyMetadata: Boolean,
+  channel: Option[String] = None,
+  status: Option[String] = None,
+  component: Option[String] = None,
+  publishedAt: Option[String] = None,
+  runtimeMaximum: Option[String] = None,
+  runtimeTested: Vector[String] = Vector.empty,
+  artifactChecksumSha256: Option[String] = None
 )
 
 final case class ComponentProfile(
@@ -120,7 +127,14 @@ final case class ComponentProfile(
   modelMetadataUri: Option[URI],
   documentationUri: Option[URI],
   versionEvidence: Vector[ComponentVersionEvidence],
-  warnings: Vector[String]
+  warnings: Vector[String],
+  selectedChannel: Option[String] = None,
+  selectedStatus: Option[String] = None,
+  selectedComponent: Option[String] = None,
+  selectedPublishedAt: Option[String] = None,
+  runtimeMaximum: Option[String] = None,
+  runtimeTested: Vector[String] = Vector.empty,
+  artifactChecksumSha256: Option[String] = None
 ) {
   private def _version_neutral_warnings: Vector[String] =
     warnings.filterNot { warning =>
@@ -139,9 +153,16 @@ final case class ComponentProfile(
           selectedVersion = Some(requested),
           dependencyMetadataVersion = Option.when(evidence.hasDependencyMetadata)(requested),
           runtimeMinimum = evidence.runtimeMinimum,
+          runtimeMaximum = evidence.runtimeMaximum,
+          runtimeTested = evidence.runtimeTested,
           dependencies = evidence.dependencies,
           artifactUri = evidence.artifactUri,
           modelMetadataUri = evidence.modelMetadataUri,
+          selectedChannel = evidence.channel,
+          selectedStatus = evidence.status,
+          selectedComponent = evidence.component,
+          selectedPublishedAt = evidence.publishedAt,
+          artifactChecksumSha256 = evidence.artifactChecksumSha256,
           warnings = _version_neutral_warnings ++
             Option.when(evidence.artifactUri.isEmpty)(s"Selected version $requested does not publish an artifact path.")
         )
@@ -150,9 +171,16 @@ final case class ComponentProfile(
           selectedVersion = Some(requested),
           dependencyMetadataVersion = None,
           runtimeMinimum = None,
+          runtimeMaximum = None,
+          runtimeTested = Vector.empty,
           dependencies = Vector.empty,
           artifactUri = None,
           modelMetadataUri = None,
+          selectedChannel = None,
+          selectedStatus = None,
+          selectedComponent = None,
+          selectedPublishedAt = None,
+          artifactChecksumSha256 = None,
           warnings = _version_neutral_warnings :+
             s"Selected version $requested is listed without version-specific metadata."
         )
@@ -231,15 +259,21 @@ final class CompatibleComponentCatalogProvider(
 }
 
 final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
+  private final case class ParsedIndex(
+    profiles: Vector[ComponentProfile],
+    warnings: Vector[String]
+  )
+
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
     val documents = Vector("car", "sar").map { kind =>
       val uri = source.baseUri.resolve(s"metadata/repository/$kind/index.json")
       fetcher.get(uri).flatMap(_parse_index(source, kind, uri, _))
     }
-    _sequence_allow_missing(documents).map { case (profiles, warnings) =>
+    _sequence_allow_missing(documents).map { case (indexes, readwarnings) =>
+      val warnings = readwarnings ++ indexes.flatMap(_.warnings)
       CatalogSnapshot(
         source,
-        profiles.flatten.sortBy(x => (x.kind, x.name, x.catalogId)),
+        indexes.flatMap(_.profiles).sortBy(x => (x.kind, x.name, x.catalogId)),
         Instant.now(),
         if (warnings.nonEmpty) Some(warnings.mkString("; ")) else None
       )
@@ -293,12 +327,15 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
     kind: String,
     uri: URI,
     body: String
-  ): Consequence[Vector[ComponentProfile]] =
+  ): Consequence[ParsedIndex] =
     parse(body) match {
       case Left(error) => Consequence.failure(s"Invalid component catalog JSON at $uri: ${error.getMessage}")
       case Right(json) =>
         val entries = _array(json, "entries")
-        Consequence.success(entries.flatMap(_profile(source, kind, uri, _)))
+        Consequence.success(ParsedIndex(
+          entries.flatMap(_profile(source, kind, uri, _)),
+          _diagnostics(json)
+        ))
     }
 
   private def _profile(
@@ -351,7 +388,14 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
         versionEvidence = versionevidence,
         warnings = Vector.empty ++
           (if (versions.isEmpty) Vector("Catalog entry does not publish versions.") else Vector.empty) ++
-          (if (artifactpath.isEmpty) Vector("Catalog entry does not publish an artifact path for the selected version.") else Vector.empty)
+          (if (artifactpath.isEmpty) Vector("Catalog entry does not publish an artifact path for the selected version.") else Vector.empty),
+        selectedChannel = selectedevidence.flatMap(_.channel),
+        selectedStatus = selectedevidence.flatMap(_.status),
+        selectedComponent = selectedevidence.flatMap(_.component),
+        selectedPublishedAt = selectedevidence.flatMap(_.publishedAt),
+        runtimeMaximum = selectedevidence.flatMap(_.runtimeMaximum),
+        runtimeTested = selectedevidence.toVector.flatMap(_.runtimeTested),
+        artifactChecksumSha256 = selectedevidence.flatMap(_.artifactChecksumSha256)
       )
     }
   }
@@ -374,15 +418,22 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
         val metadatapath = _string_at(entry, "sidecars", "model_metadata_json")
           .orElse(Option.when(isselected)(modelmetadatapath).flatten)
         ComponentVersionEvidence(
-          version,
-          _string_at(entry, "runtime", "cncf", "minimum")
+          version = version,
+          runtimeMinimum = _string_at(entry, "runtime", "cncf", "minimum")
             .orElse(Option.when(isselected)(_string_at(json, "runtime", "minimum")).flatten)
             .orElse(Option.when(isselected)(_string_at(json, "runtime", "cncf", "minimum")).flatten),
-          (commondependencies ++ _dependencies(entry)).distinct,
-          artifactpath.map(source.baseUri.resolve),
-          metadatapath.map(source.baseUri.resolve)
+          dependencies = (commondependencies ++ _dependencies(entry)).distinct,
+          artifactUri = artifactpath.map(source.baseUri.resolve),
+          modelMetadataUri = metadatapath.map(source.baseUri.resolve)
             .orElse(Option.when(isselected)(Some(catalogroot.resolve(s"$componentname.model-metadata.json"))).flatten),
-          hasDependencyMetadata = _has_dependency_metadata(json) || _has_dependency_metadata(entry)
+          hasDependencyMetadata = _has_dependency_metadata(json) || _has_dependency_metadata(entry),
+          channel = _string(entry, "channel"),
+          status = _string(entry, "status"),
+          component = _string(entry, "component"),
+          publishedAt = _string(entry, "published_at").orElse(_string(entry, "publishedAt")),
+          runtimeMaximum = _string_at(entry, "runtime", "cncf", "maximum"),
+          runtimeTested = _strings_at(entry, "runtime", "cncf", "tested"),
+          artifactChecksumSha256 = _string_at(entry, "checksum", "sha256")
         )
       }
     }
@@ -390,12 +441,12 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
     val placeholders = versions.filterNot(entryversions).map { version =>
       val isselected = selectedversion.contains(version)
       ComponentVersionEvidence(
-        version,
-        Option.when(isselected)(_string_at(json, "runtime", "minimum")).flatten
+        version = version,
+        runtimeMinimum = Option.when(isselected)(_string_at(json, "runtime", "minimum")).flatten
           .orElse(Option.when(isselected)(_string_at(json, "runtime", "cncf", "minimum")).flatten),
-        if (isselected) commondependencies else Vector.empty,
-        Option.when(isselected)(_string(json, "file").map(source.baseUri.resolve)).flatten,
-        Option.when(isselected) {
+        dependencies = if (isselected) commondependencies else Vector.empty,
+        artifactUri = Option.when(isselected)(_string(json, "file").map(source.baseUri.resolve)).flatten,
+        modelMetadataUri = Option.when(isselected) {
           Some(modelmetadatapath.map(source.baseUri.resolve).getOrElse(catalogroot.resolve(s"$componentname.model-metadata.json")))
         }.flatten,
         hasDependencyMetadata = isselected && _has_dependency_metadata(json)
@@ -443,7 +494,8 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
   private def _dependencies(json: Json): Vector[ComponentDependency] = {
     val values = _array(json, "dependencies") ++
       _array_at(json, "component_descriptor", "dependencies") ++
-      _array_at(json, "abi_manifest", "dependencies")
+      _array_at(json, "abi_manifest", "dependencies") ++
+      _array_at(json, "abi_manifest", "abi", "dependencies")
     values.flatMap { dependency =>
       _string(dependency, "name").map { name =>
         ComponentDependency(name, _string(dependency, "version"), _string(dependency, "kind"))
@@ -452,9 +504,30 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
   }
 
   private def _has_dependency_metadata(json: Json): Boolean =
-    json.hcursor.downField("dependencies").focus.nonEmpty ||
-      json.hcursor.downField("component_descriptor").downField("dependencies").focus.nonEmpty ||
-      json.hcursor.downField("abi_manifest").downField("dependencies").focus.nonEmpty
+    Vector(
+      Vector("dependencies"),
+      Vector("component_descriptor", "dependencies"),
+      Vector("abi_manifest", "dependencies"),
+      Vector("abi_manifest", "abi", "dependencies")
+    ).exists(path => _json_at(json, path).exists(!_.isNull))
+
+  private def _diagnostics(json: Json): Vector[String] =
+    _array(json, "diagnostics").flatMap { diagnostic =>
+      _string(diagnostic, "code").map { code =>
+        val artifact = _string(diagnostic, "artifact_id").map(x => s" for $x").getOrElse("")
+        val version = _string(diagnostic, "version").map(x => s"@$x").getOrElse("")
+        val metadata = Vector(
+          _string(diagnostic, "metadata_name").map(x => s"metadata_name=$x"),
+          _string(diagnostic, "metadata_version").map(x => s"metadata_version=$x"),
+          _string(diagnostic, "project_path").map(x => s"project_path=$x")
+        ).flatten
+        val details = Option.when(metadata.nonEmpty)(s" (${metadata.mkString(", ")})").getOrElse("")
+        s"Cozy catalog diagnostic $code$artifact$version$details."
+      }
+    }
+
+  private def _json_at(json: Json, path: Vector[String]): Option[Json] =
+    path.foldLeft[io.circe.ACursor](json.hcursor)((cursor, segment) => cursor.downField(segment)).focus
 
   private def _array(json: Json, name: String): Vector[Json] =
     json.hcursor.downField(name).as[Vector[Json]].getOrElse(Vector.empty)
@@ -469,6 +542,10 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
     if (path.isEmpty) None
     else path.dropRight(1).foldLeft[io.circe.ACursor](json.hcursor)((cursor, segment) => cursor.downField(segment))
       .get[String](path.last).toOption.map(_.trim).filter(_.nonEmpty)
+
+  private def _strings_at(json: Json, path: String*): Vector[String] =
+    path.foldLeft[io.circe.ACursor](json.hcursor)((cursor, segment) => cursor.downField(segment))
+      .as[Vector[String]].getOrElse(Vector.empty).map(_.trim).filter(_.nonEmpty)
 
   private def _strings(json: Json, name: String): Vector[String] =
     json.hcursor.get[Vector[String]](name).getOrElse(Vector.empty).map(_.trim).filter(_.nonEmpty)
@@ -710,7 +787,10 @@ final class CbdRuntime(
     }.filter { profile =>
       organization.forall(x => profile.organization.exists(_.equalsIgnoreCase(x))) &&
         kind.forall(_.equalsIgnoreCase(profile.kind)) &&
-        runtimeversion.forall(x => profile.runtimeMinimum.exists(_version_lte(_, x)))
+        runtimeversion.forall { actual =>
+          profile.runtimeMinimum.exists(_version_lte(_, actual)) &&
+            profile.runtimeMaximum.forall(_version_lte(actual, _))
+        }
     }.flatMap { profile =>
       val exact = Vector(profile.name, profile.identity, profile.title).exists(_.equalsIgnoreCase(requirement.trim))
       val texttokens = _tokens((Vector(profile.name, profile.title) ++ profile.summary ++ profile.tags ++ profile.terms).mkString(" "))

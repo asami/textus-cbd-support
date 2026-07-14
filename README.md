@@ -55,8 +55,10 @@ CBD Support auto-detects two catalog formats:
 - The deployed simplemodeling.org publication catalog rooted at
   `en/catalog/index.html` with `cozy.publish-project.v1` JSON evidence.
 
-Cozy indexes provide the richer contract, including runtime, dependency, and
-generated operation metadata. Publication compatibility mode provides
+Cozy indexes provide the richer contract, including selected-version channel
+and status, runtime minimum/maximum/tested evidence, nested ABI dependencies,
+artifact path and checksum, model-metadata sidecars, and repository
+diagnostics. Publication compatibility mode provides
 identity, version, artifact, and documentation evidence and reports unavailable
 operation metadata from `getUsage`. Failed refreshes preserve the last known
 good snapshot and report the source as `degraded`. Snapshots are fresh for 15
@@ -70,8 +72,9 @@ are recorded in [Default Catalog Rich Metadata Candidate](docs/future/default-ca
 CBD Support continues to report absent rich evidence instead of synthesizing it.
 
 A `runtimeVersion` search constraint accepts only profiles that publish an
-affirmative runtime minimum. Missing runtime evidence is not treated as
-compatibility. Publication entries that cannot be loaded are retained as source
+affirmative runtime minimum and, when present, a compatible maximum. Missing
+runtime evidence is not treated as compatibility. Tested versions are evidence,
+not an exclusive allowlist. Publication entries that cannot be loaded are retained as source
 warnings, while `*-SNAPSHOT` versions remain separate from `latestStable`.
 An explicit `version` projects only that version's artifact, runtime,
 dependency, and model-metadata evidence; listed versions without detail do not
@@ -100,4 +103,5 @@ operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 `cncf.mcp.disabled-operations`.
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
-and [ComponentReference Contract](docs/spec/component-reference-contract.md).
+[Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md), and
+[ComponentReference Contract](docs/spec/component-reference-contract.md).

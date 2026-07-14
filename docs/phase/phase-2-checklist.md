@@ -5,7 +5,7 @@ deleted; a checked item requires observable evidence.
 
 ## Catalog Fidelity
 
-- [ ] `P2-01` Cozy repository parsing covers the Phase 2 version, dependency, runtime, artifact, and sidecar schema selected from real published catalogs.
+- [x] `P2-01` Cozy repository parsing covers the Phase 2 version, dependency, runtime, artifact, and sidecar schema selected from real published catalogs.
 - [x] `P2-02` Version selection distinguishes stable, snapshot, explicit request, missing evidence, and incompatible evidence without synthesizing a version.
 - [x] `P2-03` The default public catalog exposes rich Cozy repository indexes and model metadata, or the remaining publisher-side gap is explicitly closed as a future development candidate.
 
@@ -23,6 +23,6 @@ deleted; a checked item requires observable evidence.
 
 ## Documentation and Verification
 
-- [ ] `P2-30` README, user guide, reference manual, strategy, phase, and static specifications describe the completed Phase 2 behavior.
-- [ ] `P2-31` Executable specifications cover real catalog fidelity, version selection, graph resolution, conflicts, authorization, caching, and refresh observations.
-- [ ] `P2-32` Full tests, CAR build, CAR lint, and representative MCP projection pass with Phase 2 contracts.
+- [x] `P2-30` README, user guide, reference manual, strategy, phase, and static specifications describe the completed Phase 2 behavior.
+- [x] `P2-31` Executable specifications cover real catalog fidelity, version selection, graph resolution, conflicts, authorization, caching, and refresh observations.
+- [x] `P2-32` Full tests, CAR build, CAR lint, and representative MCP projection pass with Phase 2 contracts.

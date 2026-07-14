@@ -2,6 +2,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.time.{Clock, Duration, Instant, ZoneId, ZoneOffset}
+import scala.io.Source
 
 import org.goldenport.Consequence
 import org.scalatest.GivenWhenThen
@@ -80,30 +81,9 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
     }
 
     "consume Cozy's generated CAR index and model metadata contract" in {
-      Given("a Cozy CAR index with a selected runtime, sidecar, and artifact")
+      Given("a byte-for-byte Cozy publisher index capture with version, runtime, archive, sidecar, and diagnostic evidence")
       val source = CatalogSource("fixture", URI.create("https://catalog.example/"), 100, true)
-      val carindex =
-        """{
-          |  "entries": [{
-          |    "artifact_id": "textus-order",
-          |    "aliases": ["order-component"],
-          |    "tags": ["business.order"],
-          |    "terms": ["受注管理"],
-          |    "recommended": "1.2.0",
-          |    "latest_stable": "1.2.0",
-          |    "sidecars": {
-          |      "model_metadata_json": "repository/catalog/car/textus-order.model-metadata.json"
-          |    },
-          |    "versions": [{
-          |      "version": "1.2.0",
-          |      "file": "repository/car/textus-order/1.2.0/textus-order-1.2.0.car",
-          |      "runtime": {"cncf": {"minimum": "0.5.1"}},
-          |      "component_descriptor": {
-          |        "dependencies": [{"name": "textus-identity", "version": "0.4.0", "kind": "car"}]
-          |      }
-          |    }]
-          |  }]
-          |} """.stripMargin
+      val carindex = _resource_text("/catalog/cozy-repository-car-index.json")
       val sarindex = """{"entries": []}"""
       val modelmetadata =
         """{
@@ -123,25 +103,45 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val fetcher = new MapCatalogFetcher(Map(
         source.baseUri.resolve("metadata/repository/car/index.json") -> carindex,
         source.baseUri.resolve("metadata/repository/sar/index.json") -> sarindex,
-        source.baseUri.resolve("repository/catalog/car/textus-order.model-metadata.json") -> modelmetadata
+        source.baseUri.resolve("repository/catalog/car/textus-georesolver.model-metadata.json") -> modelmetadata
       ))
       val provider = new CozyComponentCatalogProvider()
 
       When("the catalog and selected component usage are read")
       val snapshot = provider.read(source, fetcher).toOption.get
       val profile = snapshot.profiles.head
+      val detailed = profile.selectVersion("0.2.0")
       val usage = provider.readUsage(profile, fetcher).toOption.get
 
       Then("the provider preserves authoritative version, runtime, dependency, and operation evidence")
-      profile.name shouldBe "textus-order"
-      profile.selectedVersion shouldBe Some("1.2.0")
-      profile.dependencyMetadataVersion shouldBe Some("1.2.0")
-      profile.versionEvidence.map(_.version) shouldBe Vector("1.2.0")
-      profile.latestStable shouldBe Some("1.2.0")
-      profile.runtimeMinimum shouldBe Some("0.5.1")
-      profile.tags should contain allOf ("business.order", "order-component")
-      profile.dependencies should contain(ComponentDependency("textus-identity", Some("0.4.0"), Some("car")))
-      profile.artifactUri.map(_.toString) shouldBe Some("https://catalog.example/repository/car/textus-order/1.2.0/textus-order-1.2.0.car")
+      profile.name shouldBe "textus-georesolver"
+      profile.selectedVersion shouldBe Some("0.1.0")
+      profile.dependencyMetadataVersion shouldBe None
+      profile.versionEvidence.map(_.version) shouldBe Vector("0.1.0", "0.2.0")
+      profile.latestStable shouldBe Some("0.2.0")
+      profile.selectedChannel shouldBe Some("stable")
+      profile.selectedStatus shouldBe Some("active")
+      profile.selectedComponent shouldBe Some("textus-georesolver")
+      profile.selectedPublishedAt shouldBe Some("2026-07-05T20:54:28.506716+09:00")
+      profile.runtimeMinimum shouldBe Some("0.4.13")
+      profile.runtimeMaximum shouldBe None
+      profile.runtimeTested shouldBe Vector("0.4.13")
+      profile.tags shouldBe empty
+      profile.dependencies shouldBe empty
+      profile.artifactUri.map(_.toString) shouldBe Some(
+        "https://catalog.example/repository/car/textus-georesolver/0.1.0/textus-georesolver-0.1.0.car"
+      )
+      profile.artifactChecksumSha256 shouldBe Some(
+        "7757268b5f0c986e2cb902310a2eb9ecbbf4091bbc48ad54d5293d2a5b7074d9"
+      )
+      profile.versionEvidence.find(_.version == "0.1.0").exists(_.hasDependencyMetadata) shouldBe false
+      detailed.dependencyMetadataVersion shouldBe Some("0.2.0")
+      detailed.runtimeMinimum shouldBe Some("0.5.0")
+      detailed.dependencies shouldBe empty
+      detailed.artifactChecksumSha256 shouldBe Some(
+        "5561f32790e4edb211f5dce85050b2407439bf06ebe9052acfed7a979c6d975e"
+      )
+      snapshot.warning.exists(_.contains("catalog-without-project for textus-georesolver")) shouldBe true
       usage.operations shouldBe Vector(ComponentOperation(Some("OrderQuery"), "getOrder", Some("query"), Some("Return one order.")))
     }
   }
@@ -619,10 +619,19 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         dependencyMetadataVersion = Some("2.0.0"),
         latestStable = Some("2.0.0"),
         runtimeMinimum = Some("0.5.0"),
+        runtimeMaximum = Some("0.5.9"),
         dependencies = Vector(newdependency),
         artifactUri = Some(newartifact),
         versionEvidence = Vector(
-          ComponentVersionEvidence("1.0.0", Some("0.4.0"), Vector(olddependency), Some(oldartifact), None, true),
+          ComponentVersionEvidence(
+            "1.0.0",
+            Some("0.4.0"),
+            Vector(olddependency),
+            Some(oldartifact),
+            None,
+            true,
+            runtimeMaximum = Some("0.4.9")
+          ),
           ComponentVersionEvidence("2.0.0", Some("0.5.0"), Vector(newdependency), Some(newartifact), None, true)
         ),
         warnings = Vector("Catalog entry does not publish an artifact path for the selected version.")
@@ -637,6 +646,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val selected = runtime.get("textus-order", None, Some("car"), Some("1.0.0"), None).get
       val matches = runtime.search("order", None, Some("car"), Some("1.0.0"), Some("0.4.0"), 10)
       val incompatible = runtime.search("order", None, Some("car"), Some("1.0.0"), Some("0.3.0"), 10)
+      val abovemaximum = runtime.search("order", None, Some("car"), Some("1.0.0"), Some("0.5.0"), 10)
       val missing = runtime.get("textus-order", None, Some("car"), Some("0.9.0"), None).get
 
       Then("each result uses only evidence belonging to its explicit version")
@@ -647,6 +657,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       selected.warnings shouldBe empty
       matches.map(_.profile.selectedVersion) shouldBe Vector(Some("1.0.0"))
       incompatible shouldBe empty
+      abovemaximum shouldBe empty
       missing.selectedVersion shouldBe Some("0.9.0")
       missing.runtimeMinimum shouldBe None
       missing.dependencies shouldBe empty
@@ -682,6 +693,15 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Vector(ComponentVersionEvidence("1.2.0", Some("0.5.1"), dependencies, Some(artifacturi), None, true)),
       Vector.empty
     )
+  }
+
+  private def _resource_text(path: String): String = {
+    val stream = Option(getClass.getResourceAsStream(path)).getOrElse {
+      fail(s"Missing test resource: $path")
+    }
+    val source = Source.fromInputStream(stream, "UTF-8")
+    try source.mkString
+    finally source.close()
   }
 
   private final class MapCatalogFetcher(values: Map[URI, String]) extends CatalogFetcher {

@@ -403,10 +403,17 @@ Administrative request to refresh configured catalogs.
 | dependencyMetadataVersion | ComponentVersion | ? |
 | latestStable | ComponentVersion | ? |
 | latestSnapshot | ComponentVersion | ? |
+| selectedChannel | ComponentChannel | ? |
+| selectedStatus | ComponentStatus | ? |
+| selectedComponent | ComponentName | ? |
+| selectedPublishedAt | ComponentPublishedAt | ? |
 | runtimeMinimum | RuntimeVersion | ? |
+| runtimeMaximum | RuntimeVersion | ? |
+| runtimeTested | RuntimeVersion | * |
 | tags | ComponentTag | * |
 | terms | ComponentTerm | * |
 | artifactUri | ComponentReferenceUri | ? |
+| artifactChecksumSha256 | ArtifactChecksumSha256 | ? |
 | evidenceUri | ComponentReferenceUri | 1 |
 | warnings | CbdWarning | * |
 
@@ -551,6 +558,38 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## RuntimeVersion
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentChannel
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentStatus
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentPublishedAt
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ArtifactChecksumSha256
 
 ### ATTRIBUTE
 

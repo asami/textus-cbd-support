@@ -1,8 +1,8 @@
 # Phase 3: Federated Development Context and AI Ergonomics
 
 Stage Status:
-- Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, P3-30 through P3-32, and P3-40 through P3-41 are complete; the next slice runs the Phase 3 closure gates under P3-42.
+- Current status: DONE
+- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, P3-30 through P3-32, and P3-40 through P3-42 are complete; the next development phase is Phase 4 runtime hardening.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -243,6 +243,24 @@ winner.
   focused suites passed 66 tests on 2026-07-14, including explicit distinction
   between default `canonical-storage-root` and configured
   `explicit-path-allowlist` authority.
+- Final Phase 3 verification on 2026-07-14 passed all 85 repository tests in 13
+  suites. The representative `ComponentFactorySpec` MCP projection passed all
+  10 tests and confirmed the six read-only retrieval tools plus source,
+  freshness, availability, conflict, and purpose search filters. Its Web form
+  contract check also keeps retrieval search and administrative refresh tied to
+  their owning generated services without assuming an entity result.
+- CML lint reported no findings, and `cozyBuildCAR` generated
+  `target/textus-cbd-support-0.1.0-SNAPSHOT.car`. The archive contains a
+  matching `component-descriptor.json` and `abi-manifest.json` for
+  `textus-cbd-support` version `0.1.0-SNAPSHOT`.
+- Post-build CAR lint reported no FAIL findings. Its project-local
+  `abi.manifest.missing` baseline warning remains non-blocking because the ABI
+  manifest is generated inside the verified CAR rather than retained under the
+  source or `target/cozy` baseline locations.
+- The CAR reference manual, user guide, CML component/service/operation help,
+  and static Web route declarations passed semantic consistency review. Runtime
+  CLI/Web Help routes were not started as part of this source-aware MCP
+  projection gate and remain unverified runtime integration evidence.
 
 ## Closure Basis
 

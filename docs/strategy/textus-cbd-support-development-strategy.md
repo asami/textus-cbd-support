@@ -48,7 +48,7 @@ tests, compatibility governance, and release/publish evidence.
 
 ## Current Priority
 
-Phase 1 and Phase 2 are complete. Phase 2 provides bounded,
+Phase 1, Phase 2, and Phase 3 are complete. Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
 state. Additional catalog sources now require explicit exact-origin
@@ -95,4 +95,6 @@ CAR reference, strategy, phase ledger, and static contracts now share one
 source-role and purpose-precedence model. Executable specifications now cover
 all five source kinds, their authorization and freshness boundaries, local path
 safety, version reconciliation, conflicts, citations, and inference labels.
-The next slice runs the Phase 3 closure gates under P3-42.
+Phase 3 closure passed full tests, CAR build and descriptor inspection, CML
+lint, CAR lint, and representative source-aware MCP projection. The next
+development phase is Phase 4 runtime hardening.

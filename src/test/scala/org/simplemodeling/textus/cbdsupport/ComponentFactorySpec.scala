@@ -1,6 +1,7 @@
 package org.simplemodeling.textus.cbdsupport
 
 import java.net.URI
+import java.nio.file.{Files, Path}
 import java.time.Instant
 
 import org.goldenport.cncf.component.{ComponentCreate, ComponentOrigin}
@@ -89,6 +90,21 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       )
       usageschema.hcursor.downField("properties").keys.get.toSet should contain("intent")
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
+    }
+
+    "align static Web forms with generated service ownership" in {
+      Given("a Web form exposing retrieval search and administrative refresh")
+      val form = Files.readString(Path.of("src/main/web-inf/form.yaml"))
+
+      When("the form operation identifiers are compared with the generated service contract")
+      val retrievalsearch = "textus-cbd-support.cbd-retrieval.search-components"
+      val adminrefresh = "textus-cbd-support.cbd-catalog-admin.refresh-catalog"
+
+      Then("each form targets its owning service without assuming an entity result")
+      form should include(retrievalsearch)
+      form should include(adminrefresh)
+      form should not include "textus-cbd-support.cbd-retrieval.refresh-catalog"
+      form should not include "${result.id}"
     }
     }
 

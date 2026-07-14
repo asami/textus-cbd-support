@@ -34,4 +34,4 @@ deleted; a checked item requires observable evidence.
 
 - [x] `P3-40` README, user guide, reference manual, strategy, phase, and static specifications describe the completed Phase 3 behavior and source precedence.
 - [x] `P3-41` Executable specifications cover all five input-source kinds, source authorization, local path safety, freshness, version-state reconciliation, conflicts, evidence citation, and inference boundaries.
-- [ ] `P3-42` Full tests, CAR build, CML lint, CAR lint, and representative source-aware MCP projection pass with Phase 3 contracts.
+- [x] `P3-42` Full tests, CAR build, CML lint, CAR lint, and representative source-aware MCP projection pass with Phase 3 contracts.

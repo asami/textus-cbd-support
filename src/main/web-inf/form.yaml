@@ -1,14 +1,13 @@
 expose:
-  textus-cbd-support.cbd-retrieval.refresh-catalog: protected
+  textus-cbd-support.cbd-catalog-admin.refresh-catalog: protected
   textus-cbd-support.cbd-retrieval.search-components: public
 form:
-  textus-cbd-support.cbd-retrieval.refresh-catalog:
+  textus-cbd-support.cbd-catalog-admin.refresh-catalog:
     enabled: true
-    successRedirect: /web/${component}/admin/entities/component-reference/${result.id}
     stayOnError: true
     controls:
-      description:
-        type: textarea
+      sourceId:
+        type: text
   textus-cbd-support.cbd-retrieval.search-components:
     enabled: true
     successRedirect: /web/${component}/admin/entities/component-reference

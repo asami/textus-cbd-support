@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: DONE
-- Current step: Every Phase 2 checklist item has reproducible evidence; the completed slice is under post-implementation review.
+- Current step: Every Phase 2 checklist item has reproducible evidence, final review has passed, and the phase is closed.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-2-checklist.md`.
 

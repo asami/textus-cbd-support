@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, and P3-20 through P3-22 are complete; the next slice adds separately cited BoK semantic evidence to requirement matching under P3-30.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, and P3-30 are complete; the next slice adds intent-aware source/version usage guidance and explicit inference labeling under P3-31.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -202,6 +202,14 @@ winner.
   non-cached inventory during retrieval readiness, and includes all configured
   local inputs in `listCatalogs` and `status`. `SourceAwareRetrievalSpec` and
   `ComponentFactorySpec` passed 10 focused tests on 2026-07-14.
+- Requirement matching now projects BoK-site lexical matches and current-query
+  SIE semantic matches as independent, source-owned citations with rationale,
+  freshness, observation time, and evidence URI. Catalog profiles can cite
+  those records only through explicitly equal published terms/tags; no BoK
+  field completes a component or local observation, and retained SIE evidence
+  is not reused across queries. `SemanticRequirementMatchingSpec`,
+  `SourceAwareRetrievalSpec`, and `ComponentFactorySpec` passed 14 focused tests
+  on 2026-07-14.
 
 ## Closure Basis
 

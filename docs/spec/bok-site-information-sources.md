@@ -59,9 +59,11 @@ complete source snapshot rather than to individual resources.
 Each glossary observation retains configured source ID, publisher manifest ID,
 term identity, selected SmartDox/Cozy fields, and an exact JSON-pointer-like
 resource location. Duplicate term identities are preserved with diagnostics;
-the adapter does not choose or synthesize a winner. Requirement matching and
-MCP projection are later Phase 3 slices and must cite this BoK evidence
-separately from CBD catalog or local CAR facts.
+the adapter does not choose or synthesize a winner. Requirement matching uses
+bounded lexical comparison over those published fields and projects matching
+terms as independent `semanticEvidence`. A catalog component can cite such
+evidence only through an explicitly published equal `term` or `tag`; BoK fields
+never complete CBD catalog or local CAR facts.
 
 `CbdRuntime.create` loads the authorized BoK configuration alongside catalog
 configuration. Read-only retrieval initialization refreshes catalog and BoK
@@ -82,3 +84,5 @@ observation time and expiry instead of relabeling stale evidence as current.
 rejection, fixed-path v1 manifest ingestion, identity separation, relative
 resource safety, byte/resource/term bounds, incompatible-schema failure, and
 duplicate preservation without rendered-page scraping.
+`SemanticRequirementMatchingSpec` covers lexical requirement matching and
+source-preserving MCP citation.

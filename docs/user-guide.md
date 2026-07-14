@@ -120,6 +120,15 @@ returned separately in `observations`; `issues` cites conflicts and
 `precedence` explains purpose-specific authority. `selectedObservation`
 remains absent because CBD Support does not choose a hidden winner.
 
+Matching BoK-site and current-query SIE terms appear separately in
+`semanticEvidence`, including source, term, match rationale, freshness, and
+evidence URI. A component result lists the applicable citation IDs in
+`semanticEvidenceIds` only when its catalog explicitly publishes the same term
+or tag. Semantic evidence can help discover that catalog profile, but it never
+adds component versions, runtime constraints, dependencies, operations, or
+artifact facts. An older retained SIE response is never reused for a different
+query.
+
 An authorized SIE source appears as `sie-bok` with
 `component-route-allowlist` authorization. Before retrieval it is
 `not-started`; a valid response makes it `ready`, while transport, MCP, schema,

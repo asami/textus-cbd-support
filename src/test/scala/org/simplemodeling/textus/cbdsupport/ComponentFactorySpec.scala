@@ -1,10 +1,13 @@
 package org.simplemodeling.textus.cbdsupport
 
+import java.time.Instant
+
 import org.goldenport.cncf.component.{ComponentCreate, ComponentOrigin}
 import org.goldenport.cncf.mcp.McpToolCatalog
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
+import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceKind, SemanticRequirementEvidence}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -102,6 +105,38 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       name shouldBe Some("textus-semantic-integration-engine")
       kind shouldBe Some("car")
       organization shouldBe Some("org.textus")
+    }
+
+    "project semantic requirement evidence as an independent MCP record" in {
+      Given("one source-owned semantic citation")
+      val evidence = SemanticRequirementEvidence(
+        "semantic::runtime::urn:bok:runtime",
+        "semantic",
+        InformationSourceKind.SIE_BOK,
+        "architecture:runtime",
+        Some("Execution Runtime"),
+        Some("Runtime definition."),
+        Some("architecture"),
+        Vector.empty,
+        Some("bok-main"),
+        "semantic",
+        0.9,
+        "SIE matched the runtime intent.",
+        "observed",
+        Instant.parse("2026-07-14T08:00:00Z"),
+        "urn:bok:runtime",
+        Vector.empty
+      )
+
+      When("the handwritten MCP projection renders the citation")
+      val record = new impl.ComponentFactory()._semantic_evidence_record(evidence)
+
+      Then("semantic ownership and evidence remain explicit without component fields")
+      record.getString("sourceId") shouldBe Some("semantic")
+      record.getString("sourceKind") shouldBe Some(InformationSourceKind.SIE_BOK)
+      record.getString("evidenceUri") shouldBe Some("urn:bok:runtime")
+      record.getString("observedAt") shouldBe Some("2026-07-14T08:00:00Z")
+      record.getAny("component") shouldBe empty
     }
 
     "extract canonical scalars from generated operation request records" in {

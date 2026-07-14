@@ -20,8 +20,9 @@ The JSON-RPC method is `tools/call`. CBD supplies `query`, an optional
 bounded, and query/category character limits are checked before transport. CBD
 does not use the legacy internal `sie.searchTerms` facade, SIE
 administration or ingestion routes, or SIE's RDF/vector storage.
-`CbdRetrieval.searchComponents` triggers the lookup with its requirement, but
-the returned component matches remain exclusively CBD catalog observations.
+`CbdRetrieval.searchComponents` triggers the lookup with its requirement. The
+current response becomes independent `semanticEvidence`; any returned
+component profile remains exclusively a CBD catalog observation.
 
 ## Evidence Contract
 
@@ -46,7 +47,9 @@ SIE owns terminology, definitions, datasets, semantic match classification,
 rationale, and evidence links. CBD Support owns component versions, runtime
 compatibility, dependencies, operations, artifacts, manuals, examples, and
 reuse guidance. SIE terms are stored as independent `sie-bok` observations;
-they are never copied into or used to complete a component profile.
+they are never copied into or used to complete a component profile. A catalog
+match may cite an SIE evidence ID only when its published `terms` or `tags`
+explicitly names that SIE term ID or title.
 
 SIE responses are query scoped and are not cached for reuse. Failure for a new
 query returns no result from an earlier query. Unified source state may retain
@@ -63,3 +66,5 @@ CBD Support from its catalog and local information sources.
 reserved identities, typed public tool invocation, response bounds, mandatory
 evidence, unified source readiness, and the absence of synthetic component
 profiles.
+`SemanticRequirementMatchingSpec` verifies that only the current query's SIE
+response is cited and that SIE match metadata remains SIE-owned.

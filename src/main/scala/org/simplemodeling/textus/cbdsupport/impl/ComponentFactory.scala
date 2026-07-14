@@ -8,7 +8,7 @@ import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, InformationSourceState, ResolvedComponentDependency}
-import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SourceAwareComponentSearchQuery}
+import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 
 /*
  * @since   Jul. 14, 2026
@@ -86,7 +86,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       _runtime.ensureInputsReady(fetcher).flatMap { _ =>
         val requirement = _required_string(action.record, "requirement")
         val limit = _optional_int(action.record, "limit").getOrElse(10)
-        _runtime.searchSieTerms(requirement, None, limit, fetcher).map { _ =>
+        _runtime.searchSieTerms(requirement, None, limit, fetcher).map { siesnapshots =>
           val result = _runtime.searchSourceAware(SourceAwareComponentSearchQuery(
             requirement,
             _optional_string(action.record, "organization"),
@@ -100,11 +100,12 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             _optional_string(action.record, "conflictCode"),
             _optional_string(action.record, "purpose"),
             limit
-          ))
+          ), siesnapshots)
           OperationResponse(Record.dataAuto(
-            "status" -> (if (result.report.observations.nonEmpty) "matched" else "no-match"),
+            "status" -> (if (result.report.observations.nonEmpty || result.semanticEvidence.nonEmpty) "matched" else "no-match"),
             "results" -> result.matches.map(_match_record),
             "observations" -> result.report.observations.map(_source_aware_observation_record),
+            "semanticEvidence" -> result.semanticEvidence.map(_semantic_evidence_record),
             "issues" -> result.report.issues.map(_source_aware_issue_record),
             "precedence" -> result.report.precedence.map(_source_aware_precedence_record),
             "selectedObservation" -> result.report.selectedObservation.map(_source_aware_observation_record),
@@ -262,7 +263,28 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "reference" -> _reference_record(result.profile),
       "matchKind" -> result.matchKind,
       "score" -> result.score,
-      "rationale" -> result.rationale
+      "rationale" -> result.rationale,
+      "semanticEvidenceIds" -> result.semanticEvidenceIds
+    )
+
+  private[cbdsupport] def _semantic_evidence_record(evidence: SemanticRequirementEvidence): Record =
+    Record.dataAuto(
+      "id" -> evidence.id,
+      "sourceId" -> evidence.sourceId,
+      "sourceKind" -> evidence.sourceKind,
+      "termId" -> evidence.termId,
+      "title" -> evidence.title,
+      "definition" -> evidence.definition,
+      "category" -> evidence.category,
+      "aliases" -> evidence.aliases,
+      "datasetId" -> evidence.datasetId,
+      "matchKind" -> evidence.matchKind,
+      "score" -> evidence.score,
+      "rationale" -> evidence.rationale,
+      "freshness" -> evidence.freshness,
+      "observedAt" -> evidence.observedAt.toString,
+      "evidenceUri" -> evidence.evidenceLocation,
+      "diagnostics" -> evidence.diagnostics
     )
 
   private def _profile_record(profile: ComponentProfile): Record =

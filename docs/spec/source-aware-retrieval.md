@@ -20,10 +20,10 @@ storage evidence, and it never fills an absent field from another source.
 `precedence` explains purpose-specific authority but is not an automatic
 selection rule. `selectedObservation` remains absent in this phase.
 
-BoK-site and SIE observations remain available as terminology inputs and
-source-state diagnostics. They are not converted into component observations
-until requirement matching can cite their semantic evidence separately under
-P3-30.
+BoK-site and current-query SIE terms are returned as independent
+`semanticEvidence`. They are never converted into component observations.
+Catalog matches reference the applicable citations by ID only when their
+published terms or tags declare the same term.
 
 ## Search Filters
 

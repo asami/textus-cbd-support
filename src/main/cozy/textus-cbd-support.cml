@@ -40,7 +40,7 @@ ComponentSearchResponse
 
 ##### DESCRIPTION
 
-Search catalog component profiles and local development/CAR observations by requirement, identity, version, source, freshness, availability state, conflict, and reconciliation-purpose filters without selecting a hidden winner.
+Search catalog component profiles and local development/CAR observations by requirement, identity, version, source, freshness, availability state, conflict, and reconciliation-purpose filters, citing BoK semantic evidence separately without selecting a hidden winner.
 
 #### getComponent
 
@@ -292,6 +292,7 @@ Administrative request to refresh configured catalogs.
 | status | CbdResultStatus | 1 |
 | results | ComponentMatch | * |
 | observations | SourceAwareObservation | * |
+| semanticEvidence | SemanticRequirementEvidence | * |
 | issues | SourceAwareIssue | * |
 | precedence | SourceAwarePrecedenceTier | * |
 | selectedObservation | SourceAwareObservation | ? |
@@ -395,6 +396,34 @@ Administrative request to refresh configured catalogs.
 | matchKind | ComponentMatchKind | 1 |
 | score | double | 1 |
 | rationale | ComponentMatchRationale | 1 |
+| semanticEvidenceIds | SemanticEvidenceId | * |
+
+## SemanticRequirementEvidence
+
+### DESCRIPTION
+
+One source-owned BoK term citation that matched the requirement. It remains separate from catalog profiles and local component observations.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | SemanticEvidenceId | 1 |
+| sourceId | ComponentSourceId | 1 |
+| sourceKind | InformationSourceKind | 1 |
+| termId | SemanticTermId | 1 |
+| title | SemanticEvidenceText | ? |
+| definition | SemanticEvidenceText | ? |
+| category | SemanticEvidenceText | ? |
+| aliases | SemanticEvidenceText | * |
+| datasetId | SemanticDatasetId | ? |
+| matchKind | ComponentMatchKind | 1 |
+| score | double | 1 |
+| rationale | ComponentMatchRationale | 1 |
+| freshness | InformationSourceFreshness | 1 |
+| observedAt | CatalogRefreshTime | 1 |
+| evidenceUri | ComponentReferenceUri | 1 |
+| diagnostics | CbdWarning | * |
 
 ## SourceAwareObservation
 
@@ -640,6 +669,38 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## ComponentRequirement
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## SemanticEvidenceId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## SemanticTermId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## SemanticEvidenceText
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## SemanticDatasetId
 
 ### ATTRIBUTE
 

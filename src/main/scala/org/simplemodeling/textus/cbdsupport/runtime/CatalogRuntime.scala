@@ -316,7 +316,8 @@ final case class ComponentMatch(
   profile: ComponentProfile,
   matchKind: String,
   score: Double,
-  rationale: String
+  rationale: String,
+  semanticEvidenceIds: Vector[String] = Vector.empty
 )
 
 final case class ComponentUsage(
@@ -947,7 +948,8 @@ final class CbdRuntime(
     version: Option[String],
     runtimeversion: Option[String],
     limit: Int,
-    sourceid: Option[String] = None
+    sourceid: Option[String] = None,
+    semanticevidence: Vector[SemanticRequirementEvidence] = Vector.empty
   ): Vector[ComponentMatch] = {
     val querytokens = _tokens(requirement)
     _profiles.flatMap { profile =>
@@ -968,14 +970,19 @@ final class CbdRuntime(
       val exact = Vector(profile.name, profile.identity, profile.title).exists(_.equalsIgnoreCase(requirement.trim))
       val texttokens = _tokens((Vector(profile.name, profile.title) ++ profile.summary ++ profile.tags ++ profile.terms).mkString(" "))
       val matched = querytokens.intersect(texttokens)
-      val score = if (exact) 1.0 else if (querytokens.isEmpty) 0.0 else matched.size.toDouble / querytokens.size.toDouble
-      if (score <= 0.0) None
+      val directscore = if (exact) 1.0 else if (querytokens.isEmpty) 0.0 else matched.size.toDouble / querytokens.size.toDouble
+      val semanticevidenceids = SemanticRequirementMatcher.matchingEvidenceIds(profile, semanticevidence)
+      val semanticscore = semanticevidence.filter(evidence => semanticevidenceids.contains(evidence.id)).map(_.score).maxOption.getOrElse(0.0)
+      val score = directscore.max(semanticscore)
+      if (score <= 0.0 && semanticevidenceids.isEmpty) None
       else Some(ComponentMatch(
         profile,
-        if (exact) "exact" else "candidate",
+        if (exact) "exact" else if (directscore > 0.0) "candidate" else "semantic",
         score,
         if (exact) s"Exact component identity match for ${profile.identity}."
-        else s"Catalog metadata matched ${matched.toVector.sorted.mkString(", ")}."
+        else if (directscore > 0.0) s"Catalog metadata matched ${matched.toVector.sorted.mkString(", ")}."
+        else s"Catalog terms cite ${semanticevidenceids.mkString(", ")}.",
+        semanticevidenceids
       ))
     }.sortBy(x => (if (x.matchKind == "exact") 0 else 1, -x.score, x.profile.name, x.profile.catalogId))
       .take(limit.max(1).min(100))
@@ -1209,7 +1216,20 @@ final class CbdRuntime(
     _local_inventory
   }
 
-  def searchSourceAware(query: SourceAwareComponentSearchQuery): SourceAwareComponentSearchResult = {
+  def searchSourceAware(
+    query: SourceAwareComponentSearchQuery,
+    currentsiesnapshots: Vector[SieBokSnapshot] = Vector.empty
+  ): SourceAwareComponentSearchResult = {
+    val semanticevidence = SemanticRequirementMatcher.matchEvidence(
+      query.requirement,
+      bokSnapshots,
+      currentsiesnapshots,
+      query.limit,
+      clock,
+      bokpolicy.refreshTtl,
+      query.sourceId,
+      query.sourceKind
+    )
     val catalogmatches = search(
       query.requirement,
       query.organization,
@@ -1217,7 +1237,8 @@ final class CbdRuntime(
       query.version,
       query.runtimeVersion,
       SourceAwareRetrieval.MAXIMUM_RESULTS,
-      query.sourceId
+      query.sourceId,
+      semanticevidence
     )
     val catalogentries = catalogmatches.flatMap { result =>
       observation(result.profile).map { observed =>
@@ -1225,7 +1246,7 @@ final class CbdRuntime(
       }
     }
     val localobservations = localInventory.toVector.flatMap(_.observations)
-    SourceAwareRetrieval.search(query, catalogentries, localobservations)
+    SourceAwareRetrieval.search(query, catalogentries, localobservations, semanticevidence)
   }
 
   def observation(profile: ComponentProfile): Option[ComponentObservation] =

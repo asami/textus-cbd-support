@@ -79,6 +79,10 @@ local/cache observations, exposes bounded source, freshness, availability,
 conflict, and purpose filters, reports participating evidence and precedence,
 and does not select a hidden winner. The runtime also projects configured local
 inputs through search, `listCatalogs`, and `status` without adding a publishing
-administration mutation. The next slice extends requirement matching with BoK
-semantic evidence cited separately from CBD catalog and local evidence under
-P3-30.
+administration mutation. Requirement matching now cites BoK semantic evidence
+separately from CBD catalog and local evidence. BoK sites use deterministic
+published-field matching, SIE retains its own match metadata for the current
+query, and catalog components reference citations only through explicitly
+equal published terms/tags without profile completion. The next slice adds
+intent-aware source/version usage guidance and marks any model inference
+separately under P3-31.

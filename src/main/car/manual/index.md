@@ -82,7 +82,11 @@ matching development-directory and local/cache CAR evidence without
 fabricating a profile. `issues` cites conflicting sources, `precedence`
 explains purpose-specific authority, and `selectedObservation` remains absent
 because retrieval does not select a hidden winner. A runtime constraint still
-requires affirmative catalog runtime evidence.
+requires affirmative catalog runtime evidence. `semanticEvidence` separately
+returns matching BoK-site and current-query SIE terms with source, rationale,
+freshness, and evidence URI. A catalog result uses `semanticEvidenceIds` only
+for explicitly equal published terms/tags; semantic fields never complete the
+component profile.
 
 ### getComponent
 

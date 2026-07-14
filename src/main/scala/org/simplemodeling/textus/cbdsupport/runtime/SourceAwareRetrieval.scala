@@ -25,6 +25,7 @@ final case class SourceAwareComponentSearchQuery(
 final case class SourceAwareComponentSearchResult(
   matches: Vector[ComponentMatch],
   report: ObservationReconciliationReport,
+  semanticEvidence: Vector[SemanticRequirementEvidence],
   warnings: Vector[String]
 )
 
@@ -34,7 +35,8 @@ object SourceAwareRetrieval {
   def search(
     query: SourceAwareComponentSearchQuery,
     catalogentries: Vector[(ComponentMatch, ReconciliationObservation)],
-    localobservations: Vector[LocalComponentObservation]
+    localobservations: Vector[LocalComponentObservation],
+    semanticevidence: Vector[SemanticRequirementEvidence] = Vector.empty
   ): SourceAwareComponentSearchResult = {
     val normalizedpurpose = query.purpose.filter(ReconciliationPurpose.ALL.contains)
       .getOrElse(ReconciliationPurpose.PUBLISHED_REUSE)
@@ -68,7 +70,12 @@ object SourceAwareRetrieval {
     val matches = catalogentries.collect {
       case (result, observation) if returnedobservations.contains(observation) => result
     }
-    SourceAwareComponentSearchResult(matches, boundedreport, warnings)
+    SourceAwareComponentSearchResult(
+      matches,
+      boundedreport,
+      semanticevidence.take(query.limit.max(1).min(MAXIMUM_RESULTS)),
+      warnings
+    )
   }
 
   private def _matches_requirement(

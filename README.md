@@ -58,6 +58,9 @@ A `runtimeVersion` search constraint accepts only profiles that publish an
 affirmative runtime minimum. Missing runtime evidence is not treated as
 compatibility. Publication entries that cannot be loaded are retained as source
 warnings, while `*-SNAPSHOT` versions remain separate from `latestStable`.
+An explicit `version` projects only that version's artifact, runtime,
+dependency, and model-metadata evidence; listed versions without detail do not
+inherit fields from the catalog-selected version.
 
 ## MCP Operations
 

@@ -56,6 +56,15 @@ final case class ComponentOperation(
   description: Option[String]
 )
 
+final case class ComponentVersionEvidence(
+  version: String,
+  runtimeMinimum: Option[String],
+  dependencies: Vector[ComponentDependency],
+  artifactUri: Option[URI],
+  modelMetadataUri: Option[URI],
+  hasDependencyMetadata: Boolean
+)
+
 final case class ComponentProfile(
   catalogId: String,
   organization: Option[String],
@@ -76,10 +85,45 @@ final case class ComponentProfile(
   evidenceUri: URI,
   modelMetadataUri: Option[URI],
   documentationUri: Option[URI],
+  versionEvidence: Vector[ComponentVersionEvidence],
   warnings: Vector[String]
 ) {
+  private def _version_neutral_warnings: Vector[String] =
+    warnings.filterNot { warning =>
+      warning.startsWith("Selected version ") ||
+      warning == "Catalog entry does not publish an artifact path for the selected version."
+    }
+
   def identity: String =
     organization.filter(_.nonEmpty).map(x => s"$x:$name").getOrElse(name)
+
+  def selectVersion(version: String): ComponentProfile = {
+    val requested = version.trim
+    versionEvidence.find(_.version == requested) match {
+      case Some(evidence) =>
+        copy(
+          selectedVersion = Some(requested),
+          dependencyMetadataVersion = Option.when(evidence.hasDependencyMetadata)(requested),
+          runtimeMinimum = evidence.runtimeMinimum,
+          dependencies = evidence.dependencies,
+          artifactUri = evidence.artifactUri,
+          modelMetadataUri = evidence.modelMetadataUri,
+          warnings = _version_neutral_warnings ++
+            Option.when(evidence.artifactUri.isEmpty)(s"Selected version $requested does not publish an artifact path.")
+        )
+      case None =>
+        copy(
+          selectedVersion = Some(requested),
+          dependencyMetadataVersion = None,
+          runtimeMinimum = None,
+          dependencies = Vector.empty,
+          artifactUri = None,
+          modelMetadataUri = None,
+          warnings = _version_neutral_warnings :+
+            s"Selected version $requested is listed without version-specific metadata."
+        )
+    }
+  }
 }
 
 final case class CatalogSnapshot(
@@ -226,10 +270,19 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
       val lateststable = _string(json, "latest_stable").orElse(_string(json, "latestStable"))
       val latestsnapshot = _string(json, "latest_snapshot").orElse(_string(json, "latestSnapshot"))
       val selectedversion = recommended.orElse(lateststable).orElse(latestsnapshot).orElse(versions.headOption)
-      val selectedentry = _array(json, "versions").find(x => selectedversion.forall(v => _string(x, "version").contains(v)))
       val artifactpath = _artifact_path(json, selectedversion)
       val catalogroot = source.baseUri.resolve(s"repository/catalog/$kind/")
       val modelmetadatapath = _string_at(json, "sidecars", "model_metadata_json")
+      val versionevidence = _version_evidence(
+        source,
+        json,
+        versions,
+        selectedversion,
+        modelmetadatapath,
+        catalogroot,
+        componentname
+      )
+      val selectedevidence = selectedversion.flatMap(v => versionevidence.find(_.version == v))
       ComponentProfile(
         catalogId = source.id,
         organization = _string(json, "organization").orElse(_string_at(json, "project", "organization")),
@@ -239,25 +292,72 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
         kind = kind,
         versions = versions,
         selectedVersion = selectedversion,
-        dependencyMetadataVersion = selectedentry.flatMap(_string(_, "version")),
+        dependencyMetadataVersion = selectedevidence.filter(_.hasDependencyMetadata).map(_.version),
         latestStable = lateststable,
         latestSnapshot = latestsnapshot,
-        runtimeMinimum = selectedentry.flatMap(_string_at(_, "runtime", "cncf", "minimum"))
-          .orElse(_string_at(json, "runtime", "minimum"))
-          .orElse(_string_at(json, "runtime", "cncf", "minimum")),
+        runtimeMinimum = selectedevidence.flatMap(_.runtimeMinimum),
         tags = (_strings(json, "tags") ++ _strings(json, "aliases")).distinct,
         terms = _strings(json, "terms"),
-        dependencies = (_dependencies(json) ++ selectedentry.toVector.flatMap(_dependencies)).distinct,
-        artifactUri = artifactpath.map(source.baseUri.resolve),
+        dependencies = selectedevidence.toVector.flatMap(_.dependencies),
+        artifactUri = selectedevidence.flatMap(_.artifactUri).orElse(artifactpath.map(source.baseUri.resolve)),
         evidenceUri = evidenceuri,
-        modelMetadataUri = Some(modelmetadatapath.map(source.baseUri.resolve).getOrElse(catalogroot.resolve(s"$componentname.model-metadata.json"))),
+        modelMetadataUri = selectedevidence.flatMap(_.modelMetadataUri),
         documentationUri = _string(json, "documentation").map(source.baseUri.resolve)
           .orElse(Some(source.baseUri.resolve(s"repository/$kind/$componentname/index.html"))),
+        versionEvidence = versionevidence,
         warnings = Vector.empty ++
           (if (versions.isEmpty) Vector("Catalog entry does not publish versions.") else Vector.empty) ++
           (if (artifactpath.isEmpty) Vector("Catalog entry does not publish an artifact path for the selected version.") else Vector.empty)
       )
     }
+  }
+
+  private def _version_evidence(
+    source: CatalogSource,
+    json: Json,
+    versions: Vector[String],
+    selectedversion: Option[String],
+    modelmetadatapath: Option[String],
+    catalogroot: URI,
+    componentname: String
+  ): Vector[ComponentVersionEvidence] = {
+    val commondependencies = _dependencies(json)
+    val entries = _array(json, "versions").flatMap { entry =>
+      _string(entry, "version").map { version =>
+        val isselected = selectedversion.contains(version)
+        val artifactpath = _string(entry, "file").orElse(_string(entry, "path"))
+          .orElse(Option.when(isselected)(_string(json, "file")).flatten)
+        val metadatapath = _string_at(entry, "sidecars", "model_metadata_json")
+          .orElse(Option.when(isselected)(modelmetadatapath).flatten)
+        ComponentVersionEvidence(
+          version,
+          _string_at(entry, "runtime", "cncf", "minimum")
+            .orElse(Option.when(isselected)(_string_at(json, "runtime", "minimum")).flatten)
+            .orElse(Option.when(isselected)(_string_at(json, "runtime", "cncf", "minimum")).flatten),
+          (commondependencies ++ _dependencies(entry)).distinct,
+          artifactpath.map(source.baseUri.resolve),
+          metadatapath.map(source.baseUri.resolve)
+            .orElse(Option.when(isselected)(Some(catalogroot.resolve(s"$componentname.model-metadata.json"))).flatten),
+          hasDependencyMetadata = _has_dependency_metadata(json) || _has_dependency_metadata(entry)
+        )
+      }
+    }
+    val entryversions = entries.map(_.version).toSet
+    val placeholders = versions.filterNot(entryversions).map { version =>
+      val isselected = selectedversion.contains(version)
+      ComponentVersionEvidence(
+        version,
+        Option.when(isselected)(_string_at(json, "runtime", "minimum")).flatten
+          .orElse(Option.when(isselected)(_string_at(json, "runtime", "cncf", "minimum")).flatten),
+        if (isselected) commondependencies else Vector.empty,
+        Option.when(isselected)(_string(json, "file").map(source.baseUri.resolve)).flatten,
+        Option.when(isselected) {
+          Some(modelmetadatapath.map(source.baseUri.resolve).getOrElse(catalogroot.resolve(s"$componentname.model-metadata.json")))
+        }.flatten,
+        hasDependencyMetadata = isselected && _has_dependency_metadata(json)
+      )
+    }
+    (entries ++ placeholders).sortBy(_.version)
   }
 
   private def _parse_operations(body: String, uri: URI): Consequence[Vector[ComponentOperation]] =
@@ -306,6 +406,11 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
       }
     }.distinct
   }
+
+  private def _has_dependency_metadata(json: Json): Boolean =
+    json.hcursor.downField("dependencies").focus.nonEmpty ||
+      json.hcursor.downField("component_descriptor").downField("dependencies").focus.nonEmpty ||
+      json.hcursor.downField("abi_manifest").downField("dependencies").focus.nonEmpty
 
   private def _array(json: Json, name: String): Vector[Json] =
     json.hcursor.downField(name).as[Vector[Json]].getOrElse(Vector.empty)
@@ -434,10 +539,20 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
       val snapshot = kindmetadata.flatMap(x => _string(x, "latestSnapshot"))
         .orElse(projectversion.filter(_is_snapshot))
       val selectedversion = stable.orElse(snapshot)
-      val selectedfile = _array(artifact, "files")
-        .filter(x => _string(x, "type").exists(_.equalsIgnoreCase(kind)))
-        .sortBy(x => if (_string(x, "version") == selectedversion) 0 else 1)
-        .headOption
+      val versionevidence = versions.map(_.trim).filter(_.nonEmpty).distinct.map { version =>
+        val versionfile = _array(artifact, "files")
+          .filter(x => _string(x, "type").exists(_.equalsIgnoreCase(kind)))
+          .find(x => _string(x, "version").contains(version))
+        ComponentVersionEvidence(
+          version,
+          None,
+          Vector.empty,
+          versionfile.flatMap(x => _string(x, "publicPath").orElse(_string(x, "warehousePath"))).map(source.baseUri.resolve),
+          None,
+          hasDependencyMetadata = false
+        )
+      }
+      val selectedevidence = selectedversion.flatMap(v => versionevidence.find(_.version == v))
       ComponentProfile(
         catalogId = source.id,
         organization = _string(project, "organization"),
@@ -454,11 +569,14 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
         tags = Vector.empty,
         terms = Vector.empty,
         dependencies = Vector.empty,
-        artifactUri = selectedfile.flatMap(x => _string(x, "publicPath").orElse(_string(x, "warehousePath"))).map(source.baseUri.resolve),
+        artifactUri = selectedevidence.flatMap(_.artifactUri),
         evidenceUri = evidenceuri,
         modelMetadataUri = None,
         documentationUri = Some(source.baseUri.resolve(s"en/catalog/$componentname/index.html")),
-        warnings = Vector.empty
+        versionEvidence = versionevidence,
+        warnings = Option.when(selectedversion.nonEmpty && selectedevidence.flatMap(_.artifactUri).isEmpty)(
+          s"Selected version ${selectedversion.get} does not publish an artifact path."
+        ).toVector
       )
     }
   }
@@ -544,10 +662,15 @@ final class CbdRuntime(
     limit: Int
   ): Vector[ComponentMatch] = {
     val querytokens = _tokens(requirement)
-    _profiles.filter { profile =>
+    _profiles.flatMap { profile =>
+      version match {
+        case Some(requested) if profile.versions.contains(requested) => Some(profile.selectVersion(requested))
+        case Some(_) => None
+        case None => Some(profile)
+      }
+    }.filter { profile =>
       organization.forall(x => profile.organization.exists(_.equalsIgnoreCase(x))) &&
         kind.forall(_.equalsIgnoreCase(profile.kind)) &&
-        version.forall(profile.versions.contains) &&
         runtimeversion.forall(x => profile.runtimeMinimum.exists(_version_lte(_, x)))
     }.flatMap { profile =>
       val exact = Vector(profile.name, profile.identity, profile.title).exists(_.equalsIgnoreCase(requirement.trim))
@@ -580,6 +703,7 @@ final class CbdRuntime(
       .filter(x => catalogid.forall(_ == x.catalogId))
       .sortBy(x => (_source_priority(x.catalogId), x.catalogId, x.name))
       .headOption
+      .map(x => version.map(x.selectVersion).getOrElse(x))
 
   def usage(
     profile: ComponentProfile,
@@ -706,6 +830,7 @@ final class CbdRuntime(
       .filter(_.name.equalsIgnoreCase(dependency.name))
       .filter(x => dependency.kind.forall(_.equalsIgnoreCase(x.kind)))
       .filter(x => dependency.version.forall(x.versions.contains))
+      .map(x => dependency.version.map(x.selectVersion).getOrElse(x))
       .sortBy(x => (x.kind, x.organization.getOrElse(""), x.name))
 
   private def _dependency_conflicts(

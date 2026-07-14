@@ -43,9 +43,9 @@ tests, compatibility governance, and release/publish evidence.
 
 ## Current Priority
 
-Phase 1 is complete and Phase 2 is in progress. The current slice adds bounded,
-same-catalog dependency graph resolution with explicit unresolved, ambiguous,
-cycle, and version-conflict evidence. The remaining Phase 2 boundary is richer
-default-catalog evidence, version selection, bounded caching, source
+Phase 1 is complete and Phase 2 is in progress. Current slices provide bounded,
+same-catalog dependency graph resolution plus version-specific profile
+projection with explicit missing and incompatible evidence. The remaining
+Phase 2 boundary is richer default-catalog evidence, bounded caching, source
 authorization, and refresh observability without changing the SIE/CBD
 ownership split.

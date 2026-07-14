@@ -277,7 +277,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "name" -> profile.name,
       "title" -> profile.title,
       "kind" -> profile.kind,
-      "version" -> profile.latestStable.orElse(profile.latestSnapshot).orElse(profile.versions.headOption),
+      "version" -> profile.selectedVersion.orElse(profile.latestStable).orElse(profile.latestSnapshot).orElse(profile.versions.headOption),
       "evidenceUri" -> profile.evidenceUri.toString
     )
 

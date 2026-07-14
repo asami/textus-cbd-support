@@ -6,7 +6,7 @@ deleted; a checked item requires observable evidence.
 ## Catalog Fidelity
 
 - [ ] `P2-01` Cozy repository parsing covers the Phase 2 version, dependency, runtime, artifact, and sidecar schema selected from real published catalogs.
-- [ ] `P2-02` Version selection distinguishes stable, snapshot, explicit request, missing evidence, and incompatible evidence without synthesizing a version.
+- [x] `P2-02` Version selection distinguishes stable, snapshot, explicit request, missing evidence, and incompatible evidence without synthesizing a version.
 - [ ] `P2-03` The default public catalog exposes rich Cozy repository indexes and model metadata, or the remaining publisher-side gap is explicitly closed as a future development candidate.
 
 ## Dependency Resolution

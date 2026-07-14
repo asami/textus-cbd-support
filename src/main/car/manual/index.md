@@ -38,11 +38,15 @@ Requires `requirement`. Optional `organization`, `kind`, `version`,
 `ComponentMatch` records with `ComponentReference`, detailed profile, match
 classification, score, rationale, and warnings. A runtime constraint requires
 affirmative catalog runtime evidence; an absent runtime minimum does not match.
+An explicit version projects that version's artifact, runtime, dependency, and
+model-metadata evidence before compatibility filtering.
 
 ### getComponent
 
 Requires exact `name`; optional organization, kind, version, and catalog ID
-disambiguate. Returns `no-match` rather than fabricating a component.
+disambiguate. An explicit version returns only its version-specific detail; a
+listed version without detail clears version-sensitive fields and adds a
+warning. Returns `no-match` rather than fabricating a component.
 
 ### getUsage
 

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Dependency graph resolution is verified; prepare the Phase 2 dependency-resolution release checkpoint.
+- Current step: Version-specific profile projection (`P2-02`) is implemented and under post-implementation review.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-2-checklist.md`.
 
@@ -37,6 +37,11 @@ cycle detection, conflict reporting, and depth bounds are implemented.
 explicitly requested version is traversed only when its dependency metadata
 version matches, including at the graph root.
 
+The second slice retains version-specific artifact, runtime, dependency, and
+model-metadata evidence. Explicit-version search and lookup project only that
+evidence. A listed version without detail remains selectable by identity but
+clears version-sensitive fields and reports the missing evidence.
+
 ## Verification Evidence
 
 - Focused dependency/runtime and MCP projection specifications: 16 tests passed
@@ -48,6 +53,8 @@ version matches, including at the graph root.
 - CAR lint: no FAIL findings; the project-local ABI baseline warning remains
   non-blocking for this development checkpoint.
 - CML lint: no findings on 2026-07-14.
+- Focused version-selection, dependency/runtime, and MCP projection
+  specifications: 18 tests passed on 2026-07-14.
 
 ## Closure Basis
 

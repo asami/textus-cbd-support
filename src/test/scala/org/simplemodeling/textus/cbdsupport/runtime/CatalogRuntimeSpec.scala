@@ -72,6 +72,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       profile.name shouldBe "textus-order"
       profile.selectedVersion shouldBe Some("1.2.0")
       profile.dependencyMetadataVersion shouldBe Some("1.2.0")
+      profile.versionEvidence.map(_.version) shouldBe Vector("1.2.0")
       profile.latestStable shouldBe Some("1.2.0")
       profile.runtimeMinimum shouldBe Some("0.5.1")
       profile.tags should contain allOf ("business.order", "order-component")
@@ -140,6 +141,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       profile.versions shouldBe Vector("1.2.0")
       profile.selectedVersion shouldBe Some("1.2.0")
       profile.dependencyMetadataVersion shouldBe None
+      profile.versionEvidence.map(_.version) shouldBe Vector("1.2.0")
       profile.artifactUri.map(_.toString) shouldBe Some(
         "https://www.simplemodeling.org/repository/car/textus-order/1.2.0/textus-order-1.2.0.car"
       )
@@ -197,6 +199,42 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       profile.latestStable shouldBe None
       profile.latestSnapshot shouldBe Some("2.0.0-SNAPSHOT")
       snapshot.warning.exists(_.contains("broken-component")) shouldBe true
+    }
+
+    "avoid reusing another publication version's artifact" in {
+      Given("a publication profile whose selected release has no matching artifact file")
+      val source = CatalogSource("publication", URI.create("https://catalog.example/"), 100, true)
+      val catalog = """<a href="textus-versioned/metadata.html">Metadata</a>"""
+      val catalogproject = """{"project":{"name":"textus-versioned","kind":"car"}}"""
+      val artifact =
+        """{
+          |  "project": {"name":"textus-versioned","kind":"car","version":"2.0.0"},
+          |  "artifact": {
+          |    "kinds": [{"type":"car","versions":["1.0.0","2.0.0"],"latestRelease":"2.0.0"}],
+          |    "files": [{
+          |      "type":"car",
+          |      "version":"1.0.0",
+          |      "publicPath":"repository/car/textus-versioned/1.0.0/textus-versioned-1.0.0.car"
+          |    }]
+          |  }
+          |}""".stripMargin
+      val fetcher = new MapCatalogFetcher(Map(
+        source.baseUri.resolve("en/catalog/index.html") -> catalog,
+        source.baseUri.resolve("metadata/catalog/projects/textus-versioned.json") -> catalogproject,
+        source.baseUri.resolve("metadata/artifacts/repository/textus-versioned.json") -> artifact
+      ))
+      val provider = new SimpleModelingPublicationCatalogProvider()
+
+      When("the selected release profile is read")
+      val profile = provider.read(source, fetcher).toOption.get.profiles.head
+
+      Then("the older artifact is not attributed to the selected release")
+      profile.selectedVersion shouldBe Some("2.0.0")
+      profile.artifactUri shouldBe None
+      profile.warnings.exists(_.contains("does not publish an artifact path")) shouldBe true
+      profile.selectVersion("1.0.0").artifactUri.map(_.toString) shouldBe Some(
+        "https://catalog.example/repository/car/textus-versioned/1.0.0/textus-versioned-1.0.0.car"
+      )
     }
   }
 
@@ -277,6 +315,11 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Given("a root whose graph contains conflicting versions, an unresolved edge, an ambiguous edge, and a cycle")
       val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
       val othersource = CatalogSource("other", URI.create("https://other.example/"), 200, true)
+      val rootdependencies = Vector(
+        ComponentDependency("branch", Some("1.0.0"), Some("car")),
+        ComponentDependency("shared", Some("1.0.0"), Some("car")),
+        ComponentDependency("ambiguous", Some("1.0.0"), Some("car"))
+      )
       val root = _component_profile(source.id).copy(
         name = "root",
         title = "Root",
@@ -284,11 +327,13 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         selectedVersion = Some("1.0.0"),
         dependencyMetadataVersion = Some("1.0.0"),
         latestStable = Some("1.0.0"),
-        dependencies = Vector(
-          ComponentDependency("branch", Some("1.0.0"), Some("car")),
-          ComponentDependency("shared", Some("1.0.0"), Some("car")),
-          ComponentDependency("ambiguous", Some("1.0.0"), Some("car"))
-        )
+        dependencies = rootdependencies,
+        versionEvidence = Vector(ComponentVersionEvidence("1.0.0", None, rootdependencies, None, None, true))
+      )
+      val branchdependencies = Vector(
+        ComponentDependency("shared", Some("2.0.0"), Some("car")),
+        ComponentDependency("missing", Some("1.0.0"), Some("car")),
+        ComponentDependency("root", Some("1.0.0"), Some("car"))
       )
       val branch = _component_profile(source.id).copy(
         name = "branch",
@@ -297,11 +342,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         selectedVersion = Some("1.0.0"),
         dependencyMetadataVersion = Some("1.0.0"),
         latestStable = Some("1.0.0"),
-        dependencies = Vector(
-          ComponentDependency("shared", Some("2.0.0"), Some("car")),
-          ComponentDependency("missing", Some("1.0.0"), Some("car")),
-          ComponentDependency("root", Some("1.0.0"), Some("car"))
-        )
+        dependencies = branchdependencies,
+        versionEvidence = Vector(ComponentVersionEvidence("1.0.0", None, branchdependencies, None, None, true))
       )
       val shared = _component_profile(source.id).copy(
         name = "shared",
@@ -310,7 +352,25 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         selectedVersion = Some("2.0.0"),
         dependencyMetadataVersion = Some("2.0.0"),
         latestStable = Some("2.0.0"),
-        dependencies = Vector(ComponentDependency("selected-child", Some("1.0.0"), Some("car")))
+        dependencies = Vector(ComponentDependency("selected-child", Some("1.0.0"), Some("car"))),
+        versionEvidence = Vector(
+          ComponentVersionEvidence(
+            "1.0.0",
+            None,
+            Vector(ComponentDependency("legacy-child", Some("1.0.0"), Some("car"))),
+            None,
+            None,
+            true
+          ),
+          ComponentVersionEvidence(
+            "2.0.0",
+            None,
+            Vector(ComponentDependency("selected-child", Some("1.0.0"), Some("car"))),
+            None,
+            None,
+            true
+          )
+        )
       )
       val selectedchild = _component_profile(source.id).copy(
         name = "selected-child",
@@ -319,8 +379,10 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         selectedVersion = Some("1.0.0"),
         dependencyMetadataVersion = Some("1.0.0"),
         latestStable = Some("1.0.0"),
-        dependencies = Vector.empty
+        dependencies = Vector.empty,
+        versionEvidence = Vector(ComponentVersionEvidence("1.0.0", None, Vector.empty, None, None, true))
       )
+      val legacychild = selectedchild.copy(name = "legacy-child", title = "Legacy Child")
       val ambiguousone = _component_profile(source.id).copy(
         organization = Some("org.one"),
         name = "ambiguous",
@@ -329,7 +391,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         selectedVersion = Some("1.0.0"),
         dependencyMetadataVersion = Some("1.0.0"),
         latestStable = Some("1.0.0"),
-        dependencies = Vector.empty
+        dependencies = Vector.empty,
+        versionEvidence = Vector(ComponentVersionEvidence("1.0.0", None, Vector.empty, None, None, true))
       )
       val ambiguoustwo = ambiguousone.copy(organization = Some("org.two"), title = "Ambiguous Two")
       val othermissing = _component_profile(othersource.id).copy(
@@ -344,7 +407,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val runtime = CbdRuntime.create(
         Vector(source, othersource),
         new PerSourceCatalogProvider(Map(
-          source.id -> Vector(root, branch, shared, selectedchild, ambiguousone, ambiguoustwo),
+          source.id -> Vector(root, branch, shared, selectedchild, legacychild, ambiguousone, ambiguoustwo),
           othersource.id -> Vector(othermissing)
         ))
       )
@@ -366,11 +429,13 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       resolution.conflicts.head.versions shouldBe Vector("1.0.0", "2.0.0")
       resolution.resolutions.count(_.dependency.name == "selected-child") shouldBe 1
       resolution.resolutions.find(_.dependency.name == "selected-child").map(_.path) should contain("car:org.textus:root@1.0.0 -> car:branch@1.0.0 -> car:shared@2.0.0 -> car:selected-child@1.0.0")
+      resolution.resolutions.count(_.dependency.name == "legacy-child") shouldBe 1
+      resolution.resolutions.find(_.dependency.name == "legacy-child").map(_.path) should contain("car:org.textus:root@1.0.0 -> car:shared@1.0.0 -> car:legacy-child@1.0.0")
       resolution.warnings.exists(_.contains("not published")) shouldBe true
       resolution.warnings.exists(_.contains("multiple profiles")) shouldBe true
       resolution.warnings.exists(_.contains("cycle detected")) shouldBe true
       resolution.warnings.exists(_.contains("Conflicting dependency versions")) shouldBe true
-      resolution.warnings.exists(_.contains("metadata is unavailable for requested version 1.0.0")) shouldBe true
+      resolution.warnings.exists(_.contains("metadata is unavailable for requested version 1.0.0")) shouldBe false
     }
 
     "stop transitive traversal at the requested bounded depth" in {
@@ -433,9 +498,60 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       resolution.resolutions shouldBe empty
       resolution.warnings.exists(_.contains("requested root version 1.0.0")) shouldBe true
     }
+
+    "project explicit version evidence without reusing selected-version details" in {
+      Given("a component with two detailed versions and one version listed without detail")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val olddependency = ComponentDependency("old-support", Some("1.0.0"), Some("car"))
+      val newdependency = ComponentDependency("new-support", Some("2.0.0"), Some("car"))
+      val oldartifact = URI.create("https://memory.example/repository/car/order/1.0.0/order-1.0.0.car")
+      val newartifact = URI.create("https://memory.example/repository/car/order/2.0.0/order-2.0.0.car")
+      val profile = _component_profile(source.id).copy(
+        versions = Vector("0.9.0", "1.0.0", "2.0.0"),
+        selectedVersion = Some("2.0.0"),
+        dependencyMetadataVersion = Some("2.0.0"),
+        latestStable = Some("2.0.0"),
+        runtimeMinimum = Some("0.5.0"),
+        dependencies = Vector(newdependency),
+        artifactUri = Some(newartifact),
+        versionEvidence = Vector(
+          ComponentVersionEvidence("1.0.0", Some("0.4.0"), Vector(olddependency), Some(oldartifact), None, true),
+          ComponentVersionEvidence("2.0.0", Some("0.5.0"), Vector(newdependency), Some(newartifact), None, true)
+        ),
+        warnings = Vector("Catalog entry does not publish an artifact path for the selected version.")
+      )
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        new InMemoryComponentCatalogProvider(Vector(profile))
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+
+      When("the older detailed version and the metadata-free listed version are selected")
+      val selected = runtime.get("textus-order", None, Some("car"), Some("1.0.0"), None).get
+      val matches = runtime.search("order", None, Some("car"), Some("1.0.0"), Some("0.4.0"), 10)
+      val incompatible = runtime.search("order", None, Some("car"), Some("1.0.0"), Some("0.3.0"), 10)
+      val missing = runtime.get("textus-order", None, Some("car"), Some("0.9.0"), None).get
+
+      Then("each result uses only evidence belonging to its explicit version")
+      selected.selectedVersion shouldBe Some("1.0.0")
+      selected.runtimeMinimum shouldBe Some("0.4.0")
+      selected.dependencies shouldBe Vector(olddependency)
+      selected.artifactUri shouldBe Some(oldartifact)
+      selected.warnings shouldBe empty
+      matches.map(_.profile.selectedVersion) shouldBe Vector(Some("1.0.0"))
+      incompatible shouldBe empty
+      missing.selectedVersion shouldBe Some("0.9.0")
+      missing.runtimeMinimum shouldBe None
+      missing.dependencies shouldBe empty
+      missing.artifactUri shouldBe None
+      missing.warnings.exists(_.contains("Catalog entry does not publish an artifact path")) shouldBe false
+      missing.warnings.exists(_.contains("without version-specific metadata")) shouldBe true
+    }
   }
 
-  private def _component_profile(catalogid: String): ComponentProfile =
+  private def _component_profile(catalogid: String): ComponentProfile = {
+    val dependencies = Vector(ComponentDependency("textus-identity", Some("0.4.0"), Some("car")))
+    val artifacturi = URI.create("https://catalog.example/textus-order.car")
     ComponentProfile(
       catalogid,
       Some("org.textus"),
@@ -451,13 +567,15 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Some("0.5.1"),
       Vector("business.order"),
       Vector.empty,
-      Vector(ComponentDependency("textus-identity", Some("0.4.0"), Some("car"))),
-      Some(URI.create("https://catalog.example/textus-order.car")),
+      dependencies,
+      Some(artifacturi),
       URI.create("https://catalog.example/metadata/repository/car/index.json"),
       None,
       None,
+      Vector(ComponentVersionEvidence("1.2.0", Some("0.5.1"), dependencies, Some(artifacturi), None, true)),
       Vector.empty
     )
+  }
 
   private final class MapCatalogFetcher(values: Map[URI, String]) extends CatalogFetcher {
     def get(uri: URI): Consequence[String] =

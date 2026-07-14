@@ -51,6 +51,10 @@ Support does not choose which version should win.
 `dependencyMetadataVersion` identifies the version owning parsed dependency
 data. If an explicit request differs, the affected dependency path stops and a
 warning is returned instead of applying another version's metadata.
+When `version` is explicit, search and exact lookup project only evidence for
+that version. If the catalog lists the version without detail, identity remains
+available but artifact, runtime, dependency, and model-metadata fields are
+absent with a warning.
 
 ## SIE Handoff
 

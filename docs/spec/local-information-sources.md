@@ -46,6 +46,11 @@ explicit `repository-path` evidence, but the adapter reports that the descriptor
 did not establish that version. A local or cached artifact is not treated as a
 remote publication or recommendation.
 
+The version-state reconciliation contract preserves these storage states as
+availability evidence and derives snapshot, release, unknown, or conflicting
+maturity independently. It does not rewrite local state from a catalog
+observation with the same component and version identity.
+
 ## Configuration Boundary
 
 The parser accepts already-resolved runtime settings for development directories
@@ -58,3 +63,5 @@ not access environment variables directly.
 `LocalSourceRuntimeSpec` covers canonical path authorization, symlink rejection,
 working `project.yaml` evidence, local/cache state separation, descriptor/path
 version separation, artifact checksums, and bounded discovery diagnostics.
+`VersionStateReconciliationSpec` covers the independent availability and
+maturity projection of these local observations.

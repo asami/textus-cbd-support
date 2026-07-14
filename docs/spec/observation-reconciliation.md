@@ -47,6 +47,10 @@ Every report sets `selectedObservation` to absent. Later read-only projection
 may display precedence and alternatives, but must not convert a tier into an
 automatic source or version choice.
 
+Version availability and snapshot/release maturity are normalized by the
+separate version-state reconciliation contract. Its observations remain
+source-specific and its report likewise exposes no selected or latest winner.
+
 ## Executable Evidence
 
 `ObservationReconciliationSpec` verifies source-shape normalization, all six

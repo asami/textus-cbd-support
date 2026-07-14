@@ -78,7 +78,7 @@ object ReconciliationObservation {
       Some(profile.name),
       Some(profile.kind),
       observation.version,
-      Some("remotely-published"),
+      Some(VersionAvailabilityState.REMOTELY_PUBLISHED),
       observation.freshness,
       profile.runtimeMinimum,
       profile.runtimeMaximum,
@@ -229,21 +229,21 @@ object ObservationReconciler {
   private def _precedence(purpose: String): Vector[ReconciliationPrecedenceTier] =
     purpose match {
       case ReconciliationPurpose.DEVELOPMENT_WORK => Vector(
-        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.DEVELOPMENT_DIRECTORY), Vector("working"), "Current working-state evidence."),
-        ReconciliationPrecedenceTier(2, Vector(InformationSourceKind.CAR_STORAGE), Vector("local-published", "cached"), "Locally available artifact evidence."),
-        ReconciliationPrecedenceTier(3, Vector(InformationSourceKind.PUBLISHED_CATALOG), Vector("remotely-published"), "Published comparison evidence.")
+        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.DEVELOPMENT_DIRECTORY), Vector(VersionAvailabilityState.WORKING), "Current working-state evidence."),
+        ReconciliationPrecedenceTier(2, Vector(InformationSourceKind.CAR_STORAGE), Vector(VersionAvailabilityState.LOCAL_PUBLISHED, VersionAvailabilityState.CACHED), "Locally available artifact evidence."),
+        ReconciliationPrecedenceTier(3, Vector(InformationSourceKind.PUBLISHED_CATALOG), Vector(VersionAvailabilityState.REMOTELY_PUBLISHED), "Published comparison evidence.")
       )
       case ReconciliationPurpose.LOCAL_EXECUTION => Vector(
-        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.CAR_STORAGE), Vector("local-published"), "Locally published artifact availability."),
-        ReconciliationPrecedenceTier(2, Vector(InformationSourceKind.CAR_STORAGE), Vector("cached"), "Cached artifact availability."),
-        ReconciliationPrecedenceTier(3, Vector(InformationSourceKind.DEVELOPMENT_DIRECTORY, InformationSourceKind.PUBLISHED_CATALOG), Vector("working", "remotely-published"), "Supporting identity evidence only.")
+        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.CAR_STORAGE), Vector(VersionAvailabilityState.LOCAL_PUBLISHED), "Locally published artifact availability."),
+        ReconciliationPrecedenceTier(2, Vector(InformationSourceKind.CAR_STORAGE), Vector(VersionAvailabilityState.CACHED), "Cached artifact availability."),
+        ReconciliationPrecedenceTier(3, Vector(InformationSourceKind.DEVELOPMENT_DIRECTORY, InformationSourceKind.PUBLISHED_CATALOG), Vector(VersionAvailabilityState.WORKING, VersionAvailabilityState.REMOTELY_PUBLISHED), "Supporting identity evidence only.")
       )
       case ReconciliationPurpose.PUBLISHED_REUSE => Vector(
-        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.PUBLISHED_CATALOG), Vector("remotely-published"), "Published reuse and compatibility authority."),
-        ReconciliationPrecedenceTier(2, Vector(InformationSourceKind.DEVELOPMENT_DIRECTORY, InformationSourceKind.CAR_STORAGE), Vector("working", "local-published", "cached"), "Local comparison evidence, not publication proof.")
+        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.PUBLISHED_CATALOG), Vector(VersionAvailabilityState.REMOTELY_PUBLISHED), "Published reuse and compatibility authority."),
+        ReconciliationPrecedenceTier(2, Vector(InformationSourceKind.DEVELOPMENT_DIRECTORY, InformationSourceKind.CAR_STORAGE), Vector(VersionAvailabilityState.WORKING, VersionAvailabilityState.LOCAL_PUBLISHED, VersionAvailabilityState.CACHED), "Local comparison evidence, not publication proof.")
       )
       case ReconciliationPurpose.ARTIFACT_VERIFICATION => Vector(
-        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.PUBLISHED_CATALOG, InformationSourceKind.DEVELOPMENT_DIRECTORY, InformationSourceKind.CAR_STORAGE), Vector("working", "local-published", "cached", "remotely-published"), "Peer checksum evidence; disagreement has no winner.")
+        ReconciliationPrecedenceTier(1, Vector(InformationSourceKind.PUBLISHED_CATALOG, InformationSourceKind.DEVELOPMENT_DIRECTORY, InformationSourceKind.CAR_STORAGE), VersionAvailabilityState.ALL, "Peer checksum evidence; disagreement has no winner.")
       )
     }
 

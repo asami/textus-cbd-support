@@ -107,14 +107,14 @@ object LocalInformationSourceConfig {
       "local-car",
       localvalue,
       "repository/car",
-      "local-published",
+      VersionAvailabilityState.LOCAL_PUBLISHED,
       localcarroot.fold(InformationSourceAuthorization.CANONICAL_STORAGE_ROOT)(_ => InformationSourceAuthorization.EXPLICIT_PATH_ALLOWLIST)
     )
     val cacheresult = _car_storage_source(
       "cache-car",
       cachevalue,
       "car",
-      "cached",
+      VersionAvailabilityState.CACHED,
       cachecarroot.fold(InformationSourceAuthorization.CANONICAL_STORAGE_ROOT)(_ => InformationSourceAuthorization.EXPLICIT_PATH_ALLOWLIST)
     )
     val carresults = Vector(localresult, cacheresult)
@@ -148,7 +148,7 @@ object LocalInformationSourceConfig {
         ),
         root,
         root,
-        "working"
+        VersionAvailabilityState.WORKING
       )
     }.left.map(reason => s"Development-directory entry ${index + 1} was rejected: $reason")
   }
@@ -166,7 +166,7 @@ object LocalInformationSourceConfig {
           id,
           InformationSourceKind.CAR_STORAGE,
           root.toString,
-          if (versionstate == "local-published") 400 else 500,
+          if (versionstate == VersionAvailabilityState.LOCAL_PUBLISHED) 400 else 500,
           true,
           authorization
         ),

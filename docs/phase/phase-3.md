@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05 plus P3-11 through P3-13 are complete; the next slice completes working, locally published, cached, and remotely published version-state reconciliation.
+- Current step: P3-01 through P3-05 plus P3-11 through P3-14 are complete; the next slice hardens remote and local source authorization boundaries under P3-20.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -166,6 +166,15 @@ winner.
   kind, and name form the comparison identity, so an unknown organization is
   not attached to a known publisher implicitly. `ObservationReconciliationSpec`
   passed 3 focused tests on 2026-07-14.
+- Version availability now has four stable, independent states: `working`,
+  `local-published`, `cached`, and `remotely-published`. Catalog normalization
+  preserves every declared stable and snapshot identity, while version text,
+  channel, status, and catalog declarations produce explicit `release`,
+  `snapshot`, `unknown`, or `conflicting` maturity. Reconciliation retains all
+  source alternatives and exposes no implicit latest winner.
+  `VersionStateReconciliationSpec` passed 3 focused tests, and the combined
+  version-state, local-source, and observation-reconciliation validation passed
+  13 tests on 2026-07-14.
 
 ## Closure Basis
 

@@ -71,6 +71,8 @@ stale, incompatible, version, and checksum conflicts with purpose-specific
 authority tiers and no automatic winner. Version-state reconciliation now
 keeps working, locally published, cached, and remotely published availability
 separate from release, snapshot, unknown, and conflicting maturity, including
-all declared catalog identities and no implicit latest winner. The next slice
-hardens remote-origin and local-root authorization boundaries before projecting
-all sources through search and MCP.
+all declared catalog identities and no implicit latest winner. Phase 3 has now
+hardened remote-origin, derived-fetch, local-root, traversal,
+symlink-escape, credential, and diagnostic-sanitization boundaries. The next
+slice defines bounded refresh and explicit last-known-good behavior for every
+adapter before projecting all sources through search and MCP.

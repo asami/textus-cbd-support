@@ -25,6 +25,10 @@ follow symbolic links and is bounded by artifact count, directory count,
 entries per directory, depth, metadata byte size, and artifact bytes read for
 checksum calculation.
 
+No-follow checks apply to every discovered entry as well as the configured
+root. A nested symbolic link to an artifact outside the authorized root is
+ignored and cannot become an observation.
+
 Reaching any discovery bound, including the maximum directory depth, produces a
 truncation warning. SHA-256 calculation reads at most the configured artifact
 byte limit plus one byte used only to detect overflow, even if a mutable artifact

@@ -57,9 +57,13 @@ final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with Bok
   ): Consequence[String] = {
     val bodybytes = response.body.getBytes(StandardCharsets.UTF_8).length
     if (response.statuscode < 200 || response.statuscode >= 300)
-      Consequence.serviceUnavailable(s"HTTP ${response.statuscode} while fetching $uri")
+      Consequence.serviceUnavailable(
+        s"HTTP ${response.statuscode} while fetching ${InformationSourceDiagnosticPolicy.renderUri(uri)}"
+      )
     else if (maxbytes.exists(bodybytes > _))
-      Consequence.serviceUnavailable(s"HTTP response exceeds ${maxbytes.get} bytes while fetching $uri")
+      Consequence.serviceUnavailable(
+        s"HTTP response exceeds ${maxbytes.get} bytes while fetching ${InformationSourceDiagnosticPolicy.renderUri(uri)}"
+      )
     else
       Consequence.success(response.body)
   }

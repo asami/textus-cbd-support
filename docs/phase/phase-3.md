@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05 plus P3-11 through P3-14 are complete; the next slice hardens remote and local source authorization boundaries under P3-20.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, and P3-20 are complete; the next slice defines bounded refresh and last-known-good behavior for every adapter under P3-21.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -175,6 +175,16 @@ winner.
   `VersionStateReconciliationSpec` passed 3 focused tests, and the combined
   version-state, local-source, and observation-reconciliation validation passed
   13 tests on 2026-07-14.
+- Remote catalog, BoK, and SIE inputs now retain their explicit exact-origin or
+  fixed-route authorization, and catalog-derived fetches additionally reject
+  user information even on the same origin. Local roots are canonical and
+  no-follow inspection prevents nested symbolic-link escape; BoK traversal
+  remains rejected before fetch. External diagnostics remove URI credentials,
+  queries, fragments, authorization values, and secret assignments, normalize
+  controls, and enforce a 2048-character bound before entering source state.
+  `InformationSourceSecuritySpec` passed 5 focused tests, and the combined
+  security, catalog, BoK, SIE, and local-source validation passed 44 tests on
+  2026-07-14.
 
 ## Closure Basis
 

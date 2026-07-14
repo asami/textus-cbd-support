@@ -41,6 +41,8 @@ not echoed, so embedded credentials cannot leak through warning text.
 
 Catalog metadata may retain artifact, documentation, or sidecar URIs as
 evidence, but `getUsage` fetches model metadata only when its origin matches the
-catalog evidence origin. A cross-origin sidecar remains visible as an
-unfetched reference and produces a warning; catalog content cannot expand
-outbound network authority.
+catalog evidence origin and the derived URI contains no user information. A
+cross-origin or credential-bearing sidecar remains visible as an unfetched,
+sanitized reference and produces a warning; catalog content cannot expand
+outbound network authority. Provider and transport failures pass through the
+shared bounded diagnostic sanitizer before entering source state.

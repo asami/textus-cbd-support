@@ -35,7 +35,9 @@ result retains these SIE fields without synthesizing absent values:
 An MCP error, malformed envelope, non-JSON text payload, missing required
 field, invalid evidence URI, or oversized response is a source failure. The
 source becomes `degraded`, its sanitized diagnostic remains observable, and no
-partial term result is accepted.
+partial term result is accepted. Transport failures and publisher warnings pass
+through the common bounded diagnostic sanitizer before entering unified source
+state.
 
 ## Ownership
 

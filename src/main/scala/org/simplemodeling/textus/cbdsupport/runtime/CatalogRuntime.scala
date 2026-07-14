@@ -95,6 +95,9 @@ private[runtime] object CatalogUriPolicy {
     left.getScheme != null && left.getHost != null &&
       right.getScheme != null && right.getHost != null &&
       origin(left) == origin(right)
+
+  def isAuthorizedFetch(base: URI, candidate: URI): Boolean =
+    candidate.getUserInfo == null && sameOrigin(base, candidate)
 }
 
 final case class CatalogCachePolicy(ttl: Duration) {
@@ -375,12 +378,13 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
       profile.documentationUri.map(("documentation", _, true))
     ).flatten
     profile.modelMetadataUri match {
-      case Some(uri) if !CatalogUriPolicy.sameOrigin(profile.evidenceUri, uri) =>
+      case Some(uri) if !CatalogUriPolicy.isAuthorizedFetch(profile.evidenceUri, uri) =>
+        val reason = if (uri.getUserInfo != null) "contains credentials" else "its origin differs from the catalog"
         Consequence.success(ComponentUsage(
           profile,
           Vector.empty,
           references,
-          profile.warnings :+ s"Model metadata was not fetched because its origin differs from the catalog: $uri."
+          profile.warnings :+ s"Model metadata was not fetched because $reason: ${InformationSourceDiagnosticPolicy.renderUri(uri)}."
         ))
       case Some(uri) =>
         fetcher.get(uri) match {
@@ -393,7 +397,9 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
               profile,
               Vector.empty,
               references,
-              profile.warnings :+ s"Model metadata unavailable at $uri: ${conclusion.display}"
+              profile.warnings :+ InformationSourceDiagnosticPolicy.sanitize(
+                s"Model metadata unavailable at ${InformationSourceDiagnosticPolicy.renderUri(uri)}: ${conclusion.display}"
+              )
             ))
         }
       case None =>
@@ -606,7 +612,7 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
           _string(diagnostic, "project_path").map(x => s"project_path=$x")
         ).flatten
         val details = Option.when(metadata.nonEmpty)(s" (${metadata.mkString(", ")})").getOrElse("")
-        s"Cozy catalog diagnostic $code$artifact$version$details."
+        InformationSourceDiagnosticPolicy.sanitize(s"Cozy catalog diagnostic $code$artifact$version$details.")
       }
     }
 
@@ -638,7 +644,9 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
     values: Vector[Consequence[A]]
   ): Consequence[(Vector[A], Vector[String])] = {
     val successes = values.collect { case Consequence.Success(value) => value }
-    val warnings = values.collect { case Consequence.Failure(conclusion) => conclusion.display }
+    val warnings = values.collect {
+      case Consequence.Failure(conclusion) => InformationSourceDiagnosticPolicy.sanitize(conclusion.display)
+    }
     if (successes.nonEmpty) Consequence.success(successes -> warnings)
     else Consequence.serviceUnavailable(warnings.mkString("; "))
   }
@@ -659,7 +667,8 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
       val results = names.map(name => name -> _read_profile(source, fetcher, name))
       val profiles = results.collect { case (_, Consequence.Success(Some(profile))) => profile }
       val warnings = results.collect {
-        case (name, Consequence.Failure(conclusion)) => s"$name: ${conclusion.display}"
+        case (name, Consequence.Failure(conclusion)) =>
+          InformationSourceDiagnosticPolicy.sanitize(s"$name: ${conclusion.display}")
       }
       if (profiles.nonEmpty)
         Consequence.success(CatalogSnapshot(
@@ -1067,7 +1076,10 @@ final class CbdRuntime(
           Some(snapshot)
         }
         case Consequence.Failure(conclusion) => synchronized {
-          _sie_bok_failures = _sie_bok_failures.updated(source.id, conclusion.display)
+          _sie_bok_failures = _sie_bok_failures.updated(
+            source.id,
+            InformationSourceDiagnosticPolicy.sanitize(conclusion.display)
+          )
           None
         }
       }
@@ -1171,7 +1183,7 @@ final class CbdRuntime(
           _failures = _failures.removed(source.id)
         }
         case Consequence.Failure(conclusion) => synchronized {
-          _failures = _failures.updated(source.id, conclusion.display)
+          _failures = _failures.updated(source.id, InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
         }
       }
     }
@@ -1193,7 +1205,7 @@ final class CbdRuntime(
           _bok_failures = _bok_failures.removed(source.id)
         }
         case Consequence.Failure(conclusion) => synchronized {
-          _bok_failures = _bok_failures.updated(source.id, conclusion.display)
+          _bok_failures = _bok_failures.updated(source.id, InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
         }
       }
     }

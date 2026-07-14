@@ -381,7 +381,9 @@ final class BokKnowledgeSourceProvider(clock: Clock = Clock.systemUTC()) {
           case Right(json) => _parse_terms(source, manifestid, resource, json, policy)
         }
       case Consequence.Failure(conclusion) =>
-        Vector.empty -> Vector(s"BoK source ${source.id} could not read glossary-terms resource: ${conclusion.display}")
+        Vector.empty -> Vector(InformationSourceDiagnosticPolicy.sanitize(
+          s"BoK source ${source.id} could not read glossary-terms resource: ${conclusion.display}"
+        ))
     }
   }
 

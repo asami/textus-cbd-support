@@ -264,7 +264,8 @@ final class SieBokProvider(clock: Clock = Clock.systemUTC()) {
         cursor.get[String]("query").toOption.map(_.trim).filter(_.nonEmpty).getOrElse(query),
         parsed.collect { case Right(term) => term },
         clock.instant(),
-        cursor.get[Vector[String]]("warnings").toOption.getOrElse(Vector.empty).map(_.trim).filter(_.nonEmpty)
+        cursor.get[Vector[String]]("warnings").toOption.getOrElse(Vector.empty)
+          .map(InformationSourceDiagnosticPolicy.sanitize).filter(_.nonEmpty)
       ))
     }
   }

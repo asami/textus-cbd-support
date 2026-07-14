@@ -49,7 +49,8 @@ adapter rejects an oversized response before it reaches manifest/resource
 parsing or runtime state. Manifest bytes, resource bytes, resource count, and
 term count are bounded. Truncation,
 malformed documents, incompatible schemas, rejected resources, and failed
-resource fetches remain observable. A valid manifest can produce a partial
+resource fetches remain observable through bounded, credential-redacted
+diagnostics. A valid manifest can produce a partial
 snapshot when one declared glossary resource fails; cache and last-known-good
 policy are later runtime-integration work.
 

@@ -61,5 +61,7 @@ build, CML lint, CAR lint, and representative MCP projection close the phase
 without changing the SIE/CBD ownership split. Phase 3 now has a unified
 source/observation vocabulary plus bounded, read-only adapters for explicitly
 configured development directories and CAR artifacts in the local warehouse
-and managed cache. The next slice adds authorized BoK-site and SIE-mediated BoK
-inputs before projecting all sources through search and MCP.
+and managed cache. Authorized BoK sites now enter the live runtime only through
+the Cozy `cncf.knowledge-source.v1` manifest and bounded machine-readable
+glossary resources. The next slice adds SIE-mediated BoK input through SIE's
+public component contract before projecting all sources through search and MCP.

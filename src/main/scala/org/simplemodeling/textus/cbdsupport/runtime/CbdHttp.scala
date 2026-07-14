@@ -1,6 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
+import java.nio.charset.StandardCharsets
 
 import cats.syntax.flatMap.*
 import cats.syntax.functor.*
@@ -15,21 +16,30 @@ import org.goldenport.protocol.Property
  * @version Jul. 14, 2026
  * @author  ASAMI, Tomoharu
  */
-final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher {
-  def get(uri: URI): Consequence[String] = {
+final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with BokFetcher {
+  def get(uri: URI): Consequence[String] =
+    _get(uri, None)
+
+  def get(uri: URI, maxbytes: Int): Consequence[String] =
+    _get(uri, Some(maxbytes))
+
+  private def _get(uri: URI, maxbytes: Option[Int]): Consequence[String] = {
     ProviderEngine.execute(Call(
       ProviderCall.Core(
-        ProviderRequest("cbd-catalog-http", "get", Map("url" -> uri.toString)),
+        ProviderRequest("cbd-information-http", "get", Map("url" -> uri.toString)),
         actioncore.executionContext,
         actioncore.component,
         actioncore.correlationId
       ),
       uri
     )).flatMap { response =>
-      if (response.statuscode >= 200 && response.statuscode < 300)
-        Consequence.success(response.body)
-      else
+      val bodybytes = response.body.getBytes(StandardCharsets.UTF_8).length
+      if (response.statuscode < 200 || response.statuscode >= 300)
         Consequence.serviceUnavailable(s"HTTP ${response.statuscode} while fetching $uri")
+      else if (maxbytes.exists(bodybytes > _))
+        Consequence.serviceUnavailable(s"HTTP response exceeds ${maxbytes.get} bytes while fetching $uri")
+      else
+        Consequence.success(response.body)
     }
   }
 

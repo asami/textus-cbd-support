@@ -128,7 +128,7 @@ CatalogListResponse
 
 ##### DESCRIPTION
 
-List authorized catalog sources, their current readiness, cache freshness, expiry, refresh-attempt state, and sanitized source-configuration warnings.
+List authorized information sources, including component catalogs and BoK sites, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.
 
 #### status
 
@@ -150,7 +150,7 @@ CbdStatusResponse
 
 ##### DESCRIPTION
 
-Report catalog readiness, selected snapshot counts, and degraded source state.
+Report federated information-source readiness, selected component counts, and degraded source state.
 
 ## CbdCatalogAdmin
 

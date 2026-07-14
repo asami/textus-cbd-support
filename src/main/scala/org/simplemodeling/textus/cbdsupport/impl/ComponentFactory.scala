@@ -7,7 +7,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
-import org.simplemodeling.textus.cbdsupport.runtime.{CatalogSourceState, CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ResolvedComponentDependency, ComponentUsage}
+import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, InformationSourceState, ResolvedComponentDependency}
 
 /*
  * @since   Jul. 14, 2026
@@ -82,7 +82,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.SearchComponentsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
-      _runtime.ensureReady(fetcher).map { _ =>
+      _runtime.ensureInputsReady(fetcher).map { _ =>
         val results = _runtime.search(
           _required_string(action.record, "requirement"),
           _optional_string(action.record, "organization"),
@@ -106,7 +106,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.GetComponentActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
-      _runtime.ensureReady(fetcher).map { _ =>
+      _runtime.ensureInputsReady(fetcher).map { _ =>
         val profile = _lookup(action.record, _optional_string(action.record, "kind"))
         OperationResponse(Record.dataAuto(
           "status" -> (if (profile.nonEmpty) "matched" else "no-match"),
@@ -124,7 +124,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.GetUsageActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
-      _runtime.ensureReady(fetcher).flatMap { _ =>
+      _runtime.ensureInputsReady(fetcher).flatMap { _ =>
         _lookup(action.record, _optional_string(action.record, "kind")) match {
           case Some(profile) =>
             _runtime.usage(profile, fetcher).map { usage =>
@@ -148,7 +148,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.ResolveDependenciesActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
-      _runtime.ensureReady(fetcher).map { _ =>
+      _runtime.ensureInputsReady(fetcher).map { _ =>
         val profile = _lookup(action.record, _optional_string(action.record, "kind"))
         val resolution = profile.map(_runtime.resolveDependencies(
           _,
@@ -174,7 +174,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.ListCatalogsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
-        "sources" -> _runtime.sourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
+        "sources" -> _runtime.informationSourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
         "warnings" -> _runtime.configurationWarnings
       )))
     }
@@ -185,13 +185,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.CbdStatusRequest
   ) extends CbdRetrievalService.StatusActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
-      val states = _runtime.sourceStates(includeDisabled = false)
+      val states = _runtime.informationSourceStates(includeDisabled = false)
       org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
         "overall" -> _runtime.overallStatus,
         "sourceCount" -> states.size,
         "readySourceCount" -> states.count(_.status == "ready"),
         "componentCount" -> _runtime.componentCount,
-        "detail" -> _optional_string(action.record, "detail").orElse(Some(states.map(x => s"${x.source.id}=${x.status}").mkString(", ")))
+        "detail" -> _optional_string(action.record, "detail").orElse(Some(states.map(x => s"${x.descriptor.id}=${x.status}").mkString(", ")))
       )))
     }
   }
@@ -334,32 +334,31 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "message" -> conflict.message
     )
 
-  private def _source_record(state: CatalogSourceState): Record =
+  private def _source_record(state: InformationSourceState): Record =
     {
-      val informationstate = state.informationSourceState
-      val descriptor = informationstate.descriptor
+      val descriptor = state.descriptor
       Record.dataAuto(
         "id" -> descriptor.id,
-        "baseUri" -> state.source.baseUri.toString,
+        "baseUri" -> descriptor.location,
         "sourceKind" -> descriptor.sourceKind,
         "location" -> descriptor.location,
         "authorization" -> descriptor.authorization,
         "enabled" -> descriptor.enabled,
         "priority" -> descriptor.priority,
-        "status" -> informationstate.status,
-        "componentCount" -> informationstate.observationCount,
-        "cacheStatus" -> informationstate.freshness.status,
-        "freshness" -> informationstate.freshness.status,
-        "refreshedAt" -> informationstate.freshness.observedAt.map(_.toString),
-        "expiresAt" -> informationstate.freshness.expiresAt.map(_.toString),
-        "lastRefreshAttemptAt" -> informationstate.freshness.lastRefreshAttemptAt.map(_.toString),
-        "diagnostics" -> informationstate.diagnostics,
-        "warning" -> state.warning
+        "status" -> state.status,
+        "componentCount" -> state.observationCount,
+        "cacheStatus" -> state.freshness.status,
+        "freshness" -> state.freshness.status,
+        "refreshedAt" -> state.freshness.observedAt.map(_.toString),
+        "expiresAt" -> state.freshness.expiresAt.map(_.toString),
+        "lastRefreshAttemptAt" -> state.freshness.lastRefreshAttemptAt.map(_.toString),
+        "diagnostics" -> state.diagnostics,
+        "warning" -> state.diagnostics.headOption
       )
     }
 
   private def _source_warnings: Vector[String] =
-    _runtime.configurationWarnings ++ _runtime.sourceStates(includeDisabled = false).flatMap(_.warning)
+    _runtime.configurationWarnings ++ _runtime.informationSourceStates(includeDisabled = false).flatMap(_.diagnostics)
 
   private def _required_string(record: Record, key: String): String =
     _optional_string(record, key)

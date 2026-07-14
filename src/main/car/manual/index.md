@@ -34,6 +34,21 @@ access. The first accepted ID is retained, and every rejection is returned as
 a warning without echoing credential-bearing input. The default
 simplemodeling.org source is built-in and does not require allowlisting.
 
+Additional BoK sites use a separate exact-origin boundary:
+
+```text
+TEXTUS_CBD_BOK_SITES=[id=]https://host/bok/
+TEXTUS_CBD_BOK_ALLOWED_ORIGINS=https://host
+```
+
+CBD Support reads only
+`metadata/cncf/knowledge-source.json` with schema
+`cncf.knowledge-source.v1`, followed by bounded manifest-declared
+`glossary-terms` JSON resources. It does not scrape rendered BoK pages or guess
+alternate metadata paths. Configured source identity and publisher manifest
+identity remain separate evidence. Invalid, duplicate, traversal,
+cross-origin, non-JSON, or oversized inputs remain diagnostic.
+
 CNCF MCP publication can be narrowed with:
 
 - `cncf.mcp.enabled=false`
@@ -83,18 +98,20 @@ data is an empty evidence set, not an assertion of no dependencies.
 
 ### listCatalogs
 
-Returns source identity, base URI, priority, readiness, component count,
-cache status, refresh time, expiry time, latest refresh-attempt time, and
-warning. `cacheStatus` is `fresh`, `stale`, `empty`, or `disabled`. Disabled
-sources are included only when requested. The response-level `warnings` field
-also reports rejected source configuration.
+Returns authorized information-source identity, base URI, kind, priority,
+readiness, observation count, freshness, latest refresh-attempt time, and
+diagnostics. Catalog freshness uses `fresh`, `stale`, `empty`, or `disabled`;
+a successfully observed BoK site uses `observed`. Disabled sources are included
+only when requested. The response-level `warnings` field also reports rejected
+catalog and BoK configuration. The operation name remains `listCatalogs` for
+Phase 2 compatibility.
 
 ### status
 
-Returns aggregate state and counts. `ready` means at least one current source
-is ready; `degraded` means a source failed, a retained snapshot is stale, or
-all initial loads failed; `not-started` means no enabled source has been
-attempted.
+Returns aggregate state and counts across catalog and BoK inputs. `ready` means
+current enabled inputs are ready; `degraded` means an input failed, a retained
+catalog snapshot is stale, or all initial catalog loads failed; `not-started`
+means no enabled source has been attempted.
 
 ## CbdCatalogAdmin Operation
 

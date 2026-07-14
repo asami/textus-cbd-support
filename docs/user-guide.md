@@ -76,6 +76,16 @@ effective port; it does not authorize another scheme or port. The built-in
 simplemodeling.org source does not require an allowlist entry. Rejected entries
 are excluded from network access and returned as warnings.
 
+Additional BoK sites use `TEXTUS_CBD_BOK_SITES` and
+`TEXTUS_CBD_BOK_ALLOWED_ORIGINS` with the same `[id=]base-uri` and exact-origin
+authorization model. A supported site must publish
+`metadata/cncf/knowledge-source.json` using
+`schemaVersion=cncf.knowledge-source.v1`; CBD Support follows only bounded
+manifest-declared `glossary-terms` JSON and never scrapes rendered pages.
+`listCatalogs` retains its compatibility name but reports both catalog and BoK
+source identity, kind, readiness, freshness, and diagnostics. BoK terms remain
+semantic evidence and are not converted into component catalog facts.
+
 ## SIE Handoff
 
 SIE component discovery returns only `ComponentReference`. The shared fields

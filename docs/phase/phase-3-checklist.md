@@ -6,7 +6,7 @@ deleted; a checked item requires observable evidence.
 ## Input Source Contracts
 
 - [x] `P3-01` simplemodeling.org remains the built-in public source and its observations retain an explicit source identity.
-- [ ] `P3-02` Other BoK sites can be explicitly configured and authorized through supported machine-readable contracts without rendered-page scraping or silent identity merging.
+- [x] `P3-02` Other BoK sites can be explicitly configured and authorized through supported machine-readable contracts without rendered-page scraping or silent identity merging.
 - [ ] `P3-03` SIE-mediated BoK knowledge is retrieved with evidence while preserving SIE ownership of terminology and semantic relationships and CBD Support ownership of component detail.
 - [x] `P3-04` Explicitly configured development directories are inspected read-only with bounded scope and distinguish working evidence from published fact.
 - [x] `P3-05` CAR versions in the local warehouse and managed cache are inventoried separately, including component, version, channel, artifact, and checksum evidence when available.

@@ -69,8 +69,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.getComponent" -> "Resolve one exact catalog component identity without inventing unavailable versions or metadata.",
         "CbdSupport.CbdRetrieval.getUsage" -> "Return generated contract references, operation summaries, documentation, and artifact evidence for one catalog component.",
         "CbdSupport.CbdRetrieval.resolveDependencies" -> "Return direct and bounded transitive dependency evidence for one catalog component, including unresolved paths and explicit version conflicts without choosing a winner.",
-        "CbdSupport.CbdRetrieval.listCatalogs" -> "List authorized catalog sources, their current readiness, cache freshness, expiry, refresh-attempt state, and sanitized source-configuration warnings.",
-        "CbdSupport.CbdRetrieval.status" -> "Report catalog readiness, selected snapshot counts, and degraded source state."
+        "CbdSupport.CbdRetrieval.listCatalogs" -> "List authorized information sources, including component catalogs and BoK sites, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.",
+        "CbdSupport.CbdRetrieval.status" -> "Report federated information-source readiness, selected component counts, and degraded source state."
       )
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
     }

@@ -824,11 +824,17 @@ final class CbdRuntime(
   provider: ComponentCatalogProvider,
   cachepolicy: CatalogCachePolicy,
   clock: Clock,
-  configurationwarnings: Vector[String]
+  configurationwarnings: Vector[String],
+  val bokSources: Vector[BokSource],
+  bokprovider: BokKnowledgeSourceProvider,
+  bokpolicy: BokInspectionPolicy
 ) {
   private var _snapshots = Map.empty[String, CatalogSnapshot]
   private var _failures = Map.empty[String, String]
   private var _last_refresh_attempts = Map.empty[String, Instant]
+  private var _bok_snapshots = Map.empty[String, BokSourceSnapshot]
+  private var _bok_failures = Map.empty[String, String]
+  private var _bok_last_refresh_attempts = Map.empty[String, Instant]
 
   def ensureReady(fetcher: CatalogFetcher): Consequence[Unit] = synchronized {
     val now = clock.instant()
@@ -841,6 +847,14 @@ final class CbdRuntime(
       else Consequence.serviceUnavailable(_failures.values.toVector.sorted.mkString("; "))
     }
   }
+
+  def ensureInputsReady(fetcher: CatalogFetcher & BokFetcher): Consequence[Unit] =
+    ensureReady(fetcher).map { _ =>
+      val selected = synchronized {
+        bokSources.filter(_.enabled).filterNot(source => _bok_snapshots.contains(source.id))
+      }
+      if (selected.nonEmpty) _refresh_bok_sources(selected, fetcher)
+    }
 
   def refresh(
     sourceid: Option[String],
@@ -1012,6 +1026,33 @@ final class CbdRuntime(
     }
   }
 
+  def bokSourceStates(includeDisabled: Boolean): Vector[BokSourceState] = synchronized {
+    bokSources.filter(x => includeDisabled || x.enabled).sortBy(x => (x.priority, x.id)).map { source =>
+      val snapshot = _bok_snapshots.get(source.id)
+      val diagnostics = (_bok_failures.get(source.id).toVector ++ snapshot.toVector.flatMap(_.warnings)).distinct
+      BokSourceState(
+        source,
+        if (!source.enabled) "disabled" else if (diagnostics.nonEmpty) "degraded" else if (snapshot.nonEmpty) "ready" else "not-started",
+        snapshot.map(_.terms.size).getOrElse(0),
+        snapshot.map(_.observedAt),
+        _bok_last_refresh_attempts.get(source.id),
+        diagnostics
+      )
+    }
+  }
+
+  def informationSourceStates(includeDisabled: Boolean): Vector[InformationSourceState] =
+    (sourceStates(includeDisabled).map(_.informationSourceState) ++
+      bokSourceStates(includeDisabled).map(_.informationSourceState))
+      .sortBy(state => (state.descriptor.priority, state.descriptor.id))
+
+  def bokSnapshots: Vector[BokSourceSnapshot] = synchronized {
+    _bok_snapshots.values.toVector.sortBy(snapshot => (snapshot.source.priority, snapshot.source.id))
+  }
+
+  def bokTerms: Vector[BokTermObservation] =
+    bokSnapshots.flatMap(_.terms)
+
   def observation(profile: ComponentProfile): Option[ComponentObservation] =
     profile.observationContext.map { context =>
       val matchingstate = sourceStates(includeDisabled = true).find { state =>
@@ -1033,7 +1074,7 @@ final class CbdRuntime(
     }
 
   def overallStatus: String = {
-    val states = sourceStates(includeDisabled = false)
+    val states = informationSourceStates(includeDisabled = false)
     if (states.exists(_.status == "ready") && states.exists(_.status == "degraded")) "degraded"
     else if (states.exists(_.status == "ready")) "ready"
     else if (states.exists(_.status == "degraded")) "degraded"
@@ -1081,6 +1122,27 @@ final class CbdRuntime(
       }
     }
     Consequence.success(sourceStates(includeDisabled = true))
+  }
+
+  private def _refresh_bok_sources(
+    selected: Vector[BokSource],
+    fetcher: BokFetcher
+  ): Unit = {
+    selected.foreach { source =>
+      val attemptedat = clock.instant()
+      synchronized {
+        _bok_last_refresh_attempts = _bok_last_refresh_attempts.updated(source.id, attemptedat)
+      }
+      bokprovider.read(source, fetcher, bokpolicy) match {
+        case Consequence.Success(snapshot) => synchronized {
+          _bok_snapshots = _bok_snapshots.updated(source.id, snapshot)
+          _bok_failures = _bok_failures.removed(source.id)
+        }
+        case Consequence.Failure(conclusion) => synchronized {
+          _bok_failures = _bok_failures.updated(source.id, conclusion.display)
+        }
+      }
+    }
   }
 
   private def _expires_at(snapshot: CatalogSnapshot): Instant =
@@ -1162,27 +1224,74 @@ object CbdRuntime {
   def create(): CbdRuntime = {
     val cozy = new CozyComponentCatalogProvider()
     val publication = new SimpleModelingPublicationCatalogProvider()
+    val clock = Clock.systemUTC()
     val configuration = CatalogSourceConfig.loadConfiguration()
+    val bokconfiguration = BokSourceConfig.loadConfiguration(
+      configuration.sources.map(_.id).toSet ++ Set("local-car", "cache-car")
+    )
     new CbdRuntime(
       configuration.sources,
       new CompatibleComponentCatalogProvider(cozy, publication),
       CatalogCachePolicy.DEFAULT,
-      Clock.systemUTC(),
-      configuration.warnings
+      clock,
+      configuration.warnings ++ bokconfiguration.warnings,
+      bokconfiguration.sources,
+      new BokKnowledgeSourceProvider(clock),
+      BokInspectionPolicy.DEFAULT
     )
   }
 
   def create(
     sources: Vector[CatalogSource],
     provider: ComponentCatalogProvider
-  ): CbdRuntime = new CbdRuntime(sources, provider, CatalogCachePolicy.DEFAULT, Clock.systemUTC(), Vector.empty)
+  ): CbdRuntime = {
+    val clock = Clock.systemUTC()
+    new CbdRuntime(
+      sources,
+      provider,
+      CatalogCachePolicy.DEFAULT,
+      clock,
+      Vector.empty,
+      Vector.empty,
+      new BokKnowledgeSourceProvider(clock),
+      BokInspectionPolicy.DEFAULT
+    )
+  }
 
   def create(
     sources: Vector[CatalogSource],
     provider: ComponentCatalogProvider,
     cachepolicy: CatalogCachePolicy,
     clock: Clock
-  ): CbdRuntime = new CbdRuntime(sources, provider, cachepolicy, clock, Vector.empty)
+  ): CbdRuntime = new CbdRuntime(
+    sources,
+    provider,
+    cachepolicy,
+    clock,
+    Vector.empty,
+    Vector.empty,
+    new BokKnowledgeSourceProvider(clock),
+    BokInspectionPolicy.DEFAULT
+  )
+
+  def createFederated(
+    sources: Vector[CatalogSource],
+    provider: ComponentCatalogProvider,
+    cachepolicy: CatalogCachePolicy,
+    clock: Clock,
+    boksources: Vector[BokSource],
+    bokprovider: BokKnowledgeSourceProvider,
+    bokpolicy: BokInspectionPolicy = BokInspectionPolicy.DEFAULT
+  ): CbdRuntime = new CbdRuntime(
+    sources,
+    provider,
+    cachepolicy,
+    clock,
+    Vector.empty,
+    boksources,
+    bokprovider,
+    bokpolicy
+  )
 }
 
 object CatalogSourceConfig {

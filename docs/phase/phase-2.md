@@ -1,0 +1,55 @@
+# Phase 2: Catalog Fidelity and Resolution
+
+Stage Status:
+- Current status: IN_PROGRESS
+- Current step: Dependency graph resolution is verified; prepare the Phase 2 dependency-resolution release checkpoint.
+- Owner: Textus CBD development
+- Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-2-checklist.md`.
+
+## Purpose
+
+Deepen catalog fidelity and resolution while preserving evidence, catalog
+identity, and the established SIE/CBD ownership split.
+
+## Scope
+
+- Richer Cozy catalog schema and explicit version-selection behavior.
+- Bounded dependency graph traversal with unresolved, ambiguous, cyclic, and
+  version-conflict evidence.
+- Configured-source authorization.
+- Bounded catalog caching and refresh observability.
+- Verification against representative and deployed catalogs.
+
+## Non-Goals
+
+- Automatic dependency installation or conflict winner selection.
+- Moving component detail into SIE.
+- Generative recommendation ranking, which belongs to Phase 3.
+- Production credential lifecycle and SAR composition governance, which belong
+  to Phase 4.
+
+## Current Implementation Slice
+
+The first slice keeps the existing direct `dependencies` response and adds a
+bounded graph projection. Same-catalog resolution, incomplete-edge reporting,
+cycle detection, conflict reporting, and depth bounds are implemented.
+`selectedVersion` and `dependencyMetadataVersion` are separate evidence: an
+explicitly requested version is traversed only when its dependency metadata
+version matches, including at the graph root.
+
+## Verification Evidence
+
+- Focused dependency/runtime and MCP projection specifications: 16 tests passed
+  on 2026-07-14.
+- Full repository test: 16 tests passed on 2026-07-14 using the required local
+  Cozy `0.3.0-SNAPSHOT` generation runtime.
+- CAR build: `target/textus-cbd-support-0.1.0-SNAPSHOT.car` generated on
+  2026-07-14.
+- CAR lint: no FAIL findings; the project-local ABI baseline warning remains
+  non-blocking for this development checkpoint.
+- CML lint: no findings on 2026-07-14.
+
+## Closure Basis
+
+Phase 2 is DONE only when every item in `phase-2-checklist.md` is `[x]` and its
+verification evidence is recorded here.

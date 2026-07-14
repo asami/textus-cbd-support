@@ -43,7 +43,9 @@ tests, compatibility governance, and release/publish evidence.
 
 ## Current Priority
 
-Phase 1 is complete. The next development boundary is Phase 2 catalog fidelity:
-publish richer Cozy repository indexes/model-metadata for the default catalog,
-add bounded caching and source authorization, and deepen conflict-aware
-dependency/version resolution without changing the SIE/CBD ownership split.
+Phase 1 is complete and Phase 2 is in progress. The current slice adds bounded,
+same-catalog dependency graph resolution with explicit unresolved, ambiguous,
+cycle, and version-conflict evidence. The remaining Phase 2 boundary is richer
+default-catalog evidence, version selection, bounded caching, source
+authorization, and refresh observability without changing the SIE/CBD
+ownership split.

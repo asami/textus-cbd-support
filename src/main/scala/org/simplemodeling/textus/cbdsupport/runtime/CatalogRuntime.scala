@@ -26,6 +26,29 @@ final case class ComponentDependency(
   kind: Option[String]
 )
 
+final case class ResolvedComponentDependency(
+  dependency: ComponentDependency,
+  status: String,
+  depth: Int,
+  path: String,
+  resolvedProfile: Option[ComponentProfile]
+)
+
+final case class ComponentDependencyConflict(
+  name: String,
+  kind: Option[String],
+  versions: Vector[String],
+  paths: Vector[String],
+  message: String
+)
+
+final case class ComponentDependencyResolution(
+  directDependencies: Vector[ComponentDependency],
+  resolutions: Vector[ResolvedComponentDependency],
+  conflicts: Vector[ComponentDependencyConflict],
+  warnings: Vector[String]
+)
+
 final case class ComponentOperation(
   service: Option[String],
   operation: String,
@@ -41,6 +64,8 @@ final case class ComponentProfile(
   summary: Option[String],
   kind: String,
   versions: Vector[String],
+  selectedVersion: Option[String],
+  dependencyMetadataVersion: Option[String],
   latestStable: Option[String],
   latestSnapshot: Option[String],
   runtimeMinimum: Option[String],
@@ -213,6 +238,8 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
         summary = _string(json, "summary").orElse(_string(json, "description")),
         kind = kind,
         versions = versions,
+        selectedVersion = selectedversion,
+        dependencyMetadataVersion = selectedentry.flatMap(_string(_, "version")),
         latestStable = lateststable,
         latestSnapshot = latestsnapshot,
         runtimeMinimum = selectedentry.flatMap(_string_at(_, "runtime", "cncf", "minimum"))
@@ -419,6 +446,8 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
         summary = _string(project, "summary").orElse(_string(project, "description")),
         kind = kind,
         versions = versions.map(_.trim).filter(_.nonEmpty).distinct,
+        selectedVersion = selectedversion,
+        dependencyMetadataVersion = None,
         latestStable = stable,
         latestSnapshot = snapshot,
         runtimeMinimum = None,
@@ -557,6 +586,87 @@ final class CbdRuntime(
     fetcher: CatalogFetcher
   ): Consequence[ComponentUsage] = provider.readUsage(profile, fetcher)
 
+  def resolveDependencies(
+    profile: ComponentProfile,
+    maxdepth: Int
+  ): ComponentDependencyResolution =
+    resolveDependencies(profile, None, maxdepth)
+
+  def resolveDependencies(
+    profile: ComponentProfile,
+    requestedversion: Option[String],
+    maxdepth: Int
+  ): ComponentDependencyResolution = {
+    val boundeddepth = maxdepth.max(1).min(CbdRuntime.MAX_DEPENDENCY_DEPTH)
+    val rootversion = requestedversion.orElse(_selected_version(profile))
+    val rootlabel = _profile_label(profile, rootversion)
+    val rootkey = _profile_key(profile, rootversion)
+    val rootmetadataavailable = requestedversion.forall(profile.dependencyMetadataVersion.contains)
+    val directdependencies = if (rootmetadataavailable) profile.dependencies else Vector.empty
+
+    def _walk_(
+      parent: ComponentProfile,
+      depth: Int,
+      ancestors: Set[String],
+      path: Vector[String]
+    ): Vector[ResolvedComponentDependency] =
+      parent.dependencies.flatMap { dependency =>
+        val dependencylabel = _dependency_label(dependency)
+        val dependencypath = path :+ dependencylabel
+        val renderedpath = dependencypath.mkString(" -> ")
+        _dependency_candidates(profile.catalogId, dependency) match {
+          case Vector() =>
+            Vector(ResolvedComponentDependency(dependency, "unresolved", depth, renderedpath, None))
+          case Vector(target) =>
+            val targetkey = _profile_key(target, dependency.version.orElse(_selected_version(target)))
+            val metadataavailable = dependency.version.forall(target.dependencyMetadataVersion.contains)
+            if (ancestors.contains(targetkey))
+              Vector(ResolvedComponentDependency(dependency, "cycle", depth, renderedpath, Some(target)))
+            else {
+              val resolved = ResolvedComponentDependency(dependency, "resolved", depth, renderedpath, Some(target))
+              if (depth >= boundeddepth) Vector(resolved)
+              else if (!metadataavailable) Vector(resolved)
+              else resolved +: _walk_(target, depth + 1, ancestors + targetkey, dependencypath)
+            }
+          case _ =>
+            Vector(ResolvedComponentDependency(dependency, "ambiguous", depth, renderedpath, None))
+        }
+      }
+
+    val resolutions =
+      if (rootmetadataavailable) _walk_(profile, 1, Set(rootkey), Vector(rootlabel))
+      else Vector.empty
+    val conflicts = _dependency_conflicts(resolutions)
+    val warnings = (
+      Option.when(!rootmetadataavailable) {
+        val requested = requestedversion.get
+        val selected = profile.dependencyMetadataVersion.getOrElse("unknown")
+        s"Direct dependency metadata is unavailable for requested root version $requested; catalog metadata selects $selected: $rootlabel."
+      }.toVector ++ resolutions.collect {
+        case resolution if resolution.status == "unresolved" =>
+          s"Dependency is not published in catalog ${profile.catalogId}: ${resolution.path}."
+        case resolution if resolution.status == "ambiguous" =>
+          s"Dependency matches multiple profiles in catalog ${profile.catalogId}: ${resolution.path}."
+        case resolution if resolution.status == "cycle" =>
+          s"Dependency cycle detected: ${resolution.path}."
+        case resolution
+          if resolution.status == "resolved" &&
+            resolution.dependency.version.exists(x => !resolution.resolvedProfile.flatMap(_.dependencyMetadataVersion).contains(x)) =>
+          val requested = resolution.dependency.version.get
+          val selected = resolution.resolvedProfile.flatMap(_.dependencyMetadataVersion).getOrElse("unknown")
+          s"Transitive dependency metadata is unavailable for requested version $requested; catalog metadata selects $selected: ${resolution.path}."
+      } ++
+        resolutions.collect {
+          case resolution
+            if resolution.status == "resolved" &&
+              resolution.depth == boundeddepth &&
+              resolution.resolvedProfile.exists(_.dependencies.nonEmpty) =>
+            s"Dependency traversal stopped at maxDepth=$boundeddepth: ${resolution.path}."
+        } ++ conflicts.map(_.message)
+    ).distinct.sorted
+    ComponentDependencyResolution(directdependencies, resolutions, conflicts, warnings)
+  }
+
   def sourceStates(includeDisabled: Boolean): Vector[CatalogSourceState] = synchronized {
     sources.filter(x => includeDisabled || x.enabled).sortBy(x => (x.priority, x.id)).map { source =>
       val snapshot = _snapshots.get(source.id)
@@ -588,6 +698,54 @@ final class CbdRuntime(
   private def _source_priority(sourceid: String): Int =
     sources.find(_.id == sourceid).map(_.priority).getOrElse(Int.MaxValue)
 
+  private def _dependency_candidates(
+    catalogid: String,
+    dependency: ComponentDependency
+  ): Vector[ComponentProfile] =
+    _profiles.filter(_.catalogId == catalogid)
+      .filter(_.name.equalsIgnoreCase(dependency.name))
+      .filter(x => dependency.kind.forall(_.equalsIgnoreCase(x.kind)))
+      .filter(x => dependency.version.forall(x.versions.contains))
+      .sortBy(x => (x.kind, x.organization.getOrElse(""), x.name))
+
+  private def _dependency_conflicts(
+    resolutions: Vector[ResolvedComponentDependency]
+  ): Vector[ComponentDependencyConflict] =
+    resolutions.filter(_.dependency.version.nonEmpty)
+      .groupBy { resolution =>
+        val kind = resolution.dependency.kind.orElse(resolution.resolvedProfile.map(_.kind))
+        resolution.dependency.name.toLowerCase(java.util.Locale.ROOT) -> kind.map(_.toLowerCase(java.util.Locale.ROOT))
+      }
+      .toVector
+      .flatMap { case ((_, normalizedkind), entries) =>
+        val versions = entries.flatMap(_.dependency.version).distinct.sorted
+        Option.when(versions.size > 1) {
+          val name = entries.head.dependency.name
+          val kind = normalizedkind
+          val paths = entries.map(_.path).distinct.sorted
+          ComponentDependencyConflict(
+            name,
+            kind,
+            versions,
+            paths,
+            s"Conflicting dependency versions for ${kind.map(x => s"$x:").getOrElse("")}$name: ${versions.mkString(", ")}."
+          )
+        }
+      }
+      .sortBy(x => (x.name, x.kind.getOrElse("")))
+
+  private def _profile_key(profile: ComponentProfile, version: Option[String]): String =
+    s"${profile.catalogId}:${profile.kind}:${profile.identity}:${version.getOrElse("?")}".toLowerCase(java.util.Locale.ROOT)
+
+  private def _profile_label(profile: ComponentProfile, version: Option[String]): String =
+    s"${profile.kind}:${profile.identity}@${version.getOrElse("?")}"
+
+  private def _dependency_label(dependency: ComponentDependency): String =
+    s"${dependency.kind.map(x => s"$x:").getOrElse("")}${dependency.name}@${dependency.version.getOrElse("?")}"
+
+  private def _selected_version(profile: ComponentProfile): Option[String] =
+    profile.selectedVersion.orElse(profile.latestStable).orElse(profile.latestSnapshot).orElse(profile.versions.headOption)
+
   private def _tokens(value: String): Set[String] =
     Option(value).getOrElse("").toLowerCase(java.util.Locale.ROOT)
       .split("[^\\p{L}\\p{N}._:-]+").toSet.map(_.trim).filter(_.nonEmpty)
@@ -603,6 +761,9 @@ final class CbdRuntime(
 }
 
 object CbdRuntime {
+  val DEFAULT_DEPENDENCY_DEPTH = 8
+  val MAX_DEPENDENCY_DEPTH = 32
+
   def create(): CbdRuntime = {
     val cozy = new CozyComponentCatalogProvider()
     val publication = new SimpleModelingPublicationCatalogProvider()

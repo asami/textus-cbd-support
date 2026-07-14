@@ -106,7 +106,7 @@ DependencyResolutionResponse
 
 ##### DESCRIPTION
 
-Return the component dependencies published for one catalog component.
+Return direct and bounded transitive dependency evidence for one catalog component, including unresolved paths and explicit version conflicts without choosing a winner.
 
 #### listCatalogs
 
@@ -246,6 +246,7 @@ Administrative request to refresh configured catalogs.
 | kind | ComponentKind | ? |
 | version | ComponentVersion | ? |
 | catalogId | CatalogSourceId | ? |
+| maxDepth | int | ? |
 
 ## CatalogListRequest
 
@@ -320,7 +321,37 @@ Administrative request to refresh configured catalogs.
 | reference | ComponentReference | ? |
 | component | ComponentProfile | ? |
 | dependencies | ComponentDependency | * |
+| resolutions | ResolvedComponentDependency | * |
+| conflicts | ComponentDependencyConflict | * |
 | warnings | CbdWarning | * |
+
+## ResolvedComponentDependency
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| dependency | ComponentDependency | 1 |
+| status | CbdResultStatus | 1 |
+| depth | int | 1 |
+| path | DependencyResolutionPath | 1 |
+| catalogId | CatalogSourceId | ? |
+| organization | ComponentOrganization | ? |
+| resolvedVersion | ComponentVersion | ? |
+| metadataVersion | ComponentVersion | ? |
+| evidenceUri | ComponentReferenceUri | ? |
+
+## ComponentDependencyConflict
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| name | ComponentName | 1 |
+| kind | ComponentKind | ? |
+| versions | ComponentVersion | * |
+| paths | DependencyResolutionPath | * |
+| message | CbdWarning | 1 |
 
 ## CatalogListResponse
 
@@ -367,6 +398,8 @@ Administrative request to refresh configured catalogs.
 | summary | ComponentSummary | ? |
 | kind | ComponentKind | 1 |
 | versions | ComponentVersion | * |
+| selectedVersion | ComponentVersion | ? |
+| dependencyMetadataVersion | ComponentVersion | ? |
 | latestStable | ComponentVersion | ? |
 | latestSnapshot | ComponentVersion | ? |
 | runtimeMinimum | RuntimeVersion | ? |
@@ -594,6 +627,14 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## ComponentReferenceUri
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## DependencyResolutionPath
 
 ### ATTRIBUTE
 

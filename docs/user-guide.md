@@ -33,13 +33,24 @@ exists.
    evidence URI.
 3. Resolve the exact identity with `getComponent`.
 4. Read operation and documentation evidence with `getUsage`.
-5. Read dependency evidence with `resolveDependencies`.
+5. Read direct and transitive dependency evidence with `resolveDependencies`.
+   Use `maxDepth` when a bound other than the default 8 is required, and inspect
+   every resolution status and conflict rather than assuming a selected winner.
 6. Select a component only when the returned catalog evidence supports the
    requested version and runtime. A runtime-constrained search excludes
    profiles that do not publish runtime compatibility evidence.
 
 CBD Support never invents missing versions, dependencies, operations, or
 documentation. Missing optional data is returned as warnings.
+
+Dependency traversal stays inside the selected component's catalog. An
+unresolved dependency is not silently taken from another configured source.
+Conflicting explicit versions are returned with their evidence paths; CBD
+Support does not choose which version should win.
+`selectedVersion` identifies the component version chosen by the catalog, while
+`dependencyMetadataVersion` identifies the version owning parsed dependency
+data. If an explicit request differs, the affected dependency path stops and a
+warning is returned instead of applying another version's metadata.
 
 ## SIE Handoff
 

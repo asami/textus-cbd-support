@@ -53,6 +53,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       When("CNCF projects the component MCP catalog")
       val tools = McpToolCatalog.toolsForComponent(component)
       val names = tools.map(_.name).toSet
+      val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
 
       Then("all retrieval tools are visible and administrative refresh is absent")
       names shouldBe Set(
@@ -67,10 +68,11 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.searchComponents" -> "Search configured CAR and SAR catalogs by requirement and optional identity, kind, version, and runtime constraints.",
         "CbdSupport.CbdRetrieval.getComponent" -> "Resolve one exact catalog component identity without inventing unavailable versions or metadata.",
         "CbdSupport.CbdRetrieval.getUsage" -> "Return generated contract references, operation summaries, documentation, and artifact evidence for one catalog component.",
-        "CbdSupport.CbdRetrieval.resolveDependencies" -> "Return the component dependencies published for one catalog component.",
+        "CbdSupport.CbdRetrieval.resolveDependencies" -> "Return direct and bounded transitive dependency evidence for one catalog component, including unresolved paths and explicit version conflicts without choosing a winner.",
         "CbdSupport.CbdRetrieval.listCatalogs" -> "List configured catalog sources and their current refresh state.",
         "CbdSupport.CbdRetrieval.status" -> "Report catalog readiness, selected snapshot counts, and degraded source state."
       )
+      dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
     }
 
     "extract canonical scalar values from generated CML value types" in {

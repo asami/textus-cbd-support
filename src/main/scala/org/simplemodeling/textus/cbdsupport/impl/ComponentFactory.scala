@@ -7,7 +7,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
-import org.simplemodeling.textus.cbdsupport.runtime.{CatalogSourceState, CbdHttp, CbdRuntime, ComponentDependency, ComponentMatch, ComponentProfile, ComponentUsage}
+import org.simplemodeling.textus.cbdsupport.runtime.{CatalogSourceState, CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentProfile, ResolvedComponentDependency, ComponentUsage}
 
 /*
  * @since   Jul. 14, 2026
@@ -150,12 +150,19 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       val fetcher = new CbdHttp(core)
       _runtime.ensureReady(fetcher).map { _ =>
         val profile = _lookup(action.record, _optional_string(action.record, "kind"))
+        val resolution = profile.map(_runtime.resolveDependencies(
+          _,
+          _optional_string(action.record, "version"),
+          _optional_int(action.record, "maxDepth").getOrElse(CbdRuntime.DEFAULT_DEPENDENCY_DEPTH)
+        ))
         OperationResponse(Record.dataAuto(
           "status" -> (if (profile.nonEmpty) "matched" else "no-match"),
           "reference" -> profile.map(_reference_record),
           "component" -> profile.map(_profile_record),
-          "dependencies" -> profile.toVector.flatMap(_.dependencies).map(_dependency_record),
-          "warnings" -> (profile.toVector.flatMap(_.warnings) ++ _source_warnings)
+          "dependencies" -> resolution.toVector.flatMap(_.directDependencies).map(_dependency_record),
+          "resolutions" -> resolution.toVector.flatMap(_.resolutions).map(_resolved_dependency_record),
+          "conflicts" -> resolution.toVector.flatMap(_.conflicts).map(_dependency_conflict_record),
+          "warnings" -> (profile.toVector.flatMap(_.warnings) ++ resolution.toVector.flatMap(_.warnings) ++ _source_warnings)
         ))
       }
     }
@@ -251,6 +258,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "summary" -> profile.summary,
       "kind" -> profile.kind,
       "versions" -> profile.versions,
+      "selectedVersion" -> profile.selectedVersion,
+      "dependencyMetadataVersion" -> profile.dependencyMetadataVersion,
       "latestStable" -> profile.latestStable,
       "latestSnapshot" -> profile.latestSnapshot,
       "runtimeMinimum" -> profile.runtimeMinimum,
@@ -277,6 +286,30 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "name" -> dependency.name,
       "version" -> dependency.version,
       "kind" -> dependency.kind
+    )
+
+  private def _resolved_dependency_record(resolution: ResolvedComponentDependency): Record =
+    Record.dataAuto(
+      "dependency" -> _dependency_record(resolution.dependency),
+      "status" -> resolution.status,
+      "depth" -> resolution.depth,
+      "path" -> resolution.path,
+      "catalogId" -> resolution.resolvedProfile.map(_.catalogId),
+      "organization" -> resolution.resolvedProfile.flatMap(_.organization),
+      "resolvedVersion" -> resolution.resolvedProfile.flatMap { profile =>
+        resolution.dependency.version.orElse(profile.latestStable).orElse(profile.latestSnapshot).orElse(profile.versions.headOption)
+      },
+      "metadataVersion" -> resolution.resolvedProfile.flatMap(_.dependencyMetadataVersion),
+      "evidenceUri" -> resolution.resolvedProfile.map(_.evidenceUri.toString)
+    )
+
+  private def _dependency_conflict_record(conflict: ComponentDependencyConflict): Record =
+    Record.dataAuto(
+      "name" -> conflict.name,
+      "kind" -> conflict.kind,
+      "versions" -> conflict.versions,
+      "paths" -> conflict.paths,
+      "message" -> conflict.message
     )
 
   private def _source_record(state: CatalogSourceState): Record =

@@ -54,9 +54,17 @@ An unavailable sidecar yields a warning and the remaining references.
 ### resolveDependencies
 
 Accepts the component identity fields, including optional CAR/SAR `kind`, and
-returns dependencies explicitly published in the selected version's component
-descriptor, ABI manifest, or compatible top-level catalog data. Missing
-dependency data is an empty evidence set, not an assertion of no dependencies.
+an optional `maxDepth` from 1 through 32 (default 8). The compatible
+`dependencies` field remains the selected root's direct published evidence.
+`resolutions` adds bounded transitive paths resolved only inside the selected
+catalog. Each path is `resolved`, `unresolved`, `ambiguous`, or `cycle`.
+`conflicts` reports distinct explicit versions requested for the same
+dependency together with their evidence paths; CBD Support never chooses a
+winner. `selectedVersion` and `dependencyMetadataVersion` are independent.
+When an explicit requested version differs from the dependency metadata
+version, the resolved edge remains visible but traversal stops; a root mismatch
+also withholds the compatible direct `dependencies` field. Missing dependency
+data is an empty evidence set, not an assertion of no dependencies.
 
 ### listCatalogs
 
@@ -109,8 +117,8 @@ successfully loaded entries. Snapshot project versions are never labeled as
 - Optional missing fields produce warnings where the contract can continue.
 - Search is deterministic lexical metadata matching in Phase 1; it is not a
   claim of semantic compatibility.
-- CBD Support does not install components, resolve transitive version
-  conflicts, or validate a target SAR composition in Phase 1.
+- CBD Support does not install components, choose a winner for a transitive
+  version conflict, or validate a target SAR composition.
 
 ## Example Requests
 

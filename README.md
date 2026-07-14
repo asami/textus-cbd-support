@@ -67,8 +67,11 @@ warnings, while `*-SNAPSHOT` versions remain separate from `latestStable`.
 - `getComponent`: resolve one exact component.
 - `getUsage`: obtain operations and documentation/artifact references; pass
   `kind` when CAR/SAR identities could overlap.
-- `resolveDependencies`: return published dependencies for the selected CAR or
-  SAR identity.
+- `resolveDependencies`: retain direct published dependencies and return a
+  bounded same-catalog dependency graph with unresolved, ambiguous, cyclic,
+  and explicit version-conflict evidence. Selected component version and
+  dependency-metadata version remain separate, so metadata is not reused for a
+  different explicitly requested version.
 - `listCatalogs`: inspect source state.
 - `status`: inspect aggregate readiness.
 

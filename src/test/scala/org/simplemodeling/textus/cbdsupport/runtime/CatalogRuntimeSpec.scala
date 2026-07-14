@@ -70,6 +70,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
 
       Then("the provider preserves authoritative version, runtime, dependency, and operation evidence")
       profile.name shouldBe "textus-order"
+      profile.selectedVersion shouldBe Some("1.2.0")
+      profile.dependencyMetadataVersion shouldBe Some("1.2.0")
       profile.latestStable shouldBe Some("1.2.0")
       profile.runtimeMinimum shouldBe Some("0.5.1")
       profile.tags should contain allOf ("business.order", "order-component")
@@ -136,6 +138,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Then("the CAR evidence is explicit and non-component catalog projects are ignored")
       profile.identity shouldBe "org.textus:textus-order"
       profile.versions shouldBe Vector("1.2.0")
+      profile.selectedVersion shouldBe Some("1.2.0")
+      profile.dependencyMetadataVersion shouldBe None
       profile.artifactUri.map(_.toString) shouldBe Some(
         "https://www.simplemodeling.org/repository/car/textus-order/1.2.0/textus-order-1.2.0.car"
       )
@@ -268,6 +272,167 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       runtime.overallStatus shouldBe "degraded"
       runtime.componentCount shouldBe 0
     }
+
+    "resolve a same-catalog dependency graph without hiding conflicts or incomplete edges" in {
+      Given("a root whose graph contains conflicting versions, an unresolved edge, an ambiguous edge, and a cycle")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val othersource = CatalogSource("other", URI.create("https://other.example/"), 200, true)
+      val root = _component_profile(source.id).copy(
+        name = "root",
+        title = "Root",
+        versions = Vector("1.0.0"),
+        selectedVersion = Some("1.0.0"),
+        dependencyMetadataVersion = Some("1.0.0"),
+        latestStable = Some("1.0.0"),
+        dependencies = Vector(
+          ComponentDependency("branch", Some("1.0.0"), Some("car")),
+          ComponentDependency("shared", Some("1.0.0"), Some("car")),
+          ComponentDependency("ambiguous", Some("1.0.0"), Some("car"))
+        )
+      )
+      val branch = _component_profile(source.id).copy(
+        name = "branch",
+        title = "Branch",
+        versions = Vector("1.0.0"),
+        selectedVersion = Some("1.0.0"),
+        dependencyMetadataVersion = Some("1.0.0"),
+        latestStable = Some("1.0.0"),
+        dependencies = Vector(
+          ComponentDependency("shared", Some("2.0.0"), Some("car")),
+          ComponentDependency("missing", Some("1.0.0"), Some("car")),
+          ComponentDependency("root", Some("1.0.0"), Some("car"))
+        )
+      )
+      val shared = _component_profile(source.id).copy(
+        name = "shared",
+        title = "Shared",
+        versions = Vector("1.0.0", "2.0.0"),
+        selectedVersion = Some("2.0.0"),
+        dependencyMetadataVersion = Some("2.0.0"),
+        latestStable = Some("2.0.0"),
+        dependencies = Vector(ComponentDependency("selected-child", Some("1.0.0"), Some("car")))
+      )
+      val selectedchild = _component_profile(source.id).copy(
+        name = "selected-child",
+        title = "Selected Child",
+        versions = Vector("1.0.0"),
+        selectedVersion = Some("1.0.0"),
+        dependencyMetadataVersion = Some("1.0.0"),
+        latestStable = Some("1.0.0"),
+        dependencies = Vector.empty
+      )
+      val ambiguousone = _component_profile(source.id).copy(
+        organization = Some("org.one"),
+        name = "ambiguous",
+        title = "Ambiguous One",
+        versions = Vector("1.0.0"),
+        selectedVersion = Some("1.0.0"),
+        dependencyMetadataVersion = Some("1.0.0"),
+        latestStable = Some("1.0.0"),
+        dependencies = Vector.empty
+      )
+      val ambiguoustwo = ambiguousone.copy(organization = Some("org.two"), title = "Ambiguous Two")
+      val othermissing = _component_profile(othersource.id).copy(
+        name = "missing",
+        title = "Missing In Root Catalog",
+        versions = Vector("1.0.0"),
+        selectedVersion = Some("1.0.0"),
+        dependencyMetadataVersion = Some("1.0.0"),
+        latestStable = Some("1.0.0"),
+        dependencies = Vector.empty
+      )
+      val runtime = CbdRuntime.create(
+        Vector(source, othersource),
+        new PerSourceCatalogProvider(Map(
+          source.id -> Vector(root, branch, shared, selectedchild, ambiguousone, ambiguoustwo),
+          othersource.id -> Vector(othermissing)
+        ))
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+
+      When("the dependency graph is resolved from the selected catalog")
+      val resolution = runtime.resolveDependencies(root, CbdRuntime.DEFAULT_DEPENDENCY_DEPTH)
+
+      Then("each incomplete edge and cycle remains observable and distinct version requests become a conflict")
+      resolution.resolutions.map(x => (x.dependency.name, x.dependency.version, x.status)) should contain allOf (
+        (("branch", Some("1.0.0"), "resolved")),
+        (("shared", Some("2.0.0"), "resolved")),
+        (("missing", Some("1.0.0"), "unresolved")),
+        (("root", Some("1.0.0"), "cycle")),
+        (("shared", Some("1.0.0"), "resolved")),
+        (("ambiguous", Some("1.0.0"), "ambiguous"))
+      )
+      resolution.conflicts.map(_.name) shouldBe Vector("shared")
+      resolution.conflicts.head.versions shouldBe Vector("1.0.0", "2.0.0")
+      resolution.resolutions.count(_.dependency.name == "selected-child") shouldBe 1
+      resolution.resolutions.find(_.dependency.name == "selected-child").map(_.path) should contain("car:org.textus:root@1.0.0 -> car:branch@1.0.0 -> car:shared@2.0.0 -> car:selected-child@1.0.0")
+      resolution.warnings.exists(_.contains("not published")) shouldBe true
+      resolution.warnings.exists(_.contains("multiple profiles")) shouldBe true
+      resolution.warnings.exists(_.contains("cycle detected")) shouldBe true
+      resolution.warnings.exists(_.contains("Conflicting dependency versions")) shouldBe true
+      resolution.warnings.exists(_.contains("metadata is unavailable for requested version 1.0.0")) shouldBe true
+    }
+
+    "stop transitive traversal at the requested bounded depth" in {
+      Given("a two-edge dependency chain and a direct-edge depth limit")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val root = _component_profile(source.id).copy(
+        name = "root",
+        title = "Root",
+        dependencies = Vector(ComponentDependency("branch", Some("1.2.0"), Some("car")))
+      )
+      val branch = _component_profile(source.id).copy(
+        name = "branch",
+        title = "Branch",
+        dependencies = Vector(ComponentDependency("leaf", Some("1.2.0"), Some("car")))
+      )
+      val leaf = _component_profile(source.id).copy(name = "leaf", title = "Leaf", dependencies = Vector.empty)
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        new InMemoryComponentCatalogProvider(Vector(root, branch, leaf))
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+
+      When("resolution is limited to depth one")
+      val resolution = runtime.resolveDependencies(root, 1)
+
+      Then("the direct edge is retained and deeper traversal is reported as truncated")
+      resolution.resolutions.map(_.dependency.name) shouldBe Vector("branch")
+      resolution.resolutions.map(_.depth) shouldBe Vector(1)
+      resolution.warnings.exists(_.contains("maxDepth=1")) shouldBe true
+    }
+
+    "withhold selected-version dependency metadata from a different explicit root version" in {
+      Given("a multi-version root whose dependency metadata belongs only to the selected latest version")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val root = _component_profile(source.id).copy(
+        name = "root",
+        title = "Root",
+        versions = Vector("1.0.0", "2.0.0"),
+        selectedVersion = Some("2.0.0"),
+        dependencyMetadataVersion = Some("2.0.0"),
+        latestStable = Some("2.0.0"),
+        dependencies = Vector(ComponentDependency("latest-only", Some("1.0.0"), Some("car")))
+      )
+      val latestonly = _component_profile(source.id).copy(
+        name = "latest-only",
+        title = "Latest Only",
+        dependencies = Vector.empty
+      )
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        new InMemoryComponentCatalogProvider(Vector(root, latestonly))
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+
+      When("dependencies are requested for the older root version")
+      val resolution = runtime.resolveDependencies(root, Some("1.0.0"), CbdRuntime.DEFAULT_DEPENDENCY_DEPTH)
+
+      Then("the selected latest-version dependency metadata is not returned or traversed")
+      resolution.directDependencies shouldBe empty
+      resolution.resolutions shouldBe empty
+      resolution.warnings.exists(_.contains("requested root version 1.0.0")) shouldBe true
+    }
   }
 
   private def _component_profile(catalogid: String): ComponentProfile =
@@ -279,6 +444,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Some("Order component for CBD reuse."),
       "car",
       Vector("1.2.0"),
+      Some("1.2.0"),
+      Some("1.2.0"),
       Some("1.2.0"),
       None,
       Some("0.5.1"),
@@ -307,6 +474,20 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
     def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
       if (fail) Consequence.serviceUnavailable(s"Catalog unavailable: ${source.id}")
       else Consequence.success(CatalogSnapshot(source, Vector(profile), Instant.now(), None))
+
+    def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =
+      Consequence.success(ComponentUsage(profile, Vector.empty, Vector.empty, Vector.empty))
+  }
+
+  private final class PerSourceCatalogProvider(profiles: Map[String, Vector[ComponentProfile]])
+    extends ComponentCatalogProvider {
+    def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
+      Consequence.success(CatalogSnapshot(
+        source,
+        profiles.getOrElse(source.id, Vector.empty).map(_.copy(catalogId = source.id)),
+        Instant.now(),
+        None
+      ))
 
     def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =
       Consequence.success(ComponentUsage(profile, Vector.empty, Vector.empty, Vector.empty))

@@ -638,6 +638,8 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | sourceKind | InformationSourceKind | 1 |
 | location | InformationSourceLocation | 1 |
 | authorization | InformationSourceAuthorization | 1 |
+| authenticationScheme | InformationSourceAuthenticationScheme | 1 |
+| credentialConfigured | boolean | 1 |
 | enabled | boolean | 1 |
 | priority | int | 1 |
 | status | CbdResultStatus | 1 |
@@ -683,6 +685,14 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## InformationSourceAuthorization
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## InformationSourceAuthenticationScheme
 
 ### ATTRIBUTE
 

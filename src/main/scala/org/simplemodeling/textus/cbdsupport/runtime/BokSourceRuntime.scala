@@ -11,7 +11,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class BokInspectionPolicy(
@@ -42,7 +42,8 @@ final case class BokSource(
   id: String,
   baseUri: URI,
   priority: Int,
-  enabled: Boolean
+  enabled: Boolean,
+  authentication: Option[SourceAuthentication] = None
 ) {
   def descriptor: InformationSourceDescriptor =
     InformationSourceDescriptor(
@@ -51,7 +52,9 @@ final case class BokSource(
       baseUri.toString,
       priority,
       enabled,
-      InformationSourceAuthorization.EXACT_ORIGIN_ALLOWLIST
+      InformationSourceAuthorization.EXACT_ORIGIN_ALLOWLIST,
+      authentication.map(_.scheme).getOrElse(SourceAuthentication.NONE),
+      authentication.nonEmpty
     )
 }
 

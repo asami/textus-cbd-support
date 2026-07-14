@@ -11,7 +11,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class SieBokPolicy(
@@ -38,7 +38,8 @@ final case class SieBokSource(
   id: String,
   endpoint: URI,
   priority: Int,
-  enabled: Boolean
+  enabled: Boolean,
+  authentication: Option[SourceAuthentication] = None
 ) {
   def descriptor: InformationSourceDescriptor =
     InformationSourceDescriptor(
@@ -47,7 +48,9 @@ final case class SieBokSource(
       endpoint.toString,
       priority,
       enabled,
-      InformationSourceAuthorization.COMPONENT_ROUTE_ALLOWLIST
+      InformationSourceAuthorization.COMPONENT_ROUTE_ALLOWLIST,
+      authentication.map(_.scheme).getOrElse(SourceAuthentication.NONE),
+      authentication.nonEmpty
     )
 }
 

@@ -5,7 +5,7 @@ deleted; a checked item requires observable evidence.
 
 ## Authentication and Credential Lifecycle
 
-- [ ] `P4-01` Every authenticated remote source uses an explicit authentication scheme and credential reference without storing a secret value in its URI, descriptor, state, diagnostic, MCP output, or CAR content.
+- [x] `P4-01` Every authenticated remote source uses an explicit authentication scheme and credential reference without storing a secret value in its URI, descriptor, state, diagnostic, MCP output, or CAR content.
 - [ ] `P4-02` Credential references are resolved through the CNCF provider/configuration boundary only when an outbound request is executed, and authentication headers remain scoped to the owning source and authorized origin.
 - [ ] `P4-03` Missing, unavailable, expired, and rejected credentials produce distinct sanitized source failures without fallback to another source credential or unbounded retry.
 - [ ] `P4-04` Executable security specifications prove credential isolation, header scoping, redaction, and CallTree-safe request metadata for catalog, BoK-site, and SIE-mediated inputs.

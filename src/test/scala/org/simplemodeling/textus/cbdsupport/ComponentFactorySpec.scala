@@ -9,14 +9,14 @@ import org.goldenport.cncf.mcp.McpToolCatalog
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
-import org.simplemodeling.textus.cbdsupport.runtime.{ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceKind, SemanticRequirementEvidence}
+import org.simplemodeling.textus.cbdsupport.runtime.{ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceDescriptor, InformationSourceFreshness, InformationSourceKind, InformationSourceState, SemanticRequirementEvidence}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -181,6 +181,34 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       record.getString("message") shouldBe Some("Multiple catalog components satisfy the exact constraints.")
       record.getAny("sourceIds") should not be empty
       record.getAny("evidenceUris") should not be empty
+    }
+
+    "project source authentication posture without a credential reference" in {
+      Given("one authenticated source descriptor whose credential reference is runtime-internal")
+      val state = InformationSourceState(
+        InformationSourceDescriptor(
+          "catalog-team",
+          InformationSourceKind.PUBLISHED_CATALOG,
+          "https://catalog.example/",
+          200,
+          true,
+          "exact-origin-allowlist",
+          "bearer",
+          true
+        ),
+        "ready",
+        1,
+        InformationSourceFreshness("fresh", None, None, None),
+        Vector.empty
+      )
+
+      When("the handwritten MCP projection renders source state")
+      val record = new impl.ComponentFactory()._source_record(state)
+
+      Then("callers can diagnose authentication posture without discovering credential identity")
+      record.getString("authenticationScheme") shouldBe Some("bearer")
+      record.getBoolean("credentialConfigured") shouldBe Some(true)
+      record.getAny("credentialRef") shouldBe empty
     }
 
     "withhold the requested intent when exact component selection fails" in {

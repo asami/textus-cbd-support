@@ -11,7 +11,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CatalogSource(
@@ -20,10 +20,20 @@ final case class CatalogSource(
   priority: Int,
   enabled: Boolean,
   sourceKind: String = InformationSourceKind.PUBLISHED_CATALOG,
-  authorization: String = InformationSourceAuthorization.EXPLICIT
+  authorization: String = InformationSourceAuthorization.EXPLICIT,
+  authentication: Option[SourceAuthentication] = None
 ) {
   def descriptor: InformationSourceDescriptor =
-    InformationSourceDescriptor(id, sourceKind, baseUri.toString, priority, enabled, authorization)
+    InformationSourceDescriptor(
+      id,
+      sourceKind,
+      baseUri.toString,
+      priority,
+      enabled,
+      authorization,
+      authentication.map(_.scheme).getOrElse(SourceAuthentication.NONE),
+      authentication.nonEmpty
+    )
 }
 
 object InformationSourceKind {
@@ -57,7 +67,9 @@ final case class InformationSourceDescriptor(
   location: String,
   priority: Int,
   enabled: Boolean,
-  authorization: String
+  authorization: String,
+  authenticationScheme: String = SourceAuthentication.NONE,
+  credentialConfigured: Boolean = false
 )
 
 final case class InformationSourceFreshness(
@@ -1489,16 +1501,27 @@ object CbdRuntime {
     val localconfiguration = LocalInformationSourceConfig.loadConfiguration(
       configuration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ siebokconfiguration.sources.map(_.id)
     )
+    val remoteids = configuration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ siebokconfiguration.sources.map(_.id)
+    val authenticationconfiguration = SourceAuthenticationConfig.loadConfiguration(remoteids)
+    val catalogsources = configuration.sources.map { source =>
+      source.copy(authentication = authenticationconfiguration.authenticationFor(source.id))
+    }
+    val boksources = bokconfiguration.sources.map { source =>
+      source.copy(authentication = authenticationconfiguration.authenticationFor(source.id))
+    }
+    val sieboksources = siebokconfiguration.sources.map { source =>
+      source.copy(authentication = authenticationconfiguration.authenticationFor(source.id))
+    }
     new CbdRuntime(
-      configuration.sources,
+      catalogsources,
       new CompatibleComponentCatalogProvider(cozy, publication),
       CatalogCachePolicy.DEFAULT,
       clock,
-      configuration.warnings ++ bokconfiguration.warnings ++ siebokconfiguration.warnings ++ localconfiguration.warnings,
-      bokconfiguration.sources,
+      configuration.warnings ++ bokconfiguration.warnings ++ siebokconfiguration.warnings ++ localconfiguration.warnings ++ authenticationconfiguration.warnings,
+      boksources,
       new BokKnowledgeSourceProvider(clock),
       BokInspectionPolicy.DEFAULT,
-      siebokconfiguration.sources,
+      sieboksources,
       new SieBokProvider(clock),
       SieBokPolicy.DEFAULT,
       localconfiguration,

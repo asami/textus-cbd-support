@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: The Phase 4 scope and checklist are defined; the next slice specifies the P4-01 source authentication and credential-reference boundary.
+- Current step: P4-01 source authentication references are complete; the next slice resolves credentials and scopes authenticated outbound headers under P4-02.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -93,9 +93,19 @@ release evidence.
 
 ## Verification Evidence
 
-No Phase 4 checklist item has verification evidence yet. Evidence is added only
-after the corresponding implementation, executable specification, and required
-runtime or packaging gate pass.
+- Remote catalog, BoK-site, and SIE sources now accept bounded
+  `source-id=scheme:config-key/...` bindings from
+  `TEXTUS_CBD_SOURCE_AUTHENTICATION`. Only configured source IDs and the
+  explicit `bearer`, `basic`, and `api-key` schemes are admitted; invalid,
+  duplicate, unknown, unsupported, raw-value, and overflow entries remain
+  sanitized diagnostics.
+- Source objects retain the credential reference internally while shared
+  descriptors and MCP source records expose only `authenticationScheme` and
+  `credentialConfigured`. Generated CML and runtime projections contain no
+  `credentialRef`, and P4-01 performs no secret lookup or header construction.
+- `SourceAuthenticationSpec`, `CatalogRuntimeSpec`, `BokSourceRuntimeSpec`,
+  `SieBokRuntimeSpec`, and `ComponentFactorySpec` passed 47 focused tests on
+  2026-07-15, including explicit binding-bound truncation.
 
 ## Closure Basis
 

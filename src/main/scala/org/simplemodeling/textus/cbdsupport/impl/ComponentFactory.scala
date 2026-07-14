@@ -12,7 +12,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, Reconc
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -453,7 +453,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "message" -> conflict.message
     )
 
-  private def _source_record(state: InformationSourceState): Record =
+  private[cbdsupport] def _source_record(state: InformationSourceState): Record =
     {
       val descriptor = state.descriptor
       Record.dataAuto(
@@ -462,6 +462,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         "sourceKind" -> descriptor.sourceKind,
         "location" -> descriptor.location,
         "authorization" -> descriptor.authorization,
+        "authenticationScheme" -> descriptor.authenticationScheme,
+        "credentialConfigured" -> descriptor.credentialConfigured,
         "enabled" -> descriptor.enabled,
         "priority" -> descriptor.priority,
         "status" -> state.status,

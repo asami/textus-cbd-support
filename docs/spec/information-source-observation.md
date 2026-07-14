@@ -12,13 +12,20 @@ The descriptor fields are:
 - `priority`: deterministic ordering input, not a declaration that one source
   may overwrite another;
 - `enabled`: whether the source participates in retrieval;
-- `authorization`: the policy that admitted the source.
+- `authorization`: the policy that admitted the source;
+- `authenticationScheme`: the configured remote authentication scheme, or
+  `none`;
+- `credentialConfigured`: whether the remote source has an admitted credential
+  reference, without exposing that reference.
 
 The built-in simplemodeling.org source is a `published-catalog` authorized as
 `built-in`. Additional Phase 2 catalogs remain `published-catalog` sources and
 record `exact-origin-allowlist` authorization. Phase 3 BoK, SIE, development,
 and CAR-storage adapters use the same descriptor rather than defining
 source-specific identity fields.
+
+The descriptor never contains a credential reference or secret. The normative
+Phase 4 binding and projection rules are defined in `source-authentication.md`.
 
 Source state separates operational status from freshness. Freshness records
 the cache state, observation time, expiry, and last refresh attempt. Source

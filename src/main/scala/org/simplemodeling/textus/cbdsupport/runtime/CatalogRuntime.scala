@@ -45,6 +45,8 @@ object InformationSourceAuthorization {
   val BUILT_IN = "built-in"
   val EXACT_ORIGIN_ALLOWLIST = "exact-origin-allowlist"
   val EXPLICIT = "explicit"
+  val EXPLICIT_PATH_ALLOWLIST = "explicit-path-allowlist"
+  val CANONICAL_STORAGE_ROOT = "canonical-storage-root"
 }
 
 final case class InformationSourceDescriptor(

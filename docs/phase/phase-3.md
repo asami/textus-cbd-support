@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01/P3-11/P3-12 are complete; the next slice adds bounded local development-directory and CAR-storage adapters.
+- Current step: P3-01/P3-04/P3-05/P3-11/P3-12 are complete; the next slice adds authorized BoK-site and SIE-mediated BoK adapters.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -133,6 +133,16 @@ winner.
   `ComponentFactorySpec` validation passed 24 tests on 2026-07-14. The validation
   uses the current local CNCF `0.5.1-SNAPSHOT` MCP description fallback rather
   than a stale Maven-local artifact.
+- Explicit canonical development roots expose bounded `project.yaml` identity
+  and version observations as `working` evidence. Stable local/cache source IDs
+  cannot be shadowed by configured development sources, and rejected paths
+  remain diagnostic.
+- Canonical or explicitly authorized local/cache roots inventory CAR artifacts
+  separately as `local-published` and `cached` evidence. Descriptor and
+  repository-path versions remain distinct, artifacts retain SHA-256 evidence,
+  and artifact, directory, entry, depth, metadata, and checksum-read bounds
+  produce observable warnings. `LocalSourceRuntimeSpec` passed 7 tests on
+  2026-07-14.
 
 ## Closure Basis
 

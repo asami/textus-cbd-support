@@ -58,5 +58,8 @@ future candidate with deployment acceptance gates. Cozy schema fidelity is now
 fixed to revision-pinned producer evidence, including runtime ranges, archive
 checksums, nested ABI dependencies, sidecars, and diagnostics. Full tests, CAR
 build, CML lint, CAR lint, and representative MCP projection close the phase
-without changing the SIE/CBD ownership split. Phase 3 is planned in
-`docs/phase/phase-3.md`; implementation has not started.
+without changing the SIE/CBD ownership split. Phase 3 now has a unified
+source/observation vocabulary plus bounded, read-only adapters for explicitly
+configured development directories and CAR artifacts in the local warehouse
+and managed cache. The next slice adds authorized BoK-site and SIE-mediated BoK
+inputs before projecting all sources through search and MCP.

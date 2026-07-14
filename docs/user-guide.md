@@ -33,7 +33,9 @@ exists.
 2. Inspect catalog-backed `results` separately from source-preserving
    `observations`, `issues`, and `precedence`.
 3. Resolve the exact identity with `getComponent`.
-4. Read operation and documentation evidence with `getUsage`.
+4. Read operation and documentation evidence with `getUsage`. Supply an
+   optional concrete `intent`, such as `retrieve an order`, when operation
+   guidance is useful.
 5. Read direct and transitive dependency evidence with `resolveDependencies`.
    Use `maxDepth` when a bound other than the default 8 is required, and inspect
    every resolution status and conflict rather than assuming a selected winner.
@@ -44,6 +46,18 @@ exists.
 
 CBD Support never invents missing versions, dependencies, operations, or
 documentation. Missing optional data is returned as warnings.
+
+`getUsage` reports `selectedSourceId`, `selectedSourceKind`, and
+`selectedVersion` for the catalog profile whose usage was actually read. Its
+`guidance` keeps the selected-source statement as `observed-fact`. An operation
+is recommended only when its observed service, operation, kind, or description
+shares an explicit token with the bounded intent; that recommendation is
+`deterministic-inference` with a score, rationale, and catalog/model-metadata
+evidence URIs. An unrelated intent produces no operation recommendation. The
+`model-inference` kind is reserved for generative advice; this runtime does not
+invoke a generative model and never relabels deterministic matching as model
+inference. Missing source context withholds guidance rather than inventing a
+published source.
 
 Dependency traversal stays inside the selected component's catalog. An
 unresolved dependency is not silently taken from another configured source.

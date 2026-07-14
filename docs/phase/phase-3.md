@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, and P3-30 are complete; the next slice adds intent-aware source/version usage guidance and explicit inference labeling under P3-31.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, and P3-30 through P3-31 are complete; the next slice makes conflicting or insufficient evidence return bounded alternatives or explicit absence under P3-32.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -210,6 +210,14 @@ winner.
   is not reused across queries. `SemanticRequirementMatchingSpec`,
   `SourceAwareRetrievalSpec`, and `ComponentFactorySpec` passed 14 focused tests
   on 2026-07-14.
+- `getUsage` now accepts a bounded optional intent and identifies the exact
+  catalog source, source kind, and version whose evidence was read. Guidance
+  keeps catalog selection as `observed-fact`, labels token-overlap operation
+  advice as `deterministic-inference`, reserves `model-inference` for actual
+  generative output, and emits no unsupported operation candidate. Missing
+  source context withholds attributable guidance rather than fabricating a
+  published source. `IntentAwareUsageGuidanceSpec`, `CatalogRuntimeSpec`, and
+  `ComponentFactorySpec` passed 32 focused tests on 2026-07-14.
 
 ## Closure Basis
 

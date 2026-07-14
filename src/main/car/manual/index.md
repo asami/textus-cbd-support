@@ -97,10 +97,18 @@ warning. Returns `no-match` rather than fabricating a component.
 
 ### getUsage
 
-Accepts the component identity fields, including optional CAR/SAR `kind`.
+Accepts the component identity fields, including optional CAR/SAR `kind`, and
+an optional bounded `intent`.
 Returns the selected profile, service/operation summaries from model metadata,
 and authoritative catalog, artifact, model-metadata, and documentation links.
-An unavailable sidecar yields a warning and the remaining references.
+The response identifies `selectedSourceId`, `selectedSourceKind`, and
+`selectedVersion`. Guidance records cite that source/version and their evidence
+URIs. `observed-fact` records report selection evidence;
+`deterministic-inference` records recommend only observed operations with an
+explicit intent-token overlap. `model-inference` is reserved for generative
+advice and is not emitted by the current runtime. No token overlap produces no
+operation recommendation. Missing source attribution withholds guidance, and
+an unavailable sidecar yields a warning and the remaining references.
 
 ### resolveDependencies
 

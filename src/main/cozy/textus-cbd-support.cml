@@ -240,6 +240,7 @@ Administrative request to refresh configured catalogs.
 | kind | ComponentKind | ? |
 | version | ComponentVersion | ? |
 | catalogId | CatalogSourceId | ? |
+| intent | ComponentUsageIntent | ? |
 
 ## DependencyResolutionRequest
 
@@ -318,8 +319,13 @@ Administrative request to refresh configured catalogs.
 | status | CbdResultStatus | 1 |
 | reference | ComponentReference | ? |
 | component | ComponentProfile | ? |
+| intent | ComponentUsageIntent | ? |
+| selectedSourceId | ComponentSourceId | ? |
+| selectedSourceKind | InformationSourceKind | ? |
+| selectedVersion | ComponentVersion | ? |
 | operations | ComponentOperation | * |
 | references | ComponentReferenceLink | * |
+| guidance | ComponentUsageGuidance | * |
 | warnings | CbdWarning | * |
 
 ## DependencyResolutionResponse
@@ -533,6 +539,28 @@ Evidence-bearing observation of one component profile. Source identity, kind, se
 | operation | ComponentOperationName | 1 |
 | kind | ComponentOperationKind | ? |
 | description | ComponentOperationDescription | ? |
+
+## ComponentUsageGuidance
+
+### DESCRIPTION
+
+One attributable usage statement. Observed catalog facts, deterministic intent matching, and externally supplied model inference use distinct statement kinds.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| statementKind | ComponentUsageStatementKind | 1 |
+| intent | ComponentUsageIntent | ? |
+| statement | ComponentUsageStatement | 1 |
+| sourceId | ComponentSourceId | 1 |
+| sourceKind | InformationSourceKind | 1 |
+| version | ComponentVersion | ? |
+| service | ComponentServiceName | ? |
+| operation | ComponentOperationName | ? |
+| score | double | ? |
+| evidenceUris | ComponentReferenceUri | * |
+| rationale | ComponentUsageRationale | 1 |
 
 ## ComponentDependency
 
@@ -853,6 +881,38 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## ComponentOperationDescription
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentUsageIntent
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentUsageStatementKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentUsageStatement
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentUsageRationale
 
 ### ATTRIBUTE
 

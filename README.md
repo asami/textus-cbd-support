@@ -110,7 +110,11 @@ lookup for the same requirement before applying CBD catalog matching.
 - `searchComponents`: find candidates from catalog evidence.
 - `getComponent`: resolve one exact component.
 - `getUsage`: obtain operations and documentation/artifact references; pass
-  `kind` when CAR/SAR identities could overlap.
+  `kind` when CAR/SAR identities could overlap and optional `intent` for
+  evidence-bounded operation guidance. The response identifies its selected
+  source and version. `observed-fact`, `deterministic-inference`, and reserved
+  `model-inference` statement kinds are distinct; the current runtime does not
+  call a generative model or emit model inference.
 - `resolveDependencies`: retain direct published dependencies and return a
   bounded same-catalog dependency graph with unresolved, ambiguous, cyclic,
   and explicit version-conflict evidence. Selected component version and
@@ -127,5 +131,6 @@ operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md), and
-[ComponentReference Contract](docs/spec/component-reference-contract.md), and
-[SIE-mediated BoK Contract](docs/spec/sie-bok-information-source.md).
+[ComponentReference Contract](docs/spec/component-reference-contract.md),
+[SIE-mediated BoK Contract](docs/spec/sie-bok-information-source.md), and
+[Intent-Aware Usage Guidance](docs/spec/intent-aware-usage-guidance.md).

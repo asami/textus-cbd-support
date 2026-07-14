@@ -19,6 +19,7 @@ import org.scalatest.wordspec.AnyWordSpec
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "ComponentFactory" should {
+    "publish the component boundary" which {
     "expose the generated CBD service factories" in {
       Given("a freshly constructed handwritten component factory")
       val factory = new impl.ComponentFactory()
@@ -57,6 +58,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val tools = McpToolCatalog.toolsForComponent(component)
       val names = tools.map(_.name).toSet
       val searchschema = tools.find(_.name.endsWith(".searchComponents")).map(_.inputSchema).get
+      val usageschema = tools.find(_.name.endsWith(".getUsage")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
 
       Then("all retrieval tools are visible and administrative refresh is absent")
@@ -84,9 +86,12 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "conflictCode",
         "purpose"
       )
+      usageschema.hcursor.downField("properties").keys.get.toSet should contain("intent")
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
     }
+    }
 
+    "project generated records" which {
     "extract canonical scalar values from generated CML value types" in {
       Given("a request record containing generated component identity and kind values")
       val factory = new impl.ComponentFactory()
@@ -171,7 +176,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         operation = "getUsage",
         properties = List(
           Property("name", "textus-application", None),
-          Property("kind", "sar", None)
+          Property("kind", "sar", None),
+          Property("intent", "compose an application", None)
         )
       )
       val dependencyrequest = Request.of(
@@ -191,11 +197,14 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
 
       When("the generated request records are read by the handwritten runtime")
       val usagekind = factory._optional_string(usageaction.record, "kind")
+      val usageintent = factory._optional_string(usageaction.record, "intent")
       val dependencykind = factory._optional_string(dependencyaction.record, "kind")
 
       Then("both operations retain the disambiguating component kind")
       usagekind shouldBe Some("sar")
+      usageintent shouldBe Some("compose an application")
       dependencykind shouldBe Some("sar")
+    }
     }
   }
 }

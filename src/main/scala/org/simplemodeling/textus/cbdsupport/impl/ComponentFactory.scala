@@ -7,7 +7,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
-import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, InformationSourceState, ResolvedComponentDependency}
+import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 
 /*
@@ -143,7 +143,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       _runtime.ensureInputsReady(fetcher).flatMap { _ =>
         _lookup(action.record, _optional_string(action.record, "kind")) match {
           case Some(profile) =>
-            _runtime.usage(profile, fetcher).map { usage =>
+            _runtime.usage(profile, _optional_string(action.record, "intent"), fetcher).map { usage =>
               OperationResponse(_usage_record(usage))
             }
           case None =>
@@ -151,6 +151,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
               "status" -> "no-match",
               "operations" -> Vector.empty[Record],
               "references" -> Vector.empty[Record],
+              "guidance" -> Vector.empty[Record],
               "warnings" -> Vector("Component was not found in the selected catalogs.")
             )))
         }
@@ -243,6 +244,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "status" -> "matched",
       "reference" -> _reference_record(usage.profile),
       "component" -> _profile_record(usage.profile),
+      "intent" -> usage.intent,
+      "selectedSourceId" -> usage.selectedSourceId,
+      "selectedSourceKind" -> usage.selectedSourceKind,
+      "selectedVersion" -> usage.selectedVersion,
       "operations" -> usage.operations.map { operation =>
         Record.dataAuto(
           "service" -> operation.service,
@@ -254,7 +259,23 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "references" -> usage.references.map { case (kind, uri, authoritative) =>
         Record.dataAuto("kind" -> kind, "uri" -> uri.toString, "authoritative" -> authoritative)
       },
+      "guidance" -> usage.guidance.map(_usage_guidance_record),
       "warnings" -> (usage.warnings ++ _source_warnings)
+    )
+
+  private[cbdsupport] def _usage_guidance_record(guidance: ComponentUsageGuidance): Record =
+    Record.dataAuto(
+      "statementKind" -> guidance.statementKind,
+      "intent" -> guidance.intent,
+      "statement" -> guidance.statement,
+      "sourceId" -> guidance.sourceId,
+      "sourceKind" -> guidance.sourceKind,
+      "version" -> guidance.version,
+      "service" -> guidance.service,
+      "operation" -> guidance.operation,
+      "score" -> guidance.score,
+      "evidenceUris" -> guidance.evidenceUris.map(_.toString),
+      "rationale" -> guidance.rationale
     )
 
   private def _match_record(result: ComponentMatch): Record =

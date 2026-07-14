@@ -320,11 +320,30 @@ final case class ComponentMatch(
   semanticEvidenceIds: Vector[String] = Vector.empty
 )
 
+final case class ComponentUsageGuidance(
+  statementKind: String,
+  intent: Option[String],
+  statement: String,
+  sourceId: String,
+  sourceKind: String,
+  version: Option[String],
+  service: Option[String],
+  operation: Option[String],
+  score: Option[Double],
+  evidenceUris: Vector[URI],
+  rationale: String
+)
+
 final case class ComponentUsage(
   profile: ComponentProfile,
   operations: Vector[ComponentOperation],
   references: Vector[(String, URI, Boolean)],
-  warnings: Vector[String]
+  warnings: Vector[String],
+  intent: Option[String] = None,
+  selectedSourceId: Option[String] = None,
+  selectedSourceKind: Option[String] = None,
+  selectedVersion: Option[String] = None,
+  guidance: Vector[ComponentUsageGuidance] = Vector.empty
 )
 
 trait CatalogFetcher {
@@ -1007,7 +1026,14 @@ final class CbdRuntime(
   def usage(
     profile: ComponentProfile,
     fetcher: CatalogFetcher
-  ): Consequence[ComponentUsage] = provider.readUsage(profile, fetcher)
+  ): Consequence[ComponentUsage] = usage(profile, None, fetcher)
+
+  def usage(
+    profile: ComponentProfile,
+    intent: Option[String],
+    fetcher: CatalogFetcher
+  ): Consequence[ComponentUsage] =
+    provider.readUsage(profile, fetcher).map(IntentAwareUsageGuidance.enrich(_, intent))
 
   def resolveDependencies(
     profile: ComponentProfile,

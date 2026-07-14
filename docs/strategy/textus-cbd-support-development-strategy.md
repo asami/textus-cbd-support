@@ -83,6 +83,10 @@ administration mutation. Requirement matching now cites BoK semantic evidence
 separately from CBD catalog and local evidence. BoK sites use deterministic
 published-field matching, SIE retains its own match metadata for the current
 query, and catalog components reference citations only through explicitly
-equal published terms/tags without profile completion. The next slice adds
-intent-aware source/version usage guidance and marks any model inference
-separately under P3-31.
+equal published terms/tags without profile completion. Intent-aware
+`getUsage` now reports the selected catalog source and version, separates
+observed selection facts from deterministic operation inference, reserves a
+distinct label for actual model inference, and emits no operation candidate
+without explicit intent overlap. The next slice makes conflicting or
+insufficient evidence return bounded alternatives or explicit absence under
+P3-32.

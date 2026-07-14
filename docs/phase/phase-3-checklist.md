@@ -27,7 +27,7 @@ deleted; a checked item requires observable evidence.
 ## AI Ergonomics
 
 - [x] `P3-30` Requirement matching can cite BoK semantic evidence separately from CBD catalog, development-directory, and CAR artifact evidence.
-- [ ] `P3-31` Intent-aware usage guidance identifies selected sources and versions and marks model inference separately from observed facts.
+- [x] `P3-31` Intent-aware usage guidance identifies selected sources and versions and marks model inference separately from observed facts.
 - [ ] `P3-32` Conflicting or insufficient evidence produces bounded alternatives or explicit absence rather than fabricated catalog facts or a hidden source winner.
 
 ## Documentation and Verification

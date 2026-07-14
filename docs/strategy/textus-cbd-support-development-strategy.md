@@ -31,10 +31,15 @@ Expand catalog schema coverage, version selection, dependency graph
 resolution, conflict reporting, source authorization, caching, and refresh
 observability using real published catalogs.
 
-### Phase 3: Generative AI CBD Ergonomics
+### Phase 3: Federated Development Context and AI Ergonomics
 
-Improve requirement matching, intent-aware usage guidance, evidence citation,
-and Codex integration without turning inferred advice into catalog fact.
+Add simplemodeling.org, configured BoK sites, SIE-mediated BoK knowledge,
+configured development directories, and CAR versions in the local warehouse
+and managed cache as distinct evidence-bearing input sources. Reconcile their
+component and version observations without silently merging source identity,
+then improve requirement matching, intent-aware usage guidance, evidence
+citation, and Codex integration without turning inferred advice into catalog
+fact.
 
 ### Phase 4: Runtime Hardening
 
@@ -53,4 +58,5 @@ future candidate with deployment acceptance gates. Cozy schema fidelity is now
 fixed to revision-pinned producer evidence, including runtime ranges, archive
 checksums, nested ABI dependencies, sidecars, and diagnostics. Full tests, CAR
 build, CML lint, CAR lint, and representative MCP projection close the phase
-without changing the SIE/CBD ownership split. Phase 3 remains not started.
+without changing the SIE/CBD ownership split. Phase 3 is planned in
+`docs/phase/phase-3.md`; implementation has not started.

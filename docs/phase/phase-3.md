@@ -1,0 +1,124 @@
+# Phase 3: Federated Development Context and AI Ergonomics
+
+Stage Status:
+- Current status: PLANNED
+- Current step: Input-source contracts and implementation order are defined; implementation has not started.
+- Owner: Textus CBD development
+- Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
+
+## Purpose
+
+Give generative AI an evidence-bearing view of published knowledge, semantic
+BoK knowledge, the developer's current workspace, and locally available CAR
+versions. Keep each observation tied to its source so that search, guidance,
+and version selection can explain what is published, inferred, under
+development, locally published, or merely cached.
+
+## Planned Input Sources
+
+1. **simplemodeling.org** remains the built-in public catalog and default
+   published CBD source.
+2. **Other BoK sites** are explicitly configured and authorized sources. Their
+   machine-readable BoK manifests or catalogs are consumed without scraping
+   rendered HTML or silently merging site identities.
+3. **SIE-mediated BoK knowledge** is consumed through the evidence-bearing SIE
+   reference contract. SIE supplies terminology, intent, and BoK relationships;
+   CBD Support remains responsible for component detail and CAR usage evidence.
+4. **Development directories** are explicitly configured, read-only workspace
+   sources. Project metadata, CML, generated CAR metadata, and other selected
+   development evidence are inspected without unrestricted filesystem scans or
+   treating working state as published fact.
+5. **CAR versions in local/cache storage** are read from the canonical local
+   warehouse (`~/.cncf/local`) and managed cache (`~/.cncf/cache`), or explicitly
+   configured equivalent roots. Local publication and cached availability are
+   distinct states and do not imply remote publication or recommendation.
+
+## Core Source Contract
+
+Every observation retains a stable source identifier, source kind, evidence
+location, observed component and version identity, freshness state, and any
+diagnostic. The service does not create one synthetic record by silently
+combining fields from different sources.
+
+Precedence is purpose-specific rather than a single global winner:
+
+- A configured development directory is authoritative only for that project's
+  current working state.
+- The local warehouse and managed cache are authoritative only for which CAR
+  artifacts and versions are locally present.
+- simplemodeling.org and configured BoK/catalog sites are authoritative for
+  their own published observations.
+- SIE is authoritative for the BoK terminology and semantic relationships it
+  exposes, not for CBD artifact detail.
+
+Search may aggregate observations, but exact version or usage guidance must
+identify the selected source evidence. Conflicting version, checksum, source,
+or freshness observations remain visible; Phase 3 does not silently select a
+winner.
+
+## Scope
+
+- A unified descriptor and state model for all five input-source kinds.
+- Explicit configuration and authorization for BoK sites and development
+  directories.
+- Read-only adapters for development project evidence and local/cache CAR
+  inventories.
+- SIE-mediated BoK retrieval that preserves the established SIE/CBD ownership
+  boundary.
+- Version reconciliation that distinguishes working, locally published,
+  cached, and remotely published states, including snapshot and release
+  identities.
+- Source, version, freshness, and conflict filters in the read-only CBD/MCP
+  surface.
+- Requirement matching and intent-aware guidance whose catalog facts,
+  semantic evidence, local observations, and model inference are separately
+  attributable.
+- Source-specific diagnostics, bounded refresh behavior, and executable
+  verification.
+
+## Security and Freshness Rules
+
+- Remote sites use exact-origin authorization and sanitized diagnostics.
+- Local roots use explicit allowlists, canonical paths, and protections against
+  traversal and symlink escape; the service does not perform arbitrary home or
+  repository scans.
+- Local and cache adapters are read-only and have bounded inspection work.
+- SIE is accessed through its public component/MCP/CNCF contract, not by
+  reading SIE internal storage.
+- Missing, stale, rejected, and incompatible sources remain observable. Any
+  last-known-good behavior reports the age and failed refresh rather than
+  presenting stale evidence as current.
+- Two artifacts with the same component version but different checksums are a
+  conflict, not interchangeable evidence.
+
+## Non-Goals
+
+- Installing, updating, deleting, or publishing CARs.
+- Writing to configured development directories, local warehouses, or caches.
+- Treating cache presence as proof of publication, compatibility, or quality.
+- Scraping rendered BoK pages when no supported machine-readable contract is
+  available.
+- Moving CBD component details into SIE or duplicating SIE's semantic store.
+- Automatically resolving source, version, or checksum conflicts.
+- Phase 4 authentication, production credential lifecycle, and SAR composition
+  governance.
+
+## Planned Implementation Slices
+
+1. Define the unified source, observation, evidence, freshness, and conflict
+   model while preserving Phase 2 catalog compatibility.
+2. Add bounded, read-only development-directory and local/cache CAR adapters,
+   including version and checksum reconciliation.
+3. Add configured BoK-site and SIE-mediated BoK adapters with authorization,
+   ownership, and failure contracts.
+4. Project source-aware search, filtering, version selection, diagnostics, and
+   MCP results without exposing administration mutations.
+5. Add requirement matching and intent-aware guidance with explicit separation
+   of catalog fact, BoK evidence, local evidence, and inference.
+6. Complete documentation, executable specifications, full tests, CAR build,
+   CAR lint, and representative MCP projection.
+
+## Closure Basis
+
+Phase 3 is DONE only when every item in `phase-3-checklist.md` is `[x]` and its
+verification evidence is recorded here.

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05 plus P3-11/P3-12 are complete; the next slice reconciles duplicate, missing, stale, version-conflicting, and checksum-conflicting observations without selecting a hidden winner.
+- Current step: P3-01 through P3-05 plus P3-11 through P3-13 are complete; the next slice completes working, locally published, cached, and remotely published version-state reconciliation.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -158,6 +158,14 @@ winner.
   evidence URI. SIE terminology remains a separate `sie-bok` observation and
   does not populate CBD-owned versions, dependencies, operations, artifacts,
   or usage guidance. `SieBokRuntimeSpec` passed 4 focused tests on 2026-07-14.
+- Catalog and local observations now normalize into one source-preserving
+  reconciliation shape. Reports enumerate duplicate, missing, stale,
+  incompatible, version-conflicting, and checksum-conflicting evidence, cite
+  all contributing sources and locations, and expose purpose-specific
+  authority tiers while leaving `selectedObservation` absent. Organization,
+  kind, and name form the comparison identity, so an unknown organization is
+  not attached to a known publisher implicitly. `ObservationReconciliationSpec`
+  passed 3 focused tests on 2026-07-14.
 
 ## Closure Basis
 

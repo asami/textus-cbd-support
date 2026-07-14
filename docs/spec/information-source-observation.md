@@ -39,9 +39,11 @@ time, and expiry from the snapshot that supplied the profile. A later refresh
 must not attach its freshness or diagnostics to a retained older profile. If a
 profile was not loaded through a source snapshot, observation is explicitly
 absent rather than defaulting its source kind. Fields from another source are
-not used to complete an observation. Search may return multiple observations,
-but later reconciliation must report conflicts rather than synthesize a
-cross-source profile.
+not used to complete an observation. Search may return multiple observations.
+The Phase 3 reconciliation contract reports duplicate, missing, stale,
+incompatible, version-conflicting, and checksum-conflicting evidence without
+synthesizing a cross-source profile or selecting a winner. Purpose-specific
+precedence describes authority only.
 
 ## Compatibility
 
@@ -55,4 +57,6 @@ is not expanded by this slice.
 `CatalogRuntimeSpec` verifies the five source-kind values, built-in and
 allowlisted authorization descriptors, source/version/freshness/checksum
 preservation, snapshot isolation across refresh, and explicit absence for an
-unbound profile.
+unbound profile. `ObservationReconciliationSpec` verifies conflict classes,
+purpose-specific precedence, preservation of alternatives, and absence of an
+automatic selection.

@@ -15,7 +15,7 @@ deleted; a checked item requires observable evidence.
 
 - [x] `P3-11` A unified source descriptor exposes source kind, stable identity, location, authorization, freshness, and diagnostics for all five input-source kinds.
 - [x] `P3-12` Component observations preserve their source, evidence location, version identity, freshness, and checksum instead of silently combining fields across sources.
-- [ ] `P3-13` Duplicate, missing, stale, incompatible, version-conflicting, and checksum-conflicting observations are reported with purpose-specific precedence and no automatic winner.
+- [x] `P3-13` Duplicate, missing, stale, incompatible, version-conflicting, and checksum-conflicting observations are reported with purpose-specific precedence and no automatic winner.
 - [ ] `P3-14` Version state distinguishes working, locally published, cached, and remotely published evidence, including snapshot and release identities.
 
 ## Security, Refresh, and Operations

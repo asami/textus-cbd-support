@@ -66,5 +66,7 @@ the Cozy `cncf.knowledge-source.v1` manifest and bounded machine-readable
 glossary resources. SIE-mediated BoK input now enters through SIE's public
 typed MCP component contract with exact-route authorization, bounded
 responses, and mandatory evidence while keeping CBD component profiles
-separate. The next slice reconciles conflicts and missing/stale observations
-before projecting all sources through search and MCP.
+separate. Source-preserving reconciliation now reports duplicate, missing,
+stale, incompatible, version, and checksum conflicts with purpose-specific
+authority tiers and no automatic winner. The next slice completes version-state
+reconciliation before projecting all sources through search and MCP.

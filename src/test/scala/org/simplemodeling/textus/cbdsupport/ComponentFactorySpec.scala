@@ -53,6 +53,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       When("CNCF projects the component MCP catalog")
       val tools = McpToolCatalog.toolsForComponent(component)
       val names = tools.map(_.name).toSet
+      val searchschema = tools.find(_.name.endsWith(".searchComponents")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
 
       Then("all retrieval tools are visible and administrative refresh is absent")
@@ -71,6 +72,14 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.resolveDependencies" -> "CbdSupport.CbdRetrieval.resolveDependencies",
         "CbdSupport.CbdRetrieval.listCatalogs" -> "CbdSupport.CbdRetrieval.listCatalogs",
         "CbdSupport.CbdRetrieval.status" -> "CbdSupport.CbdRetrieval.status"
+      )
+      searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
+        "sourceId",
+        "sourceKind",
+        "freshness",
+        "versionState",
+        "conflictCode",
+        "purpose"
       )
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
     }

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, and P3-20 through P3-21 are complete; the next slice projects source-aware retrieval through the read-only CBD/MCP surface under P3-22.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, and P3-20 through P3-22 are complete; the next slice adds separately cited BoK semantic evidence to requirement matching under P3-30.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -193,6 +193,15 @@ winner.
   response for another query. Local inventories expose their own completion
   time and remain non-cached, read-only inspections. `InformationSourceRefreshSpec`
   passed 4 focused tests on 2026-07-14.
+- Read-only `searchComponents` now projects catalog profiles separately from
+  source-preserving catalog, development-directory, local-published, and cached
+  observations. Identity, source, freshness, availability, conflict, and
+  purpose filters remain bounded; issues cite participating alternatives,
+  purpose precedence is explicit, and no selected observation is fabricated.
+  The default runtime loads explicit local configuration, refreshes a
+  non-cached inventory during retrieval readiness, and includes all configured
+  local inputs in `listCatalogs` and `status`. `SourceAwareRetrievalSpec` and
+  `ComponentFactorySpec` passed 10 focused tests on 2026-07-14.
 
 ## Closure Basis
 

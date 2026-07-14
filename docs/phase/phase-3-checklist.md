@@ -22,7 +22,7 @@ deleted; a checked item requires observable evidence.
 
 - [x] `P3-20` Remote origins and local roots use explicit authorization; canonical path, traversal, symlink-escape, credential, and diagnostic-sanitization cases are covered.
 - [x] `P3-21` Every input adapter has bounded discovery and refresh work, observable freshness, and an explicit last-known-good policy where caching applies.
-- [ ] `P3-22` Source-aware search, filters, version selection, and diagnostics are available through the read-only CBD/MCP surface without publishing administration mutations.
+- [x] `P3-22` Source-aware search, filters, version selection, and diagnostics are available through the read-only CBD/MCP surface without publishing administration mutations.
 
 ## AI Ergonomics
 

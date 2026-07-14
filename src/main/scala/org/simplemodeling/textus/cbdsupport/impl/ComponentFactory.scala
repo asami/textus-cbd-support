@@ -8,6 +8,7 @@ import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, InformationSourceState, ResolvedComponentDependency}
+import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SourceAwareComponentSearchQuery}
 
 /*
  * @since   Jul. 14, 2026
@@ -86,18 +87,28 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         val requirement = _required_string(action.record, "requirement")
         val limit = _optional_int(action.record, "limit").getOrElse(10)
         _runtime.searchSieTerms(requirement, None, limit, fetcher).map { _ =>
-          val results = _runtime.search(
+          val result = _runtime.searchSourceAware(SourceAwareComponentSearchQuery(
             requirement,
             _optional_string(action.record, "organization"),
             _optional_string(action.record, "kind"),
             _optional_string(action.record, "version"),
             _optional_string(action.record, "runtimeVersion"),
+            _optional_string(action.record, "sourceId"),
+            _optional_string(action.record, "sourceKind"),
+            _optional_string(action.record, "freshness"),
+            _optional_string(action.record, "versionState"),
+            _optional_string(action.record, "conflictCode"),
+            _optional_string(action.record, "purpose"),
             limit
-          )
+          ))
           OperationResponse(Record.dataAuto(
-            "status" -> (if (results.nonEmpty) "matched" else "no-match"),
-            "results" -> results.map(_match_record),
-            "warnings" -> _source_warnings
+            "status" -> (if (result.report.observations.nonEmpty) "matched" else "no-match"),
+            "results" -> result.matches.map(_match_record),
+            "observations" -> result.report.observations.map(_source_aware_observation_record),
+            "issues" -> result.report.issues.map(_source_aware_issue_record),
+            "precedence" -> result.report.precedence.map(_source_aware_precedence_record),
+            "selectedObservation" -> result.report.selectedObservation.map(_source_aware_observation_record),
+            "warnings" -> (result.warnings ++ _source_warnings).distinct
           ))
         }
       }
@@ -294,6 +305,39 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "expiresAt" -> observation.expiresAt.map(_.toString),
       "artifactChecksumSha256" -> observation.artifactChecksumSha256,
       "diagnostics" -> observation.diagnostics
+    )
+
+  private def _source_aware_observation_record(observation: ReconciliationObservation): Record =
+    Record.dataAuto(
+      "sourceId" -> observation.sourceId,
+      "sourceKind" -> observation.sourceKind,
+      "organization" -> observation.organization,
+      "componentName" -> observation.componentName,
+      "componentKind" -> observation.componentKind,
+      "version" -> observation.version,
+      "versionState" -> observation.versionState,
+      "freshness" -> observation.freshness,
+      "runtimeMinimum" -> observation.runtimeMinimum,
+      "runtimeMaximum" -> observation.runtimeMaximum,
+      "artifactChecksumSha256" -> observation.artifactChecksumSha256,
+      "evidenceLocation" -> observation.evidenceLocation,
+      "diagnostics" -> observation.diagnostics
+    )
+
+  private def _source_aware_issue_record(issue: ReconciliationIssue): Record =
+    Record.dataAuto(
+      "code" -> issue.code,
+      "message" -> issue.message,
+      "sourceIds" -> issue.sourceIds,
+      "evidenceLocations" -> issue.evidenceLocations
+    )
+
+  private def _source_aware_precedence_record(tier: ReconciliationPrecedenceTier): Record =
+    Record.dataAuto(
+      "rank" -> tier.rank,
+      "sourceKinds" -> tier.sourceKinds,
+      "versionStates" -> tier.versionStates,
+      "authority" -> tier.authority
     )
 
   private def _reference_record(profile: ComponentProfile): Record =

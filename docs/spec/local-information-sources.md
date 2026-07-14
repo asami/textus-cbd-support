@@ -62,10 +62,18 @@ observation with the same component and version identity.
 
 ## Configuration Boundary
 
-The parser accepts already-resolved runtime settings for development directories
-and optional local/cache roots. Reading CNCF runtime configuration and exposing
-the inventory through search/MCP are later integration work; the adapter does
-not access environment variables directly.
+The pure parser accepts already-resolved runtime settings for development
+directories and optional local/cache roots. The default runtime loads those
+settings from `TEXTUS_CBD_DEVELOPMENT_DIRECTORIES`,
+`TEXTUS_CBD_LOCAL_CAR_ROOT`, and `TEXTUS_CBD_CACHE_CAR_ROOT`, then applies the
+same parser and inspection policy. Development-directory source IDs cannot
+collide with any configured catalog, BoK, SIE, local, or cache source ID.
+
+Retrieval readiness performs the bounded inspection. Source-aware search
+projects local observations separately from catalog profiles, while
+`listCatalogs` and `status` expose per-source observation count, `observed`
+freshness, and source-specific diagnostics. The runtime does not retain a
+last-known-good local inventory.
 
 ## Executable Evidence
 
@@ -74,3 +82,5 @@ working `project.yaml` evidence, local/cache state separation, descriptor/path
 version separation, artifact checksums, and bounded discovery diagnostics.
 `VersionStateReconciliationSpec` covers the independent availability and
 maturity projection of these local observations.
+`SourceAwareRetrievalSpec` covers runtime configuration integration, source
+state projection, filters, and the no-fabricated-profile boundary.

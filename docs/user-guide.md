@@ -28,9 +28,10 @@ exists.
 ## Normal Workflow
 
 1. Search with a requirement such as `account authentication` and optional
-   `kind`, `version`, or `runtimeVersion` filters.
-2. Inspect each result's match classification, rationale, source catalog, and
-   evidence URI.
+   identity, version, source, freshness, availability, conflict, or purpose
+   filters.
+2. Inspect catalog-backed `results` separately from source-preserving
+   `observations`, `issues`, and `precedence`.
 3. Resolve the exact identity with `getComponent`.
 4. Read operation and documentation evidence with `getUsage`.
 5. Read direct and transitive dependency evidence with `resolveDependencies`.
@@ -103,6 +104,21 @@ the last successful observation remains only as degraded source-state evidence
 after a later failure.
 `searchComponents` triggers this SIE lookup with the same requirement, while
 its component matches continue to come only from CBD-owned catalog evidence.
+
+Configure working directories with comma-separated `[id=]path` entries in
+`TEXTUS_CBD_DEVELOPMENT_DIRECTORIES`. Optional
+`TEXTUS_CBD_LOCAL_CAR_ROOT` and `TEXTUS_CBD_CACHE_CAR_ROOT` settings override
+the canonical `~/.cncf/local` and `~/.cncf/cache` roots. These inputs are
+inspected read-only and within explicit bounds whenever retrieval inputs are
+initialized. They appear in `listCatalogs` and `status` with `observed`
+freshness and their own diagnostics.
+
+Source-aware `searchComponents` adds `sourceId`, `sourceKind`, `freshness`,
+`versionState`, `conflictCode`, and `purpose` filters. Its `results` contain
+only catalog-backed profiles. Working, local-published, and cached evidence is
+returned separately in `observations`; `issues` cites conflicts and
+`precedence` explains purpose-specific authority. `selectedObservation`
+remains absent because CBD Support does not choose a hidden winner.
 
 An authorized SIE source appears as `sie-bok` with
 `component-route-allowlist` authorization. Before retrieval it is

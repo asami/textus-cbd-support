@@ -73,8 +73,12 @@ keeps working, locally published, cached, and remotely published availability
 separate from release, snapshot, unknown, and conflicting maturity, including
 all declared catalog identities and no implicit latest winner. Phase 3 has now
 hardened remote-origin, derived-fetch, local-root, traversal,
-symlink-escape, credential, and diagnostic-sanitization boundaries. The next
-slice projects all sources through source-aware search, filtering, version
-selection, diagnostics, and MCP after bounding catalog discovery, adding BoK
-TTL and stale last-known-good retention, fixing SIE to query-scoped non-cache
-behavior, and timestamping each non-cached local inventory.
+symlink-escape, credential, and diagnostic-sanitization boundaries. Read-only
+source-aware search now keeps catalog profiles separate from working and
+local/cache observations, exposes bounded source, freshness, availability,
+conflict, and purpose filters, reports participating evidence and precedence,
+and does not select a hidden winner. The runtime also projects configured local
+inputs through search, `listCatalogs`, and `status` without adding a publishing
+administration mutation. The next slice extends requirement matching with BoK
+semantic evidence cited separately from CBD catalog and local evidence under
+P3-30.

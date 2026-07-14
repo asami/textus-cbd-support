@@ -75,18 +75,33 @@ final case class LocalInformationInventory(
   sources: Vector[InformationSourceDescriptor],
   observations: Vector[LocalComponentObservation],
   warnings: Vector[String],
-  observedAt: Instant
+  observedAt: Instant,
+  sourceDiagnostics: Map[String, Vector[String]]
 )
 
 object LocalInformationSourceConfig {
   private val _reserved_source_ids = Set("local-car", "cache-car")
+
+  def loadConfiguration(
+    reservedsourceids: Set[String],
+    policy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT
+  ): LocalInformationSourceConfiguration =
+    parse(
+      sys.env.get("TEXTUS_CBD_DEVELOPMENT_DIRECTORIES"),
+      sys.env.get("TEXTUS_CBD_LOCAL_CAR_ROOT"),
+      sys.env.get("TEXTUS_CBD_CACHE_CAR_ROOT"),
+      Path.of(sys.props("user.home")),
+      policy,
+      reservedsourceids
+    )
 
   def parse(
     developmentdirectories: Option[String],
     localcarroot: Option[String],
     cachecarroot: Option[String],
     homeroot: Path,
-    policy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT
+    policy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT,
+    reservedsourceids: Set[String] = Set.empty
   ): LocalInformationSourceConfiguration = {
     val developmentresults = developmentdirectories.toVector
       .flatMap(_.split(","))
@@ -101,7 +116,7 @@ object LocalInformationSourceConfig {
     val boundeddevelopment = developmentresults.take(policy.maxDevelopmentDirectories)
     val validdevelopment = boundeddevelopment.collect { case Right(source) => source }
     val developmentwarnings = boundeddevelopment.collect { case Left(warning) => warning }
-    val (development, duplicatewarnings) = _deduplicate(validdevelopment)
+    val (development, duplicatewarnings) = _deduplicate(validdevelopment, reservedsourceids)
 
     val localvalue = localcarroot.getOrElse(homeroot.resolve(".cncf/local").toString)
     val cachevalue = cachecarroot.getOrElse(homeroot.resolve(".cncf/cache").toString)
@@ -198,9 +213,10 @@ object LocalInformationSourceConfig {
   }
 
   private def _deduplicate(
-    sources: Vector[LocalPathSource]
+    sources: Vector[LocalPathSource],
+    reservedsourceids: Set[String]
   ): (Vector[LocalPathSource], Vector[String]) = {
-    val initial = (Vector.empty[LocalPathSource], _reserved_source_ids, Vector.empty[String])
+    val initial = (Vector.empty[LocalPathSource], _reserved_source_ids ++ reservedsourceids, Vector.empty[String])
     val (accepted, _, warnings) = sources.foldLeft(initial) { case ((xs, ids, ws), source) =>
       if (ids.contains(source.descriptor.id))
         (xs, ids, ws :+ s"Development-directory source ${source.descriptor.id} was rejected because its source ID is reserved or duplicated.")
@@ -217,13 +233,23 @@ object LocalInformationSourceInventory {
     policy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT,
     clock: Clock = Clock.systemUTC()
   ): LocalInformationInventory = {
-    val developmentresults = configuration.developmentSources.map(_inspect_development(_, policy))
-    val carresults = configuration.carStorageSources.map(_inspect_car_storage(_, policy))
+    val developmentresults = configuration.developmentSources.map { source =>
+      source -> _inspect_development(source, policy)
+    }
+    val carresults = configuration.carStorageSources.map { source =>
+      source -> _inspect_car_storage(source, policy)
+    }
+    val results = developmentresults ++ carresults
+    val observations = results.flatMap(_._2._1)
+    val sourcediagnostics = results.map { case (source, (_, warnings)) =>
+      source.descriptor.id -> (warnings ++ observations.filter(_.sourceId == source.descriptor.id).flatMap(_.diagnostics)).distinct
+    }.toMap
     LocalInformationInventory(
       configuration.sources.map(_.descriptor),
-      developmentresults.flatMap(_._1) ++ carresults.flatMap(_._1),
-      (configuration.warnings ++ developmentresults.flatMap(_._2) ++ carresults.flatMap(_._2)).distinct,
-      clock.instant()
+      observations,
+      (configuration.warnings ++ results.flatMap(_._2._2)).distinct,
+      clock.instant(),
+      sourcediagnostics
     )
   }
 

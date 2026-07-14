@@ -40,7 +40,7 @@ ComponentSearchResponse
 
 ##### DESCRIPTION
 
-Search configured CAR and SAR catalogs by requirement and optional identity, kind, version, and runtime constraints.
+Search catalog component profiles and local development/CAR observations by requirement, identity, version, source, freshness, availability state, conflict, and reconciliation-purpose filters without selecting a hidden winner.
 
 #### getComponent
 
@@ -128,7 +128,7 @@ CatalogListResponse
 
 ##### DESCRIPTION
 
-List authorized information sources, including component catalogs, BoK sites, and public SIE BoK routes, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.
+List authorized information sources, including component catalogs, BoK sites, public SIE BoK routes, development directories, and local/cache CAR storage, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.
 
 #### status
 
@@ -209,6 +209,12 @@ Administrative request to refresh configured catalogs.
 | kind | ComponentKind | ? |
 | version | ComponentVersion | ? |
 | runtimeVersion | RuntimeVersion | ? |
+| sourceId | ComponentSourceId | ? |
+| sourceKind | InformationSourceKind | ? |
+| freshness | InformationSourceFreshness | ? |
+| versionState | VersionAvailabilityState | ? |
+| conflictCode | ReconciliationIssueCode | ? |
+| purpose | ReconciliationPurpose | ? |
 | limit | int | ? |
 
 ## ComponentLookupRequest
@@ -285,6 +291,10 @@ Administrative request to refresh configured catalogs.
 |------|------|--------------|
 | status | CbdResultStatus | 1 |
 | results | ComponentMatch | * |
+| observations | SourceAwareObservation | * |
+| issues | SourceAwareIssue | * |
+| precedence | SourceAwarePrecedenceTier | * |
+| selectedObservation | SourceAwareObservation | ? |
 | warnings | CbdWarning | * |
 
 ## ComponentLookupResponse
@@ -385,6 +395,52 @@ Administrative request to refresh configured catalogs.
 | matchKind | ComponentMatchKind | 1 |
 | score | double | 1 |
 | rationale | ComponentMatchRationale | 1 |
+
+## SourceAwareObservation
+
+### DESCRIPTION
+
+One source-preserving catalog, development-directory, or local/cache CAR observation returned by read-only search. Missing evidence remains absent and is never completed from another source.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| sourceId | ComponentSourceId | 1 |
+| sourceKind | InformationSourceKind | 1 |
+| organization | ComponentOrganization | ? |
+| componentName | ComponentName | ? |
+| componentKind | ComponentKind | ? |
+| version | ComponentVersion | ? |
+| versionState | VersionAvailabilityState | ? |
+| freshness | InformationSourceFreshness | 1 |
+| runtimeMinimum | RuntimeVersion | ? |
+| runtimeMaximum | RuntimeVersion | ? |
+| artifactChecksumSha256 | ArtifactChecksumSha256 | ? |
+| evidenceLocation | ComponentReferenceUri | 1 |
+| diagnostics | CbdWarning | * |
+
+## SourceAwareIssue
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| code | ReconciliationIssueCode | 1 |
+| message | CbdWarning | 1 |
+| sourceIds | ComponentSourceId | * |
+| evidenceLocations | ComponentReferenceUri | * |
+
+## SourceAwarePrecedenceTier
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| rank | int | 1 |
+| sourceKinds | InformationSourceKind | * |
+| versionStates | VersionAvailabilityState | * |
+| authority | CbdStatusDetail | 1 |
 
 ## ComponentProfile
 
@@ -552,6 +608,30 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## InformationSourceFreshness
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## VersionAvailabilityState
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReconciliationIssueCode
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReconciliationPurpose
 
 ### ATTRIBUTE
 

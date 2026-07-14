@@ -26,6 +26,15 @@ object ReconciliationIssueCode {
   val INCOMPATIBLE = "incompatible"
   val VERSION_CONFLICT = "version-conflict"
   val CHECKSUM_CONFLICT = "checksum-conflict"
+
+  val ALL: Vector[String] = Vector(
+    DUPLICATE,
+    MISSING,
+    STALE,
+    INCOMPATIBLE,
+    VERSION_CONFLICT,
+    CHECKSUM_CONFLICT
+  )
 }
 
 final case class ReconciliationObservation(
@@ -55,7 +64,8 @@ final case class ReconciliationIssue(
   code: String,
   message: String,
   sourceIds: Vector[String],
-  evidenceLocations: Vector[String]
+  evidenceLocations: Vector[String],
+  participants: Vector[ReconciliationObservation]
 )
 
 final case class ObservationReconciliationReport(
@@ -153,7 +163,8 @@ object ObservationReconciler {
         ReconciliationIssueCode.MISSING,
         s"Observation from ${observation.sourceId} is missing purpose-required evidence: ${missing.mkString(", ")}.",
         Vector(observation.sourceId),
-        Vector(observation.evidenceLocation)
+        Vector(observation.evidenceLocation),
+        Vector(observation)
       ))
     }
 
@@ -165,7 +176,8 @@ object ObservationReconciler {
         ReconciliationIssueCode.DUPLICATE,
         s"Multiple observations remain for ${_identity_version_label(key)}.",
         entries.map(_.sourceId).distinct.sorted,
-        entries.map(_.evidenceLocation).distinct.sorted
+        entries.map(_.evidenceLocation).distinct.sorted,
+        entries
       ))
     }
 
@@ -177,7 +189,8 @@ object ObservationReconciler {
         ReconciliationIssueCode.STALE,
         s"Observation from ${observation.sourceId} is stale and remains evidence rather than current fact.",
         Vector(observation.sourceId),
-        Vector(observation.evidenceLocation)
+        Vector(observation.evidenceLocation),
+        Vector(observation)
       )
     }
 
@@ -196,7 +209,8 @@ object ObservationReconciler {
         ReconciliationIssueCode.INCOMPATIBLE,
         s"Observation from ${observation.sourceId} is incompatible with the requested version or runtime constraint.",
         Vector(observation.sourceId),
-        Vector(observation.evidenceLocation)
+        Vector(observation.evidenceLocation),
+        Vector(observation)
       ))
     }
 
@@ -209,7 +223,8 @@ object ObservationReconciler {
         ReconciliationIssueCode.VERSION_CONFLICT,
         s"Conflicting versions remain for ${_identity_label(key)}: ${versions.mkString(", ")}.",
         entries.map(_.sourceId).distinct.sorted,
-        entries.map(_.evidenceLocation).distinct.sorted
+        entries.map(_.evidenceLocation).distinct.sorted,
+        entries
       ))
     }
 
@@ -222,7 +237,8 @@ object ObservationReconciler {
         ReconciliationIssueCode.CHECKSUM_CONFLICT,
         s"Conflicting artifact checksums remain for ${_identity_version_label(key)}.",
         entries.map(_.sourceId).distinct.sorted,
-        entries.map(_.evidenceLocation).distinct.sorted
+        entries.map(_.evidenceLocation).distinct.sorted,
+        entries
       ))
     }
 

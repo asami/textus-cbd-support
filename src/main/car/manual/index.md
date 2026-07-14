@@ -75,13 +75,14 @@ CNCF MCP publication can be narrowed with:
 
 ### searchComponents
 
-Requires `requirement`. Optional `organization`, `kind`, `version`,
-`runtimeVersion`, and `limit` fields constrain results. Returns typed
-`ComponentMatch` records with `ComponentReference`, detailed profile, match
-classification, score, rationale, and warnings. A runtime constraint requires
-affirmative catalog runtime evidence; an absent runtime minimum does not match.
-An explicit version projects that version's artifact, runtime, dependency, and
-model-metadata evidence before compatibility filtering.
+Requires `requirement`. Optional identity, version, source, freshness,
+availability, conflict, purpose, and limit fields constrain results. `results`
+contains only catalog-backed component profiles. `observations` also preserves
+matching development-directory and local/cache CAR evidence without
+fabricating a profile. `issues` cites conflicting sources, `precedence`
+explains purpose-specific authority, and `selectedObservation` remains absent
+because retrieval does not select a hidden winner. A runtime constraint still
+requires affirmative catalog runtime evidence.
 
 ### getComponent
 
@@ -114,21 +115,19 @@ data is an empty evidence set, not an assertion of no dependencies.
 
 ### listCatalogs
 
-Returns authorized information-source identity, base URI, kind, priority,
+Returns authorized information-source identity, base URI or path, kind, priority,
 readiness, observation count, freshness, latest refresh-attempt time, and
-diagnostics. Catalog freshness uses `fresh`, `stale`, `empty`, or `disabled`;
-a BoK source uses the same finite-lifetime states, while a successfully
-observed query-scoped SIE source uses `observed`. Disabled sources are included
-only when requested. The response-level `warnings` field also reports rejected
-catalog, BoK-site, and SIE-route configuration. The operation name remains `listCatalogs` for
-Phase 2 compatibility.
+diagnostics for catalog, BoK, SIE, development-directory, local warehouse, and
+cache inputs. A successfully inspected local source uses `observed` freshness;
+its diagnostics make that source degraded. The response-level `warnings`
+field also reports rejected remote and local configuration. The operation name
+remains `listCatalogs` for Phase 2 compatibility.
 
 ### status
 
-Returns aggregate state and counts across catalog, BoK-site, and SIE inputs. `ready` means
-current enabled inputs are ready; `degraded` means an input failed, a retained
-catalog or BoK snapshot is stale, or all initial catalog loads failed; `not-started`
-means no enabled source has been attempted.
+Returns aggregate state and counts across catalog, BoK-site, SIE, development,
+local warehouse, and cache inputs. Local inspection is bounded, read-only, and
+non-cached.
 
 ## CbdCatalogAdmin Operation
 

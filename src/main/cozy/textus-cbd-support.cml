@@ -415,7 +415,28 @@ Administrative request to refresh configured catalogs.
 | artifactUri | ComponentReferenceUri | ? |
 | artifactChecksumSha256 | ArtifactChecksumSha256 | ? |
 | evidenceUri | ComponentReferenceUri | 1 |
+| observation | ComponentObservation | ? |
 | warnings | CbdWarning | * |
+
+## ComponentObservation
+
+### DESCRIPTION
+
+Evidence-bearing observation of one component profile. Source identity, kind, selected version, freshness, and checksum remain attributable and are not silently merged with another source.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| sourceId | ComponentSourceId | 1 |
+| sourceKind | InformationSourceKind | 1 |
+| evidenceLocation | ComponentReferenceUri | 1 |
+| version | ComponentVersion | ? |
+| freshness | InformationSourceFreshness | 1 |
+| observedAt | CatalogRefreshTime | ? |
+| expiresAt | CatalogRefreshTime | ? |
+| artifactChecksumSha256 | ArtifactChecksumSha256 | ? |
+| diagnostics | CbdWarning | * |
 
 ## ComponentOperation
 
@@ -475,14 +496,19 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 |------|------|--------------|
 | id | CatalogSourceId | 1 |
 | baseUri | ComponentReferenceUri | 1 |
+| sourceKind | InformationSourceKind | 1 |
+| location | InformationSourceLocation | 1 |
+| authorization | InformationSourceAuthorization | 1 |
 | enabled | boolean | 1 |
 | priority | int | 1 |
 | status | CbdResultStatus | 1 |
 | componentCount | int | 1 |
 | cacheStatus | CbdResultStatus | 1 |
+| freshness | InformationSourceFreshness | 1 |
 | refreshedAt | CatalogRefreshTime | ? |
 | expiresAt | CatalogRefreshTime | ? |
 | lastRefreshAttemptAt | CatalogRefreshTime | ? |
+| diagnostics | CbdWarning | * |
 | warning | CbdWarning | ? |
 
 ## CatalogSourceId
@@ -494,6 +520,38 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## ComponentSourceId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## InformationSourceKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## InformationSourceLocation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## InformationSourceAuthorization
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## InformationSourceFreshness
 
 ### ATTRIBUTE
 

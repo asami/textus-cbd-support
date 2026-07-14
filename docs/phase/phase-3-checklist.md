@@ -5,7 +5,7 @@ deleted; a checked item requires observable evidence.
 
 ## Input Source Contracts
 
-- [ ] `P3-01` simplemodeling.org remains the built-in public source and its observations retain an explicit source identity.
+- [x] `P3-01` simplemodeling.org remains the built-in public source and its observations retain an explicit source identity.
 - [ ] `P3-02` Other BoK sites can be explicitly configured and authorized through supported machine-readable contracts without rendered-page scraping or silent identity merging.
 - [ ] `P3-03` SIE-mediated BoK knowledge is retrieved with evidence while preserving SIE ownership of terminology and semantic relationships and CBD Support ownership of component detail.
 - [ ] `P3-04` Explicitly configured development directories are inspected read-only with bounded scope and distinguish working evidence from published fact.
@@ -13,8 +13,8 @@ deleted; a checked item requires observable evidence.
 
 ## Evidence and Reconciliation
 
-- [ ] `P3-11` A unified source descriptor exposes source kind, stable identity, location, authorization, freshness, and diagnostics for all five input-source kinds.
-- [ ] `P3-12` Component observations preserve their source, evidence location, version identity, freshness, and checksum instead of silently combining fields across sources.
+- [x] `P3-11` A unified source descriptor exposes source kind, stable identity, location, authorization, freshness, and diagnostics for all five input-source kinds.
+- [x] `P3-12` Component observations preserve their source, evidence location, version identity, freshness, and checksum instead of silently combining fields across sources.
 - [ ] `P3-13` Duplicate, missing, stale, incompatible, version-conflicting, and checksum-conflicting observations are reported with purpose-specific precedence and no automatic winner.
 - [ ] `P3-14` Version state distinguishes working, locally published, cached, and remotely published evidence, including snapshot and release identities.
 

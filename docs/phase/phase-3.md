@@ -1,8 +1,8 @@
 # Phase 3: Federated Development Context and AI Ergonomics
 
 Stage Status:
-- Current status: PLANNED
-- Current step: Input-source contracts and implementation order are defined; implementation has not started.
+- Current status: IN_PROGRESS
+- Current step: P3-01/P3-11/P3-12 are complete; the next slice adds bounded local development-directory and CAR-storage adapters.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -117,6 +117,22 @@ winner.
    of catalog fact, BoK evidence, local evidence, and inference.
 6. Complete documentation, executable specifications, full tests, CAR build,
    CAR lint, and representative MCP projection.
+
+## Verification Evidence
+
+- The built-in simplemodeling.org source retains stable identity and records
+  `published-catalog` kind with `built-in` authorization.
+- The unified descriptor vocabulary fixes the five Phase 3 source kinds and
+  projects identity, location, authorization, freshness, and diagnostics while
+  preserving the Phase 2 catalog fields.
+- Component observations retain their source snapshot time and expiry, selected
+  version, evidence location, and artifact checksum. A retained profile is not
+  relabeled with a later refresh, and a profile without source context exposes
+  observation absence instead of an inferred source kind.
+- Cozy `0.3.0-SNAPSHOT` generation and the focused `CatalogRuntimeSpec` plus
+  `ComponentFactorySpec` validation passed 24 tests on 2026-07-14. The validation
+  uses the current local CNCF `0.5.1-SNAPSHOT` MCP description fallback rather
+  than a stale Maven-local artifact.
 
 ## Closure Basis
 

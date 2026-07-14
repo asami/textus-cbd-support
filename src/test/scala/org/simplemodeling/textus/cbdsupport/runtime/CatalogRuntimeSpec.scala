@@ -36,6 +36,22 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Then("only the first source on the allowlisted origin is accepted and every rejection is observable")
       configuration.sources.map(_.id) shouldBe Vector("simplemodeling", "team")
       configuration.sources.last.baseUri.toString shouldBe "https://catalog.example/team/"
+      configuration.sources.head.descriptor shouldBe InformationSourceDescriptor(
+        "simplemodeling",
+        InformationSourceKind.PUBLISHED_CATALOG,
+        "https://www.simplemodeling.org/",
+        100,
+        true,
+        InformationSourceAuthorization.BUILT_IN
+      )
+      configuration.sources.last.authorization shouldBe InformationSourceAuthorization.EXACT_ORIGIN_ALLOWLIST
+      InformationSourceKind.ALL shouldBe Vector(
+        "published-catalog",
+        "bok-site",
+        "sie-bok",
+        "development-directory",
+        "car-storage"
+      )
       configuration.warnings.exists(_.contains("not an origin without a path")) shouldBe true
       configuration.warnings.exists(_.contains("not a valid HTTP(S) origin")) shouldBe true
       configuration.warnings.exists(_.contains("origin http://catalog.example is not allowlisted")) shouldBe true
@@ -400,6 +416,80 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
       state.warning.exists(_.contains("Catalog unavailable")) shouldBe true
       runtime.get("textus-order", None, None, None, None) should not be empty
+    }
+
+    "preserve source, version, freshness, and checksum in a component observation" in {
+      Given("one catalog profile loaded through a source-aware bounded cache")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val profile = _component_profile(source.id).copy(artifactChecksumSha256 = Some("abc123"))
+      val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        new InMemoryComponentCatalogProvider(Vector(profile)),
+        CatalogCachePolicy(Duration.ofMinutes(5)),
+        clock
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+
+      When("the selected component is projected as an evidence-bearing observation")
+      val selected = runtime.get("textus-order", None, Some("car"), None, None).get
+      val observation = runtime.observation(selected).get
+
+      Then("the observation remains attributable without copying fields from another source")
+      observation shouldBe ComponentObservation(
+        "memory",
+        InformationSourceKind.PUBLISHED_CATALOG,
+        "https://catalog.example/metadata/repository/car/index.json",
+        Some("1.2.0"),
+        "fresh",
+        Some(Instant.parse("2026-07-14T00:00:00Z")),
+        Some(Instant.parse("2026-07-14T00:05:00Z")),
+        Some("abc123"),
+        Vector.empty
+      )
+    }
+
+    "keep an observation tied to the snapshot that supplied its component profile" in {
+      Given("one retained profile followed by a successful refresh of the same source")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val provider = new SwitchableCatalogProvider(_component_profile(source.id))
+      val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        provider,
+        CatalogCachePolicy(Duration.ofMinutes(5)),
+        clock
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      val retained = runtime.get("textus-order", None, Some("car"), None, None).get
+      clock.advance(Duration.ofMinutes(5))
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+
+      When("the retained and current profiles are projected after refresh")
+      val retainedobservation = runtime.observation(retained).get
+      val current = runtime.get("textus-order", None, Some("car"), None, None).get
+      val currentobservation = runtime.observation(current).get
+
+      Then("each observation reports its own snapshot time instead of mixing refresh state")
+      retainedobservation.observedAt shouldBe Some(Instant.parse("2026-07-14T00:00:00Z"))
+      retainedobservation.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      retainedobservation.freshness shouldBe "stale"
+      currentobservation.observedAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      currentobservation.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
+      currentobservation.freshness shouldBe "fresh"
+    }
+
+    "report explicit observation absence when a profile has no source context" in {
+      Given("a profile that was not loaded through a runtime source snapshot")
+      val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
+      val runtime = CbdRuntime.create(Vector(source), new InMemoryComponentCatalogProvider(Vector.empty))
+      val unboundprofile = _component_profile("missing-source")
+
+      When("the unbound profile is projected as an observation")
+      val observation = runtime.observation(unboundprofile)
+
+      Then("the runtime exposes absence instead of fabricating a published catalog kind")
+      observation shouldBe None
     }
 
     "fail readiness when every initial catalog load fails" in {

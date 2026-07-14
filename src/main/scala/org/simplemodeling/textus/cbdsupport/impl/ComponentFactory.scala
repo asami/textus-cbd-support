@@ -7,7 +7,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
-import org.simplemodeling.textus.cbdsupport.runtime.{CatalogSourceState, CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentProfile, ResolvedComponentDependency, ComponentUsage}
+import org.simplemodeling.textus.cbdsupport.runtime.{CatalogSourceState, CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ResolvedComponentDependency, ComponentUsage}
 
 /*
  * @since   Jul. 14, 2026
@@ -275,7 +275,21 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "artifactUri" -> profile.artifactUri.map(_.toString),
       "artifactChecksumSha256" -> profile.artifactChecksumSha256,
       "evidenceUri" -> profile.evidenceUri.toString,
+      "observation" -> _runtime.observation(profile).map(_observation_record),
       "warnings" -> profile.warnings
+    )
+
+  private def _observation_record(observation: ComponentObservation): Record =
+    Record.dataAuto(
+      "sourceId" -> observation.sourceId,
+      "sourceKind" -> observation.sourceKind,
+      "evidenceLocation" -> observation.evidenceLocation,
+      "version" -> observation.version,
+      "freshness" -> observation.freshness,
+      "observedAt" -> observation.observedAt.map(_.toString),
+      "expiresAt" -> observation.expiresAt.map(_.toString),
+      "artifactChecksumSha256" -> observation.artifactChecksumSha256,
+      "diagnostics" -> observation.diagnostics
     )
 
   private def _reference_record(profile: ComponentProfile): Record =
@@ -321,19 +335,28 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     )
 
   private def _source_record(state: CatalogSourceState): Record =
-    Record.dataAuto(
-      "id" -> state.source.id,
-      "baseUri" -> state.source.baseUri.toString,
-      "enabled" -> state.source.enabled,
-      "priority" -> state.source.priority,
-      "status" -> state.status,
-      "componentCount" -> state.componentCount,
-      "cacheStatus" -> state.cacheStatus,
-      "refreshedAt" -> state.refreshedAt.map(_.toString),
-      "expiresAt" -> state.expiresAt.map(_.toString),
-      "lastRefreshAttemptAt" -> state.lastRefreshAttemptAt.map(_.toString),
-      "warning" -> state.warning
-    )
+    {
+      val informationstate = state.informationSourceState
+      val descriptor = informationstate.descriptor
+      Record.dataAuto(
+        "id" -> descriptor.id,
+        "baseUri" -> state.source.baseUri.toString,
+        "sourceKind" -> descriptor.sourceKind,
+        "location" -> descriptor.location,
+        "authorization" -> descriptor.authorization,
+        "enabled" -> descriptor.enabled,
+        "priority" -> descriptor.priority,
+        "status" -> informationstate.status,
+        "componentCount" -> informationstate.observationCount,
+        "cacheStatus" -> informationstate.freshness.status,
+        "freshness" -> informationstate.freshness.status,
+        "refreshedAt" -> informationstate.freshness.observedAt.map(_.toString),
+        "expiresAt" -> informationstate.freshness.expiresAt.map(_.toString),
+        "lastRefreshAttemptAt" -> informationstate.freshness.lastRefreshAttemptAt.map(_.toString),
+        "diagnostics" -> informationstate.diagnostics,
+        "warning" -> state.warning
+      )
+    }
 
   private def _source_warnings: Vector[String] =
     _runtime.configurationWarnings ++ _runtime.sourceStates(includeDisabled = false).flatMap(_.warning)

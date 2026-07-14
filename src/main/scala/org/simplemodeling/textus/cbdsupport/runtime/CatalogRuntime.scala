@@ -17,7 +17,58 @@ final case class CatalogSource(
   id: String,
   baseUri: URI,
   priority: Int,
-  enabled: Boolean
+  enabled: Boolean,
+  sourceKind: String = InformationSourceKind.PUBLISHED_CATALOG,
+  authorization: String = InformationSourceAuthorization.EXPLICIT
+) {
+  def descriptor: InformationSourceDescriptor =
+    InformationSourceDescriptor(id, sourceKind, baseUri.toString, priority, enabled, authorization)
+}
+
+object InformationSourceKind {
+  val PUBLISHED_CATALOG = "published-catalog"
+  val BOK_SITE = "bok-site"
+  val SIE_BOK = "sie-bok"
+  val DEVELOPMENT_DIRECTORY = "development-directory"
+  val CAR_STORAGE = "car-storage"
+
+  val ALL: Vector[String] = Vector(
+    PUBLISHED_CATALOG,
+    BOK_SITE,
+    SIE_BOK,
+    DEVELOPMENT_DIRECTORY,
+    CAR_STORAGE
+  )
+}
+
+object InformationSourceAuthorization {
+  val BUILT_IN = "built-in"
+  val EXACT_ORIGIN_ALLOWLIST = "exact-origin-allowlist"
+  val EXPLICIT = "explicit"
+}
+
+final case class InformationSourceDescriptor(
+  id: String,
+  sourceKind: String,
+  location: String,
+  priority: Int,
+  enabled: Boolean,
+  authorization: String
+)
+
+final case class InformationSourceFreshness(
+  status: String,
+  observedAt: Option[Instant],
+  expiresAt: Option[Instant],
+  lastRefreshAttemptAt: Option[Instant]
+)
+
+final case class InformationSourceState(
+  descriptor: InformationSourceDescriptor,
+  status: String,
+  observationCount: Int,
+  freshness: InformationSourceFreshness,
+  diagnostics: Vector[String]
 )
 
 final case class CatalogSourceConfiguration(
@@ -134,7 +185,8 @@ final case class ComponentProfile(
   selectedPublishedAt: Option[String] = None,
   runtimeMaximum: Option[String] = None,
   runtimeTested: Vector[String] = Vector.empty,
-  artifactChecksumSha256: Option[String] = None
+  artifactChecksumSha256: Option[String] = None,
+  observationContext: Option[ComponentObservationContext] = None
 ) {
   private def _version_neutral_warnings: Vector[String] =
     warnings.filterNot { warning =>
@@ -204,6 +256,35 @@ final case class CatalogSourceState(
   lastRefreshAttemptAt: Option[Instant],
   cacheStatus: String,
   warning: Option[String]
+) {
+  def informationSourceState: InformationSourceState =
+    InformationSourceState(
+      source.descriptor,
+      status,
+      componentCount,
+      InformationSourceFreshness(cacheStatus, refreshedAt, expiresAt, lastRefreshAttemptAt),
+      warning.toVector
+    )
+}
+
+final case class ComponentObservation(
+  sourceId: String,
+  sourceKind: String,
+  evidenceLocation: String,
+  version: Option[String],
+  freshness: String,
+  observedAt: Option[Instant],
+  expiresAt: Option[Instant],
+  artifactChecksumSha256: Option[String],
+  diagnostics: Vector[String]
+)
+
+final case class ComponentObservationContext(
+  sourceId: String,
+  sourceKind: String,
+  observedAt: Instant,
+  expiresAt: Instant,
+  diagnostics: Vector[String]
 )
 
 final case class ComponentMatch(
@@ -929,6 +1010,26 @@ final class CbdRuntime(
     }
   }
 
+  def observation(profile: ComponentProfile): Option[ComponentObservation] =
+    profile.observationContext.map { context =>
+      val matchingstate = sourceStates(includeDisabled = true).find { state =>
+        state.source.id == context.sourceId && state.refreshedAt.contains(context.observedAt)
+      }
+      ComponentObservation(
+        context.sourceId,
+        context.sourceKind,
+        profile.evidenceUri.toString,
+        _selected_version(profile),
+        matchingstate.map(_.cacheStatus).getOrElse {
+          if (clock.instant().isBefore(context.expiresAt)) "fresh" else "stale"
+        },
+        Some(context.observedAt),
+        Some(context.expiresAt),
+        profile.artifactChecksumSha256,
+        (context.diagnostics ++ matchingstate.toVector.flatMap(_.warning) ++ profile.warnings).distinct
+      )
+    }
+
   def overallStatus: String = {
     val states = sourceStates(includeDisabled = false)
     if (states.exists(_.status == "ready") && states.exists(_.status == "degraded")) "degraded"
@@ -956,7 +1057,20 @@ final class CbdRuntime(
       }
       provider.read(source, fetcher) match {
         case Consequence.Success(snapshot) => synchronized {
-          _snapshots = _snapshots.updated(source.id, snapshot.copy(source = source, refreshedAt = clock.instant()))
+          val observedat = clock.instant()
+          val observationcontext = ComponentObservationContext(
+            source.id,
+            source.sourceKind,
+            observedat,
+            observedat.plus(cachepolicy.ttl),
+            snapshot.warning.toVector
+          )
+          val profiles = snapshot.profiles.map(_.copy(observationContext = Some(observationcontext)))
+          _snapshots = _snapshots.updated(source.id, snapshot.copy(
+            source = source,
+            profiles = profiles,
+            refreshedAt = observedat
+          ))
           _failures = _failures.removed(source.id)
         }
         case Consequence.Failure(conclusion) => synchronized {
@@ -1074,7 +1188,9 @@ object CatalogSourceConfig {
     "simplemodeling",
     URI.create("https://www.simplemodeling.org/"),
     100,
-    true
+    true,
+    InformationSourceKind.PUBLISHED_CATALOG,
+    InformationSourceAuthorization.BUILT_IN
   )
 
   def load(): Vector[CatalogSource] =
@@ -1114,7 +1230,14 @@ object CatalogSourceConfig {
         try {
           val uri = _base_uri(urivalue)
           val origin = CatalogUriPolicy.origin(uri)
-          if (allowed.contains(origin)) Right(CatalogSource(id, uri, 200 + index, true))
+          if (allowed.contains(origin)) Right(CatalogSource(
+            id,
+            uri,
+            200 + index,
+            true,
+            InformationSourceKind.PUBLISHED_CATALOG,
+            InformationSourceAuthorization.EXACT_ORIGIN_ALLOWLIST
+          ))
           else Left(s"Configured catalog entry ${index + 1} was rejected because origin $origin is not allowlisted.")
         } catch {
           case NonFatal(_) => Left(s"Configured catalog entry ${index + 1} was rejected because its base URI is invalid.")

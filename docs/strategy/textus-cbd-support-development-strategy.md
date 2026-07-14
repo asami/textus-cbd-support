@@ -74,5 +74,7 @@ separate from release, snapshot, unknown, and conflicting maturity, including
 all declared catalog identities and no implicit latest winner. Phase 3 has now
 hardened remote-origin, derived-fetch, local-root, traversal,
 symlink-escape, credential, and diagnostic-sanitization boundaries. The next
-slice defines bounded refresh and explicit last-known-good behavior for every
-adapter before projecting all sources through search and MCP.
+slice projects all sources through source-aware search, filtering, version
+selection, diagnostics, and MCP after bounding catalog discovery, adding BoK
+TTL and stale last-known-good retention, fixing SIE to query-scoped non-cache
+behavior, and timestamping each non-cached local inventory.

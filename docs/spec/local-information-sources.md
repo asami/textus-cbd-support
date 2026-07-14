@@ -29,6 +29,11 @@ No-follow checks apply to every discovered entry as well as the configured
 root. A nested symbolic link to an artifact outside the authorized root is
 ignored and cannot become an observation.
 
+Each returned inventory records the completion time as `observedAt`. The local
+adapter keeps no snapshot cache or last-known-good fallback: every invocation
+performs a new bounded, read-only inspection, so an earlier inventory is never
+relabeled as current after local files change or become unavailable.
+
 Reaching any discovery bound, including the maximum directory depth, produces a
 truncation warning. SHA-256 calculation reads at most the configured artifact
 byte limit plus one byte used only to detect overflow, even if a mutable artifact

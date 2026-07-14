@@ -4,6 +4,7 @@ import java.io.BufferedInputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, LinkOption, Path}
 import java.security.MessageDigest
+import java.time.{Clock, Instant}
 import java.util.zip.ZipFile
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.*
@@ -73,7 +74,8 @@ final case class LocalComponentObservation(
 final case class LocalInformationInventory(
   sources: Vector[InformationSourceDescriptor],
   observations: Vector[LocalComponentObservation],
-  warnings: Vector[String]
+  warnings: Vector[String],
+  observedAt: Instant
 )
 
 object LocalInformationSourceConfig {
@@ -212,14 +214,16 @@ object LocalInformationSourceConfig {
 object LocalInformationSourceInventory {
   def inspect(
     configuration: LocalInformationSourceConfiguration,
-    policy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT
+    policy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT,
+    clock: Clock = Clock.systemUTC()
   ): LocalInformationInventory = {
     val developmentresults = configuration.developmentSources.map(_inspect_development(_, policy))
     val carresults = configuration.carStorageSources.map(_inspect_car_storage(_, policy))
     LocalInformationInventory(
       configuration.sources.map(_.descriptor),
       developmentresults.flatMap(_._1) ++ carresults.flatMap(_._1),
-      (configuration.warnings ++ developmentresults.flatMap(_._2) ++ carresults.flatMap(_._2)).distinct
+      (configuration.warnings ++ developmentresults.flatMap(_._2) ++ carresults.flatMap(_._2)).distinct,
+      clock.instant()
     )
   }
 

@@ -20,7 +20,7 @@ final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with Bok
   def get(uri: URI): Consequence[String] =
     _get(uri, None)
 
-  def get(uri: URI, maxbytes: Int): Consequence[String] =
+  override def get(uri: URI, maxbytes: Int): Consequence[String] =
     _get(uri, Some(maxbytes))
 
   def postJson(endpoint: URI, body: String, maxbytes: Int): Consequence[String] =

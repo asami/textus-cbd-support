@@ -255,7 +255,7 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
     def get(uri: URI): Consequence[String] =
       responses.get(uri).map(Consequence.success).getOrElse(Consequence.serviceUnavailable(s"No fixture for $uri"))
 
-    def get(uri: URI, maxbytes: Int): Consequence[String] = {
+    override def get(uri: URI, maxbytes: Int): Consequence[String] = {
       requests += uri -> maxbytes
       responses.get(uri) match {
         case None => Consequence.serviceUnavailable(s"No fixture for $uri")

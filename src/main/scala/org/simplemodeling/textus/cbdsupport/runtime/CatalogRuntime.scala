@@ -1,6 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
+import java.nio.charset.StandardCharsets
 import java.time.{Clock, Duration, Instant}
 import scala.util.control.NonFatal
 
@@ -109,6 +110,24 @@ object CatalogCachePolicy {
   val DEFAULT_TTL: Duration = Duration.ofMinutes(15)
   val MAXIMUM_TTL: Duration = Duration.ofHours(24)
   val DEFAULT: CatalogCachePolicy = CatalogCachePolicy(DEFAULT_TTL)
+}
+
+final case class CatalogInspectionPolicy(
+  maxConfiguredSources: Int = 15,
+  maxAllowedOrigins: Int = 32,
+  maxProfiles: Int = 10000,
+  maxIndexBytes: Int = 8 * 1024 * 1024,
+  maxMetadataBytes: Int = 2 * 1024 * 1024
+) {
+  require(maxConfiguredSources > 0, "Catalog source limit must be positive.")
+  require(maxAllowedOrigins > 0, "Catalog allowed-origin limit must be positive.")
+  require(maxProfiles > 0, "Catalog profile limit must be positive.")
+  require(maxIndexBytes > 0, "Catalog index byte limit must be positive.")
+  require(maxMetadataBytes > 0, "Catalog metadata byte limit must be positive.")
+}
+
+object CatalogInspectionPolicy {
+  val DEFAULT: CatalogInspectionPolicy = CatalogInspectionPolicy()
 }
 
 final case class ComponentDependency(
@@ -309,6 +328,12 @@ final case class ComponentUsage(
 
 trait CatalogFetcher {
   def get(uri: URI): Consequence[String]
+
+  def get(uri: URI, maxbytes: Int): Consequence[String] =
+    get(uri).flatMap { body =>
+      if (body.getBytes(StandardCharsets.UTF_8).length <= maxbytes) Consequence.success(body)
+      else Consequence.serviceUnavailable(s"Response exceeds $maxbytes bytes: ${InformationSourceDiagnosticPolicy.renderUri(uri)}")
+    }
 }
 
 trait ComponentCatalogProvider {
@@ -345,7 +370,10 @@ final class CompatibleComponentCatalogProvider(
     else publication.readUsage(profile, fetcher)
 }
 
-final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
+final class CozyComponentCatalogProvider(
+  policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT,
+  clock: Clock = Clock.systemUTC()
+) extends ComponentCatalogProvider {
   private final case class ParsedIndex(
     profiles: Vector[ComponentProfile],
     warnings: Vector[String]
@@ -354,14 +382,18 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
     val documents = Vector("car", "sar").map { kind =>
       val uri = source.baseUri.resolve(s"metadata/repository/$kind/index.json")
-      fetcher.get(uri).flatMap(_parse_index(source, kind, uri, _))
+      fetcher.get(uri, policy.maxIndexBytes).flatMap(_parse_index(source, kind, uri, _))
     }
     _sequence_allow_missing(documents).map { case (indexes, readwarnings) =>
-      val warnings = readwarnings ++ indexes.flatMap(_.warnings)
+      val discoveredprofiles = indexes.flatMap(_.profiles)
+      val overflowwarning = Option.when(discoveredprofiles.size > policy.maxProfiles) {
+        s"Catalog profiles were truncated at ${policy.maxProfiles} entries."
+      }.toVector
+      val warnings = readwarnings ++ indexes.flatMap(_.warnings) ++ overflowwarning
       CatalogSnapshot(
         source,
-        indexes.flatMap(_.profiles).sortBy(x => (x.kind, x.name, x.catalogId)),
-        Instant.now(),
+        discoveredprofiles.take(policy.maxProfiles).sortBy(x => (x.kind, x.name, x.catalogId)),
+        clock.instant(),
         if (warnings.nonEmpty) Some(warnings.mkString("; ")) else None
       )
     }
@@ -387,7 +419,7 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
           profile.warnings :+ s"Model metadata was not fetched because $reason: ${InformationSourceDiagnosticPolicy.renderUri(uri)}."
         ))
       case Some(uri) =>
-        fetcher.get(uri) match {
+        fetcher.get(uri, policy.maxMetadataBytes) match {
           case Consequence.Success(body) =>
             _parse_operations(body, uri).map { operations =>
               ComponentUsage(profile, operations, references, profile.warnings)
@@ -423,8 +455,10 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
       case Right(json) =>
         val entries = _array(json, "entries")
         Consequence.success(ParsedIndex(
-          entries.flatMap(_profile(source, kind, uri, _)),
-          _diagnostics(json)
+          entries.take(policy.maxProfiles).flatMap(_profile(source, kind, uri, _)),
+          _diagnostics(json) ++ Option.when(entries.size > policy.maxProfiles) {
+            s"Catalog $kind profiles were truncated at ${policy.maxProfiles} entries."
+          }
         ))
     }
 
@@ -652,29 +686,36 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
   }
 }
 
-final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogProvider {
+final class SimpleModelingPublicationCatalogProvider(
+  policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT,
+  clock: Clock = Clock.systemUTC()
+) extends ComponentCatalogProvider {
   private val _metadata_link = """href=[\"']([^\"'/]+)/metadata\.html[\"']""".r
   private val _non_component_entries = Set("maven-repository")
 
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
     val cataloguri = source.baseUri.resolve("en/catalog/index.html")
-    fetcher.get(cataloguri).flatMap { body =>
-      val names = _metadata_link.findAllMatchIn(body)
+    fetcher.get(cataloguri, policy.maxIndexBytes).flatMap { body =>
+      val discoverednames = _metadata_link.findAllMatchIn(body)
         .map(_.group(1).trim)
         .filter(x => x.nonEmpty && !_non_component_entries.contains(x))
+        .take(policy.maxProfiles + 1)
         .toVector
         .distinct
+      val names = discoverednames.take(policy.maxProfiles)
       val results = names.map(name => name -> _read_profile(source, fetcher, name))
       val profiles = results.collect { case (_, Consequence.Success(Some(profile))) => profile }
       val warnings = results.collect {
         case (name, Consequence.Failure(conclusion)) =>
           InformationSourceDiagnosticPolicy.sanitize(s"$name: ${conclusion.display}")
+      } ++ Option.when(discoverednames.size > policy.maxProfiles) {
+        s"Publication catalog profiles were truncated at ${policy.maxProfiles} entries."
       }
       if (profiles.nonEmpty)
         Consequence.success(CatalogSnapshot(
           source,
           profiles.sortBy(x => (x.kind, x.name, x.catalogId)),
-          Instant.now(),
+          clock.instant(),
           Option.when(warnings.nonEmpty)(warnings.mkString("; "))
         ))
       else
@@ -705,7 +746,7 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
     name: String
   ): Consequence[Option[ComponentProfile]] = {
     val catalogprojecturi = source.baseUri.resolve(s"metadata/catalog/projects/$name.json")
-    fetcher.get(catalogprojecturi).flatMap { catalogbody =>
+    fetcher.get(catalogprojecturi, policy.maxMetadataBytes).flatMap { catalogbody =>
       parse(catalogbody) match {
         case Left(error) =>
           Consequence.failure(s"Invalid publication project JSON at $catalogprojecturi: ${error.getMessage}")
@@ -715,7 +756,7 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
           kind match {
             case Some(componentkind @ ("car" | "sar")) =>
               val artifacturi = source.baseUri.resolve(s"metadata/artifacts/repository/$name.json")
-              fetcher.get(artifacturi).flatMap { artifactbody =>
+              fetcher.get(artifacturi, policy.maxMetadataBytes).flatMap { artifactbody =>
                 parse(artifactbody) match {
                   case Left(error) =>
                     Consequence.failure(s"Invalid publication artifact JSON at $artifacturi: ${error.getMessage}")
@@ -815,10 +856,11 @@ final class SimpleModelingPublicationCatalogProvider extends ComponentCatalogPro
 
 final class InMemoryComponentCatalogProvider(
   profiles: Vector[ComponentProfile],
-  operations: Map[String, Vector[ComponentOperation]] = Map.empty
+  operations: Map[String, Vector[ComponentOperation]] = Map.empty,
+  clock: Clock = Clock.systemUTC()
 ) extends ComponentCatalogProvider {
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
-    Consequence.success(CatalogSnapshot(source, profiles.map(_.copy(catalogId = source.id)), Instant.now(), None))
+    Consequence.success(CatalogSnapshot(source, profiles.map(_.copy(catalogId = source.id)), clock.instant(), None))
 
   def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =
     Consequence.success(ComponentUsage(
@@ -866,8 +908,11 @@ final class CbdRuntime(
 
   def ensureInputsReady(fetcher: CatalogFetcher & BokFetcher): Consequence[Unit] =
     ensureReady(fetcher).map { _ =>
+      val now = clock.instant()
       val selected = synchronized {
-        bokSources.filter(_.enabled).filterNot(source => _bok_snapshots.contains(source.id))
+        bokSources.filter(_.enabled).filter { source =>
+          _bok_snapshots.get(source.id).forall(_is_bok_stale(_, now))
+        }
       }
       if (selected.nonEmpty) _refresh_bok_sources(selected, fetcher)
     }
@@ -1043,15 +1088,19 @@ final class CbdRuntime(
   }
 
   def bokSourceStates(includeDisabled: Boolean): Vector[BokSourceState] = synchronized {
+    val now = clock.instant()
     bokSources.filter(x => includeDisabled || x.enabled).sortBy(x => (x.priority, x.id)).map { source =>
       val snapshot = _bok_snapshots.get(source.id)
       val diagnostics = (_bok_failures.get(source.id).toVector ++ snapshot.toVector.flatMap(_.warnings)).distinct
+      val stale = snapshot.exists(_is_bok_stale(_, now))
       BokSourceState(
         source,
-        if (!source.enabled) "disabled" else if (diagnostics.nonEmpty) "degraded" else if (snapshot.nonEmpty) "ready" else "not-started",
+        if (!source.enabled) "disabled" else if (diagnostics.nonEmpty || stale) "degraded" else if (snapshot.nonEmpty) "ready" else "not-started",
         snapshot.map(_.terms.size).getOrElse(0),
         snapshot.map(_.observedAt),
+        snapshot.map(_bok_expires_at),
         _bok_last_refresh_attempts.get(source.id),
+        if (!source.enabled) "disabled" else if (snapshot.isEmpty) "empty" else if (stale) "stale" else "fresh",
         diagnostics
       )
     }
@@ -1201,7 +1250,10 @@ final class CbdRuntime(
       }
       bokprovider.read(source, fetcher, bokpolicy) match {
         case Consequence.Success(snapshot) => synchronized {
-          _bok_snapshots = _bok_snapshots.updated(source.id, snapshot)
+          _bok_snapshots = _bok_snapshots.updated(source.id, snapshot.copy(
+            source = source.descriptor,
+            observedAt = clock.instant()
+          ))
           _bok_failures = _bok_failures.removed(source.id)
         }
         case Consequence.Failure(conclusion) => synchronized {
@@ -1216,6 +1268,12 @@ final class CbdRuntime(
 
   private def _is_stale(snapshot: CatalogSnapshot, now: Instant): Boolean =
     !now.isBefore(_expires_at(snapshot))
+
+  private def _bok_expires_at(snapshot: BokSourceSnapshot): Instant =
+    snapshot.observedAt.plus(bokpolicy.refreshTtl)
+
+  private def _is_bok_stale(snapshot: BokSourceSnapshot, now: Instant): Boolean =
+    !now.isBefore(_bok_expires_at(snapshot))
 
   private def _source_priority(sourceid: String): Int =
     sources.find(_.id == sourceid).map(_.priority).getOrElse(Int.MaxValue)
@@ -1288,9 +1346,9 @@ object CbdRuntime {
   val MAX_DEPENDENCY_DEPTH = 32
 
   def create(): CbdRuntime = {
-    val cozy = new CozyComponentCatalogProvider()
-    val publication = new SimpleModelingPublicationCatalogProvider()
     val clock = Clock.systemUTC()
+    val cozy = new CozyComponentCatalogProvider(clock = clock)
+    val publication = new SimpleModelingPublicationCatalogProvider(clock = clock)
     val configuration = CatalogSourceConfig.loadConfiguration()
     val bokconfiguration = BokSourceConfig.loadConfiguration(
       configuration.sources.map(_.id).toSet ++ Set("local-car", "cache-car")
@@ -1391,18 +1449,25 @@ object CatalogSourceConfig {
   def load(): Vector[CatalogSource] =
     loadConfiguration().sources
 
-  def loadConfiguration(): CatalogSourceConfiguration =
+  def loadConfiguration(
+    policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT
+  ): CatalogSourceConfiguration =
     parse(
       sys.env.get("TEXTUS_CBD_CATALOGS"),
-      sys.env.get("TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS")
+      sys.env.get("TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS"),
+      policy
     )
 
   def parse(
     catalogs: Option[String],
-    allowedorigins: Option[String]
+    allowedorigins: Option[String],
+    policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT
   ): CatalogSourceConfiguration = {
     val allowedentries = allowedorigins.toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty)
-    val allowedresults = allowedentries.zipWithIndex.map { case (value, index) =>
+    val allowedoverflow = Option.when(allowedentries.size > policy.maxAllowedOrigins) {
+      s"Catalog allowed-origin configuration exceeds the limit of ${policy.maxAllowedOrigins}."
+    }.toVector
+    val allowedresults = allowedentries.take(policy.maxAllowedOrigins).zipWithIndex.map { case (value, index) =>
       try {
         val uri = _base_uri(value)
         if (!Set("", "/").contains(Option(uri.getPath).getOrElse("")))
@@ -1415,7 +1480,10 @@ object CatalogSourceConfig {
     val allowed = allowedresults.collect { case Right(origin) => origin }.toSet
     val allowwarnings = allowedresults.collect { case Left(warning) => warning }
     val configuredentries = catalogs.toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty)
-    val configuredresults = configuredentries.zipWithIndex.map { case (value, index) =>
+    val sourceoverflow = Option.when(configuredentries.size > policy.maxConfiguredSources) {
+      s"Catalog source configuration exceeds the limit of ${policy.maxConfiguredSources}."
+    }.toVector
+    val configuredresults = configuredentries.take(policy.maxConfiguredSources).zipWithIndex.map { case (value, index) =>
       val pair = value.split("=", 2)
       val id = if (pair.length == 2) pair(0).trim else s"configured-${index + 1}"
       val urivalue = if (pair.length == 2) pair(1).trim else pair(0).trim
@@ -1450,7 +1518,7 @@ object CatalogSourceConfig {
     }
     CatalogSourceConfiguration(
       sources.sortBy(x => (x.priority, x.id)),
-      (allowwarnings ++ rejectionwarnings ++ duplicatewarnings).toVector
+      (allowedoverflow ++ allowwarnings ++ sourceoverflow ++ rejectionwarnings ++ duplicatewarnings).toVector
     )
   }
 

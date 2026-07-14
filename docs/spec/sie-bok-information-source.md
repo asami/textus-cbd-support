@@ -17,7 +17,8 @@ SemanticIntegrationEngine.SemanticRetrieval.searchTerms
 
 The JSON-RPC method is `tools/call`. CBD supplies `query`, an optional
 `category`, and a bounded `limit`. Response bytes and accepted result count are
-bounded. CBD does not use the legacy internal `sie.searchTerms` facade, SIE
+bounded, and query/category character limits are checked before transport. CBD
+does not use the legacy internal `sie.searchTerms` facade, SIE
 administration or ingestion routes, or SIE's RDF/vector storage.
 `CbdRetrieval.searchComponents` triggers the lookup with its requirement, but
 the returned component matches remain exclusively CBD catalog observations.
@@ -46,6 +47,11 @@ rationale, and evidence links. CBD Support owns component versions, runtime
 compatibility, dependencies, operations, artifacts, manuals, examples, and
 reuse guidance. SIE terms are stored as independent `sie-bok` observations;
 they are never copied into or used to complete a component profile.
+
+SIE responses are query scoped and are not cached for reuse. Failure for a new
+query returns no result from an earlier query. Unified source state may retain
+the latest successful observation and its age as degraded diagnostic evidence,
+but that retained evidence never substitutes for the failed query response.
 
 The SIE `ComponentReference` handoff remains separate. It proves that a CAR or
 SAR exists, but detailed component development evidence must be resolved by

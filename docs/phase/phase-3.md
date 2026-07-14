@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, and P3-20 are complete; the next slice defines bounded refresh and last-known-good behavior for every adapter under P3-21.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, and P3-20 through P3-21 are complete; the next slice projects source-aware retrieval through the read-only CBD/MCP surface under P3-22.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -185,6 +185,14 @@ winner.
   `InformationSourceSecuritySpec` passed 5 focused tests, and the combined
   security, catalog, BoK, SIE, and local-source validation passed 44 tests on
   2026-07-14.
+- Catalog configuration, response bytes, and discovered profiles are now
+  bounded in addition to the existing finite catalog TTL. BoK snapshots now
+  expire and refresh under the same positive, at-most-24-hour lifetime rule,
+  retaining explicitly stale last-known-good terms after failure. SIE requests
+  reject oversized query/category work before transport and never reuse a
+  response for another query. Local inventories expose their own completion
+  time and remain non-cached, read-only inspections. `InformationSourceRefreshSpec`
+  passed 4 focused tests on 2026-07-14.
 
 ## Closure Basis
 

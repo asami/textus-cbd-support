@@ -68,6 +68,8 @@ fresh snapshot and automatically attempt refresh at or after `expiresAt`. A
 failed attempt retains the stale last-known-good snapshot. Use `listCatalogs`
 to inspect `cacheStatus`, `refreshedAt`, `expiresAt`,
 `lastRefreshAttemptAt`, and any warning.
+Catalog source/origin configuration, index and metadata bytes, and discovered
+profile count are bounded; truncation remains visible as a warning.
 
 Additional catalog configuration is authorized in two steps. Put candidate
 base URIs in `TEXTUS_CBD_CATALOGS` and their permitted network origins in
@@ -84,7 +86,9 @@ authorization model. A supported site must publish
 manifest-declared `glossary-terms` JSON and never scrapes rendered pages.
 `listCatalogs` retains its compatibility name but reports both catalog and BoK
 source identity, kind, readiness, freshness, and diagnostics. BoK terms remain
-semantic evidence and are not converted into component catalog facts.
+semantic evidence and are not converted into component catalog facts. BoK
+snapshots also have a 15-minute default lifetime; failed expiry refresh retains
+stale terms with the original observation/expiry and the latest attempt time.
 
 To retrieve BoK terminology through SIE, authorize the SIE origin with
 `TEXTUS_CBD_SIE_ALLOWED_ORIGINS` and configure one or more `[id=].../mcp`
@@ -93,7 +97,10 @@ and invokes the typed
 `SemanticIntegrationEngine.SemanticRetrieval.searchTerms` operation. Each term
 must include the SIE contract's identity, definition, dataset, match, rationale,
 score, and absolute `evidence_uri`; an incomplete term response is rejected as
-a source failure. The response body and result count are bounded.
+a source failure. Query/category characters, response body, and result count
+are bounded. Results are query scoped and are never reused for another query;
+the last successful observation remains only as degraded source-state evidence
+after a later failure.
 `searchComponents` triggers this SIE lookup with the same requirement, while
 its component matches continue to come only from CBD-owned catalog evidence.
 

@@ -117,7 +117,8 @@ data is an empty evidence set, not an assertion of no dependencies.
 Returns authorized information-source identity, base URI, kind, priority,
 readiness, observation count, freshness, latest refresh-attempt time, and
 diagnostics. Catalog freshness uses `fresh`, `stale`, `empty`, or `disabled`;
-a successfully observed BoK or SIE source uses `observed`. Disabled sources are included
+a BoK source uses the same finite-lifetime states, while a successfully
+observed query-scoped SIE source uses `observed`. Disabled sources are included
 only when requested. The response-level `warnings` field also reports rejected
 catalog, BoK-site, and SIE-route configuration. The operation name remains `listCatalogs` for
 Phase 2 compatibility.
@@ -126,7 +127,7 @@ Phase 2 compatibility.
 
 Returns aggregate state and counts across catalog, BoK-site, and SIE inputs. `ready` means
 current enabled inputs are ready; `degraded` means an input failed, a retained
-catalog snapshot is stale, or all initial catalog loads failed; `not-started`
+catalog or BoK snapshot is stale, or all initial catalog loads failed; `not-started`
 means no enabled source has been attempted.
 
 ## CbdCatalogAdmin Operation
@@ -141,7 +142,9 @@ Snapshots have a default finite TTL of 15 minutes and the runtime cache policy
 rejects non-positive lifetimes or lifetimes over 24 hours. Retrieval readiness
 reuses a fresh snapshot and automatically refreshes a missing or expired
 snapshot. If automatic refresh fails, the stale last-known-good snapshot stays
-available and the source becomes `degraded`.
+available and the source becomes `degraded`. The same lifetime and stale
+last-known-good rule applies to BoK snapshots; `refreshCatalog` itself remains
+catalog-only administration.
 
 ## Catalog Contract
 

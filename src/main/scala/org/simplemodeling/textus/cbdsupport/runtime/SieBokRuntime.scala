@@ -18,12 +18,16 @@ final case class SieBokPolicy(
   maxSources: Int = 8,
   maxAllowedOrigins: Int = 16,
   maxTermsPerResponse: Int = 100,
-  maxResponseBytes: Int = 2 * 1024 * 1024
+  maxResponseBytes: Int = 2 * 1024 * 1024,
+  maxQueryCharacters: Int = 1024,
+  maxCategoryCharacters: Int = 256
 ) {
   require(maxSources > 0, "SIE source limit must be positive.")
   require(maxAllowedOrigins > 0, "SIE allowed-origin limit must be positive.")
   require(maxTermsPerResponse > 0, "SIE term limit must be positive.")
   require(maxResponseBytes > 0, "SIE response byte limit must be positive.")
+  require(maxQueryCharacters > 0, "SIE query character limit must be positive.")
+  require(maxCategoryCharacters > 0, "SIE category character limit must be positive.")
 }
 
 object SieBokPolicy {
@@ -199,22 +203,39 @@ final class SieBokProvider(clock: Clock = Clock.systemUTC()) {
     policy: SieBokPolicy = SieBokPolicy.DEFAULT
   ): Consequence[SieBokSnapshot] = {
     val boundedlimit = limit.max(1).min(policy.maxTermsPerResponse)
-    val arguments = JsonObject.fromIterable(Vector(
-      "query" -> Json.fromString(query.trim),
-      "limit" -> Json.fromInt(boundedlimit)
-    ) ++ category.map(x => "category" -> Json.fromString(x.trim)))
-    val request = Json.obj(
-      "jsonrpc" -> Json.fromString("2.0"),
-      "id" -> Json.fromString(s"cbd-${source.id}"),
-      "method" -> Json.fromString("tools/call"),
-      "params" -> Json.obj(
-        "name" -> Json.fromString(SieBokProvider.SEARCH_TERMS_TOOL),
-        "arguments" -> Json.fromJsonObject(arguments)
+    _bounded_request(query, category, policy).flatMap { case (boundedquery, boundedcategory) =>
+      val arguments = JsonObject.fromIterable(Vector(
+        "query" -> Json.fromString(boundedquery),
+        "limit" -> Json.fromInt(boundedlimit)
+      ) ++ boundedcategory.map(x => "category" -> Json.fromString(x)))
+      val request = Json.obj(
+        "jsonrpc" -> Json.fromString("2.0"),
+        "id" -> Json.fromString(s"cbd-${source.id}"),
+        "method" -> Json.fromString("tools/call"),
+        "params" -> Json.obj(
+          "name" -> Json.fromString(SieBokProvider.SEARCH_TERMS_TOOL),
+          "arguments" -> Json.fromJsonObject(arguments)
+        )
       )
-    )
-    transport.postJson(source.endpoint, request.noSpaces, policy.maxResponseBytes).flatMap { body =>
-      _parse_response(source, query.trim, body, boundedlimit, policy)
+      transport.postJson(source.endpoint, request.noSpaces, policy.maxResponseBytes).flatMap { body =>
+        _parse_response(source, boundedquery, body, boundedlimit, policy)
+      }
     }
+  }
+
+  private def _bounded_request(
+    query: String,
+    category: Option[String],
+    policy: SieBokPolicy
+  ): Consequence[(String, Option[String])] = {
+    val normalizedquery = query.trim
+    val normalizedcategory = category.map(_.trim).filter(_.nonEmpty)
+    if (normalizedquery.length > policy.maxQueryCharacters)
+      Consequence.failure(s"SIE query exceeds ${policy.maxQueryCharacters} characters.")
+    else if (normalizedcategory.exists(_.length > policy.maxCategoryCharacters))
+      Consequence.failure(s"SIE category exceeds ${policy.maxCategoryCharacters} characters.")
+    else
+      Consequence.success(normalizedquery -> normalizedcategory)
   }
 
   private def _parse_response(

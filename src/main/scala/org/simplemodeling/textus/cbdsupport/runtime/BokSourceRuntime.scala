@@ -2,7 +2,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.time.{Clock, Instant}
+import java.time.{Clock, Duration, Instant}
 import scala.util.control.NonFatal
 
 import io.circe.Json
@@ -20,7 +20,8 @@ final case class BokInspectionPolicy(
   maxResources: Int = 64,
   maxTerms: Int = 10000,
   maxManifestBytes: Int = 1024 * 1024,
-  maxResourceBytes: Int = 8 * 1024 * 1024
+  maxResourceBytes: Int = 8 * 1024 * 1024,
+  refreshTtl: Duration = Duration.ofMinutes(15)
 ) {
   require(maxSources > 0, "BoK source limit must be positive.")
   require(maxAllowedOrigins > 0, "BoK allowed-origin limit must be positive.")
@@ -28,9 +29,12 @@ final case class BokInspectionPolicy(
   require(maxTerms > 0, "BoK term limit must be positive.")
   require(maxManifestBytes > 0, "BoK manifest byte limit must be positive.")
   require(maxResourceBytes > 0, "BoK resource byte limit must be positive.")
+  require(!refreshTtl.isZero && !refreshTtl.isNegative, "BoK refresh TTL must be positive.")
+  require(refreshTtl.compareTo(BokInspectionPolicy.MAXIMUM_TTL) <= 0, "BoK refresh TTL must not exceed 24 hours.")
 }
 
 object BokInspectionPolicy {
+  val MAXIMUM_TTL: Duration = Duration.ofHours(24)
   val DEFAULT: BokInspectionPolicy = BokInspectionPolicy()
 }
 
@@ -99,7 +103,9 @@ final case class BokSourceState(
   status: String,
   termCount: Int,
   observedAt: Option[Instant],
+  expiresAt: Option[Instant],
   lastRefreshAttemptAt: Option[Instant],
+  cacheStatus: String,
   diagnostics: Vector[String]
 ) {
   def informationSourceState: InformationSourceState =
@@ -108,9 +114,9 @@ final case class BokSourceState(
       status,
       termCount,
       InformationSourceFreshness(
-        if (!source.enabled) "disabled" else if (observedAt.nonEmpty) "observed" else "empty",
+        cacheStatus,
         observedAt,
-        None,
+        expiresAt,
         lastRefreshAttemptAt
       ),
       diagnostics

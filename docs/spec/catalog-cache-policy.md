@@ -18,6 +18,11 @@ the observations needed to distinguish freshness, expiry, and refresh failure.
 - The administrative refresh operation ignores freshness and explicitly
   attempts the selected enabled source or every enabled source.
 
+Catalog configuration bounds configured sources and authorized origins.
+Provider reads additionally bound index and metadata response bytes plus the
+number of discovered component profiles. A reached profile bound remains a
+source warning; the adapter does not silently claim a complete catalog.
+
 ## Last-Known-Good Behavior
 
 A successful refresh replaces the source snapshot, updates `refreshedAt`, and

@@ -50,9 +50,9 @@ parsing or runtime state. Manifest bytes, resource bytes, resource count, and
 term count are bounded. Truncation,
 malformed documents, incompatible schemas, rejected resources, and failed
 resource fetches remain observable through bounded, credential-redacted
-diagnostics. A valid manifest can produce a partial
-snapshot when one declared glossary resource fails; cache and last-known-good
-policy are later runtime-integration work.
+diagnostics. A valid manifest can produce a partial snapshot when one declared
+glossary resource fails; cache and last-known-good behavior apply to the
+complete source snapshot rather than to individual resources.
 
 ## Term Evidence
 
@@ -69,6 +69,12 @@ inputs through the CNCF HTTP provider boundary, retains BoK snapshots and term
 evidence, and includes BoK readiness and diagnostics in the unified information
 source state. BoK resource failure degrades that source without converting its
 terms into catalog component facts.
+
+BoK snapshots use a positive TTL no greater than 24 hours, with a 15-minute
+default. Readiness reuses a fresh snapshot and refreshes a missing or expired
+one. Refresh failure retains the stale last-known-good snapshot and its terms,
+records the failed attempt and sanitized diagnostic, and exposes the original
+observation time and expiry instead of relabeling stale evidence as current.
 
 ## Executable Evidence
 

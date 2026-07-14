@@ -92,5 +92,7 @@ retrieval now returns bounded catalog alternatives instead of a priority-based
 hidden winner and uses attributable absence records for missing selection,
 operation, intent, source, version, or dependency evidence. README, user guide,
 CAR reference, strategy, phase ledger, and static contracts now share one
-source-role and purpose-precedence model. The next slice audits executable
-specification coverage under P3-41.
+source-role and purpose-precedence model. Executable specifications now cover
+all five source kinds, their authorization and freshness boundaries, local path
+safety, version reconciliation, conflicts, citations, and inference labels.
+The next slice runs the Phase 3 closure gates under P3-42.

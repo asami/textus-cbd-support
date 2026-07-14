@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, P3-30 through P3-32, and P3-40 are complete; the next slice audits executable specification coverage under P3-41.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, P3-30 through P3-32, and P3-40 through P3-41 are complete; the next slice runs the Phase 3 closure gates under P3-42.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -232,6 +232,17 @@ winner.
   four purpose-specific precedence orders, and non-selection rule. The
   consolidated `phase-3-source-precedence.md` contract links authorization,
   freshness, reconciliation, version, semantic, and exact-retrieval details.
+- Executable-specification coverage maps the five source kinds and their
+  authorization to `CatalogRuntimeSpec`, `BokSourceRuntimeSpec`,
+  `SieBokRuntimeSpec`, and `LocalSourceRuntimeSpec`; path safety to
+  `LocalSourceRuntimeSpec` and `InformationSourceSecuritySpec`; freshness to
+  `InformationSourceRefreshSpec`; version state and conflicts to
+  `VersionStateReconciliationSpec` and `ObservationReconciliationSpec`; and
+  evidence citation and inference boundaries to
+  `SemanticRequirementMatchingSpec` and `IntentAwareUsageGuidanceSpec`. The 10
+  focused suites passed 66 tests on 2026-07-14, including explicit distinction
+  between default `canonical-storage-root` and configured
+  `explicit-path-allowlist` authority.
 
 ## Closure Basis
 

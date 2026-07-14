@@ -42,6 +42,22 @@ final class LocalSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenW
       configuration.warnings.exists(_.contains("symbolic-link roots are not allowed")) shouldBe true
     }
 
+    "authorize default CAR roots through canonical storage policy" in {
+      Given("a home root containing the canonical local warehouse and managed cache directories")
+      val home = _reset_work_area("canonical-storage-authorization")
+      val localroot = Files.createDirectories(home.resolve(".cncf/local"))
+      val cacheroot = Files.createDirectories(home.resolve(".cncf/cache"))
+
+      When("local source configuration uses both default CAR roots")
+      val configuration = LocalInformationSourceConfig.parse(None, None, None, home)
+
+      Then("the canonical roots are distinct from explicitly configured path authority")
+      configuration.carStorageSources.map(_.root) shouldBe Vector(localroot, cacheroot)
+      configuration.carStorageSources.map(_.descriptor.authorization).distinct shouldBe
+        Vector(InformationSourceAuthorization.CANONICAL_STORAGE_ROOT)
+      configuration.warnings shouldBe empty
+    }
+
     "reserve stable CAR source IDs against development-directory collisions" in {
       Given("a development directory configured with the stable local CAR source ID")
       val work = _reset_work_area("reserved-source-id")

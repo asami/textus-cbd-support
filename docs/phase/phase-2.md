@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Configured-source origin authorization (`P2-20`) is implemented and under post-implementation review.
+- Current step: The default-catalog rich-metadata gap (`P2-03`) is recorded as a publisher-owned future candidate and is under post-implementation review.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-2-checklist.md`.
 
@@ -54,6 +54,12 @@ Scheme, host, and effective port are authoritative. Invalid, non-allowlisted,
 credential-bearing, and duplicate-ID entries are rejected before network
 access, with sanitized reasons exposed as warnings.
 
+The fifth slice verifies that the default public source still serves the
+publication compatibility catalog while rich CAR/SAR repository indexes are
+not publicly accessible. The remaining generation/deployment work is outside
+this CAR and is closed as the publisher-owned candidate documented in
+`docs/future/default-catalog-rich-metadata.md`, with concrete acceptance gates.
+
 ## Verification Evidence
 
 - Focused dependency/runtime and MCP projection specifications: 16 tests passed
@@ -72,6 +78,10 @@ access, with sanitized reasons exposed as warnings.
   2026-07-14.
 - Focused source-authorization, cache, catalog, dependency/runtime, and MCP
   projection specifications: 21 tests passed on 2026-07-14.
+- Default public catalog audit on 2026-07-14: compatibility catalog and
+  repository-artifact metadata returned HTTP 200; rich CAR and SAR index
+  endpoints returned HTTP 403. The local simplemodeling.org publication
+  workspace likewise contains compatibility metadata but no rich index output.
 
 ## Closure Basis
 

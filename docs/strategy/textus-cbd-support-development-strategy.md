@@ -48,6 +48,7 @@ same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
 state. Additional catalog sources now require explicit exact-origin
 authorization and expose rejected configuration without network access. The
-remaining Phase 2 boundary is richer default-catalog evidence followed by full
-documentation and verification closure, without changing the SIE/CBD
-ownership split.
+default public source's missing rich indexes are recorded as a publisher-owned
+future candidate with deployment acceptance gates. The remaining Phase 2
+boundary is Cozy schema fidelity followed by full documentation and
+verification closure, without changing the SIE/CBD ownership split.

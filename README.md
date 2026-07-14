@@ -64,6 +64,11 @@ minutes; the next retrieval after expiry attempts a refresh before serving.
 `listCatalogs` exposes fresh/stale/empty cache state, expiry, and the latest
 refresh-attempt time.
 
+The default public source currently serves the compatibility catalog but not
+the rich Cozy CAR/SAR indexes. The publisher-side work and acceptance criteria
+are recorded in [Default Catalog Rich Metadata Candidate](docs/future/default-catalog-rich-metadata.md);
+CBD Support continues to report absent rich evidence instead of synthesizing it.
+
 A `runtimeVersion` search constraint accepts only profiles that publish an
 affirmative runtime minimum. Missing runtime evidence is not treated as
 compatibility. Publication entries that cannot be loaded are retained as source

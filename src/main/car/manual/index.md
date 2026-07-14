@@ -136,6 +136,15 @@ not expose. Unreadable component entries degrade the source without hiding
 successfully loaded entries. Snapshot project versions are never labeled as
 `latestStable`.
 
+As verified on 2026-07-14, the default public compatibility catalog and its
+repository-artifact metadata are available, while the rich CAR/SAR index
+endpoints are not publicly accessible. Generating and deploying those indexes
+and same-origin model-metadata sidecars is publisher-owned future work, not a
+fallback responsibility of this CAR. The tracked candidate is
+`FUTURE-CATALOG-PUBLISHER-01`; it requires both rich indexes to return valid
+JSON, real CAR/SAR evidence and same-origin model metadata to be published, and
+the compatibility fallback to remain verified until an explicit migration.
+
 ## Failure and Limitation Semantics
 
 - All enabled sources failing initial load causes retrieval operations to fail.

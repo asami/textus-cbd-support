@@ -101,4 +101,6 @@ catalog data into SIE merely to make component development tools available.
   credentials, query strings, and fragments out of catalog base URIs.
 - Publication compatibility mode: identity, version, artifact, and
   documentation are authoritative, but operation and dependency details wait
-  for the publisher's Cozy repository index/model-metadata sidecars.
+  for the publisher's Cozy repository index/model-metadata sidecars. The
+  publisher gap and acceptance criteria are tracked in
+  `docs/future/default-catalog-rich-metadata.md`.

@@ -93,7 +93,11 @@ component profile.
 Requires exact `name`; optional organization, kind, version, and catalog ID
 disambiguate. An explicit version returns only its version-specific detail; a
 listed version without detail clears version-sensitive fields and adds a
-warning. Returns `no-match` rather than fabricating a component.
+warning. Zero candidates return status `no-match` with a
+`component-not-found` absence. Multiple exact catalog candidates return status
+`ambiguous` with an `ambiguous-selection` absence, the full `candidateCount`,
+and at most 20 references in `alternatives`; no profile is selected until
+`catalogId` or another identity constraint leaves one candidate.
 
 ### getUsage
 
@@ -109,6 +113,10 @@ explicit intent-token overlap. `model-inference` is reserved for generative
 advice and is not emitted by the current runtime. No token overlap produces no
 operation recommendation. Missing source attribution withholds guidance, and
 an unavailable sidecar yields a warning and the remaining references.
+Selection ambiguity uses the same bounded alternatives contract as
+`getComponent`. Missing operation evidence, rejected or unmatched intent, and
+missing source/version attribution are returned as stable `absences` rather
+than synthetic guidance.
 
 ### resolveDependencies
 
@@ -124,6 +132,10 @@ When an explicit requested version differs from the dependency metadata
 version, the resolved edge remains visible but traversal stops; a root mismatch
 also withholds the compatible direct `dependencies` field. Missing dependency
 data is an empty evidence set, not an assertion of no dependencies.
+An exact-selection conflict returns bounded catalog alternatives without
+starting traversal. When the selected version has no published dependency
+metadata, the empty dependency fields include `dependency-metadata-absent`;
+an authoritative empty array requires matching `dependencyMetadataVersion`.
 
 ### listCatalogs
 

@@ -78,13 +78,66 @@ object IntentAwareUsageGuidance {
         s"Intent terms matched observed operation metadata: ${result.matchedtokens.mkString(", ")}."
       )
     }
+    val absences = Vector(
+      Option.when(sourceid.isEmpty || sourcekind.isEmpty) {
+        _absence(
+          ExactComponentSelection.SOURCE_ATTRIBUTION_ABSENT,
+          "usage-source",
+          "Usage guidance has no attributable source observation.",
+          usage,
+          sourceid,
+          version
+        )
+      },
+      Option.when(version.isEmpty) {
+        _absence(
+          ExactComponentSelection.SELECTED_VERSION_ABSENT,
+          "usage-version",
+          "Usage guidance has no selected component version.",
+          usage,
+          sourceid,
+          version
+        )
+      },
+      Option.when(usage.operations.isEmpty) {
+        _absence(
+          ExactComponentSelection.OPERATION_EVIDENCE_ABSENT,
+          "usage-operations",
+          "The selected catalog component publishes no readable operation metadata.",
+          usage,
+          sourceid,
+          version
+        )
+      },
+      Option.when(intentwarning.nonEmpty) {
+        _absence(
+          ExactComponentSelection.INTENT_REJECTED,
+          "usage-intent",
+          "The requested intent exceeded the bounded input contract.",
+          usage,
+          sourceid,
+          version
+        )
+      },
+      Option.when(boundedintent.nonEmpty && inferred.isEmpty) {
+        _absence(
+          ExactComponentSelection.INTENT_MATCH_ABSENT,
+          "usage-intent",
+          "No observed operation metadata matches the requested intent tokens.",
+          usage,
+          sourceid,
+          version
+        )
+      }
+    ).flatten
     usage.copy(
       warnings = (usage.warnings ++ intentwarning ++ selectionwarnings).distinct,
       intent = boundedintent,
       selectedSourceId = sourceid,
       selectedSourceKind = sourcekind,
       selectedVersion = version,
-      guidance = (observed ++ inferred).take(MAXIMUM_GUIDANCE_RECORDS)
+      guidance = (observed ++ inferred).take(MAXIMUM_GUIDANCE_RECORDS),
+      absences = (usage.absences ++ absences).distinct
     )
   }
 
@@ -119,6 +172,23 @@ object IntentAwareUsageGuidance {
     }
     (metadata ++ Vector(usage.profile.evidenceUri)).distinct
   }
+
+  private def _absence(
+    code: String,
+    subject: String,
+    message: String,
+    usage: ComponentUsage,
+    sourceid: Option[String],
+    version: Option[String]
+  ): ComponentEvidenceAbsence =
+    ComponentEvidenceAbsence(
+      code,
+      subject,
+      message,
+      sourceid.toVector,
+      version.toVector,
+      (usage.references.map(_._2) :+ usage.profile.evidenceUri).distinct
+    )
 
   private def _tokens(value: String): Vector[String] =
     value.replaceAll("([\\p{Ll}\\p{N}])([\\p{Lu}])", "$1 $2")

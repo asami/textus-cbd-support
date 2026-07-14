@@ -87,6 +87,8 @@ equal published terms/tags without profile completion. Intent-aware
 `getUsage` now reports the selected catalog source and version, separates
 observed selection facts from deterministic operation inference, reserves a
 distinct label for actual model inference, and emits no operation candidate
-without explicit intent overlap. The next slice makes conflicting or
-insufficient evidence return bounded alternatives or explicit absence under
-P3-32.
+without explicit intent overlap. Exact component, usage, and dependency
+retrieval now returns bounded catalog alternatives instead of a priority-based
+hidden winner and uses attributable absence records for missing selection,
+operation, intent, source, version, or dependency evidence. The next slice
+completes Phase 3 documentation consistency under P3-40.

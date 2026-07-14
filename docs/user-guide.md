@@ -59,6 +59,16 @@ invoke a generative model and never relabels deterministic matching as model
 inference. Missing source context withholds guidance rather than inventing a
 published source.
 
+Exact lookup does not use source priority to hide ambiguity. If the same exact
+identity and version occur in several catalogs, `getComponent`, `getUsage`, and
+`resolveDependencies` return status `ambiguous`, no selected component, the
+full `candidateCount`, and at most 20 `alternatives`. Choose one returned
+`catalogId` explicitly before requesting details. If no candidate exists, the
+response contains `component-not-found`. Other insufficient evidence appears
+in `absences` with source/version/evidence citations. In particular,
+`dependency-metadata-absent` distinguishes unpublished dependency metadata
+from an authoritative empty dependency array.
+
 Dependency traversal stays inside the selected component's catalog. An
 unresolved dependency is not silently taken from another configured source.
 Conflicting explicit versions are returned with their evidence paths; CBD

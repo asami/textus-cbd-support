@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, and P3-30 through P3-31 are complete; the next slice makes conflicting or insufficient evidence return bounded alternatives or explicit absence under P3-32.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, and P3-30 through P3-32 are complete; the next slice completes Phase 3 documentation consistency under P3-40.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -218,6 +218,15 @@ winner.
   source context withholds attributable guidance rather than fabricating a
   published source. `IntentAwareUsageGuidanceSpec`, `CatalogRuntimeSpec`, and
   `ComponentFactorySpec` passed 32 focused tests on 2026-07-14.
+- Exact `getComponent`, `getUsage`, and `resolveDependencies` now refuse to use
+  catalog priority as a hidden winner. Multiple exact candidates return status
+  `ambiguous`, the full candidate count, and at most 20 attributable references;
+  zero candidates and insufficient usage or dependency evidence return stable
+  absence codes with source, version, and evidence citations. Missing dependency
+  metadata is distinct from an authoritative empty array.
+  `EvidenceBoundedSelectionSpec`, `IntentAwareUsageGuidanceSpec`,
+  `CatalogRuntimeSpec`, and `ComponentFactorySpec` passed 38 focused tests on
+  2026-07-14.
 
 ## Closure Basis
 

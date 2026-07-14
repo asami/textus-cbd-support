@@ -1,5 +1,6 @@
 package org.simplemodeling.textus.cbdsupport
 
+import java.net.URI
 import java.time.Instant
 
 import org.goldenport.cncf.component.{ComponentCreate, ComponentOrigin}
@@ -7,7 +8,7 @@ import org.goldenport.cncf.mcp.McpToolCatalog
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
-import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceKind, SemanticRequirementEvidence}
+import org.simplemodeling.textus.cbdsupport.runtime.{ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceKind, SemanticRequirementEvidence}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -142,6 +143,41 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       record.getString("evidenceUri") shouldBe Some("urn:bok:runtime")
       record.getString("observedAt") shouldBe Some("2026-07-14T08:00:00Z")
       record.getAny("component") shouldBe empty
+    }
+
+    "project explicit evidence absence as an attributable MCP record" in {
+      Given("one absence caused by ambiguous catalog selection")
+      val absence = ComponentEvidenceAbsence(
+        "ambiguous-selection",
+        "component-selection",
+        "Multiple catalog components satisfy the exact constraints.",
+        Vector("primary", "secondary"),
+        Vector("1.0.0"),
+        Vector(URI.create("https://catalog.example/index.json"))
+      )
+
+      When("the handwritten MCP projection renders the absence")
+      val record = new impl.ComponentFactory()._absence_record(absence)
+
+      Then("the reason and its participating evidence remain machine readable")
+      record.getString("code") shouldBe Some("ambiguous-selection")
+      record.getString("subject") shouldBe Some("component-selection")
+      record.getString("message") shouldBe Some("Multiple catalog components satisfy the exact constraints.")
+      record.getAny("sourceIds") should not be empty
+      record.getAny("evidenceUris") should not be empty
+    }
+
+    "withhold the requested intent when exact component selection fails" in {
+      Given("an exact usage request with no selected catalog component")
+      val selection = ExactComponentSelection.fromCandidates(Vector.empty)
+
+      When("the handwritten MCP projection renders the unselected usage response")
+      val record = new impl.ComponentFactory()._unselected_usage_record(selection)
+
+      Then("the unvalidated intent is withheld while bounded response fields remain present")
+      record.getAny("intent") shouldBe empty
+      record.getAny("guidance") shouldBe empty
+      record.getAny("absences") should not be empty
     }
 
     "extract canonical scalars from generated operation request records" in {

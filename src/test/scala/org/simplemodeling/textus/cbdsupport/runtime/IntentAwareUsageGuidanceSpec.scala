@@ -68,6 +68,7 @@ final class IntentAwareUsageGuidanceSpec extends AnyWordSpec with Matchers with 
         Then("only the selected-source observed fact remains")
         result.guidance.map(_.statementKind) shouldBe Vector(IntentAwareUsageGuidance.OBSERVED_FACT)
         result.guidance.flatMap(_.operation) shouldBe empty
+        result.absences.map(_.code) shouldBe Vector(ExactComponentSelection.INTENT_MATCH_ABSENT)
       }
 
       "withholds attributable guidance when source context is absent" in {
@@ -81,8 +82,21 @@ final class IntentAwareUsageGuidanceSpec extends AnyWordSpec with Matchers with 
         result.selectedSourceId shouldBe None
         result.selectedSourceKind shouldBe None
         result.guidance shouldBe empty
+        result.absences.map(_.code) should contain(ExactComponentSelection.SOURCE_ATTRIBUTION_ABSENT)
         result.warnings.exists(_.contains("source identity is absent")) shouldBe true
         result.warnings.exists(_.contains("source kind is absent")) shouldBe true
+      }
+
+      "reports absent operation evidence without fabricating an empty authoritative contract" in {
+        Given("catalog-owned usage with no readable operation metadata")
+        val usage = _usage.copy(operations = Vector.empty)
+
+        When("usage guidance interprets the selected component")
+        val result = IntentAwareUsageGuidance.enrich(usage, None)
+
+        Then("the selected-source fact remains and operation absence is explicit")
+        result.guidance.map(_.statementKind) shouldBe Vector(IntentAwareUsageGuidance.OBSERVED_FACT)
+        result.absences.map(_.code) shouldBe Vector(ExactComponentSelection.OPERATION_EVIDENCE_ABSENT)
       }
     }
 
@@ -97,6 +111,7 @@ final class IntentAwareUsageGuidanceSpec extends AnyWordSpec with Matchers with 
         Then("the intent and its inference are withheld while the observed fact remains")
         result.intent shouldBe None
         result.guidance.map(_.statementKind) shouldBe Vector(IntentAwareUsageGuidance.OBSERVED_FACT)
+        result.absences.map(_.code) shouldBe Vector(ExactComponentSelection.INTENT_REJECTED)
         result.warnings.exists(_.contains("exceeds 512 characters")) shouldBe true
       }
 

@@ -124,13 +124,24 @@ lookup for the same requirement before applying CBD catalog matching.
   attempt state.
 - `status`: inspect aggregate readiness.
 
+The three exact operations never use catalog priority as a hidden winner. Zero
+candidates return status `no-match` with a `component-not-found` absence;
+multiple candidates return status `ambiguous` with an `ambiguous-selection`
+absence, the full `candidateCount`, and at most 20 attributable `alternatives`.
+Supply `catalogId` or refine the identity to select one source.
+Usage and dependency responses also return stable `absences` when operation,
+intent, version, source-attribution, or dependency-metadata evidence is
+insufficient. An empty evidence list is therefore not presented as an
+authoritative catalog fact without its supporting metadata.
+
 `refreshCatalog` is an administrative CNCF command and is not published as an
 MCP tool. CAR/SAR runtime configuration may further disable a ready service or
 operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 `cncf.mcp.disabled-operations`.
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
-[Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md), and
+[Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),
 [ComponentReference Contract](docs/spec/component-reference-contract.md),
-[SIE-mediated BoK Contract](docs/spec/sie-bok-information-source.md), and
-[Intent-Aware Usage Guidance](docs/spec/intent-aware-usage-guidance.md).
+[SIE-mediated BoK Contract](docs/spec/sie-bok-information-source.md),
+[Intent-Aware Usage Guidance](docs/spec/intent-aware-usage-guidance.md), and
+[Evidence-Bounded Exact Retrieval](docs/spec/evidence-bounded-exact-retrieval.md).

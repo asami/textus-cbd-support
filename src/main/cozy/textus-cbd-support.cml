@@ -308,6 +308,9 @@ Administrative request to refresh configured catalogs.
 | status | CbdResultStatus | 1 |
 | reference | ComponentReference | ? |
 | component | ComponentProfile | ? |
+| alternatives | ComponentReference | * |
+| candidateCount | int | 1 |
+| absences | ComponentEvidenceAbsence | * |
 | warnings | CbdWarning | * |
 
 ## ComponentUsageResponse
@@ -326,6 +329,9 @@ Administrative request to refresh configured catalogs.
 | operations | ComponentOperation | * |
 | references | ComponentReferenceLink | * |
 | guidance | ComponentUsageGuidance | * |
+| alternatives | ComponentReference | * |
+| candidateCount | int | 1 |
+| absences | ComponentEvidenceAbsence | * |
 | warnings | CbdWarning | * |
 
 ## DependencyResolutionResponse
@@ -340,6 +346,9 @@ Administrative request to refresh configured catalogs.
 | dependencies | ComponentDependency | * |
 | resolutions | ResolvedComponentDependency | * |
 | conflicts | ComponentDependencyConflict | * |
+| alternatives | ComponentReference | * |
+| candidateCount | int | 1 |
+| absences | ComponentEvidenceAbsence | * |
 | warnings | CbdWarning | * |
 
 ## ResolvedComponentDependency
@@ -561,6 +570,23 @@ One attributable usage statement. Observed catalog facts, deterministic intent m
 | score | double | ? |
 | evidenceUris | ComponentReferenceUri | * |
 | rationale | ComponentUsageRationale | 1 |
+
+## ComponentEvidenceAbsence
+
+### DESCRIPTION
+
+One explicit reason why catalog selection or requested evidence is unavailable. It cites the source, version, and evidence URI of the selected evidence or of the same bounded alternative set returned by the response.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| code | ComponentEvidenceAbsenceCode | 1 |
+| subject | ComponentEvidenceSubject | 1 |
+| message | CbdWarning | 1 |
+| sourceIds | ComponentSourceId | * |
+| versions | ComponentVersion | * |
+| evidenceUris | ComponentReferenceUri | * |
 
 ## ComponentDependency
 
@@ -913,6 +939,22 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## ComponentUsageRationale
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentEvidenceAbsenceCode
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentEvidenceSubject
 
 ### ATTRIBUTE
 

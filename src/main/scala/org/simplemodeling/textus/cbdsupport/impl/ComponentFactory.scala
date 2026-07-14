@@ -7,7 +7,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
-import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, InformationSourceState, ResolvedComponentDependency}
+import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 
 /*
@@ -123,12 +123,16 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
       _runtime.ensureInputsReady(fetcher).map { _ =>
-        val profile = _lookup(action.record, _optional_string(action.record, "kind"))
+        val selection = _selection(action.record, _optional_string(action.record, "kind"))
+        val profile = selection.selectedProfile
         OperationResponse(Record.dataAuto(
-          "status" -> (if (profile.nonEmpty) "matched" else "no-match"),
+          "status" -> selection.status,
           "reference" -> profile.map(_reference_record),
           "component" -> profile.map(_profile_record),
-          "warnings" -> _source_warnings
+          "alternatives" -> selection.alternatives.map(_reference_record),
+          "candidateCount" -> selection.candidateCount,
+          "absences" -> selection.absences.map(_absence_record),
+          "warnings" -> (selection.warnings ++ _source_warnings).distinct
         ))
       }
     }
@@ -141,19 +145,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
       _runtime.ensureInputsReady(fetcher).flatMap { _ =>
-        _lookup(action.record, _optional_string(action.record, "kind")) match {
+        val selection = _selection(action.record, _optional_string(action.record, "kind"))
+        selection.selectedProfile match {
           case Some(profile) =>
             _runtime.usage(profile, _optional_string(action.record, "intent"), fetcher).map { usage =>
-              OperationResponse(_usage_record(usage))
+              OperationResponse(_usage_record(usage, selection))
             }
           case None =>
-            org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
-              "status" -> "no-match",
-              "operations" -> Vector.empty[Record],
-              "references" -> Vector.empty[Record],
-              "guidance" -> Vector.empty[Record],
-              "warnings" -> Vector("Component was not found in the selected catalogs.")
-            )))
+            org.goldenport.Consequence.success(OperationResponse(_unselected_usage_record(selection)))
         }
       }
     }
@@ -166,20 +165,24 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
       _runtime.ensureInputsReady(fetcher).map { _ =>
-        val profile = _lookup(action.record, _optional_string(action.record, "kind"))
+        val selection = _selection(action.record, _optional_string(action.record, "kind"))
+        val profile = selection.selectedProfile
         val resolution = profile.map(_runtime.resolveDependencies(
           _,
           _optional_string(action.record, "version"),
           _optional_int(action.record, "maxDepth").getOrElse(CbdRuntime.DEFAULT_DEPENDENCY_DEPTH)
         ))
         OperationResponse(Record.dataAuto(
-          "status" -> (if (profile.nonEmpty) "matched" else "no-match"),
+          "status" -> selection.status,
           "reference" -> profile.map(_reference_record),
           "component" -> profile.map(_profile_record),
           "dependencies" -> resolution.toVector.flatMap(_.directDependencies).map(_dependency_record),
           "resolutions" -> resolution.toVector.flatMap(_.resolutions).map(_resolved_dependency_record),
           "conflicts" -> resolution.toVector.flatMap(_.conflicts).map(_dependency_conflict_record),
-          "warnings" -> (profile.toVector.flatMap(_.warnings) ++ resolution.toVector.flatMap(_.warnings) ++ _source_warnings)
+          "alternatives" -> selection.alternatives.map(_reference_record),
+          "candidateCount" -> selection.candidateCount,
+          "absences" -> (selection.absences ++ resolution.toVector.flatMap(_.absences)).map(_absence_record),
+          "warnings" -> (profile.toVector.flatMap(_.warnings) ++ resolution.toVector.flatMap(_.warnings) ++ selection.warnings ++ _source_warnings).distinct
         ))
       }
     }
@@ -230,8 +233,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     }
   }
 
-  private def _lookup(record: Record, kind: Option[String]): Option[ComponentProfile] =
-    _runtime.get(
+  private def _selection(record: Record, kind: Option[String]): ExactComponentSelection =
+    _runtime.selectComponent(
       _required_string(record, "name"),
       _optional_string(record, "organization"),
       kind,
@@ -239,7 +242,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       _optional_string(record, "catalogId")
     )
 
-  private def _usage_record(usage: ComponentUsage): Record =
+  private def _usage_record(usage: ComponentUsage, selection: ExactComponentSelection): Record =
     Record.dataAuto(
       "status" -> "matched",
       "reference" -> _reference_record(usage.profile),
@@ -260,7 +263,32 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         Record.dataAuto("kind" -> kind, "uri" -> uri.toString, "authoritative" -> authoritative)
       },
       "guidance" -> usage.guidance.map(_usage_guidance_record),
-      "warnings" -> (usage.warnings ++ _source_warnings)
+      "alternatives" -> selection.alternatives.map(_reference_record),
+      "candidateCount" -> selection.candidateCount,
+      "absences" -> usage.absences.map(_absence_record),
+      "warnings" -> (usage.warnings ++ selection.warnings ++ _source_warnings).distinct
+    )
+
+  private[cbdsupport] def _unselected_usage_record(selection: ExactComponentSelection): Record =
+    Record.dataAuto(
+      "status" -> selection.status,
+      "operations" -> Vector.empty[Record],
+      "references" -> Vector.empty[Record],
+      "guidance" -> Vector.empty[Record],
+      "alternatives" -> selection.alternatives.map(_reference_record),
+      "candidateCount" -> selection.candidateCount,
+      "absences" -> selection.absences.map(_absence_record),
+      "warnings" -> (selection.warnings ++ _source_warnings).distinct
+    )
+
+  private[cbdsupport] def _absence_record(absence: ComponentEvidenceAbsence): Record =
+    Record.dataAuto(
+      "code" -> absence.code,
+      "subject" -> absence.subject,
+      "message" -> absence.message,
+      "sourceIds" -> absence.sourceIds,
+      "versions" -> absence.versions,
+      "evidenceUris" -> absence.evidenceUris.map(_.toString)
     )
 
   private[cbdsupport] def _usage_guidance_record(guidance: ComponentUsageGuidance): Record =

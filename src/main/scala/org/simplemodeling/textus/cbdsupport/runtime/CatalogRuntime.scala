@@ -156,7 +156,8 @@ final case class ComponentDependencyResolution(
   directDependencies: Vector[ComponentDependency],
   resolutions: Vector[ResolvedComponentDependency],
   conflicts: Vector[ComponentDependencyConflict],
-  warnings: Vector[String]
+  warnings: Vector[String],
+  absences: Vector[ComponentEvidenceAbsence] = Vector.empty
 )
 
 final case class ComponentOperation(
@@ -343,7 +344,8 @@ final case class ComponentUsage(
   selectedSourceId: Option[String] = None,
   selectedSourceKind: Option[String] = None,
   selectedVersion: Option[String] = None,
-  guidance: Vector[ComponentUsageGuidance] = Vector.empty
+  guidance: Vector[ComponentUsageGuidance] = Vector.empty,
+  absences: Vector[ComponentEvidenceAbsence] = Vector.empty
 )
 
 trait CatalogFetcher {
@@ -1014,14 +1016,24 @@ final class CbdRuntime(
     version: Option[String],
     catalogid: Option[String]
   ): Option[ComponentProfile] =
-    _profiles.filter(_.name.equalsIgnoreCase(name.trim))
+    selectComponent(name, organization, kind, version, catalogid).selectedProfile
+
+  def selectComponent(
+    name: String,
+    organization: Option[String],
+    kind: Option[String],
+    version: Option[String],
+    catalogid: Option[String]
+  ): ExactComponentSelection = {
+    val candidates = _profiles.filter(_.name.equalsIgnoreCase(name.trim))
       .filter(x => organization.forall(y => x.organization.exists(_.equalsIgnoreCase(y))))
       .filter(x => kind.forall(_.equalsIgnoreCase(x.kind)))
       .filter(x => version.forall(x.versions.contains))
       .filter(x => catalogid.forall(_ == x.catalogId))
       .sortBy(x => (_source_priority(x.catalogId), x.catalogId, x.name))
-      .headOption
       .map(x => version.map(x.selectVersion).getOrElse(x))
+    ExactComponentSelection.fromCandidates(candidates)
+  }
 
   def usage(
     profile: ComponentProfile,
@@ -1050,7 +1062,7 @@ final class CbdRuntime(
     val rootversion = requestedversion.orElse(_selected_version(profile))
     val rootlabel = _profile_label(profile, rootversion)
     val rootkey = _profile_key(profile, rootversion)
-    val rootmetadataavailable = requestedversion.forall(profile.dependencyMetadataVersion.contains)
+    val rootmetadataavailable = rootversion.exists(profile.dependencyMetadataVersion.contains)
     val directdependencies = if (rootmetadataavailable) profile.dependencies else Vector.empty
 
     def _walk_(
@@ -1088,7 +1100,7 @@ final class CbdRuntime(
     val conflicts = _dependency_conflicts(resolutions)
     val warnings = (
       Option.when(!rootmetadataavailable) {
-        val requested = requestedversion.get
+        val requested = rootversion.getOrElse("unknown")
         val selected = profile.dependencyMetadataVersion.getOrElse("unknown")
         s"Direct dependency metadata is unavailable for requested root version $requested; catalog metadata selects $selected: $rootlabel."
       }.toVector ++ resolutions.collect {
@@ -1113,7 +1125,17 @@ final class CbdRuntime(
             s"Dependency traversal stopped at maxDepth=$boundeddepth: ${resolution.path}."
         } ++ conflicts.map(_.message)
     ).distinct.sorted
-    ComponentDependencyResolution(directdependencies, resolutions, conflicts, warnings)
+    val absences = Option.when(!rootmetadataavailable) {
+      ComponentEvidenceAbsence(
+        ExactComponentSelection.DEPENDENCY_METADATA_ABSENT,
+        "dependency-resolution",
+        "Dependency metadata is not published for the selected component version.",
+        Vector(profile.catalogId),
+        rootversion.toVector,
+        Vector(profile.evidenceUri)
+      )
+    }.toVector
+    ComponentDependencyResolution(directdependencies, resolutions, conflicts, warnings, absences)
   }
 
   def sourceStates(includeDisabled: Boolean): Vector[CatalogSourceState] = synchronized {

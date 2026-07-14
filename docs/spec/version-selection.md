@@ -24,8 +24,9 @@ the returned profile.
 When `searchComponents` or `getComponent` receives `version`:
 
 - the version must occur in the profile's published `versions`;
-- version-specific artifact, runtime, dependencies, and model-metadata evidence
-  replace the selected/default fields;
+- version-specific channel, status, component, publication time, runtime
+  minimum/maximum/tested versions, dependencies, artifact URI and SHA-256, and
+  model-metadata evidence replace the selected/default fields;
 - `ComponentReference.version` uses the explicitly selected version;
 - runtime filtering evaluates the selected version's runtime evidence.
 
@@ -36,7 +37,10 @@ returns a warning. It never falls back to another version's detail.
 ## Compatibility and Absence
 
 - A runtime-constrained search excludes a selected version whose runtime
-  evidence is absent or whose minimum exceeds the requested runtime.
+  evidence is absent, whose minimum exceeds the requested runtime, or whose
+  published maximum is below it. Minimum and maximum bounds are inclusive.
+- `runtimeTested` remains supporting evidence and is not an exclusive
+  compatibility allowlist.
 - Missing version detail is not evidence that dependencies are empty or that
   an artifact/runtime is compatible.
 - Snapshot versions are never promoted to `latestStable`.

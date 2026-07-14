@@ -62,6 +62,13 @@ failed attempt retains the stale last-known-good snapshot. Use `listCatalogs`
 to inspect `cacheStatus`, `refreshedAt`, `expiresAt`,
 `lastRefreshAttemptAt`, and any warning.
 
+Additional catalog configuration is authorized in two steps. Put candidate
+base URIs in `TEXTUS_CBD_CATALOGS` and their permitted network origins in
+`TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS`. Origin matching uses scheme, host, and
+effective port; it does not authorize another scheme or port. The built-in
+simplemodeling.org source does not require an allowlist entry. Rejected entries
+are excluded from network access and returned as warnings.
+
 ## SIE Handoff
 
 SIE component discovery returns only `ComponentReference`. The shared fields
@@ -89,6 +96,9 @@ catalog data into SIE merely to make component development tools available.
   publisher.
 - Partial publication failure: successfully loaded components remain available,
   but the source is degraded and lists each unreadable component entry.
+- Rejected configured source: inspect catalog warnings for an invalid source
+  ID/base URI, missing exact origin permission, or duplicate source ID. Keep
+  credentials, query strings, and fragments out of catalog base URIs.
 - Publication compatibility mode: identity, version, artifact, and
   documentation are authoritative, but operation and dependency details wait
   for the publisher's Cozy repository index/model-metadata sidecars.

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Bounded snapshot caching and refresh observability (`P2-21`, `P2-22`) are implemented and under post-implementation review.
+- Current step: Configured-source origin authorization (`P2-20`) is implemented and under post-implementation review.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-2-checklist.md`.
 
@@ -48,6 +48,12 @@ sources, and preserves stale last-known-good evidence on failure. Source state
 exposes cache freshness, expiry, last successful refresh, last refresh attempt,
 and the failure warning.
 
+The fourth slice keeps the built-in simplemodeling.org source and requires
+every additional catalog candidate to match an explicitly configured origin.
+Scheme, host, and effective port are authoritative. Invalid, non-allowlisted,
+credential-bearing, and duplicate-ID entries are rejected before network
+access, with sanitized reasons exposed as warnings.
+
 ## Verification Evidence
 
 - Focused dependency/runtime and MCP projection specifications: 16 tests passed
@@ -64,6 +70,8 @@ and the failure warning.
 - Focused cache-lifetime, refresh-observation, version-selection,
   dependency/runtime, and MCP projection specifications: 19 tests passed on
   2026-07-14.
+- Focused source-authorization, cache, catalog, dependency/runtime, and MCP
+  projection specifications: 21 tests passed on 2026-07-14.
 
 ## Closure Basis
 

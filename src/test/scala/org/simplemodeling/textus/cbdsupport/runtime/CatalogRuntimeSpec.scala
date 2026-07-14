@@ -14,7 +14,71 @@ import org.scalatest.wordspec.AnyWordSpec
  * @author  ASAMI, Tomoharu
  */
 final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+  "CatalogSourceConfig" should {
+    "authorize configured catalogs only through an exact origin allowlist" in {
+      Given("configured HTTPS, HTTP, credential-bearing, and duplicate sources with a mixed allowlist")
+      val catalogs = Some(
+        "team=https://catalog.example/team/," +
+          "insecure=http://catalog.example/team/," +
+          "secret=https://user:password@catalog.example/private/," +
+          "team=https://catalog.example/duplicate/"
+      )
+      val allowedorigins = Some(
+        "https://catalog.example/," +
+          "https://catalog.example/not-an-origin/," +
+          "not-a-uri"
+      )
+
+      When("the source configuration is parsed")
+      val configuration = CatalogSourceConfig.parse(catalogs, allowedorigins)
+
+      Then("only the first source on the allowlisted origin is accepted and every rejection is observable")
+      configuration.sources.map(_.id) shouldBe Vector("simplemodeling", "team")
+      configuration.sources.last.baseUri.toString shouldBe "https://catalog.example/team/"
+      configuration.warnings.exists(_.contains("not an origin without a path")) shouldBe true
+      configuration.warnings.exists(_.contains("not a valid HTTP(S) origin")) shouldBe true
+      configuration.warnings.exists(_.contains("origin http://catalog.example is not allowlisted")) shouldBe true
+      configuration.warnings.exists(_.contains("base URI is invalid")) shouldBe true
+      configuration.warnings.exists(_.contains("source ID is duplicated")) shouldBe true
+      configuration.warnings.mkString(" ") should not include "password"
+      val compatiblesources: Vector[CatalogSource] = CatalogSourceConfig.load()
+      compatiblesources.map(_.id) should contain("simplemodeling")
+    }
+  }
+
   "CozyComponentCatalogProvider" should {
+    "refuse to fetch model metadata outside the catalog origin" in {
+      Given("an authorized catalog whose selected version points to a cross-origin model-metadata sidecar")
+      val source = CatalogSource("fixture", URI.create("https://catalog.example/"), 100, true)
+      val sidecar = URI.create("https://untrusted.example/textus-order.model-metadata.json")
+      val carindex =
+        """{
+          |  "entries": [{
+          |    "artifact_id": "textus-order",
+          |    "recommended": "1.2.0",
+          |    "versions": [{
+          |      "version": "1.2.0",
+          |      "sidecars": {"model_metadata_json": "https://untrusted.example/textus-order.model-metadata.json"}
+          |    }]
+          |  }]
+          |}""".stripMargin
+      val fetcher = new MapCatalogFetcher(Map(
+        source.baseUri.resolve("metadata/repository/car/index.json") -> carindex,
+        source.baseUri.resolve("metadata/repository/sar/index.json") -> """{"entries": []}"""
+      ))
+      val provider = new CozyComponentCatalogProvider()
+      val profile = provider.read(source, fetcher).toOption.get.profiles.head
+
+      When("usage evidence is read")
+      val usage = provider.readUsage(profile, fetcher).toOption.get
+
+      Then("the sidecar remains visible as evidence but no cross-origin request is made")
+      profile.modelMetadataUri shouldBe Some(sidecar)
+      fetcher.requestedUris should not contain sidecar
+      usage.operations shouldBe empty
+      usage.warnings.exists(_.contains("origin differs from the catalog")) shouldBe true
+    }
+
     "consume Cozy's generated CAR index and model metadata contract" in {
       Given("a Cozy CAR index with a selected runtime, sidecar, and artifact")
       val source = CatalogSource("fixture", URI.create("https://catalog.example/"), 100, true)
@@ -621,8 +685,12 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
   }
 
   private final class MapCatalogFetcher(values: Map[URI, String]) extends CatalogFetcher {
-    def get(uri: URI): Consequence[String] =
+    var requestedUris = Vector.empty[URI]
+
+    def get(uri: URI): Consequence[String] = {
+      requestedUris = requestedUris :+ uri
       values.get(uri).map(Consequence.success).getOrElse(Consequence.serviceUnavailable(s"Missing fixture: $uri"))
+    }
   }
 
   private object EmptyCatalogFetcher extends CatalogFetcher {

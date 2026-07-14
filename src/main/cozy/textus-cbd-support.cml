@@ -128,7 +128,7 @@ CatalogListResponse
 
 ##### DESCRIPTION
 
-List configured catalog sources and their current readiness, cache freshness, expiry, and refresh-attempt state.
+List authorized catalog sources, their current readiness, cache freshness, expiry, refresh-attempt state, and sanitized source-configuration warnings.
 
 #### status
 
@@ -360,6 +360,7 @@ Administrative request to refresh configured catalogs.
 | name | type | multiplicity |
 |------|------|--------------|
 | sources | CatalogSourceStatus | * |
+| warnings | CbdWarning | * |
 
 ## CbdStatusResponse
 

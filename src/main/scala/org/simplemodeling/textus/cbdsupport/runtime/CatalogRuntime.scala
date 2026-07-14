@@ -20,6 +20,29 @@ final case class CatalogSource(
   enabled: Boolean
 )
 
+final case class CatalogSourceConfiguration(
+  sources: Vector[CatalogSource],
+  warnings: Vector[String]
+)
+
+private[runtime] object CatalogUriPolicy {
+  def origin(uri: URI): String = {
+    val scheme = uri.getScheme.toLowerCase(java.util.Locale.ROOT)
+    val host = uri.getHost.toLowerCase(java.util.Locale.ROOT)
+    val normalizedport = (scheme, uri.getPort) match {
+      case ("http", 80) => -1
+      case ("https", 443) => -1
+      case (_, port) => port
+    }
+    new URI(scheme, null, host, normalizedport, null, null, null).toString
+  }
+
+  def sameOrigin(left: URI, right: URI): Boolean =
+    left.getScheme != null && left.getHost != null &&
+      right.getScheme != null && right.getHost != null &&
+      origin(left) == origin(right)
+}
+
 final case class CatalogCachePolicy(ttl: Duration) {
   require(!ttl.isZero && !ttl.isNegative, "Catalog cache TTL must be positive.")
   require(ttl.compareTo(CatalogCachePolicy.MAXIMUM_TTL) <= 0, "Catalog cache TTL must not exceed 24 hours.")
@@ -234,6 +257,13 @@ final class CozyComponentCatalogProvider extends ComponentCatalogProvider {
       profile.documentationUri.map(("documentation", _, true))
     ).flatten
     profile.modelMetadataUri match {
+      case Some(uri) if !CatalogUriPolicy.sameOrigin(profile.evidenceUri, uri) =>
+        Consequence.success(ComponentUsage(
+          profile,
+          Vector.empty,
+          references,
+          profile.warnings :+ s"Model metadata was not fetched because its origin differs from the catalog: $uri."
+        ))
       case Some(uri) =>
         fetcher.get(uri) match {
           case Consequence.Success(body) =>
@@ -633,7 +663,8 @@ final class CbdRuntime(
   val sources: Vector[CatalogSource],
   provider: ComponentCatalogProvider,
   cachepolicy: CatalogCachePolicy,
-  clock: Clock
+  clock: Clock,
+  configurationwarnings: Vector[String]
 ) {
   private var _snapshots = Map.empty[String, CatalogSnapshot]
   private var _failures = Map.empty[String, String]
@@ -828,6 +859,8 @@ final class CbdRuntime(
 
   def componentCount: Int = _profiles.size
 
+  def configurationWarnings: Vector[String] = configurationwarnings
+
   private def _profiles: Vector[ComponentProfile] = synchronized {
     _snapshots.values.toVector.sortBy(x => (x.source.priority, x.source.id)).flatMap(_.profiles)
   }
@@ -933,25 +966,27 @@ object CbdRuntime {
   def create(): CbdRuntime = {
     val cozy = new CozyComponentCatalogProvider()
     val publication = new SimpleModelingPublicationCatalogProvider()
+    val configuration = CatalogSourceConfig.loadConfiguration()
     new CbdRuntime(
-      CatalogSourceConfig.load(),
+      configuration.sources,
       new CompatibleComponentCatalogProvider(cozy, publication),
       CatalogCachePolicy.DEFAULT,
-      Clock.systemUTC()
+      Clock.systemUTC(),
+      configuration.warnings
     )
   }
 
   def create(
     sources: Vector[CatalogSource],
     provider: ComponentCatalogProvider
-  ): CbdRuntime = new CbdRuntime(sources, provider, CatalogCachePolicy.DEFAULT, Clock.systemUTC())
+  ): CbdRuntime = new CbdRuntime(sources, provider, CatalogCachePolicy.DEFAULT, Clock.systemUTC(), Vector.empty)
 
   def create(
     sources: Vector[CatalogSource],
     provider: ComponentCatalogProvider,
     cachepolicy: CatalogCachePolicy,
     clock: Clock
-  ): CbdRuntime = new CbdRuntime(sources, provider, cachepolicy, clock)
+  ): CbdRuntime = new CbdRuntime(sources, provider, cachepolicy, clock, Vector.empty)
 }
 
 object CatalogSourceConfig {
@@ -962,27 +997,77 @@ object CatalogSourceConfig {
     true
   )
 
-  def load(): Vector[CatalogSource] = {
-    val additional = sys.env.get("TEXTUS_CBD_CATALOGS").toVector.flatMap(_.split(",")).zipWithIndex.flatMap {
-      case (value, index) =>
-        val trimmed = value.trim
-        if (trimmed.isEmpty) None
-        else {
-          val pair = trimmed.split("=", 2)
-          val id = if (pair.length == 2) pair(0).trim else s"configured-${index + 1}"
-          val uri = if (pair.length == 2) pair(1).trim else pair(0).trim
-          try Some(CatalogSource(id, _base_uri(uri), 200 + index, true))
-          catch { case NonFatal(_) => None }
-        }
+  def load(): Vector[CatalogSource] =
+    loadConfiguration().sources
+
+  def loadConfiguration(): CatalogSourceConfiguration =
+    parse(
+      sys.env.get("TEXTUS_CBD_CATALOGS"),
+      sys.env.get("TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS")
+    )
+
+  def parse(
+    catalogs: Option[String],
+    allowedorigins: Option[String]
+  ): CatalogSourceConfiguration = {
+    val allowedentries = allowedorigins.toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty)
+    val allowedresults = allowedentries.zipWithIndex.map { case (value, index) =>
+      try {
+        val uri = _base_uri(value)
+        if (!Set("", "/").contains(Option(uri.getPath).getOrElse("")))
+          Left(s"Catalog allowlist entry ${index + 1} is not an origin without a path.")
+        else Right(CatalogUriPolicy.origin(uri))
+      } catch {
+        case NonFatal(_) => Left(s"Catalog allowlist entry ${index + 1} is not a valid HTTP(S) origin.")
+      }
     }
-    (_default_source +: additional).groupBy(_.id).values.map(_.head).toVector.sortBy(x => (x.priority, x.id))
+    val allowed = allowedresults.collect { case Right(origin) => origin }.toSet
+    val allowwarnings = allowedresults.collect { case Left(warning) => warning }
+    val configuredentries = catalogs.toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty)
+    val configuredresults = configuredentries.zipWithIndex.map { case (value, index) =>
+      val pair = value.split("=", 2)
+      val id = if (pair.length == 2) pair(0).trim else s"configured-${index + 1}"
+      val urivalue = if (pair.length == 2) pair(1).trim else pair(0).trim
+      if (!id.matches("[A-Za-z0-9._-]+"))
+        Left(s"Configured catalog entry ${index + 1} was rejected because its source ID is invalid.")
+      else {
+        try {
+          val uri = _base_uri(urivalue)
+          val origin = CatalogUriPolicy.origin(uri)
+          if (allowed.contains(origin)) Right(CatalogSource(id, uri, 200 + index, true))
+          else Left(s"Configured catalog entry ${index + 1} was rejected because origin $origin is not allowlisted.")
+        } catch {
+          case NonFatal(_) => Left(s"Configured catalog entry ${index + 1} was rejected because its base URI is invalid.")
+        }
+      }
+    }
+    val candidates = configuredresults.collect { case Right(source) => source }
+    val rejectionwarnings = configuredresults.collect { case Left(warning) => warning }
+    val initial = (Vector(_default_source), Set(_default_source.id), Vector.empty[String])
+    val (sources, _, duplicatewarnings) = candidates.foldLeft(initial) { case ((accepted, ids, warnings), source) =>
+      if (ids.contains(source.id))
+        (accepted, ids, warnings :+ s"Configured catalog source ${source.id} was rejected because its source ID is duplicated.")
+      else
+        (accepted :+ source, ids + source.id, warnings)
+    }
+    CatalogSourceConfiguration(
+      sources.sortBy(x => (x.priority, x.id)),
+      (allowwarnings ++ rejectionwarnings ++ duplicatewarnings).toVector
+    )
   }
 
   private def _base_uri(value: String): URI = {
     val normalized = if (value.endsWith("/")) value else s"$value/"
     val uri = URI.create(normalized)
-    if (!Set("http", "https").contains(Option(uri.getScheme).getOrElse("").toLowerCase(java.util.Locale.ROOT)) || uri.getHost == null)
+    if (
+      !Set("http", "https").contains(Option(uri.getScheme).getOrElse("").toLowerCase(java.util.Locale.ROOT)) ||
+      uri.getHost == null ||
+      uri.getUserInfo != null ||
+      uri.getQuery != null ||
+      uri.getFragment != null
+    )
       throw new IllegalArgumentException(s"Catalog URI must be absolute HTTP(S): $value")
     uri
   }
+
 }

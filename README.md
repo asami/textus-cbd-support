@@ -36,11 +36,18 @@ https://www.simplemodeling.org/
 
 Additional sources are configured with `TEXTUS_CBD_CATALOGS`. Entries are
 comma-separated absolute HTTP(S) base URIs. An optional `id=` prefix gives a
-stable source selector.
+stable source selector. Every additional source must also match an origin in
+`TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS`; scheme, host, and effective port must
+match, while the catalog base path remains in `TEXTUS_CBD_CATALOGS`.
 
 ```sh
+export TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS='https://catalog.example'
 export TEXTUS_CBD_CATALOGS='team=https://catalog.example/team/,https://catalog.example/shared/'
 ```
+
+The default simplemodeling.org source is built in. Invalid, non-allowlisted, or
+duplicate configured sources are not fetched, and their rejection reasons are
+returned as catalog/retrieval warnings.
 
 CBD Support auto-detects two catalog formats:
 

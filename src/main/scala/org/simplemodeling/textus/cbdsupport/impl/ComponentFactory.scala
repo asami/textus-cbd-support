@@ -174,7 +174,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.ListCatalogsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
-        "sources" -> _runtime.sourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record)
+        "sources" -> _runtime.sourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
+        "warnings" -> _runtime.configurationWarnings
       )))
     }
   }
@@ -328,7 +329,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     )
 
   private def _source_warnings: Vector[String] =
-    _runtime.sourceStates(includeDisabled = false).flatMap(_.warning)
+    _runtime.configurationWarnings ++ _runtime.sourceStates(includeDisabled = false).flatMap(_.warning)
 
   private def _required_string(record: Record, key: String): String =
     _optional_string(record, key)

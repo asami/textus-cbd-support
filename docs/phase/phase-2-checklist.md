@@ -17,7 +17,7 @@ deleted; a checked item requires observable evidence.
 
 ## Source and Cache Policy
 
-- [ ] `P2-20` Configured catalogs are accepted or rejected by an explicit source-authorization policy.
+- [x] `P2-20` Configured catalogs are accepted or rejected by an explicit source-authorization policy.
 - [x] `P2-21` Catalog snapshots have a bounded cache lifetime while preserving last-known-good failure behavior.
 - [x] `P2-22` Source state exposes enough refresh and cache observations to diagnose freshness and degraded service.
 

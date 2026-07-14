@@ -46,6 +46,8 @@ tests, compatibility governance, and release/publish evidence.
 Phase 1 is complete and Phase 2 is in progress. Current slices provide bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
-state. The remaining Phase 2 boundary is richer default-catalog evidence and
-source authorization, followed by full documentation and verification closure,
-without changing the SIE/CBD ownership split.
+state. Additional catalog sources now require explicit exact-origin
+authorization and expose rejected configuration without network access. The
+remaining Phase 2 boundary is richer default-catalog evidence followed by full
+documentation and verification closure, without changing the SIE/CBD
+ownership split.

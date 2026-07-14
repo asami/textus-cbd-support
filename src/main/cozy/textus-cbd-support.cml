@@ -128,7 +128,7 @@ CatalogListResponse
 
 ##### DESCRIPTION
 
-List authorized information sources, including component catalogs and BoK sites, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.
+List authorized information sources, including component catalogs, BoK sites, and public SIE BoK routes, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.
 
 #### status
 

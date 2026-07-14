@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01/P3-02/P3-04/P3-05/P3-11/P3-12 are complete; the next slice adds SIE-mediated BoK evidence through its public component contract.
+- Current step: P3-01 through P3-05 plus P3-11/P3-12 are complete; the next slice reconciles duplicate, missing, stale, version-conflicting, and checksum-conflicting observations without selecting a hidden winner.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -151,6 +151,13 @@ winner.
   and projects BoK readiness and diagnostics into unified source state.
   `BokSourceRuntimeSpec` and `ComponentFactorySpec` passed 15 focused tests on
   2026-07-14.
+- Explicitly configured SIE BoK routes require exact-origin authorization and
+  the fixed public `/mcp` component route. CBD calls only the typed public
+  `SemanticIntegrationEngine.SemanticRetrieval.searchTerms` operation, bounds
+  response bytes and result count, and rejects terms without the required
+  evidence URI. SIE terminology remains a separate `sie-bok` observation and
+  does not populate CBD-owned versions, dependencies, operations, artifacts,
+  or usage guidance. `SieBokRuntimeSpec` passed 4 focused tests on 2026-07-14.
 
 ## Closure Basis
 

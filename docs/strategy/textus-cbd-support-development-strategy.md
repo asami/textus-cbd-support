@@ -63,5 +63,8 @@ source/observation vocabulary plus bounded, read-only adapters for explicitly
 configured development directories and CAR artifacts in the local warehouse
 and managed cache. Authorized BoK sites now enter the live runtime only through
 the Cozy `cncf.knowledge-source.v1` manifest and bounded machine-readable
-glossary resources. The next slice adds SIE-mediated BoK input through SIE's
-public component contract before projecting all sources through search and MCP.
+glossary resources. SIE-mediated BoK input now enters through SIE's public
+typed MCP component contract with exact-route authorization, bounded
+responses, and mandatory evidence while keeping CBD component profiles
+separate. The next slice reconciles conflicts and missing/stale observations
+before projecting all sources through search and MCP.

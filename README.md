@@ -6,9 +6,9 @@ configured catalogs, then exposes evidence-bearing CAR/SAR discovery and usage
 operations through CNCF MCP.
 
 The component does not ingest its catalog into SIE. SIE remains the owner of
-BoK terminology and may return a minimal `ComponentReference`; CBD Support is
-the owner of versions, runtime compatibility, dependencies, operations,
-artifacts, manuals, examples, and reuse guidance.
+BoK terminology and may be configured as a read-only, evidence-bearing input;
+CBD Support remains the owner of versions, runtime compatibility, dependencies,
+operations, artifacts, manuals, examples, and reuse guidance.
 
 ## Build
 
@@ -80,6 +80,29 @@ An explicit `version` projects only that version's artifact, runtime,
 dependency, and model-metadata evidence; listed versions without detail do not
 inherit fields from the catalog-selected version.
 
+## Federated BoK Inputs
+
+Additional BoK sites use `TEXTUS_CBD_BOK_SITES` and
+`TEXTUS_CBD_BOK_ALLOWED_ORIGINS`. CBD reads only the canonical
+`cncf.knowledge-source.v1` manifest and bounded, manifest-declared JSON glossary
+resources.
+
+SIE-mediated BoK inputs use `TEXTUS_CBD_SIE_BOK_ROUTES` and
+`TEXTUS_CBD_SIE_ALLOWED_ORIGINS`:
+
+```sh
+export TEXTUS_CBD_SIE_ALLOWED_ORIGINS='https://sie.example'
+export TEXTUS_CBD_SIE_BOK_ROUTES='semantic=https://sie.example/mcp'
+```
+
+Only an exact-origin-authorized `/mcp` route is accepted. CBD calls the typed
+public `SemanticIntegrationEngine.SemanticRetrieval.searchTerms` operation with
+a bounded response size and requires every returned term to carry a valid
+`evidence_uri`. It does not call SIE administration routes or read SIE storage.
+SIE terms remain separate observations and are not used to fill or overwrite
+CBD component profiles. `searchComponents` performs the read-only SIE term
+lookup for the same requirement before applying CBD catalog matching.
+
 ## MCP Operations
 
 `CbdRetrieval` is MCP ready. `CbdCatalogAdmin` is intentionally private.
@@ -104,4 +127,5 @@ operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md), and
-[ComponentReference Contract](docs/spec/component-reference-contract.md).
+[ComponentReference Contract](docs/spec/component-reference-contract.md), and
+[SIE-mediated BoK Contract](docs/spec/sie-bok-information-source.md).

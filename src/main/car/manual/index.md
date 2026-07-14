@@ -49,6 +49,22 @@ alternate metadata paths. Configured source identity and publisher manifest
 identity remain separate evidence. Invalid, duplicate, traversal,
 cross-origin, non-JSON, or oversized inputs remain diagnostic.
 
+SIE-mediated BoK knowledge uses a separate public component-route boundary:
+
+```text
+TEXTUS_CBD_SIE_ALLOWED_ORIGINS=https://sie.example
+TEXTUS_CBD_SIE_BOK_ROUTES=semantic=https://sie.example/mcp
+```
+
+Only exact-origin-authorized `/mcp` endpoints are accepted. CBD invokes
+`SemanticIntegrationEngine.SemanticRetrieval.searchTerms`, bounds both result
+count and response bytes, and requires the typed SIE term fields including an
+absolute evidence URI. A transport, MCP, schema, or evidence failure degrades
+that SIE source. CBD does not access SIE storage or administration routes, and
+does not merge SIE-owned terminology into CBD-owned component details.
+`searchComponents` invokes the SIE lookup with the same requirement before it
+performs independent catalog matching.
+
 CNCF MCP publication can be narrowed with:
 
 - `cncf.mcp.enabled=false`
@@ -101,14 +117,14 @@ data is an empty evidence set, not an assertion of no dependencies.
 Returns authorized information-source identity, base URI, kind, priority,
 readiness, observation count, freshness, latest refresh-attempt time, and
 diagnostics. Catalog freshness uses `fresh`, `stale`, `empty`, or `disabled`;
-a successfully observed BoK site uses `observed`. Disabled sources are included
+a successfully observed BoK or SIE source uses `observed`. Disabled sources are included
 only when requested. The response-level `warnings` field also reports rejected
-catalog and BoK configuration. The operation name remains `listCatalogs` for
+catalog, BoK-site, and SIE-route configuration. The operation name remains `listCatalogs` for
 Phase 2 compatibility.
 
 ### status
 
-Returns aggregate state and counts across catalog and BoK inputs. `ready` means
+Returns aggregate state and counts across catalog, BoK-site, and SIE inputs. `ready` means
 current enabled inputs are ready; `degraded` means an input failed, a retained
 catalog snapshot is stale, or all initial catalog loads failed; `not-started`
 means no enabled source has been attempted.

@@ -86,6 +86,24 @@ manifest-declared `glossary-terms` JSON and never scrapes rendered pages.
 source identity, kind, readiness, freshness, and diagnostics. BoK terms remain
 semantic evidence and are not converted into component catalog facts.
 
+To retrieve BoK terminology through SIE, authorize the SIE origin with
+`TEXTUS_CBD_SIE_ALLOWED_ORIGINS` and configure one or more `[id=].../mcp`
+routes in `TEXTUS_CBD_SIE_BOK_ROUTES`. CBD accepts only the public `/mcp` route
+and invokes the typed
+`SemanticIntegrationEngine.SemanticRetrieval.searchTerms` operation. Each term
+must include the SIE contract's identity, definition, dataset, match, rationale,
+score, and absolute `evidence_uri`; an incomplete term response is rejected as
+a source failure. The response body and result count are bounded.
+`searchComponents` triggers this SIE lookup with the same requirement, while
+its component matches continue to come only from CBD-owned catalog evidence.
+
+An authorized SIE source appears as `sie-bok` with
+`component-route-allowlist` authorization. Before retrieval it is
+`not-started`; a valid response makes it `ready`, while transport, MCP, schema,
+or evidence failures make it `degraded`. Retrieved terms remain SIE-owned
+observations. They do not add versions, dependencies, operations, artifacts,
+or usage statements to CBD component profiles.
+
 ## SIE Handoff
 
 SIE component discovery returns only `ComponentReference`. The shared fields
@@ -94,8 +112,10 @@ and `evidenceUri`. SIE normally supplies `sourceId`; CBD Support supplies
 `catalogId`. The stable handoff fields are component identity, kind, version,
 and evidence URI.
 
-Do not expect SIE to explain component dependencies or usage. Do not load CBD
-catalog data into SIE merely to make component development tools available.
+Do not expect SIE to explain component dependencies or usage. CBD accesses
+only SIE's public read-only component/MCP contract, never its RDF/vector stores
+or private ingestion operations. Do not load CBD catalog data into SIE merely
+to make component development tools available.
 
 ## Troubleshooting
 

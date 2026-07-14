@@ -82,20 +82,24 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends CbdRetrievalService.SearchComponentsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       val fetcher = new CbdHttp(core)
-      _runtime.ensureInputsReady(fetcher).map { _ =>
-        val results = _runtime.search(
-          _required_string(action.record, "requirement"),
-          _optional_string(action.record, "organization"),
-          _optional_string(action.record, "kind"),
-          _optional_string(action.record, "version"),
-          _optional_string(action.record, "runtimeVersion"),
-          _optional_int(action.record, "limit").getOrElse(10)
-        )
-        OperationResponse(Record.dataAuto(
-          "status" -> (if (results.nonEmpty) "matched" else "no-match"),
-          "results" -> results.map(_match_record),
-          "warnings" -> _source_warnings
-        ))
+      _runtime.ensureInputsReady(fetcher).flatMap { _ =>
+        val requirement = _required_string(action.record, "requirement")
+        val limit = _optional_int(action.record, "limit").getOrElse(10)
+        _runtime.searchSieTerms(requirement, None, limit, fetcher).map { _ =>
+          val results = _runtime.search(
+            requirement,
+            _optional_string(action.record, "organization"),
+            _optional_string(action.record, "kind"),
+            _optional_string(action.record, "version"),
+            _optional_string(action.record, "runtimeVersion"),
+            limit
+          )
+          OperationResponse(Record.dataAuto(
+            "status" -> (if (results.nonEmpty) "matched" else "no-match"),
+            "results" -> results.map(_match_record),
+            "warnings" -> _source_warnings
+          ))
+        }
       }
     }
   }

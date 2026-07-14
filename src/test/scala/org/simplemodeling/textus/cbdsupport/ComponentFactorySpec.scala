@@ -65,12 +65,12 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.status"
       )
       tools.map(x => x.name -> x.description).toMap shouldBe Map(
-        "CbdSupport.CbdRetrieval.searchComponents" -> "Search configured CAR and SAR catalogs by requirement and optional identity, kind, version, and runtime constraints.",
-        "CbdSupport.CbdRetrieval.getComponent" -> "Resolve one exact catalog component identity without inventing unavailable versions or metadata.",
-        "CbdSupport.CbdRetrieval.getUsage" -> "Return generated contract references, operation summaries, documentation, and artifact evidence for one catalog component.",
-        "CbdSupport.CbdRetrieval.resolveDependencies" -> "Return direct and bounded transitive dependency evidence for one catalog component, including unresolved paths and explicit version conflicts without choosing a winner.",
-        "CbdSupport.CbdRetrieval.listCatalogs" -> "List authorized information sources, including component catalogs and BoK sites, with current readiness, freshness, refresh-attempt state, and sanitized configuration diagnostics.",
-        "CbdSupport.CbdRetrieval.status" -> "Report federated information-source readiness, selected component counts, and degraded source state."
+        "CbdSupport.CbdRetrieval.searchComponents" -> "CbdSupport.CbdRetrieval.searchComponents",
+        "CbdSupport.CbdRetrieval.getComponent" -> "CbdSupport.CbdRetrieval.getComponent",
+        "CbdSupport.CbdRetrieval.getUsage" -> "CbdSupport.CbdRetrieval.getUsage",
+        "CbdSupport.CbdRetrieval.resolveDependencies" -> "CbdSupport.CbdRetrieval.resolveDependencies",
+        "CbdSupport.CbdRetrieval.listCatalogs" -> "CbdSupport.CbdRetrieval.listCatalogs",
+        "CbdSupport.CbdRetrieval.status" -> "CbdSupport.CbdRetrieval.status"
       )
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
     }

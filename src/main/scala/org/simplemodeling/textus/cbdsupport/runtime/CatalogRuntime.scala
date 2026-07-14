@@ -47,6 +47,7 @@ object InformationSourceAuthorization {
   val EXPLICIT = "explicit"
   val EXPLICIT_PATH_ALLOWLIST = "explicit-path-allowlist"
   val CANONICAL_STORAGE_ROOT = "canonical-storage-root"
+  val COMPONENT_ROUTE_ALLOWLIST = "component-route-allowlist"
 }
 
 final case class InformationSourceDescriptor(
@@ -827,7 +828,10 @@ final class CbdRuntime(
   configurationwarnings: Vector[String],
   val bokSources: Vector[BokSource],
   bokprovider: BokKnowledgeSourceProvider,
-  bokpolicy: BokInspectionPolicy
+  bokpolicy: BokInspectionPolicy,
+  val sieBokSources: Vector[SieBokSource],
+  siebokprovider: SieBokProvider,
+  siebokpolicy: SieBokPolicy
 ) {
   private var _snapshots = Map.empty[String, CatalogSnapshot]
   private var _failures = Map.empty[String, String]
@@ -835,6 +839,9 @@ final class CbdRuntime(
   private var _bok_snapshots = Map.empty[String, BokSourceSnapshot]
   private var _bok_failures = Map.empty[String, String]
   private var _bok_last_refresh_attempts = Map.empty[String, Instant]
+  private var _sie_bok_snapshots = Map.empty[String, SieBokSnapshot]
+  private var _sie_bok_failures = Map.empty[String, String]
+  private var _sie_bok_last_refresh_attempts = Map.empty[String, Instant]
 
   def ensureReady(fetcher: CatalogFetcher): Consequence[Unit] = synchronized {
     val now = clock.instant()
@@ -1041,9 +1048,52 @@ final class CbdRuntime(
     }
   }
 
+  def searchSieTerms(
+    query: String,
+    category: Option[String],
+    limit: Int,
+    transport: SieBokTransport
+  ): Consequence[Vector[SieBokSnapshot]] = {
+    val selected = sieBokSources.filter(_.enabled)
+    val snapshots = selected.flatMap { source =>
+      val attemptedat = clock.instant()
+      synchronized {
+        _sie_bok_last_refresh_attempts = _sie_bok_last_refresh_attempts.updated(source.id, attemptedat)
+      }
+      siebokprovider.searchTerms(source, query, category, limit, transport, siebokpolicy) match {
+        case Consequence.Success(snapshot) => synchronized {
+          _sie_bok_snapshots = _sie_bok_snapshots.updated(source.id, snapshot)
+          _sie_bok_failures = _sie_bok_failures.removed(source.id)
+          Some(snapshot)
+        }
+        case Consequence.Failure(conclusion) => synchronized {
+          _sie_bok_failures = _sie_bok_failures.updated(source.id, conclusion.display)
+          None
+        }
+      }
+    }
+    Consequence.success(snapshots)
+  }
+
+  def sieBokSourceStates(includedisabled: Boolean): Vector[SieBokSourceState] = synchronized {
+    sieBokSources.filter(x => includedisabled || x.enabled).sortBy(x => (x.priority, x.id)).map { source =>
+      val snapshot = _sie_bok_snapshots.get(source.id)
+      val diagnostics = (_sie_bok_failures.get(source.id).toVector ++ snapshot.toVector.flatMap(_.warnings)).distinct
+      SieBokSourceState(
+        source,
+        if (!source.enabled) "disabled" else if (diagnostics.nonEmpty) "degraded" else if (snapshot.nonEmpty) "ready" else "not-started",
+        snapshot.map(_.terms.size).getOrElse(0),
+        snapshot.map(_.observedAt),
+        _sie_bok_last_refresh_attempts.get(source.id),
+        diagnostics
+      )
+    }
+  }
+
   def informationSourceStates(includeDisabled: Boolean): Vector[InformationSourceState] =
     (sourceStates(includeDisabled).map(_.informationSourceState) ++
-      bokSourceStates(includeDisabled).map(_.informationSourceState))
+      bokSourceStates(includeDisabled).map(_.informationSourceState) ++
+      sieBokSourceStates(includeDisabled).map(_.informationSourceState))
       .sortBy(state => (state.descriptor.priority, state.descriptor.id))
 
   def bokSnapshots: Vector[BokSourceSnapshot] = synchronized {
@@ -1052,6 +1102,10 @@ final class CbdRuntime(
 
   def bokTerms: Vector[BokTermObservation] =
     bokSnapshots.flatMap(_.terms)
+
+  def sieBokSnapshots: Vector[SieBokSnapshot] = synchronized {
+    _sie_bok_snapshots.values.toVector.sortBy(snapshot => (snapshot.source.priority, snapshot.source.id))
+  }
 
   def observation(profile: ComponentProfile): Option[ComponentObservation] =
     profile.observationContext.map { context =>
@@ -1229,15 +1283,21 @@ object CbdRuntime {
     val bokconfiguration = BokSourceConfig.loadConfiguration(
       configuration.sources.map(_.id).toSet ++ Set("local-car", "cache-car")
     )
+    val siebokconfiguration = SieBokConfig.loadConfiguration(
+      configuration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ Set("local-car", "cache-car")
+    )
     new CbdRuntime(
       configuration.sources,
       new CompatibleComponentCatalogProvider(cozy, publication),
       CatalogCachePolicy.DEFAULT,
       clock,
-      configuration.warnings ++ bokconfiguration.warnings,
+      configuration.warnings ++ bokconfiguration.warnings ++ siebokconfiguration.warnings,
       bokconfiguration.sources,
       new BokKnowledgeSourceProvider(clock),
-      BokInspectionPolicy.DEFAULT
+      BokInspectionPolicy.DEFAULT,
+      siebokconfiguration.sources,
+      new SieBokProvider(clock),
+      SieBokPolicy.DEFAULT
     )
   }
 
@@ -1254,7 +1314,10 @@ object CbdRuntime {
       Vector.empty,
       Vector.empty,
       new BokKnowledgeSourceProvider(clock),
-      BokInspectionPolicy.DEFAULT
+      BokInspectionPolicy.DEFAULT,
+      Vector.empty,
+      new SieBokProvider(clock),
+      SieBokPolicy.DEFAULT
     )
   }
 
@@ -1271,7 +1334,10 @@ object CbdRuntime {
     Vector.empty,
     Vector.empty,
     new BokKnowledgeSourceProvider(clock),
-    BokInspectionPolicy.DEFAULT
+    BokInspectionPolicy.DEFAULT,
+    Vector.empty,
+    new SieBokProvider(clock),
+    SieBokPolicy.DEFAULT
   )
 
   def createFederated(
@@ -1281,7 +1347,10 @@ object CbdRuntime {
     clock: Clock,
     boksources: Vector[BokSource],
     bokprovider: BokKnowledgeSourceProvider,
-    bokpolicy: BokInspectionPolicy = BokInspectionPolicy.DEFAULT
+    bokpolicy: BokInspectionPolicy = BokInspectionPolicy.DEFAULT,
+    sieboksources: Vector[SieBokSource] = Vector.empty,
+    siebokprovider: SieBokProvider = new SieBokProvider(),
+    siebokpolicy: SieBokPolicy = SieBokPolicy.DEFAULT
   ): CbdRuntime = new CbdRuntime(
     sources,
     provider,
@@ -1290,7 +1359,10 @@ object CbdRuntime {
     Vector.empty,
     boksources,
     bokprovider,
-    bokpolicy
+    bokpolicy,
+    sieboksources,
+    siebokprovider,
+    siebokpolicy
   )
 }
 

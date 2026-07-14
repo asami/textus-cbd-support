@@ -45,7 +45,8 @@ exists.
    inclusive minimum/maximum range excludes the requested runtime.
 
 CBD Support never invents missing versions, dependencies, operations, or
-documentation. Missing optional data is returned as warnings.
+documentation. Missing evidence is returned as a warning or a stable
+`absences` record, according to the operation contract.
 
 `getUsage` reports `selectedSourceId`, `selectedSourceKind`, and
 `selectedVersion` for the catalog profile whose usage was actually read. Its
@@ -159,6 +160,22 @@ An authorized SIE source appears as `sie-bok` with
 or evidence failures make it `degraded`. Retrieved terms remain SIE-owned
 observations. They do not add versions, dependencies, operations, artifacts,
 or usage statements to CBD component profiles.
+
+### Choosing Purpose Precedence
+
+Use `purpose` to ask which evidence is authoritative for the current decision:
+
+| Purpose | Authority order |
+|---|---|
+| `development-work` | working directory, then local/cache artifacts, then published comparison |
+| `local-execution` | local-published artifact, then cached artifact; working/published identity is supporting evidence |
+| `published-reuse` | published catalog, with working/local/cache evidence retained for comparison |
+| `artifact-verification` | all available checksums are peers and a disagreement has no winner |
+
+The returned `precedence` is guidance, not selection. Always inspect
+`observations` and `issues`; `selectedObservation` remains absent. Exact detail
+operations independently require one catalog candidate and return bounded
+alternatives when catalog identity is ambiguous.
 
 ## SIE Handoff
 

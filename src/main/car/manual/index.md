@@ -65,11 +65,43 @@ does not merge SIE-owned terminology into CBD-owned component details.
 `searchComponents` invokes the SIE lookup with the same requirement before it
 performs independent catalog matching.
 
+Read-only development and CAR-storage inputs are configured separately:
+
+```text
+TEXTUS_CBD_DEVELOPMENT_DIRECTORIES=[id=]/absolute/project/path
+TEXTUS_CBD_LOCAL_CAR_ROOT=/absolute/local/root
+TEXTUS_CBD_CACHE_CAR_ROOT=/absolute/cache/root
+```
+
+The CAR roots default to `~/.cncf/local` and `~/.cncf/cache`. Those defaults
+use `canonical-storage-root` authority; configured replacements and development
+directories use `explicit-path-allowlist`. Every local root is canonical,
+bounded, inspected without following escaping symbolic links, and never written
+by CBD Support.
+
 CNCF MCP publication can be narrowed with:
 
 - `cncf.mcp.enabled=false`
 - `cncf.mcp.disabled-services=CbdRetrieval`
 - `cncf.mcp.disabled-operations=CbdRetrieval.getUsage`
+
+## Source Precedence
+
+The five source kinds preserve separate authority. Published catalogs own the
+component facts they publish; BoK sites and SIE own their semantic evidence;
+development directories own current working state; and CAR storage owns local
+artifact availability. The `purpose` filter returns these authority tiers:
+
+| purpose | authority order |
+|---|---|
+| `development-work` | working, local/cache artifact, published comparison |
+| `local-execution` | local-published, cached, supporting working/published identity |
+| `published-reuse` | published catalog, local comparison evidence |
+| `artifact-verification` | peer checksum evidence with no winner |
+
+Precedence never selects `selectedObservation`, merges fields, or resolves a
+conflict. Catalog `priority` controls deterministic ordering only. Exact detail
+operations require one catalog candidate or return bounded alternatives.
 
 ## CbdRetrieval Operations
 
@@ -218,8 +250,9 @@ the compatibility fallback to remain verified until an explicit migration.
 - Cache expiry is inclusive: a snapshot is stale at `expiresAt`, and the next
   retrieval readiness check attempts refresh.
 - Optional missing fields produce warnings where the contract can continue.
-- Search is deterministic lexical metadata matching in Phase 1; it is not a
-  claim of semantic compatibility.
+- Catalog profile matching remains deterministic metadata matching and is not
+  a claim of semantic compatibility. BoK/SIE citations remain separate
+  `semanticEvidence`.
 - CBD Support does not install components, choose a winner for a transitive
   version conflict, or validate a target SAR composition.
 

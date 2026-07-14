@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, and P3-30 through P3-32 are complete; the next slice completes Phase 3 documentation consistency under P3-40.
+- Current step: P3-01 through P3-05, P3-11 through P3-14, P3-20 through P3-22, P3-30 through P3-32, and P3-40 are complete; the next slice audits executable specification coverage under P3-41.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-3-checklist.md`.
 
@@ -227,6 +227,11 @@ winner.
   `EvidenceBoundedSelectionSpec`, `IntentAwareUsageGuidanceSpec`,
   `CatalogRuntimeSpec`, and `ComponentFactorySpec` passed 38 focused tests on
   2026-07-14.
+- README, user guide, CAR reference manual, strategy, phase ledger, and static
+  contracts now use the same five source kinds, evidence ownership boundaries,
+  four purpose-specific precedence orders, and non-selection rule. The
+  consolidated `phase-3-source-precedence.md` contract links authorization,
+  freshness, reconciliation, version, semantic, and exact-retrieval details.
 
 ## Closure Basis
 

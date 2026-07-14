@@ -90,5 +90,7 @@ distinct label for actual model inference, and emits no operation candidate
 without explicit intent overlap. Exact component, usage, and dependency
 retrieval now returns bounded catalog alternatives instead of a priority-based
 hidden winner and uses attributable absence records for missing selection,
-operation, intent, source, version, or dependency evidence. The next slice
-completes Phase 3 documentation consistency under P3-40.
+operation, intent, source, version, or dependency evidence. README, user guide,
+CAR reference, strategy, phase ledger, and static contracts now share one
+source-role and purpose-precedence model. The next slice audits executable
+specification coverage under P3-41.

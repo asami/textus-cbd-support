@@ -103,6 +103,28 @@ SIE terms remain separate observations and are not used to fill or overwrite
 CBD component profiles. `searchComponents` performs the read-only SIE term
 lookup for the same requirement before applying CBD catalog matching.
 
+## Phase 3 Source Model
+
+Configure read-only working evidence with
+`TEXTUS_CBD_DEVELOPMENT_DIRECTORIES=[id=]path`. The local warehouse and managed
+cache default to `~/.cncf/local` and `~/.cncf/cache`; override them with
+`TEXTUS_CBD_LOCAL_CAR_ROOT` and `TEXTUS_CBD_CACHE_CAR_ROOT`. Development,
+local, and cache roots are canonicalized, bounded, and never written by CBD
+Support. Development directories and configured CAR-root replacements use
+`explicit-path-allowlist`; the two default CAR roots use
+`canonical-storage-root` authority.
+
+The five source kinds retain distinct authority: published catalogs own the
+component facts they publish; BoK sites own their terminology; SIE owns its
+current-query semantic matches; development directories describe current
+working state; and CAR storage describes local-published or cached artifact
+availability. For `development-work`, working evidence precedes local artifacts
+and published comparison. For `local-execution`, local-published precedes
+cached availability. For `published-reuse`, published catalogs are the reuse
+authority. For `artifact-verification`, checksums are peer evidence and a
+disagreement has no winner. These tiers explain authority but never select or
+merge an observation automatically.
+
 ## MCP Operations
 
 `CbdRetrieval` is MCP ready. `CbdCatalogAdmin` is intentionally private.
@@ -145,3 +167,5 @@ See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/ind
 [SIE-mediated BoK Contract](docs/spec/sie-bok-information-source.md),
 [Intent-Aware Usage Guidance](docs/spec/intent-aware-usage-guidance.md), and
 [Evidence-Bounded Exact Retrieval](docs/spec/evidence-bounded-exact-retrieval.md).
+The consolidated Phase 3 source roles and precedence are defined by
+[Phase 3 Source and Precedence](docs/spec/phase-3-source-precedence.md).

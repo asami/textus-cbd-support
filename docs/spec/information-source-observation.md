@@ -16,8 +16,9 @@ The descriptor fields are:
 
 The built-in simplemodeling.org source is a `published-catalog` authorized as
 `built-in`. Additional Phase 2 catalogs remain `published-catalog` sources and
-record `exact-origin-allowlist` authorization. Later Phase 3 adapters must use
-the same descriptor rather than defining source-specific identity fields.
+record `exact-origin-allowlist` authorization. Phase 3 BoK, SIE, development,
+and CAR-storage adapters use the same descriptor rather than defining
+source-specific identity fields.
 
 Source state separates operational status from freshness. Freshness records
 the cache state, observation time, expiry, and last refresh attempt. Source
@@ -49,8 +50,10 @@ precedence describes authority only.
 
 The Phase 2 `catalogId`, `baseUri`, `cacheStatus`, `warning`, and component
 profile fields remain present. The generic source and observation fields are
-additive. `ComponentReference` remains the stable SIE/CBD handoff contract and
-is not expanded by this slice.
+additive. `ComponentReference` remains the stable SIE/CBD handoff contract.
+
+The complete Phase 3 source-role and purpose-precedence matrix is normative in
+`phase-3-source-precedence.md`.
 
 ## Executable Evidence
 

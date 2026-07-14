@@ -1,0 +1,634 @@
+# COMPONENT
+
+## CbdSupport
+
+### PACKAGE
+
+org.simplemodeling.textus.cbdsupport
+
+### DESCRIPTION
+
+Textus CBD Support aggregates authoritative CAR and SAR catalogs and exposes component discovery, exact component detail, dependency, operation, and usage guidance for Component-Based Development.
+
+# SERVICE
+
+## CbdRetrieval
+
+### DESCRIPTION
+
+Read-only CBD operations intended for publication through MCP.
+
+### OPERATION
+
+#### searchComponents
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ComponentSearchRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ComponentSearchResponse
+
+##### DESCRIPTION
+
+Search configured CAR and SAR catalogs by requirement and optional identity, kind, version, and runtime constraints.
+
+#### getComponent
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ComponentLookupRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ComponentLookupResponse
+
+##### DESCRIPTION
+
+Resolve one exact catalog component identity without inventing unavailable versions or metadata.
+
+#### getUsage
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ComponentUsageRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ComponentUsageResponse
+
+##### DESCRIPTION
+
+Return generated contract references, operation summaries, documentation, and artifact evidence for one catalog component.
+
+#### resolveDependencies
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+DependencyResolutionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+DependencyResolutionResponse
+
+##### DESCRIPTION
+
+Return the component dependencies published for one catalog component.
+
+#### listCatalogs
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+CatalogListRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CatalogListResponse
+
+##### DESCRIPTION
+
+List configured catalog sources and their current refresh state.
+
+#### status
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+CbdStatusRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CbdStatusResponse
+
+##### DESCRIPTION
+
+Report catalog readiness, selected snapshot counts, and degraded source state.
+
+## CbdCatalogAdmin
+
+### DESCRIPTION
+
+Administrative catalog refresh operations. This service is never MCP ready.
+
+### OPERATION
+
+#### refreshCatalog
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+CatalogRefreshRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CatalogRefreshResponse
+
+##### DESCRIPTION
+
+Refresh one configured catalog or all enabled catalogs while preserving the last known good snapshot on source failure.
+
+# COMMAND
+
+## CatalogRefreshRequest
+
+### DESCRIPTION
+
+Administrative request to refresh configured catalogs.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| sourceId | CatalogSourceId | ? |
+
+# QUERY
+
+## ComponentSearchRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requirement | ComponentRequirement | 1 |
+| organization | ComponentOrganization | ? |
+| kind | ComponentKind | ? |
+| version | ComponentVersion | ? |
+| runtimeVersion | RuntimeVersion | ? |
+| limit | int | ? |
+
+## ComponentLookupRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| name | ComponentName | 1 |
+| organization | ComponentOrganization | ? |
+| kind | ComponentKind | ? |
+| version | ComponentVersion | ? |
+| catalogId | CatalogSourceId | ? |
+
+## ComponentUsageRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| name | ComponentName | 1 |
+| organization | ComponentOrganization | ? |
+| kind | ComponentKind | ? |
+| version | ComponentVersion | ? |
+| catalogId | CatalogSourceId | ? |
+
+## DependencyResolutionRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| name | ComponentName | 1 |
+| organization | ComponentOrganization | ? |
+| kind | ComponentKind | ? |
+| version | ComponentVersion | ? |
+| catalogId | CatalogSourceId | ? |
+
+## CatalogListRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| includeDisabled | boolean | ? |
+
+## CbdStatusRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| detail | CbdStatusDetail | ? |
+
+# VALUE
+
+## CatalogRefreshResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | CbdResultStatus | 1 |
+| sourceCount | int | 1 |
+| componentCount | int | 1 |
+| warnings | CbdWarning | * |
+
+## ComponentSearchResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | CbdResultStatus | 1 |
+| results | ComponentMatch | * |
+| warnings | CbdWarning | * |
+
+## ComponentLookupResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | CbdResultStatus | 1 |
+| reference | ComponentReference | ? |
+| component | ComponentProfile | ? |
+| warnings | CbdWarning | * |
+
+## ComponentUsageResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | CbdResultStatus | 1 |
+| reference | ComponentReference | ? |
+| component | ComponentProfile | ? |
+| operations | ComponentOperation | * |
+| references | ComponentReferenceLink | * |
+| warnings | CbdWarning | * |
+
+## DependencyResolutionResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | CbdResultStatus | 1 |
+| reference | ComponentReference | ? |
+| component | ComponentProfile | ? |
+| dependencies | ComponentDependency | * |
+| warnings | CbdWarning | * |
+
+## CatalogListResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| sources | CatalogSourceStatus | * |
+
+## CbdStatusResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| overall | CbdResultStatus | 1 |
+| sourceCount | int | 1 |
+| readySourceCount | int | 1 |
+| componentCount | int | 1 |
+| detail | CbdStatusDetail | ? |
+
+## ComponentMatch
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| component | ComponentProfile | 1 |
+| reference | ComponentReference | 1 |
+| matchKind | ComponentMatchKind | 1 |
+| score | double | 1 |
+| rationale | ComponentMatchRationale | 1 |
+
+## ComponentProfile
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| catalogId | CatalogSourceId | 1 |
+| organization | ComponentOrganization | ? |
+| name | ComponentName | 1 |
+| title | ComponentTitle | 1 |
+| summary | ComponentSummary | ? |
+| kind | ComponentKind | 1 |
+| versions | ComponentVersion | * |
+| latestStable | ComponentVersion | ? |
+| latestSnapshot | ComponentVersion | ? |
+| runtimeMinimum | RuntimeVersion | ? |
+| tags | ComponentTag | * |
+| terms | ComponentTerm | * |
+| artifactUri | ComponentReferenceUri | ? |
+| evidenceUri | ComponentReferenceUri | 1 |
+| warnings | CbdWarning | * |
+
+## ComponentOperation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| service | ComponentServiceName | ? |
+| operation | ComponentOperationName | 1 |
+| kind | ComponentOperationKind | ? |
+| description | ComponentOperationDescription | ? |
+
+## ComponentDependency
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| name | ComponentName | 1 |
+| version | ComponentVersion | ? |
+| kind | ComponentKind | ? |
+
+## ComponentReferenceLink
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| kind | ComponentReferenceKind | 1 |
+| uri | ComponentReferenceUri | 1 |
+| authoritative | boolean | 1 |
+
+## ComponentReference
+
+### DESCRIPTION
+
+Stable cross-component handoff record shared with SIE. CBD supplies catalogId; SIE may instead supply sourceId. Usage and compatibility detail is deliberately kept outside this reference.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| sourceId | ComponentSourceId | ? |
+| catalogId | CatalogSourceId | ? |
+| organization | ComponentOrganization | ? |
+| name | ComponentName | 1 |
+| title | ComponentTitle | 1 |
+| kind | ComponentKind | 1 |
+| version | ComponentVersion | ? |
+| evidenceUri | ComponentReferenceUri | 1 |
+
+## CatalogSourceStatus
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | CatalogSourceId | 1 |
+| baseUri | ComponentReferenceUri | 1 |
+| enabled | boolean | 1 |
+| priority | int | 1 |
+| status | CbdResultStatus | 1 |
+| componentCount | int | 1 |
+| refreshedAt | CatalogRefreshTime | ? |
+| warning | CbdWarning | ? |
+
+## CatalogSourceId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentSourceId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentRequirement
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentOrganization
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentName
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentTitle
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentSummary
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentVersion
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## RuntimeVersion
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentTag
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentTerm
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentMatchKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentMatchRationale
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentServiceName
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentOperationName
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentOperationKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentOperationDescription
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentReferenceKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ComponentReferenceUri
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## CatalogRefreshTime
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## CbdResultStatus
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## CbdWarning
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## CbdStatusDetail
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |

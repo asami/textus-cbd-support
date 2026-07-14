@@ -1,0 +1,45 @@
+project:
+  name: "textus-cbd-support"
+  title: "Textus CBD Support"
+  kind: car
+  organization: "org.textus"
+  scalaPackage: "org.simplemodeling.textus.cbdsupport"
+  component:
+    name: "textus-cbd-support"
+    className: "CbdSupport"
+    displayName: "Textus CBD Support"
+    version: "0.1.0-SNAPSHOT"
+  summary: "Provides catalog-backed component discovery and usage guidance for Component-Based Development."
+  description: "Aggregates the simplemodeling.org component catalog and configured catalogs, then exposes evidence-bearing CAR/SAR discovery and usage information through MCP-ready operations."
+
+build:
+  scalaVersion: "3.3.8"
+  dependencies:
+    compile:
+      - "org.goldenport::goldenport-cncf:0.5.1-SNAPSHOT"
+    test:
+      - "org.scalatest::scalatest:3.2.10"
+
+publication:
+  source_manifest:
+    enabled: false
+
+packaging:
+  kind: car
+  car:
+    manifest_metadata:
+      boundedContext: "component-development"
+      domain: "cbd"
+    runtime:
+      cncf:
+        minimum: "0.5.1-SNAPSHOT"
+        excluded: []
+        tested:
+          - "0.5.1-SNAPSHOT"
+
+warehouse:
+  repository_artifacts:
+    include:
+      - car
+    modules:
+      - "textus-cbd-support"

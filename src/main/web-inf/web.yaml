@@ -1,0 +1,6 @@
+apps:
+  - name: textus-cbd-support
+    path: /web/textus-cbd-support
+    kind: static-form
+    root: /web/textus-cbd-support
+    route: /web/{component}/textus-cbd-support

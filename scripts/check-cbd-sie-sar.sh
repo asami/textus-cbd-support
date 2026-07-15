@@ -8,8 +8,26 @@ CNCF_BIN="${CNCF_BIN:-$(command -v cncf || true)}"
 CNCF_VERSION_FILE="${CNCF_VERSION_FILE:-/Users/asami/src/dev2026/cncf-samples/versions/cncf-version.conf}"
 CNCF_VERSION="${CNCF_VERSION:-$(tr -d '[:space:]' < "$CNCF_VERSION_FILE")}"
 CNCF_RUNTIME_ARGS=(--runtime "$CNCF_VERSION")
+RUNTIME_SOURCE="resolved-coordinate"
+RUNTIME_REVISION="coordinate"
+RUNTIME_WORKTREE_STATE="not-applicable"
 if [[ -n "${CNCF_RUNTIME_DEV_DIR:-}" ]]; then
   CNCF_RUNTIME_ARGS+=(--runtime-dev-dir "$CNCF_RUNTIME_DEV_DIR")
+  RUNTIME_SOURCE="development-directory"
+  if RUNTIME_REVISION="$(git -C "$CNCF_RUNTIME_DEV_DIR" rev-parse --verify HEAD 2>/dev/null)"; then
+    if RUNTIME_STATUS="$(git -C "$CNCF_RUNTIME_DEV_DIR" status --porcelain 2>/dev/null)"; then
+      if [[ -n "$RUNTIME_STATUS" ]]; then
+        RUNTIME_WORKTREE_STATE="dirty"
+      else
+        RUNTIME_WORKTREE_STATE="clean"
+      fi
+    else
+      RUNTIME_WORKTREE_STATE="unknown"
+    fi
+  else
+    RUNTIME_REVISION="unversioned"
+    RUNTIME_WORKTREE_STATE="unversioned"
+  fi
 fi
 CNCF_SERVER_PORT="${CNCF_SERVER_PORT:-19535}"
 CNCF_HTTP_BASEURL="${CNCF_HTTP_BASEURL:-http://127.0.0.1:$CNCF_SERVER_PORT}"
@@ -34,6 +52,10 @@ PROFILE_DESCRIPTORS=(
   "$PROFILE_DIR/sie-service-disabled.yaml"
   "$PROFILE_DIR/operation-disabled.yaml"
 )
+
+"$SCRIPT_DIR/check-runtime-compatibility.py" \
+  --runtime "$CNCF_VERSION" \
+  --evidence representative-sar
 
 case "$CNCF_HTTP_BASEURL" in
   http://127.0.0.1:* | http://localhost:*) ;;
@@ -259,3 +281,4 @@ for index in "${!PROFILES[@]}"; do
 done
 
 echo "CBD_SIE_SAR_POLICY_MATRIX_OK"
+echo "RUNTIME_COMPATIBILITY_EXECUTION_OK runtime=$CNCF_VERSION evidence=representative-sar source=$RUNTIME_SOURCE revision=$RUNTIME_REVISION worktree=$RUNTIME_WORKTREE_STATE"

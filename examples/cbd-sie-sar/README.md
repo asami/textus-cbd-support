@@ -16,6 +16,12 @@ selected descriptor as a SAR, starts one owned loopback server, verifies the
 exact JSON-RPC `tools/list` set, probes disabled `tools/call` routes, and stops
 the server before the next profile.
 
+Before those builds, `scripts/check-runtime-compatibility.py` requires the
+selected `CNCF_VERSION` to match the project declaration and a non-excluded
+tested candidate in `docs/spec/runtime-compatibility-matrix.json`. The complete
+run emits `RUNTIME_COMPATIBILITY_EXECUTION_OK`; development-directory evidence
+also includes its Git revision and clean/dirty state.
+
 | profile | descriptor | CBD tools | SIE tools |
 |---|---|---:|---:|
 | baseline | `subsystem-descriptor.yaml` | 6 | 7 |

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-22 live composed source ownership and bounded-failure verification is complete; the next slice establishes the runtime compatibility matrix under P4-30.
+- Current step: P4-30 declared-runtime matrix and representative execution verification is complete; the next slice establishes CAR ABI baselines and compatibility checks under P4-31.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -236,6 +236,22 @@ release evidence.
   preserved its retry timestamps instead of performing unbounded repeated
   work. The SIE term was ingested only into the temporary in-memory SIE fixture;
   external catalog availability was not required for these assertions.
+- `project.yaml` remains authoritative for the CNCF minimum, tested, and
+  excluded declarations. `docs/spec/runtime-compatibility-matrix.json` records
+  the assessed candidates and evidence IDs, while
+  `scripts/check-runtime-compatibility.py` rejects declaration drift,
+  unassessed candidates, excluded candidates, and compile dependencies that
+  are not declared tested.
+- The P4-30 declaration check passed on 2026-07-15 with minimum, tested, and
+  compile dependency all equal to `0.5.1-SNAPSHOT`; the excluded set is
+  explicitly empty. The one candidate is classified `tested-compatible` and
+  requires the `representative-sar` evidence. Unlisted versions remain
+  unassessed rather than implicitly compatible or incompatible.
+- The representative evidence then passed from a clean local clone at CNCF
+  revision `848ef5596af6927512af4e9c8c0d423d4add1253`. It rebuilt both CARs,
+  passed source-aware baseline retrieval and all four policy profiles, and
+  emitted `RUNTIME_COMPATIBILITY_EXECUTION_OK` with runtime
+  `0.5.1-SNAPSHOT`, evidence `representative-sar`, and `worktree=clean`.
 
 ## Closure Basis
 

@@ -188,6 +188,13 @@ applies result bounds without losing conflict provenance, and checks that a
 missing catalog stays degraded without an immediate retry loop. See
 [the representative SAR example](examples/cbd-sie-sar/README.md).
 
+The same command is the representative execution gate for the declared CNCF
+runtime matrix. It first checks `project.yaml` against the machine-readable
+[runtime compatibility matrix](docs/spec/runtime-compatibility-matrix.md) and
+refuses unassessed or excluded candidates. Success records the selected runtime
+source, Git revision when applicable, and clean/dirty worktree state; it does
+not infer compatibility for versions absent from the matrix.
+
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),
 [ComponentReference Contract](docs/spec/component-reference-contract.md),

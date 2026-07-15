@@ -131,5 +131,11 @@ loopback fixture through that composed endpoint and proves that published
 catalog, development-directory, and SIE semantic evidence remain separate;
 conflicting versions retain both participants with no selected winner even
 when result limits apply; and a missing catalog remains degraded under its
-bounded retry schedule. The next slice is P4-30 runtime compatibility-matrix
-governance and representative execution evidence.
+bounded retry schedule. P4-30 now keeps
+`project.yaml` as the declaration authority and checks it against a
+machine-readable assessed-candidate matrix before any representative runtime
+work. The only current candidate, `0.5.1-SNAPSHOT`, passed the complete composed
+CBD/SIE SAR from clean CNCF revision
+`848ef5596af6927512af4e9c8c0d423d4add1253`; excluded is explicitly empty and
+unlisted versions remain unassessed. The next slice is P4-31 CAR ABI baseline
+and compatible-addition/breaking-transition governance.

@@ -102,6 +102,15 @@ version conflict must name both CBD sources without selecting a winner, result
 bounds must preserve those conflict participants, and a missing catalog must
 remain degraded without an immediate retry loop.
 
+The same script checks the selected CNCF version against the declared runtime
+matrix before building either CAR. `project.yaml` owns the minimum, tested, and
+excluded declarations; `docs/spec/runtime-compatibility-matrix.json` owns the
+assessed candidate classifications and representative evidence IDs. The
+current matrix admits `0.5.1-SNAPSHOT` as its only tested-compatible candidate,
+has no excluded version, and treats every unlisted version as unassessed. The
+final live marker records the runtime source, revision, and worktree state
+rather than treating a mutable SNAPSHOT label as immutable evidence.
+
 ## Source Precedence
 
 The five source kinds preserve separate authority. Published catalogs own the

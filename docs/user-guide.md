@@ -44,6 +44,13 @@ and temporary SAR is removed on exit. Set `TEXTUS_SIE_ROOT` only when the
 sibling SIE checkout is in a non-default location; set `CNCF_RUNTIME_DEV_DIR`
 when validating a local CNCF runtime checkout.
 
+Before building, the command checks the selected `CNCF_VERSION` against
+`project.yaml` and `docs/spec/runtime-compatibility-matrix.json`. The current
+matrix admits only the declared tested candidate `0.5.1-SNAPSHOT`; the excluded
+set is empty and every unlisted version is unassessed. A successful final marker
+records whether the runtime came from a resolved coordinate or development
+directory, plus its revision and worktree state when Git evidence is available.
+
 The baseline profile additionally serves repository-owned fixtures and ingests
 their BoK glossary into the temporary in-memory SIE. Its live source-aware
 probe requires a published-catalog `textus-runtime` at `1.0.0`, a separate

@@ -1,0 +1,32 @@
+{
+  "schema_version": "textus-cbd.runtime-compatibility-matrix.v1",
+  "component": "textus-cbd-support",
+  "declaration": {
+    "minimum": "0.5.1-SNAPSHOT",
+    "tested": [
+      "0.5.1-SNAPSHOT"
+    ],
+    "excluded": []
+  },
+  "evidence": {
+    "representative-sar": {
+      "command": "scripts/check-cbd-sie-sar.sh",
+      "success_markers": [
+        "RUNTIME_COMPATIBILITY_DECLARATION_OK",
+        "RUNTIME_COMPATIBILITY_CANDIDATE_OK",
+        "CBD_SIE_SOURCE_AWARE_OK",
+        "CBD_SIE_SAR_POLICY_MATRIX_OK",
+        "RUNTIME_COMPATIBILITY_EXECUTION_OK"
+      ]
+    }
+  },
+  "candidates": [
+    {
+      "version": "0.5.1-SNAPSHOT",
+      "classification": "tested-compatible",
+      "evidence_ids": [
+        "representative-sar"
+      ]
+    }
+  ]
+}

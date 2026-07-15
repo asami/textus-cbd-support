@@ -1,8 +1,8 @@
 # Phase 4: Runtime Hardening
 
 Stage Status:
-- Current status: IN_PROGRESS
-- Current step: P4-42 full verification is complete; the next slice records publish-readiness evidence under P4-43 without publishing.
+- Current status: DONE
+- Current step: P4-01 through P4-43 are complete; Phase 4 is closed with publication left as a separate explicitly authorized workflow.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -343,6 +343,21 @@ release evidence.
   exact CBD/SIE read-tool counts of `6/7`, `0/0`, `6/0`, and `5/6`. It emitted
   `CBD_SIE_SOURCE_AWARE_OK`, `CBD_SIE_SAR_POLICY_MATRIX_OK`, and
   `RUNTIME_COMPATIBILITY_EXECUTION_OK` for the resolved runtime coordinate.
+- `docs/phase/phase-4-publish-readiness.md` records the P4-43 assessment without
+  publishing. The assessment artifact is the `0.1.0-SNAPSHOT` CAR built by
+  P4-42, including its descriptor, ABI surface, size, and SHA-256.
+- The public-release result is explicitly `not publish-ready`: the target CAR
+  and its required CNCF `0.5.1-SNAPSHOT` compile/runtime coordinate are mutable
+  snapshots, the CNCF prerequisite worktree is not a clean release candidate,
+  and `publishTo` is unset. Separately, the first released ABI baseline
+  correctly remains pending and is not an independent first-release blocker.
+  Strict CAR lint reported no failures and retained only the expected
+  `abi.baseline.missing` warning.
+- The readiness record defines the dependency-first publish order, every
+  version and compatibility record that must change, the validation rerun, the
+  manual `sbt --batch publish` command, post-publish repository checks, and the
+  rule that the `0.1.0` ABI baseline is recorded only after a real release.
+  Neither a publish command nor a local publication was executed.
 
 ## Closure Basis
 

@@ -156,6 +156,8 @@ Phase 4 checklist IDs to exact Scala scenarios or executable gate markers and
 adds a meta-specification that rejects checklist, evidence-path, or anchor
 drift. P4-42 now passes the full CBD and SIE test suites, CAR builds, CML and
 CAR lint, packaged SIE component-local dependency resolution, and the complete
-four-profile source-aware SAR projection. The next slice is P4-43
-publish-readiness evidence and its explicit manual publication procedure,
-without publishing automatically.
+four-profile source-aware SAR projection. P4-43 records the assessment artifact,
+runtime and dependency SNAPSHOTs, first-release ABI baseline state, residual
+warnings, dependency-first manual publication procedure, and the explicit
+`not publish-ready` result without publishing. Every Phase 4 checklist item is
+now complete; actual publication remains a separately authorized workflow.

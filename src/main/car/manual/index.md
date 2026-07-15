@@ -222,6 +222,14 @@ refreshes therefore preserve an already-bounded attributable last-known-good
 snapshot. Adapter response-byte, resource, query, directory, depth, and
 artifact limits separately bound the work that creates a candidate snapshot.
 
+Authentication, transport, JSON parse, and source-contract compatibility
+failures share one observable transition: the attempt and bounded retry time
+advance, while the retained observation and expiry do not. Expired evidence is
+reported as `degraded`/`stale`, never current. Calls before the retry boundary
+perform no source request. Only a successful retry replaces evidence and
+observation time, clears the failure diagnostic, and returns the source to
+`ready`/`fresh` on its normal schedule.
+
 ## Catalog Contract
 
 CBD Support first attempts the Cozy repository contract for each kind:

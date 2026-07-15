@@ -71,6 +71,9 @@ snapshots. Combined retained totals are capped at 20,000 Catalog profiles,
 20,000 BoK terms, 800 SIE terms, and 512 local observations, using stable
 per-source quotas that preserve attribution and prevent one refresh from
 evicting another source's last-known-good evidence.
+Authentication, transport, parse, and compatibility failures keep expired
+evidence explicitly degraded and stale until a successful bounded retry
+establishes a new current observation.
 
 The default public source currently serves the compatibility catalog but not
 the rich Cozy CAR/SAR indexes. The publisher-side work and acceptance criteria

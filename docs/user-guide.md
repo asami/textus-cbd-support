@@ -113,6 +113,12 @@ terms, 800 SIE terms, and 512 local observations. Stable per-source quotas are
 allocated by priority and source ID, so one refresh cannot evict another
 source's evidence. Quota truncation is diagnostic, and a failed Catalog or BoK
 refresh preserves the already-bounded last-known-good snapshot.
+Authentication, transport, JSON parsing, and source-contract compatibility
+failures all leave that snapshot visibly `degraded` and `stale`; they do not
+advance its observation time. Check the diagnostic and
+`nextRefreshAttemptAt`. Readiness performs no additional request before that
+instant, and only a successful retry restores `ready`/`fresh` with a new
+observation time.
 
 Additional catalog configuration is authorized in two steps. Put candidate
 base URIs in `TEXTUS_CBD_CATALOGS` and their permitted network origins in

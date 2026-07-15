@@ -237,6 +237,81 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:08:00Z"))
       state.diagnostics.mkString(" ") should include("unavailable")
     }
+
+    "preserve stale evidence across authentication, transport, parse, and compatibility failures until recovery" in {
+      Given("one valid BoK snapshot and four provider-boundary failure outcomes")
+      val scenarios = Vector(
+        FailureTransition("authentication", "source-credential-expired"),
+        FailureTransition("transport", "transport-unavailable"),
+        FailureTransition("parse", "not valid JSON"),
+        FailureTransition("compatibility", "unsupported schemaVersion")
+      )
+
+      scenarios.foreach { scenario =>
+        val clock = new MutableClock(Instant.parse("2026-07-14T03:00:00Z"))
+        val source = BokSource(
+          s"bok-${scenario.mode}",
+          URI.create(s"https://${scenario.mode}.bok.example/"),
+          600,
+          true,
+          Some(SourceAuthentication(SourceAuthentication.BEARER, s"config-key/${scenario.mode}-credential"))
+        )
+        val fetcher = new TransitionBokFetcher(source)
+        val policy = BokInspectionPolicy(
+          refreshTtl = Duration.ofMinutes(5),
+          refreshPolicy = InformationSourceRefreshPolicy(Duration.ofMinutes(5))
+        )
+        val runtime = CbdRuntime.createFederated(
+          Vector.empty,
+          new InMemoryComponentCatalogProvider(Vector.empty),
+          CatalogCachePolicy.DEFAULT,
+          clock,
+          Vector(source),
+          new BokKnowledgeSourceProvider(clock),
+          policy
+        )
+        runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+
+        When(s"the ${scenario.mode} failure occurs at expiry and readiness is checked again before retry")
+        clock.advance(Duration.ofMinutes(5))
+        fetcher.failWith(scenario.mode)
+        runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+        val requestcountafterfailure = fetcher.requestCount
+        runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+        val failedstate = runtime.bokSourceStates(includeDisabled = false).head
+
+        Then(s"the ${scenario.mode} failure retains attributable stale evidence without presenting it as current")
+        withClue(s"${scenario.mode}: ") {
+          fetcher.requestCount shouldBe requestcountafterfailure
+          runtime.bokTerms.map(_.termId) shouldBe Vector("runtime-initial")
+          failedstate.status shouldBe "degraded"
+          failedstate.cacheStatus shouldBe "stale"
+          failedstate.observedAt shouldBe Some(Instant.parse("2026-07-14T03:00:00Z"))
+          failedstate.expiresAt shouldBe Some(Instant.parse("2026-07-14T03:05:00Z"))
+          failedstate.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T03:05:00Z"))
+          failedstate.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T03:06:00Z"))
+          failedstate.diagnostics.mkString(" ") should include(scenario.diagnosticfragment)
+        }
+
+        When(s"the ${scenario.mode} source succeeds at its bounded retry time")
+        clock.advance(Duration.ofMinutes(1))
+        fetcher.recover()
+        runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+        val recoveredstate = runtime.bokSourceStates(includeDisabled = false).head
+
+        Then("only the successful retry replaces observation time and clears the failure")
+        withClue(s"${scenario.mode}: ") {
+          runtime.bokTerms.map(_.termId) shouldBe Vector("runtime-recovered")
+          recoveredstate.status shouldBe "ready"
+          recoveredstate.cacheStatus shouldBe "fresh"
+          recoveredstate.observedAt shouldBe Some(Instant.parse("2026-07-14T03:06:00Z"))
+          recoveredstate.expiresAt shouldBe Some(Instant.parse("2026-07-14T03:11:00Z"))
+          recoveredstate.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T03:06:00Z"))
+          recoveredstate.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T03:11:00Z"))
+          recoveredstate.diagnostics shouldBe empty
+        }
+      }
+    }
   }
 
   "SIE-mediated BoK input" should {
@@ -380,6 +455,51 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
     def postJson(endpoint: URI, body: String, maxbytes: Int): Consequence[String] = {
       callCount += 1
       Consequence.serviceUnavailable("Unexpected SIE transport call.")
+    }
+  }
+
+  private final case class FailureTransition(mode: String, diagnosticfragment: String)
+
+  private final class TransitionBokFetcher(source: BokSource) extends CatalogFetcher with BokFetcher {
+    private val _manifest_uri = source.baseUri.resolve(BokKnowledgeSourceProvider.MANIFEST_PATH)
+    private val _terms_uri = source.baseUri.resolve("metadata/glossary/terms.json")
+    private var _mode = "ready"
+    private var _request_count = 0
+
+    def requestCount: Int = _request_count
+
+    def failWith(mode: String): Unit =
+      _mode = mode
+
+    def recover(): Unit =
+      _mode = "recovered"
+
+    def get(uri: URI): Consequence[String] =
+      Consequence.serviceUnavailable(s"Unexpected unbounded fetch: $uri")
+
+    override def get(uri: URI, maxbytes: Int): Consequence[String] = {
+      _request_count += 1
+      if (uri == _manifest_uri) _manifest_response
+      else if (uri == _terms_uri) Consequence.success(_terms_response)
+      else Consequence.serviceUnavailable(s"Unexpected BoK fetch: $uri")
+    }
+
+    private def _manifest_response: Consequence[String] =
+      _mode match {
+        case "authentication" =>
+          SourceAuthenticationFailure.expired(SourceAuthenticationRequest.from(source)).consequence
+        case "transport" => Consequence.serviceUnavailable("transport-unavailable: BoK manifest request failed.")
+        case "parse" => Consequence.success("{")
+        case "compatibility" => Consequence.success(_manifest("cncf.knowledge-source.v2"))
+        case _ => Consequence.success(_manifest("cncf.knowledge-source.v1"))
+      }
+
+    private def _manifest(schemaversion: String): String =
+      s"""{"schemaVersion":"$schemaversion","kind":"bok-site","id":"${source.id}","sourceRef":{"kind":"bok-site","value":"${source.id}"},"resources":[{"kind":"glossary-terms","href":"metadata/glossary/terms.json","mediaType":"application/json"}]}"""
+
+    private def _terms_response: String = {
+      val termid = if (_mode == "recovered") "runtime-recovered" else "runtime-initial"
+      s"""{"terms":[{"id":"$termid","title":"Runtime"}]}"""
     }
   }
 

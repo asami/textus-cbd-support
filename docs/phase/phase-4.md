@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-12 bounded snapshot retention is complete; the next slice verifies refresh-state failure transitions under P4-13.
+- Current step: P4-13 refresh-state failure transitions are complete; the next slice verifies representative SAR composition under P4-20.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -189,6 +189,18 @@ release evidence.
   not invalidate already-compiled callers.
 - The complete 15-suite test run passed 108 tests on 2026-07-15 after the
   retention boundary and compatibility-preservation review fix.
+- `InformationSourceRefreshSpec` now drives an initially valid BoK snapshot
+  through credential-expired authentication, unavailable transport, invalid
+  JSON, and unsupported manifest-schema failures at expiry. Every outcome
+  preserves the original term, observation time, and expiry as degraded stale
+  evidence, records the failure and bounded retry time, and performs no work
+  before that retry becomes due.
+- The same four executable transitions recover at the retry boundary. Only the
+  successful provider result replaces the term and observation time, restores
+  fresh/ready state, clears the failure diagnostic, and returns to the normal
+  refresh schedule. The 10 focused `InformationSourceRefreshSpec` examples
+  passed on 2026-07-15. The complete 15-suite test run then passed 109 tests on
+  2026-07-15.
 
 ## Closure Basis
 

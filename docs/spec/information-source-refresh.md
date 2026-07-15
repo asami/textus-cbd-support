@@ -65,6 +65,23 @@ also protects administrative catalog refresh; administration bypasses only the
 time schedule. Each readiness call makes at most one attempt per due source and
 never runs an internal retry loop.
 
+## Failure-State Transitions
+
+Authentication failures, unavailable transport, invalid response syntax, and
+incompatible source contracts enter the same bounded refresh-state transition.
+The failed attempt updates `lastRefreshAttemptAt`, records a sanitized source
+diagnostic, increments the bounded retry sequence, and schedules
+`nextRefreshAttemptAt`. It does not change the retained observation,
+`observedAt`, or `expiresAt`.
+
+When prior evidence has expired, that evidence is explicitly `degraded` and
+`stale`; its presence never makes the failed attempt appear successful or
+current. A readiness call before the retry instant performs no additional
+source work. At or after that instant, only a successful provider result
+replaces the evidence and observation time, clears the failure, restores
+`ready`/`fresh`, and returns scheduling to the normal refresh interval. Initial
+failure without retained evidence remains degraded and empty.
+
 ## Non-Cached Inputs
 
 SIE retrieval is a live, query-scoped operation. A result for one query is not
@@ -87,4 +104,7 @@ stale last-known-good retention; pre-transport SIE request bounds; and
 independent timestamped local inspections. Together with
 `BokSourceRuntimeSpec` and `SieBokRuntimeSpec`, they also verify the combined
 source-count boundary, fixed Catalog quota allocation, bounded last-known-good
-retention, and Catalog, BoK, SIE, and local observation totals.
+retention, and Catalog, BoK, SIE, and local observation totals. The same refresh
+spec also executes authentication, transport, parse, and compatibility
+failures through the BoK provider boundary and verifies stale attribution,
+bounded retry deferral, and successful recovery.

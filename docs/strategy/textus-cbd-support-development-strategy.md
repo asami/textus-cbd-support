@@ -116,5 +116,8 @@ exponential retry, same-source single-flight, and a fair runtime-wide concurrenc
 limit against synchronized bursts. P4-12 caps configured source count and
 retained Catalog, BoK, SIE, and local observations through stable per-source
 quotas, preserves bounded attributable last-known-good evidence, and retains
-the pre-policy runtime construction signatures. The next slice is P4-13 tested
-authentication, transport, parse, and compatibility refresh-state transitions.
+the pre-policy runtime construction signatures. P4-13 proves that
+authentication, transport, parse, and compatibility failures all preserve
+stale source-owned evidence until a successful bounded retry establishes a new
+current observation. The next slice is P4-20 representative CBD/SIE SAR
+composition through one live CNCF endpoint.

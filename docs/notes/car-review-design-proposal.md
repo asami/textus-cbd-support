@@ -2,6 +2,12 @@
 
 Status: exploratory and non-normative
 
+The product ownership, provider authority, dependency direction, and execution
+topology have been promoted to the stable
+`docs/design/car-review-architecture.md` decision under P5-01. This note remains
+the exploratory source for schema, assessment, projection, and delivery details
+that later Phase 5 items have not yet promoted.
+
 This note develops the proposal recorded in
 `docs/journal/2026/07/car-review-spec-study-handoff.md`. It is intended for
 promotion to `docs/design` and `docs/spec` only after the open contracts have

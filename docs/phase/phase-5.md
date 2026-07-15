@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-01 — promote the CBD-owned product and provider boundary to stable design while P4-45 remains independently on hold.
+- Current step: P5-02 — specify the versioned Review Provider request, descriptor, evidence-bundle, capability, limitation, digest, and compatibility contracts.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -29,6 +29,10 @@ recorded in:
 The note remains non-normative. Stable decisions must be promoted to
 `docs/design` and behavior must be promoted to `docs/spec` with executable
 specifications before implementation is declared complete.
+
+The first promoted stable decision is
+`docs/design/car-review-architecture.md`, which completes P5-01 ownership,
+authority, dependency-direction, and execution-topology scope.
 
 ## Repository Boundary
 
@@ -148,6 +152,11 @@ security, redaction, profile, and lifecycle behavior before broad code changes.
 Phase 5 started on 2026-07-16 by explicit human direction. Phase 4 P4-45 remains
 an independent, incomplete human-confirmation gate; Phase 5 progress neither
 satisfies that gate nor authorizes Phase 4 publication.
+
+P5-01 completed on 2026-07-16 by promoting the CBD-owned product boundary,
+provider authority matrix, canonical processing topology, call/dependency
+directions, Textus AI execution boundary, and user/automation surface ownership
+to `docs/design/car-review-architecture.md`. Exact schemas remain P5-02 work.
 
 ## Stage 5.2: Review Application Core
 

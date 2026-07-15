@@ -7,7 +7,7 @@ contract.
 
 ## Normative Contract
 
-- [ ] `P5-01` Stable design fixes CBD Support as the CAR Review product owner and Cozy, `sbt-cozy`, Textus AI, CNCF, SIE, catalog, runtime, and other AI integrations as attributable providers without competing canonical reports.
+- [x] `P5-01` Stable design fixes CBD Support as the CAR Review product owner and Cozy, `sbt-cozy`, Textus AI, CNCF, SIE, catalog, runtime, and other AI integrations as attributable providers without competing canonical reports. Evidence: `docs/design/car-review-architecture.md`.
 - [ ] `P5-02` Static specification fixes versioned Review Provider descriptor, request, evidence-bundle, capability, rule-selection, limitation, digest, and compatibility contracts with representative canonical JSON.
 - [ ] `P5-03` Static specification fixes canonical Review Report, Review Run, Finding, Assurance, Unknown, location, severity, confidence, disposition, applicability, maturity, coverage, provider, baseline, and attestation contracts.
 - [ ] `P5-04` Security specification fixes target admission, path/process/network bounds, authorization, credential resolution, redaction, AI input, MCP exposure, retention, and deterministic/offline CI behavior.

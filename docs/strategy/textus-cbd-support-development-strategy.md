@@ -119,5 +119,8 @@ quotas, preserves bounded attributable last-known-good evidence, and retains
 the pre-policy runtime construction signatures. P4-13 proves that
 authentication, transport, parse, and compatibility failures all preserve
 stale source-owned evidence until a successful bounded retry establishes a new
-current observation. The next slice is P4-20 representative CBD/SIE SAR
-composition through one live CNCF endpoint.
+current observation. P4-20 builds the two snapshot CARs into a representative
+`textus-cbd-sie` SAR and verifies one live CNCF `/mcp` endpoint whose exact
+surface is six CBD retrieval tools and seven SIE semantic-retrieval tools with
+no administration or mutation tools. The next slice is P4-21 runtime
+disable-policy narrowing across that composed surface.

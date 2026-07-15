@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-13 refresh-state failure transitions are complete; the next slice verifies representative SAR composition under P4-20.
+- Current step: P4-20 representative SAR composition is complete; the next slice verifies runtime MCP disable policy under P4-21.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -201,6 +201,17 @@ release evidence.
   refresh schedule. The 10 focused `InformationSourceRefreshSpec` examples
   passed on 2026-07-15. The complete 15-suite test run then passed 109 tests on
   2026-07-15.
+- `examples/cbd-sie-sar/subsystem-descriptor.yaml` now defines the
+  `textus-cbd-sie` subsystem with explicit CBD Support and SIE snapshot CAR
+  coordinates. `scripts/check-cbd-sie-sar.sh` builds both CARs, assembles a
+  temporary descriptor-only SAR beside them in `component.d`, starts one owned
+  loopback CNCF server, probes its JSON-RPC `/mcp`, and removes all temporary
+  runtime state.
+- The live P4-20 check passed on 2026-07-15 with CNCF `0.5.1-SNAPSHOT` at one
+  endpoint. Its exact tool set contained six `CbdSupport.CbdRetrieval` tools and
+  seven `SemanticIntegrationEngine.SemanticRetrieval` tools. No CBD catalog
+  administration, SIE mutation/administration, legacy facade, or unexpected
+  tool was exposed.
 
 ## Closure Basis
 

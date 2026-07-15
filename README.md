@@ -170,6 +170,15 @@ MCP tool. CAR/SAR runtime configuration may further disable a ready service or
 operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 `cncf.mcp.disabled-operations`.
 
+## Representative CBD and SIE SAR
+
+Run `scripts/check-cbd-sie-sar.sh` to build both local snapshot CARs, assemble
+the representative `textus-cbd-sie` SAR, start one temporary loopback CNCF
+server, and verify its live JSON-RPC `/mcp` surface. The expected surface is
+exactly six CBD retrieval tools plus seven SIE semantic-retrieval tools; any
+administration, mutation, legacy facade, or other unexpected tool fails the
+check. See [the representative SAR example](examples/cbd-sie-sar/README.md).
+
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),
 [ComponentReference Contract](docs/spec/component-reference-contract.md),

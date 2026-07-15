@@ -25,6 +25,23 @@ exists.
 6. Pass the returned `ComponentReference` to `getComponent`, `getUsage`, or
    `resolveDependencies` by using its identity fields, including `kind`.
 
+## Representative SAR Check
+
+From the CBD Support project root, run:
+
+```bash
+scripts/check-cbd-sie-sar.sh
+```
+
+The command builds the CBD Support and sibling SIE snapshot CARs, creates a
+temporary `textus-cbd-sie` SAR, starts one owned loopback CNCF server, and
+checks its `/mcp` JSON-RPC tool catalog. Success requires exactly the six CBD
+retrieval tools and seven SIE semantic-retrieval tools. CBD catalog
+administration, SIE mutation/administration, the legacy SIE MCP facade, and all
+other unexpected tools must remain absent. The server and temporary SAR are
+removed on exit. Set `TEXTUS_SIE_ROOT` only when the sibling SIE checkout is in
+a non-default location.
+
 ## Normal Workflow
 
 1. Search with a requirement such as `account authentication` and optional

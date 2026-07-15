@@ -85,6 +85,14 @@ CNCF MCP publication can be narrowed with:
 - `cncf.mcp.disabled-services=CbdRetrieval`
 - `cncf.mcp.disabled-operations=CbdRetrieval.getUsage`
 
+The repository's representative `textus-cbd-sie` SAR composes this CAR and the
+Textus Semantic Integration Engine CAR. Run `scripts/check-cbd-sie-sar.sh` from
+the repository checkout to build both CARs and verify one temporary live
+JSON-RPC `/mcp` endpoint. Its tool catalog must contain only six CBD retrieval
+tools and seven SIE semantic-retrieval tools. CBD catalog administration, SIE
+mutation/administration, the legacy SIE facade, and any other tool are rejected
+as unexpected publication.
+
 ## Source Precedence
 
 The five source kinds preserve separate authority. Published catalogs own the

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-32 input compatibility governance is complete; the next slice closes Phase 4 documentation under P4-40.
+- Current step: P4-40 Phase 4 documentation alignment is complete; the next slice audits executable specification coverage under P4-41.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -297,6 +297,22 @@ release evidence.
   P4-32 compatibility changes. Normal CAR lint had no failures; its only
   residual warning remains the documented first-release ABI baseline pending
   state.
+- `docs/spec/phase-4-documentation-map.md` now maps the normative Phase 4
+  authentication, refresh/cache, SAR composition, compatibility, and
+  operational-failure contracts to all six required document surfaces.
+- README, user guide, and CAR reference manual now publish the same remote-
+  source authentication syntax, supported schemes, safe posture fields,
+  credential lifecycle codes, late CNCF resolution boundary, and no alternate-
+  key/internal-retry rule. Their operator guidance also connects credential
+  failures to the bounded degraded/stale refresh transition.
+- The three audience documents now distinguish unavailable Catalog endpoints
+  from incompatible returned documents and summarize the supported older
+  Catalog/local-CAR inputs plus fail-closed BoK and SIE contracts. None directs
+  an operator to translate fields, guess paths, or force an unrelated parser.
+- Existing representative-SAR, runtime matrix, ABI, refresh/cache, retention,
+  source-ownership, and failure-state guidance was checked against the static
+  contracts. The stale link to a concurrently moved publisher candidate was
+  removed while its stable `FUTURE-CATALOG-PUBLISHER-01` identity remains.
 
 ## Closure Basis
 

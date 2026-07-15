@@ -76,6 +76,66 @@ previously released baseline, so `CAR_ABI_CURRENT_BASELINE_PENDING` is expected
 until an actual release manifest is preserved under
 `src/main/car/<released-version>/abi-manifest.json`.
 
+## Authenticated Remote Sources
+
+Authorize the catalog, BoK, or SIE origin/route first, then bind its configured
+source ID to a credential reference:
+
+```bash
+export TEXTUS_CBD_SOURCE_AUTHENTICATION='team=bearer:config-key/catalog.team.token,knowledgehub=basic:config-key/bok.basic,semantic=api-key:config-key/sie.api.key'
+```
+
+The supported schemes are `bearer`, `basic`, and `api-key`. The reference must
+begin with `config-key/` and names a CNCF resolved runtime parameter; do not put
+a token, password, header value, or secret-bearing URI in this setting. The
+runtime resolves the owning source's value once at the outbound ProviderCall
+boundary, after exact-origin or `/mcp` route authorization. It never tries a
+different source's reference.
+
+Bearer adds `Authorization: Bearer`; Basic expects the CNCF value to be the
+pre-encoded Basic payload; API key adds `X-Api-Key`. These values are resolved
+at request time and must not be copied into ordinary source configuration.
+
+Use `listCatalogs` to inspect only the safe posture fields
+`authenticationScheme` and `credentialConfigured`. The credential reference,
+resolved value, and authentication header are absent from MCP records,
+diagnostics, CallTree output, and CAR metadata. Operational failures use these
+stable sanitized codes:
+
+| Code | Operator interpretation |
+|---|---|
+| `source-credential-missing` | the source-owned CNCF configuration key has no value |
+| `source-credential-unavailable` | the CNCF configuration resolver could not complete lookup |
+| `source-credential-expired` | an authenticated 401 explicitly reported expiry |
+| `source-credential-rejected` | the value was unsafe, or the remote source rejected authentication |
+
+Authentication itself has no retry or alternate-key fallback. For a cached
+Catalog or BoK source, the failure enters the normal degraded/stale transition
+and a later attempt occurs only at the bounded `nextRefreshAttemptAt`.
+
+## Input Compatibility Decisions
+
+Treat input availability separately from compatibility:
+
+- Catalog accepts the revision-pinned Cozy repository-index envelope. Only
+  fetch-level unavailability of both CAR and SAR indexes permits the deployed
+  `cozy.publish-project.v1` or observed unversioned publication contract. A
+  returned malformed or unknown-schema rich document fails without that
+  fallback.
+- BoK accepts only `cncf.knowledge-source.v1`; it does not scrape HTML or guess
+  another manifest/glossary path.
+- SIE accepts only the public typed
+  `SemanticIntegrationEngine.SemanticRetrieval.searchTerms` result with its
+  snake_case evidence fields; legacy facade/field shapes are rejected.
+- A local CAR must have a valid descriptor agreeing with its repository
+  coordinates. The one supported older input is a valid descriptor that
+  identifies the component but omits `version`; the path version remains
+  explicitly labeled `repository-path` evidence.
+
+An incompatible input contributes a bounded diagnostic, not a synthesized
+observation. See `docs/spec/input-compatibility-governance.md` for the
+normative matrix.
+
 ## Normal Workflow
 
 1. Search with a requirement such as `account authentication` and optional
@@ -287,8 +347,13 @@ to make component development tools available.
 - Rejected configured source: inspect catalog warnings for an invalid source
   ID/base URI, missing exact origin permission, or duplicate source ID. Keep
   credentials, query strings, and fragments out of catalog base URIs.
+- Credential failure: use the stable `source-credential-*` code to distinguish
+  missing, resolver-unavailable, expired, and rejected states. Do not copy the
+  configuration key or credential into diagnostics while investigating it.
+- Incompatible input: do not rename fields, guess paths, or force the catalog
+  publication adapter. Correct the producer contract identified by the source
+  diagnostic.
 - Publication compatibility mode: identity, version, artifact, and
   documentation are authoritative, but operation and dependency details wait
   for the publisher's Cozy repository index/model-metadata sidecars. The
-  publisher gap and acceptance criteria are tracked in
-  `docs/future/default-catalog-rich-metadata.md`.
+  publisher gap remains identified as `FUTURE-CATALOG-PUBLISHER-01`.

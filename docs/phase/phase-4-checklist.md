@@ -31,7 +31,7 @@ deleted; a checked item requires observable evidence.
 
 ## Documentation, Release, and Verification
 
-- [ ] `P4-40` README, user guide, reference manual, strategy, phase ledger, and static specifications describe authentication, production refresh/cache, SAR composition, compatibility, and operational failure behavior.
+- [x] `P4-40` README, user guide, reference manual, strategy, phase ledger, and static specifications describe authentication, production refresh/cache, SAR composition, compatibility, and operational failure behavior.
 - [ ] `P4-41` Executable specifications cover every Phase 4 authentication, refresh, cache, composition, and compatibility contract.
 - [ ] `P4-42` Full tests, CAR build, CML lint, CAR lint, representative SAR build, and live source-aware MCP projection pass with Phase 4 contracts.
 - [ ] `P4-43` Publish-readiness evidence records ABI baseline status, dependency/runtime versions, artifact metadata, residual warnings, and the explicit manual publication procedure without publishing automatically.

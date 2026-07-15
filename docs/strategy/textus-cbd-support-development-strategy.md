@@ -148,4 +148,8 @@ from incompatible returned documents, permits only the named deployed
 publication contracts, fixes BoK and SIE to their public v1/typed contracts,
 and keeps only the valid descriptor-without-version local CAR transition.
 Malformed or contradictory input no longer enters an alternate parser or path
-guess. The next slice is P4-40 Phase 4 documentation closure.
+guess. P4-40 now projects the same authentication, bounded refresh/cache, SAR
+composition, runtime/ABI/input compatibility, and operational failure
+contracts through README, user guide, CAR reference manual, strategy, phase
+ledger, and a static documentation map. The next slice is P4-41 executable
+specification coverage audit.

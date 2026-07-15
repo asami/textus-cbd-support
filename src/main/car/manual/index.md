@@ -65,6 +65,33 @@ does not merge SIE-owned terminology into CBD-owned component details.
 `searchComponents` invokes the SIE lookup with the same requirement before it
 performs independent catalog matching.
 
+### Source Authentication
+
+Already authorized remote sources may bind credentials by configured source
+ID:
+
+```text
+TEXTUS_CBD_SOURCE_AUTHENTICATION=source-id=scheme:config-key/runtime.configuration.key
+```
+
+Multiple bindings are comma-separated. The supported schemes are `bearer`,
+`basic`, and `api-key`: bearer adds `Authorization: Bearer`, Basic expects the
+resolved value to be the pre-encoded Basic payload, and API key adds
+`X-Api-Key`. Raw values and
+references not beginning with `config-key/` are rejected. Origin or component-
+route authorization is checked before CNCF resolves the owning source's value
+inside the outbound ProviderCall. No credential can expand authority or be
+reused for another source.
+
+Information-source descriptors expose only `authenticationScheme` and
+`credentialConfigured`. Credential references, resolved values, request
+headers, query data, and challenge bodies are excluded from MCP output,
+diagnostics, CallTree metadata, and CAR content. Credential lifecycle failures
+are `source-credential-missing`, `source-credential-unavailable`,
+`source-credential-expired`, or `source-credential-rejected`. Authentication
+does not retry or fall back to another key; cached-source recovery follows the
+separate bounded refresh schedule.
+
 Read-only development and CAR-storage inputs are configured separately:
 
 ```text
@@ -296,6 +323,12 @@ not expose. Unreadable component entries degrade the source without hiding
 successfully loaded entries. Snapshot project versions are never labeled as
 `latestStable`.
 
+Availability fallback is not parser fallback. If a rich index endpoint returns
+invalid JSON, an invalid envelope/entry, or an unknown declared schema, the
+source is incompatible and the publication adapter is not attempted. A valid
+index for one kind may coexist with an unavailable other-kind index, which is
+reported as a warning.
+
 As verified on 2026-07-14, the default public compatibility catalog and its
 repository-artifact metadata are available, while the rich CAR/SAR index
 endpoints are not publicly accessible. Generating and deploying those indexes
@@ -304,6 +337,19 @@ fallback responsibility of this CAR. The tracked candidate is
 `FUTURE-CATALOG-PUBLISHER-01`; it requires both rich indexes to return valid
 JSON, real CAR/SAR evidence and same-origin model metadata to be published, and
 the compatibility fallback to remain verified until an explicit migration.
+
+## Input Compatibility
+
+| Boundary | Accepted older input | Incompatible input behavior |
+|---|---|---|
+| Catalog | deployed `cozy.publish-project.v1` and observed unversioned publication JSON, only after rich endpoint unavailability | reject malformed/unknown-schema rich input without publication fallback |
+| BoK | none; only `cncf.knowledge-source.v1` is supported | reject schema, identity, kind, or resource-contract mismatch without page/path guessing |
+| SIE | none; only the public typed `searchTerms` result is supported | reject legacy facade/camelCase, partial, malformed, or evidence-free results |
+| Local CAR | valid component descriptor without `version`; retain the path version as `repository-path` evidence | reject missing/malformed descriptor, missing identity, or descriptor/path conflict without choosing a side |
+
+Supported older evidence keeps its original label and authority. It is not
+rewritten into the current shape. The normative decision table is
+`docs/spec/input-compatibility-governance.md`.
 
 ## Failure and Limitation Semantics
 
@@ -314,6 +360,12 @@ the compatibility fallback to remain verified until an explicit migration.
   readiness-driven attempts follow `nextRefreshAttemptAt`, which cannot be
   later than that expiry.
 - Optional missing fields produce warnings where the contract can continue.
+- Credential failures retain only a stable `source-credential-*` code and safe
+  source posture; no configuration key, credential, header, or challenge body
+  is exposed.
+- Incompatible Catalog, BoK, SIE, or local CAR input is rejected at its owning
+  boundary and never repaired through field translation, path guessing, or an
+  unrelated fallback parser.
 - Catalog profile matching remains deterministic metadata matching and is not
   a claim of semantic compatibility. BoK/SIE citations remain separate
   `semanticEvidence`.

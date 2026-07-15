@@ -49,11 +49,16 @@ The default simplemodeling.org source is built in. Invalid, non-allowlisted, or
 duplicate configured sources are not fetched, and their rejection reasons are
 returned as catalog/retrieval warnings.
 
-CBD Support auto-detects two catalog formats:
+CBD Support uses two explicitly classified catalog contracts:
 
 - Cozy repository indexes at `metadata/repository/{car|sar}/index.json`.
 - The deployed simplemodeling.org publication catalog rooted at
   `en/catalog/index.html` with `cozy.publish-project.v1` JSON evidence.
+
+The Cozy endpoints are attempted first. The publication contract is used only
+when both rich index kinds are unavailable. A returned rich document with
+invalid JSON, an invalid envelope/entry, or an unknown declared schema is
+incompatible and is not reinterpreted as publication metadata.
 
 Cozy indexes provide the richer contract, including selected-version channel
 and status, runtime minimum/maximum/tested evidence, nested ABI dependencies,
@@ -76,9 +81,9 @@ evidence explicitly degraded and stale until a successful bounded retry
 establishes a new current observation.
 
 The default public source currently serves the compatibility catalog but not
-the rich Cozy CAR/SAR indexes. The publisher-side work and acceptance criteria
-are recorded in [Default Catalog Rich Metadata Candidate](docs/future/default-catalog-rich-metadata.md);
-CBD Support continues to report absent rich evidence instead of synthesizing it.
+the rich Cozy CAR/SAR indexes. The publisher-side work remains identified as
+`FUTURE-CATALOG-PUBLISHER-01`; CBD Support continues to report absent rich
+evidence instead of synthesizing it.
 
 A `runtimeVersion` search constraint accepts only profiles that publish an
 affirmative runtime minimum and, when present, a compatible maximum. Missing
@@ -111,6 +116,30 @@ a bounded response size and requires every returned term to carry a valid
 SIE terms remain separate observations and are not used to fill or overwrite
 CBD component profiles. `searchComponents` performs the read-only SIE term
 lookup for the same requirement before applying CBD catalog matching.
+
+## Source Authentication
+
+Remote catalog, BoK-site, and SIE sources may bind one source-owned credential
+reference through `TEXTUS_CBD_SOURCE_AUTHENTICATION`:
+
+```sh
+export TEXTUS_CBD_SOURCE_AUTHENTICATION='team=bearer:config-key/catalog.team.token,knowledgehub=basic:config-key/bok.basic,semantic=api-key:config-key/sie.api.key'
+```
+
+Supported schemes are `bearer`, `basic`, and `api-key`. The value after the
+scheme must be a CNCF runtime configuration reference beginning with
+`config-key/`; raw tokens, passwords, headers, or credential-bearing URIs are
+rejected. Origin/route authorization happens before lookup, and CNCF resolves
+only the owning source's reference immediately before its outbound request.
+
+`listCatalogs` source records expose only `authenticationScheme` and
+`credentialConfigured`, never the reference or resolved value. Missing,
+resolver-unavailable, explicitly expired, and rejected credentials use the
+sanitized codes `source-credential-missing`,
+`source-credential-unavailable`, `source-credential-expired`, and
+`source-credential-rejected`. Authentication never selects another source's
+credential or retries internally; the normal bounded refresh policy may
+schedule a later source attempt.
 
 ## Phase 3 Source Model
 
@@ -203,6 +232,8 @@ by policy fixtures without presenting them as released component versions. See
 [CAR ABI Governance](docs/spec/car-abi-governance.md).
 Input-version and fallback decisions are fixed by
 [Information Input Compatibility Governance](docs/spec/input-compatibility-governance.md).
+The Phase 4 audience-to-contract coverage is recorded in
+[Phase 4 Documentation Map](docs/spec/phase-4-documentation-map.md).
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),

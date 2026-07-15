@@ -12,6 +12,11 @@
       "kind": "glossary-terms",
       "href": "metadata/glossary/terms.json",
       "mediaType": "application/json"
+    },
+    {
+      "kind": "component-reference-index",
+      "href": "metadata/repository/car/index.json",
+      "mediaType": "application/json"
     }
   ]
 }

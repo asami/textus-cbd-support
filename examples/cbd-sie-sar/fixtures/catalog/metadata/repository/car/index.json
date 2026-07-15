@@ -11,7 +11,9 @@
       "latest_stable": "1.0.0",
       "latest_snapshot": null,
       "source_path": "warehouse/repository/catalog/car/textus-runtime.yaml",
-      "sidecars": {},
+      "sidecars": {
+        "model_metadata_json": "repository/catalog/car/textus-runtime.model-metadata.json"
+      },
       "versions": [
         {
           "version": "1.0.0",

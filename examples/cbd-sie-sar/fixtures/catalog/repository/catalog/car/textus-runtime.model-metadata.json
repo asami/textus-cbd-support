@@ -1,0 +1,18 @@
+{
+  "surface": {
+    "component": {
+      "services": [
+        {
+          "name": "RuntimeInspection",
+          "operations": [
+            {
+              "name": "inspectRuntime",
+              "kind": "query",
+              "description": "Inspect runtime execution evidence."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

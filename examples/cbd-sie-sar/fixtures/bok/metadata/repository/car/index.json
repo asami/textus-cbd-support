@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "cncf.component-reference-index.v1",
+  "kind": "car",
+  "entries": [
+    {
+      "name": "textus-runtime",
+      "title": "Textus Runtime",
+      "summary": "Reusable runtime inspection component.",
+      "organization": "org.textus",
+      "kind": "car",
+      "recommended": "1.0.0",
+      "latest_stable": "1.0.0",
+      "source_path": "repository/catalog/car/textus-runtime.yaml",
+      "public_path": "repository/car/textus-runtime/index.html",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "channel": "stable",
+          "status": "active",
+          "published_at": "2026-07-15T00:00:00Z",
+          "file": "repository/car/textus-runtime/1.0.0/textus-runtime-1.0.0.car"
+        }
+      ]
+    }
+  ]
+}

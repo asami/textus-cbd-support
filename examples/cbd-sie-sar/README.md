@@ -65,6 +65,13 @@ The source-aware assertions require the following independent evidence:
   `working`; and
 - SIE-owned `architecture:runtime` semantic evidence owned by `semantic`.
 
+The baseline then runs a live Component-Based Development handoff. It grounds
+`Execution Runtime` through SIE, verifies an exact existence-only
+`textus-runtime:car@1.0.0` reference, and passes that identity to CBD Support.
+CBD Support must return the selected `fixture-catalog` detail and the observed
+`RuntimeInspection.inspectRuntime` operation with attributable intent guidance.
+SIE's handoff record must not contain those CBD-owned details.
+
 The two versions must remain conflict participants with no selected
 observation. A `limit=1` request may bound visible observations and semantic
 evidence, but must not erase conflict provenance. The missing catalog must stay

@@ -113,7 +113,9 @@ for fixture in \
   "$FIXTURE_ROOT/catalog/metadata/repository/car/index.json" \
   "$FIXTURE_ROOT/development/project.yaml" \
   "$FIXTURE_ROOT/bok/metadata/cncf/knowledge-source.json" \
-  "$FIXTURE_ROOT/bok/metadata/glossary/terms.json"; do
+  "$FIXTURE_ROOT/bok/metadata/glossary/terms.json" \
+  "$FIXTURE_ROOT/bok/metadata/repository/car/index.json" \
+  "$FIXTURE_ROOT/catalog/repository/catalog/car/textus-runtime.model-metadata.json"; do
   if [[ ! -f "$fixture" ]]; then
     echo "Representative SAR fixture is missing: $fixture" >&2
     exit 1
@@ -312,6 +314,12 @@ run_profile() {
     exit 1
   fi
   if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-source-aware.py" \
+    --base-url "$CNCF_HTTP_BASEURL" \
+    --fixture-url "$FIXTURE_BASEURL"; then
+    show_server_log
+    exit 1
+  fi
+  if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-design-flow.py" \
     --base-url "$CNCF_HTTP_BASEURL" \
     --fixture-url "$FIXTURE_BASEURL"; then
     show_server_log

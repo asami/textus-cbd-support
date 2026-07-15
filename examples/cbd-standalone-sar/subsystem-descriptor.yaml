@@ -1,0 +1,5 @@
+subsystem: textus-cbd-standalone
+version: 0.1.0-SNAPSHOT
+components:
+  - component: textus-cbd-support
+    coordinate: org.textus.car:textus-cbd-support:0.1.0-SNAPSHOT

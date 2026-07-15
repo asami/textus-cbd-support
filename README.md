@@ -221,6 +221,13 @@ Use `scripts/check-cbd-sie-sar.sh --profile baseline` when validating only the
 two-main-component composition and source-ownership boundary. Omitting
 `--profile` remains the complete publication-policy matrix gate.
 
+Run `scripts/check-cbd-standalone.sh` to verify CBD Support independently from
+SIE. This one-main-component SAR loads only the CBD CAR and an authorized
+catalog fixture, with no SIE CAR, BoK route, provider configuration, or copied
+SIE storage. It proves exact component detail and attributable usage guidance
+through the six CBD MCP tools. See
+[the standalone SAR example](examples/cbd-standalone-sar/README.md).
+
 The same command is the representative execution gate for the declared CNCF
 runtime matrix. It first checks `project.yaml` against the machine-readable
 [runtime compatibility matrix](docs/spec/runtime-compatibility-matrix.md) and

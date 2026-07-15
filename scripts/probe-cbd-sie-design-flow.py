@@ -11,6 +11,16 @@ COMPONENT_NAME = "textus-runtime"
 COMPONENT_KIND = "car"
 COMPONENT_VERSION = "1.0.0"
 COMPONENT_ORGANIZATION = "org.textus"
+SIE_REFERENCE_FIELDS = {
+    "source_id",
+    "catalog_id",
+    "organization",
+    "name",
+    "title",
+    "kind",
+    "version",
+    "evidence_uri",
+}
 
 
 def _request(base_url: str, payload: dict, timeout: float) -> dict:
@@ -135,8 +145,8 @@ def _run(base_url: str, fixture_url: str, timeout: float) -> None:
         f"Reference search lost BoK evidence: {reference}",
     )
     _require(
-        all(field not in reference for field in ("operations", "dependencies", "runtime_tested")),
-        f"SIE reference leaked CBD-owned detail: {reference}",
+        set(reference).issubset(SIE_REFERENCE_FIELDS),
+        f"SIE reference leaked fields outside the handoff contract: {reference}",
     )
 
     lookup_arguments = {
@@ -158,6 +168,10 @@ def _run(base_url: str, fixture_url: str, timeout: float) -> None:
         and looked_up.get("kind") == reference.get("kind")
         and looked_up.get("version") == reference.get("version"),
         f"Exact SIE reference lookup did not preserve the handoff: {exact_reference}",
+    )
+    _require(
+        set(looked_up).issubset(SIE_REFERENCE_FIELDS),
+        f"Exact SIE lookup leaked fields outside the handoff contract: {looked_up}",
     )
 
     cbd_arguments = {

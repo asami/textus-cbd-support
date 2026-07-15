@@ -66,6 +66,12 @@ minutes; the next retrieval after expiry attempts a refresh before serving.
 `listCatalogs` exposes fresh/stale/empty cache state, expiry, and the latest
 refresh-attempt time.
 
+Runtime retention admits at most 64 sources and keeps only their latest
+snapshots. Combined retained totals are capped at 20,000 Catalog profiles,
+20,000 BoK terms, 800 SIE terms, and 512 local observations, using stable
+per-source quotas that preserve attribution and prevent one refresh from
+evicting another source's last-known-good evidence.
+
 The default public source currently serves the compatibility catalog but not
 the rich Cozy CAR/SAR indexes. The publisher-side work and acceptance criteria
 are recorded in [Default Catalog Rich Metadata Candidate](docs/future/default-catalog-rich-metadata.md);

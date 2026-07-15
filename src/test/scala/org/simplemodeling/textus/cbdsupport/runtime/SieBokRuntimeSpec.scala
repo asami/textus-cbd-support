@@ -167,6 +167,36 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
       state.termCount shouldBe 1
       state.diagnostics should contain("SIE test transport is unavailable.")
     }
+    "bound retained SIE terms while returning the same bounded query snapshot" in {
+      Given("one SIE response with two evidence-bearing terms and runtime capacity for one")
+      val transport = new MemorySieBokTransport(_response(
+        "matched",
+        "Runtime",
+        """[{"id":"architecture:runtime","title":"Runtime","definition":"Definition.","term_type":"term","dataset_id":"bok-main","match_kind":"exact","score":1.0,"rationale":"Exact.","evidence_uri":"urn:bok:runtime"},{"id":"architecture:platform","title":"Platform","definition":"Platform definition.","term_type":"term","dataset_id":"bok-main","match_kind":"related","score":0.5,"rationale":"Related.","evidence_uri":"urn:bok:platform"}]"""
+      ))
+      val runtime = CbdRuntime.createFederated(
+        Vector.empty,
+        new InMemoryComponentCatalogProvider(Vector.empty),
+        CatalogCachePolicy.DEFAULT,
+        _clock,
+        Vector.empty,
+        new BokKnowledgeSourceProvider(_clock),
+        sieboksources = Vector(_source),
+        siebokprovider = new SieBokProvider(_clock),
+        retentionpolicy = InformationSourceRetentionPolicy(maxSieBokObservations = 1)
+      )
+
+      When("the query result becomes the latest source snapshot")
+      val current = runtime.searchSieTerms("Runtime", None, 10, transport).toOption.get
+      val state = runtime.sieBokSourceStates(includedisabled = false).head
+
+      Then("the returned and retained views share one attributable term and a truncation diagnostic")
+      current.flatMap(_.terms).map(_.id) shouldBe Vector("architecture:runtime")
+      runtime.sieBokSnapshots.flatMap(_.terms).map(_.id) shouldBe Vector("architecture:runtime")
+      state.termCount shouldBe 1
+      state.status shouldBe "degraded"
+      state.diagnostics.mkString(" ") should include("runtime total policy limit of 1 observations")
+    }
   }
 
   private val _clock = Clock.fixed(Instant.parse("2026-07-14T06:00:00Z"), ZoneOffset.UTC)

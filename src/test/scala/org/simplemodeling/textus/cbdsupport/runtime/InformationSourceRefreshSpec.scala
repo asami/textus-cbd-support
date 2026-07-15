@@ -82,6 +82,74 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
     }
   }
 
+  "Runtime snapshot retention" should {
+    "preserve the runtime construction signatures published before retention policy" in {
+      Given("the compiled CbdRuntime class and companion object")
+      val constructorarities = classOf[CbdRuntime].getConstructors.map(_.getParameterCount).toSet
+      val federatedarities = CbdRuntime.getClass.getMethods
+        .filter(_.getName == "createFederated").map(_.getParameterCount).toSet
+
+      When("the public JVM construction surfaces are inspected")
+      val oldconstructoravailable = constructorarities.contains(13)
+      val oldfactoryavailable = federatedarities.contains(12)
+
+      Then("the old signatures remain available beside the retention-aware variants")
+      oldconstructoravailable shouldBe true
+      oldfactoryavailable shouldBe true
+      constructorarities should contain(14)
+      federatedarities should contain(13)
+    }
+
+    "admit only positive retention limits at or below the production hard caps" in {
+      Given("the inclusive source and observation retention maxima")
+      val maximum = InformationSourceRetentionPolicy.DEFAULT
+
+      When("the production maxima and values outside each boundary are constructed")
+      val accepted = InformationSourceRetentionPolicy(
+        maximum.maxSources,
+        maximum.maxCatalogObservations,
+        maximum.maxBokObservations,
+        maximum.maxSieBokObservations,
+        maximum.maxLocalObservations
+      )
+
+      Then("the production maxima are finite and every zero or excessive limit is rejected")
+      accepted shouldBe maximum
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxSources = 0)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxCatalogObservations = 0)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxBokObservations = 0)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxSieBokObservations = 0)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxLocalObservations = 0)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxSources = 65)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxCatalogObservations = 20001)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxBokObservations = 20001)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxSieBokObservations = 801)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRetentionPolicy(maxLocalObservations = 513)
+    }
+
+    "reject a configured source set larger than the retained source bound" in {
+      Given("two catalog sources and a runtime policy that admits only one retained source")
+      val sources = Vector(
+        CatalogSource("first", URI.create("https://first.example/"), 100, true),
+        CatalogSource("second", URI.create("https://second.example/"), 200, true)
+      )
+
+      When("the federated runtime is constructed")
+      val construction = () => CbdRuntime.createFederated(
+        sources,
+        new InMemoryComponentCatalogProvider(Vector.empty),
+        CatalogCachePolicy.DEFAULT,
+        Clock.systemUTC(),
+        Vector.empty,
+        new BokKnowledgeSourceProvider(),
+        retentionpolicy = InformationSourceRetentionPolicy(maxSources = 1)
+      )
+
+      Then("configuration fails before any source work can exceed the source-count bound")
+      an[IllegalArgumentException] should be thrownBy construction()
+    }
+  }
+
   "Published catalog input" should {
     "bound configured sources, authorized origins, response bytes, and discovered profiles" in {
       Given("two configured catalogs and a repository index containing more profiles than the policy admits")
@@ -221,6 +289,43 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       first.observations.flatMap(_.version) should contain("1.0.0")
       second.observedAt shouldBe Instant.parse("2026-07-14T01:01:00Z")
       second.observations.flatMap(_.version) should contain("1.1.0-SNAPSHOT")
+    }
+
+    "bound the latest local inventory across configured source roots" in {
+      Given("two development directories and a runtime retention limit of one local observation")
+      val root = _reset_work_area("bounded-local-observations")
+      val first = Files.createDirectories(root.resolve("first"))
+      val second = Files.createDirectories(root.resolve("second"))
+      Files.writeString(first.resolve("project.yaml"), _project_yaml("1.0.0"))
+      Files.writeString(second.resolve("project.yaml"), _project_yaml("2.0.0-SNAPSHOT"))
+      val configuration = LocalInformationSourceConfig.parse(
+        Some(s"first=$first,second=$second"),
+        None,
+        None,
+        root
+      )
+      val clock = Clock.fixed(Instant.parse("2026-07-14T02:00:00Z"), ZoneOffset.UTC)
+      val runtime = CbdRuntime.createFederated(
+        Vector.empty,
+        new InMemoryComponentCatalogProvider(Vector.empty),
+        CatalogCachePolicy.DEFAULT,
+        clock,
+        Vector.empty,
+        new BokKnowledgeSourceProvider(clock),
+        localconfiguration = configuration,
+        retentionpolicy = InformationSourceRetentionPolicy(maxLocalObservations = 1)
+      )
+
+      When("the runtime replaces its no-cache local inventory")
+      runtime.ensureInputsReady(new SwitchableBokFetcher(Map.empty)).isSuccess shouldBe true
+      val states = runtime.localSourceStates(includedisabled = false)
+
+      Then("one deterministic observation is retained and the affected source reports truncation")
+      runtime.localInventory.toVector.flatMap(_.observations).flatMap(_.version) shouldBe Vector("1.0.0")
+      states.map(_.observationCount).sum shouldBe 1
+      states.find(_.descriptor.id == "second").toVector.flatMap(_.diagnostics).mkString(" ") should include(
+        "runtime total policy limit of 1"
+      )
     }
   }
 

@@ -212,6 +212,16 @@ failure up to the configured maximum; success resets the sequence. Same-source
 callers join one flight, and a fair runtime-wide limit admits two distinct
 refreshes by default. Administration uses these same concurrency bounds.
 
+The runtime admits at most 64 configured information sources and retains only
+the latest snapshot for each source. Total retained observations are bounded
+to 20,000 Catalog profiles, 20,000 BoK terms, 800 SIE terms, and 512 local
+observations. Each total is divided into stable source-priority/source-ID
+quotas. Refresh replaces only the owning source's bounded quota, reports
+truncation, and never evicts another source's evidence. Failed Catalog and BoK
+refreshes therefore preserve an already-bounded attributable last-known-good
+snapshot. Adapter response-byte, resource, query, directory, depth, and
+artifact limits separately bound the work that creates a candidate snapshot.
+
 ## Catalog Contract
 
 CBD Support first attempts the Cozy repository contract for each kind:

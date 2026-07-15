@@ -53,13 +53,31 @@ Provider reads additionally bound index and metadata response bytes plus the
 number of discovered component profiles. A reached profile bound remains a
 source warning; the adapter does not silently claim a complete catalog.
 
+## Snapshot Retention Capacity
+
+The runtime admits at most 64 configured information sources across Catalog,
+BoK, SIE-mediated BoK, development-directory, and CAR-storage inputs. It keeps
+only the latest successful snapshot for each admitted source; no observation
+history accumulates in memory.
+
+Catalog retention is additionally bounded to 20,000 component profiles across
+all configured catalog sources. The total is divided into fixed per-source
+quotas in source-priority and source-ID order, including deterministic
+remainder allocation. A refresh can replace only its owning source's quota and
+cannot evict another source's retained evidence. Profiles beyond that quota
+are discarded in provider order and produce a source warning. Provider byte,
+document-count, and traversal limits continue to bound the work needed to
+create each candidate snapshot before this retention boundary is applied.
+
 ## Last-Known-Good Behavior
 
 A successful refresh replaces the source snapshot, updates `refreshedAt`, and
 clears its recorded failure. A failed refresh records the failure but does not
 delete an existing snapshot. Retrieval can therefore continue with stale
 evidence and reports the source as degraded. If all initial loads fail and no
-snapshot exists, readiness fails.
+snapshot exists, readiness fails. A retained snapshot was already reduced to
+its fixed capacity, so last-known-good behavior cannot reintroduce an
+unbounded snapshot.
 
 ## Source Observations
 

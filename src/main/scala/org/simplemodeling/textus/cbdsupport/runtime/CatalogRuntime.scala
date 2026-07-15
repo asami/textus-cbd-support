@@ -216,6 +216,49 @@ object CatalogInspectionPolicy {
   val DEFAULT: CatalogInspectionPolicy = CatalogInspectionPolicy()
 }
 
+final case class InformationSourceRetentionPolicy(
+  maxSources: Int = InformationSourceRetentionPolicy.MAXIMUM_SOURCES,
+  maxCatalogObservations: Int = InformationSourceRetentionPolicy.MAXIMUM_CATALOG_OBSERVATIONS,
+  maxBokObservations: Int = InformationSourceRetentionPolicy.MAXIMUM_BOK_OBSERVATIONS,
+  maxSieBokObservations: Int = InformationSourceRetentionPolicy.MAXIMUM_SIE_BOK_OBSERVATIONS,
+  maxLocalObservations: Int = InformationSourceRetentionPolicy.MAXIMUM_LOCAL_OBSERVATIONS
+) {
+  require(maxSources > 0, "Retained source limit must be positive.")
+  require(
+    maxSources <= InformationSourceRetentionPolicy.MAXIMUM_SOURCES,
+    "Retained source limit must not exceed 64."
+  )
+  require(maxCatalogObservations > 0, "Retained catalog observation limit must be positive.")
+  require(
+    maxCatalogObservations <= InformationSourceRetentionPolicy.MAXIMUM_CATALOG_OBSERVATIONS,
+    "Retained catalog observation limit must not exceed 20000."
+  )
+  require(maxBokObservations > 0, "Retained BoK observation limit must be positive.")
+  require(
+    maxBokObservations <= InformationSourceRetentionPolicy.MAXIMUM_BOK_OBSERVATIONS,
+    "Retained BoK observation limit must not exceed 20000."
+  )
+  require(maxSieBokObservations > 0, "Retained SIE BoK observation limit must be positive.")
+  require(
+    maxSieBokObservations <= InformationSourceRetentionPolicy.MAXIMUM_SIE_BOK_OBSERVATIONS,
+    "Retained SIE BoK observation limit must not exceed 800."
+  )
+  require(maxLocalObservations > 0, "Retained local observation limit must be positive.")
+  require(
+    maxLocalObservations <= InformationSourceRetentionPolicy.MAXIMUM_LOCAL_OBSERVATIONS,
+    "Retained local observation limit must not exceed 512."
+  )
+}
+
+object InformationSourceRetentionPolicy {
+  val MAXIMUM_SOURCES = 64
+  val MAXIMUM_CATALOG_OBSERVATIONS = 20000
+  val MAXIMUM_BOK_OBSERVATIONS = 20000
+  val MAXIMUM_SIE_BOK_OBSERVATIONS = 800
+  val MAXIMUM_LOCAL_OBSERVATIONS = 512
+  val DEFAULT: InformationSourceRetentionPolicy = InformationSourceRetentionPolicy()
+}
+
 final case class ComponentDependency(
   name: String,
   version: Option[String],
@@ -1031,8 +1074,44 @@ final class CbdRuntime(
   siebokprovider: SieBokProvider,
   siebokpolicy: SieBokPolicy,
   localconfiguration: LocalInformationSourceConfiguration,
-  localpolicy: LocalInspectionPolicy
+  localpolicy: LocalInspectionPolicy,
+  retentionpolicy: InformationSourceRetentionPolicy
 ) {
+  def this(
+    sources: Vector[CatalogSource],
+    provider: ComponentCatalogProvider,
+    cachepolicy: CatalogCachePolicy,
+    clock: Clock,
+    configurationwarnings: Vector[String],
+    boksources: Vector[BokSource],
+    bokprovider: BokKnowledgeSourceProvider,
+    bokpolicy: BokInspectionPolicy,
+    sieboksources: Vector[SieBokSource],
+    siebokprovider: SieBokProvider,
+    siebokpolicy: SieBokPolicy,
+    localconfiguration: LocalInformationSourceConfiguration,
+    localpolicy: LocalInspectionPolicy
+  ) = this(
+    sources,
+    provider,
+    cachepolicy,
+    clock,
+    configurationwarnings,
+    boksources,
+    bokprovider,
+    bokpolicy,
+    sieboksources,
+    siebokprovider,
+    siebokpolicy,
+    localconfiguration,
+    localpolicy,
+    InformationSourceRetentionPolicy.DEFAULT
+  )
+
+  require(
+    sources.size + bokSources.size + sieBokSources.size + localconfiguration.sources.size <= retentionpolicy.maxSources,
+    s"Configured information sources must not exceed the runtime retention limit of ${retentionpolicy.maxSources}."
+  )
   private val _runtime_started_at = clock.instant()
   private val _refresh_slots = new Semaphore(
     math.min(
@@ -1080,7 +1159,9 @@ final class CbdRuntime(
       }
     }
     if (selected.nonEmpty) _refresh_bok_sources(selected, fetcher)
-    val inventory = LocalInformationSourceInventory.inspect(localconfiguration, localpolicy, clock)
+    val inventory = _bounded_local_inventory(
+      LocalInformationSourceInventory.inspect(localconfiguration, localpolicy, clock)
+    )
     synchronized {
       _local_inventory = Some(inventory)
     }
@@ -1284,7 +1365,8 @@ final class CbdRuntime(
     val now = clock.instant()
     sources.filter(x => includeDisabled || x.enabled).sortBy(x => (x.priority, x.id)).map { source =>
       val snapshot = _snapshots.get(source.id)
-      val failure = _failures.get(source.id).orElse(snapshot.flatMap(_.warning))
+      val warnings = (_failures.get(source.id).toVector ++ snapshot.toVector.flatMap(_.warning)).distinct
+      val failure = Option.when(warnings.nonEmpty)(warnings.mkString("; "))
       val stale = snapshot.exists(_is_stale(_, now))
       CatalogSourceState(
         source,
@@ -1334,9 +1416,10 @@ final class CbdRuntime(
       }
       siebokprovider.searchTerms(source, query, category, limit, transport, siebokpolicy) match {
         case Consequence.Success(snapshot) => synchronized {
-          _sie_bok_snapshots = _sie_bok_snapshots.updated(source.id, snapshot)
+          val boundedsnapshot = _bounded_sie_bok_snapshot(source.id, snapshot)
+          _sie_bok_snapshots = _sie_bok_snapshots.updated(source.id, boundedsnapshot)
           _sie_bok_failures = _sie_bok_failures.removed(source.id)
-          Some(snapshot)
+          Some(boundedsnapshot)
         }
         case Consequence.Failure(conclusion) => synchronized {
           _sie_bok_failures = _sie_bok_failures.updated(
@@ -1512,19 +1595,20 @@ final class CbdRuntime(
     provider.read(source, fetcher) match {
       case Consequence.Success(snapshot) => synchronized {
         val observedat = clock.instant()
+        val boundedcandidate = _bounded_catalog_snapshot(source.id, snapshot.copy(
+          source = source,
+          refreshedAt = observedat
+        ))
         val observationcontext = ComponentObservationContext(
           source.id,
           source.sourceKind,
           observedat,
           observedat.plus(cachepolicy.ttl),
-          snapshot.warning.toVector
+          boundedcandidate.warning.toVector
         )
-        val profiles = snapshot.profiles.map(_.copy(observationContext = Some(observationcontext)))
-        _snapshots = _snapshots.updated(source.id, snapshot.copy(
-          source = source,
-          profiles = profiles,
-          refreshedAt = observedat
-        ))
+        val profiles = boundedcandidate.profiles.map(_.copy(observationContext = Some(observationcontext)))
+        val boundedsnapshot = boundedcandidate.copy(profiles = profiles)
+        _snapshots = _snapshots.updated(source.id, boundedsnapshot)
         _failures = _failures.removed(source.id)
         _refresh_failure_counts = _refresh_failure_counts.removed(source.id)
       }
@@ -1548,10 +1632,11 @@ final class CbdRuntime(
     }
     bokprovider.read(source, fetcher, bokpolicy) match {
       case Consequence.Success(snapshot) => synchronized {
-        _bok_snapshots = _bok_snapshots.updated(source.id, snapshot.copy(
+        val boundedsnapshot = _bounded_bok_snapshot(source.id, snapshot.copy(
           source = source.descriptor,
           observedAt = clock.instant()
         ))
+        _bok_snapshots = _bok_snapshots.updated(source.id, boundedsnapshot)
         _bok_failures = _bok_failures.removed(source.id)
         _bok_refresh_failure_counts = _bok_refresh_failure_counts.removed(source.id)
       }
@@ -1602,6 +1687,112 @@ final class CbdRuntime(
       }
       if (interrupted)
         Thread.currentThread().interrupt()
+    }
+  }
+
+  private def _bounded_catalog_snapshot(sourceid: String, snapshot: CatalogSnapshot): CatalogSnapshot = {
+    val capacity = _retained_observation_capacity(
+      retentionpolicy.maxCatalogObservations,
+      sources.map(source => (source.id, source.priority)),
+      sourceid
+    )
+    if (snapshot.profiles.size <= capacity) snapshot
+    else snapshot.copy(
+      profiles = snapshot.profiles.take(capacity),
+      warning = Some(_append_retention_warning(
+        snapshot.warning.toVector,
+        "Catalog",
+        sourceid,
+        retentionpolicy.maxCatalogObservations
+      ).mkString("; "))
+    )
+  }
+
+  private def _bounded_bok_snapshot(sourceid: String, snapshot: BokSourceSnapshot): BokSourceSnapshot = {
+    val capacity = _retained_observation_capacity(
+      retentionpolicy.maxBokObservations,
+      bokSources.map(source => (source.id, source.priority)),
+      sourceid
+    )
+    if (snapshot.terms.size <= capacity) snapshot
+    else snapshot.copy(
+      terms = snapshot.terms.take(capacity),
+      warnings = _append_retention_warning(
+        snapshot.warnings,
+        "BoK",
+        sourceid,
+        retentionpolicy.maxBokObservations
+      )
+    )
+  }
+
+  private def _bounded_sie_bok_snapshot(sourceid: String, snapshot: SieBokSnapshot): SieBokSnapshot = {
+    val capacity = _retained_observation_capacity(
+      retentionpolicy.maxSieBokObservations,
+      sieBokSources.map(source => (source.id, source.priority)),
+      sourceid
+    )
+    if (snapshot.terms.size <= capacity) snapshot
+    else snapshot.copy(
+      terms = snapshot.terms.take(capacity),
+      warnings = _append_retention_warning(
+        snapshot.warnings,
+        "SIE BoK",
+        sourceid,
+        retentionpolicy.maxSieBokObservations
+      )
+    )
+  }
+
+  private def _bounded_local_inventory(inventory: LocalInformationInventory): LocalInformationInventory = {
+    val configuredlocalsources = inventory.sources.map(source => (source.id, source.priority))
+    val retained = inventory.sources.sortBy(source => (source.priority, source.id)).flatMap { source =>
+      val capacity = _retained_observation_capacity(
+        retentionpolicy.maxLocalObservations,
+        configuredlocalsources,
+        source.id
+      )
+      inventory.observations.filter(_.sourceId == source.id).take(capacity)
+    }
+    if (retained.size == inventory.observations.size) inventory
+    else {
+      val warning =
+        s"Local snapshot retention truncated observations under the runtime total policy limit of ${retentionpolicy.maxLocalObservations}."
+      val retainedcounts = retained.groupMapReduce(_.sourceId)(_ => 1)(_ + _)
+      val originalcounts = inventory.observations.groupMapReduce(_.sourceId)(_ => 1)(_ + _)
+      val truncatedsourceids = originalcounts.collect {
+        case (sourceid, count) if retainedcounts.getOrElse(sourceid, 0) < count => sourceid
+      }.toSet
+      inventory.copy(
+        observations = retained,
+        warnings = (inventory.warnings :+ warning).distinct,
+        sourceDiagnostics = inventory.sourceDiagnostics.map { case (sourceid, diagnostics) =>
+          sourceid -> (if (truncatedsourceids.contains(sourceid)) (diagnostics :+ warning).distinct else diagnostics)
+        }
+      )
+    }
+  }
+
+  private def _append_retention_warning(
+    warnings: Vector[String],
+    sourcekind: String,
+    sourceid: String,
+    limit: Int
+  ): Vector[String] =
+    (warnings :+
+      s"$sourcekind snapshot retention truncated source $sourceid under the runtime total policy limit of $limit observations.").distinct
+
+  private def _retained_observation_capacity(
+    total: Int,
+    configuredsources: Vector[(String, Int)],
+    sourceid: String
+  ): Int = {
+    val orderedsourceids = configuredsources.sortBy { case (id, priority) => (priority, id) }.map(_._1)
+    val sourcecount = orderedsourceids.size
+    if (sourcecount == 0) 0
+    else orderedsourceids.indexOf(sourceid) match {
+      case -1 => 0
+      case index => total / sourcecount + Option.when(index < total % sourcecount)(1).getOrElse(0)
     }
   }
 
@@ -1787,7 +1978,8 @@ object CbdRuntime {
       new SieBokProvider(clock),
       SieBokPolicy.DEFAULT,
       localconfiguration,
-      LocalInspectionPolicy.DEFAULT
+      LocalInspectionPolicy.DEFAULT,
+      InformationSourceRetentionPolicy.DEFAULT
     )
   }
 
@@ -1809,7 +2001,8 @@ object CbdRuntime {
       new SieBokProvider(clock),
       SieBokPolicy.DEFAULT,
       _empty_local_configuration,
-      LocalInspectionPolicy.DEFAULT
+      LocalInspectionPolicy.DEFAULT,
+      InformationSourceRetentionPolicy.DEFAULT
     )
   }
 
@@ -1831,7 +2024,37 @@ object CbdRuntime {
     new SieBokProvider(clock),
     SieBokPolicy.DEFAULT,
     _empty_local_configuration,
-    LocalInspectionPolicy.DEFAULT
+    LocalInspectionPolicy.DEFAULT,
+    InformationSourceRetentionPolicy.DEFAULT
+  )
+
+  def createFederated(
+    sources: Vector[CatalogSource],
+    provider: ComponentCatalogProvider,
+    cachepolicy: CatalogCachePolicy,
+    clock: Clock,
+    boksources: Vector[BokSource],
+    bokprovider: BokKnowledgeSourceProvider,
+    bokpolicy: BokInspectionPolicy,
+    sieboksources: Vector[SieBokSource],
+    siebokprovider: SieBokProvider,
+    siebokpolicy: SieBokPolicy,
+    localconfiguration: LocalInformationSourceConfiguration,
+    localpolicy: LocalInspectionPolicy
+  ): CbdRuntime = createFederated(
+    sources,
+    provider,
+    cachepolicy,
+    clock,
+    boksources,
+    bokprovider,
+    bokpolicy,
+    sieboksources,
+    siebokprovider,
+    siebokpolicy,
+    localconfiguration,
+    localpolicy,
+    InformationSourceRetentionPolicy.DEFAULT
   )
 
   def createFederated(
@@ -1846,7 +2069,8 @@ object CbdRuntime {
     siebokprovider: SieBokProvider = new SieBokProvider(),
     siebokpolicy: SieBokPolicy = SieBokPolicy.DEFAULT,
     localconfiguration: LocalInformationSourceConfiguration = _empty_local_configuration,
-    localpolicy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT
+    localpolicy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT,
+    retentionpolicy: InformationSourceRetentionPolicy = InformationSourceRetentionPolicy.DEFAULT
   ): CbdRuntime = new CbdRuntime(
     sources,
     provider,
@@ -1860,7 +2084,8 @@ object CbdRuntime {
     siebokprovider,
     siebokpolicy,
     localconfiguration,
-    localpolicy
+    localpolicy,
+    retentionpolicy
   )
 }
 

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-11 bounded retry/backoff and refresh concurrency control are complete; the next slice bounds retained snapshot capacity under P4-12.
+- Current step: P4-12 bounded snapshot retention is complete; the next slice verifies refresh-state failure transitions under P4-13.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -169,6 +169,26 @@ release evidence.
   evidence for retry/concurrency policy bounds, Catalog 1/2/4-minute backoff,
   BoK 1/2-minute backoff, four-caller single-flight, and a three-source burst
   limited to two active reads.
+- `InformationSourceRetentionPolicy` now rejects more than 64 configured input
+  sources and caps retained latest-snapshot observations at 20,000 Catalog
+  profiles, 20,000 BoK terms, 800 SIE terms, and 512 local component
+  observations. Candidate snapshots remain independently bounded by the
+  adapters' byte, resource, query, directory, depth, and artifact policies.
+- Each observation total is assigned as a fixed per-source quota in priority
+  and source-ID order. Refresh can replace only its owning quota, never evicts
+  another source, and records truncation in that source's diagnostics. No
+  history is retained; Catalog and BoK failures leave the already-bounded
+  attributable last-known-good snapshot unchanged.
+- `InformationSourceRefreshSpec`, `CatalogRuntimeSpec`,
+  `BokSourceRuntimeSpec`, and `SieBokRuntimeSpec` passed 47 focused tests on
+  2026-07-15. They prove invalid-bound rejection, combined source-count
+  rejection, fixed multi-Catalog allocation with failed-refresh retention, and
+  Catalog, BoK, SIE, and local observation truncation.
+- The retention-aware constructor and factory preserve their previous JVM
+  signatures through forwarding overloads, so introducing the new policy does
+  not invalidate already-compiled callers.
+- The complete 15-suite test run passed 108 tests on 2026-07-15 after the
+  retention boundary and compatibility-preservation review fix.
 
 ## Closure Basis
 

@@ -243,6 +243,36 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
       runtime.bokSourceStates(includeDisabled = false).head.status shouldBe "ready"
       runtime.overallStatus shouldBe "ready"
     }
+
+    "bound retained BoK terms independently of the per-response parsing limit" in {
+      Given("one valid BoK response with two terms and runtime capacity for one retained term")
+      val source = _source("bounded-runtime-bok")
+      val manifesturi = source.baseUri.resolve(BokKnowledgeSourceProvider.MANIFEST_PATH)
+      val termsuri = source.baseUri.resolve("metadata/glossary/terms.json")
+      val manifest =
+        """{"schemaVersion":"cncf.knowledge-source.v1","kind":"bok-site","id":"bounded-runtime-bok","sourceRef":{"kind":"bok-site","value":"bounded-runtime-bok"},"resources":[{"kind":"glossary-terms","href":"metadata/glossary/terms.json","mediaType":"application/json"}]}"""
+      val terms = """{"terms":[{"id":"domain-model","title":"Domain Model"},{"id":"bounded-context","title":"Bounded Context"}]}"""
+      val fetcher = new MemoryBokFetcher(Map(manifesturi -> manifest, termsuri -> terms))
+      val runtime = CbdRuntime.createFederated(
+        Vector.empty,
+        new InMemoryComponentCatalogProvider(Vector.empty),
+        CatalogCachePolicy.DEFAULT,
+        _clock,
+        Vector(source),
+        new BokKnowledgeSourceProvider(_clock),
+        retentionpolicy = InformationSourceRetentionPolicy(maxBokObservations = 1)
+      )
+
+      When("the runtime initializes the source snapshot")
+      runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+      val state = runtime.bokSourceStates(includeDisabled = false).head
+
+      Then("only the first attributable term is retained and truncation remains source diagnostic")
+      runtime.bokTerms.map(_.termId) shouldBe Vector("domain-model")
+      state.termCount shouldBe 1
+      state.status shouldBe "degraded"
+      state.diagnostics.mkString(" ") should include("runtime total policy limit of 1 observations")
+    }
   }
 
   private val _clock = Clock.fixed(Instant.parse("2026-07-14T00:00:00Z"), ZoneOffset.UTC)

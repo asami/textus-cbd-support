@@ -472,6 +472,57 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       runtime.get("textus-order", None, None, None, None) should not be empty
     }
 
+    "bound retained profiles across sources without evicting attributable last-known-good evidence" in {
+      Given("two catalog snapshots whose combined profiles exceed the runtime retention limit")
+      val sources = Vector(
+        CatalogSource("retained-a", URI.create("https://retained-a.example/"), 100, true),
+        CatalogSource("retained-b", URI.create("https://retained-b.example/"), 200, true)
+      )
+      val profiles = Map(
+        sources.head.id -> Vector(
+          _component_profile(sources.head.id).copy(name = "a-one", title = "A One"),
+          _component_profile(sources.head.id).copy(name = "a-two", title = "A Two")
+        ),
+        sources.last.id -> Vector(
+          _component_profile(sources.last.id).copy(name = "b-one", title = "B One"),
+          _component_profile(sources.last.id).copy(name = "b-two", title = "B Two")
+        )
+      )
+      val provider = new FailingPerSourceCatalogProvider(profiles)
+      val runtime = CbdRuntime.createFederated(
+        sources,
+        provider,
+        CatalogCachePolicy.DEFAULT,
+        Clock.systemUTC(),
+        Vector.empty,
+        new BokKnowledgeSourceProvider(),
+        retentionpolicy = InformationSourceRetentionPolicy(maxCatalogObservations = 3)
+      )
+
+      When("initial readiness fills the bound and the truncated source later fails to refresh")
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      val retainedstates = runtime.sourceStates(includeDisabled = false)
+      provider.failSource(sources.last.id)
+      runtime.refresh(Some(sources.last.id), EmptyCatalogFetcher).isSuccess shouldBe true
+
+      Then("the first source keeps two profiles and the second keeps one attributable last-known-good profile")
+      retainedstates.map(_.componentCount) shouldBe Vector(2, 1)
+      retainedstates.last.warning.get should include("runtime total policy limit of 3 observations")
+      runtime.componentCount shouldBe 3
+      Vector("a-one", "a-two", "b-one").forall(name => runtime.get(name, None, None, None, None).nonEmpty) shouldBe true
+      runtime.get("b-two", None, None, None, None) shouldBe None
+      val failedstate = runtime.sourceStates(includeDisabled = false).last
+      failedstate.status shouldBe "degraded"
+      failedstate.componentCount shouldBe 1
+      failedstate.warning.get should include("Catalog unavailable: retained-b")
+      failedstate.warning.get should include("runtime total policy limit of 3 observations")
+      val retainedobservationdiagnostics = runtime.get("b-one", None, None, None, None).toVector
+        .flatMap(_.observationContext).flatMap(_.diagnostics).mkString(" ")
+      retainedobservationdiagnostics should include(
+        "runtime total policy limit of 3 observations"
+      )
+    }
+
     "coalesce concurrent automatic refreshes for the same source" in {
       Given("four readiness callers blocked behind one source read")
       val source = CatalogSource("single-flight", URI.create("https://single-flight.example/"), 100, true)
@@ -1039,6 +1090,26 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source,
         profiles.getOrElse(source.id, Vector.empty).map(_.copy(catalogId = source.id)),
         Instant.now(),
+        None
+      ))
+
+    def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =
+      Consequence.success(ComponentUsage(profile, Vector.empty, Vector.empty, Vector.empty))
+  }
+
+  private final class FailingPerSourceCatalogProvider(profiles: Map[String, Vector[ComponentProfile]])
+    extends ComponentCatalogProvider {
+    private var _failed_source_ids = Set.empty[String]
+
+    def failSource(sourceid: String): Unit =
+      _failed_source_ids = _failed_source_ids + sourceid
+
+    def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
+      if (_failed_source_ids.contains(source.id)) Consequence.serviceUnavailable(s"Catalog unavailable: ${source.id}")
+      else Consequence.success(CatalogSnapshot(
+        source,
+        profiles.getOrElse(source.id, Vector.empty).map(_.copy(catalogId = source.id)),
+        Instant.EPOCH,
         None
       ))
 

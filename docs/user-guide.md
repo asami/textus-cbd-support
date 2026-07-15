@@ -107,6 +107,12 @@ default. Administration shares these concurrency bounds even though it
 bypasses the time schedule.
 Catalog source/origin configuration, index and metadata bytes, and discovered
 profile count are bounded; truncation remains visible as a warning.
+The runtime also admits at most 64 sources and stores latest snapshots only.
+Across those snapshots it retains at most 20,000 Catalog profiles, 20,000 BoK
+terms, 800 SIE terms, and 512 local observations. Stable per-source quotas are
+allocated by priority and source ID, so one refresh cannot evict another
+source's evidence. Quota truncation is diagnostic, and a failed Catalog or BoK
+refresh preserves the already-bounded last-known-good snapshot.
 
 Additional catalog configuration is authorized in two steps. Put candidate
 base URIs in `TEXTUS_CBD_CATALOGS` and their permitted network origins in

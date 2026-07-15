@@ -113,5 +113,8 @@ redaction, and CallTree-safe metadata. P4-10 now gives catalog and BoK sources
 bounded one-minute-through-24-hour normal refresh schedules and exposes each
 next attempt without immediate repeated work after failure. P4-11 adds bounded
 exponential retry, same-source single-flight, and a fair runtime-wide concurrency
-limit against synchronized bursts. The next slice is P4-12 bounded retained
-snapshot and observation capacity.
+limit against synchronized bursts. P4-12 caps configured source count and
+retained Catalog, BoK, SIE, and local observations through stable per-source
+quotas, preserves bounded attributable last-known-good evidence, and retains
+the pre-policy runtime construction signatures. The next slice is P4-13 tested
+authentication, transport, parse, and compatibility refresh-state transitions.

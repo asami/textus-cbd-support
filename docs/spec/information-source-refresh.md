@@ -16,6 +16,23 @@ being presented as complete evidence.
 | `sie-bok` | source/origin counts, query/category characters, response bytes, and accepted terms | each successful query records its observation time; no expiry is assigned | responses are query scoped and never reused for another query; the latest successful evidence remains only in degraded source state after failure |
 | `development-directory` and `car-storage` | configured roots, artifacts, directories, entries, depth, metadata bytes, and artifact bytes | each completed inventory records `observedAt` | no retained cache; each call performs a new bounded, read-only inspection |
 
+## Runtime Retention Boundary
+
+The runtime admits no more than 64 configured sources in total and retains
+only one latest successful snapshot per admitted source. Retained observation
+totals are capped at 20,000 Catalog profiles, 20,000 BoK terms, 800 SIE BoK
+terms, and 512 local component observations. These object-count bounds combine
+with each adapter's response-byte, document-count, directory, artifact, depth,
+and query limits to bound both retained memory and candidate-snapshot work.
+
+Each observation total is divided into fixed per-source quotas by source
+priority and source ID. Remainders go to earlier sources in that stable order.
+A successful observation retains its source-owned prefix and reports
+truncation; it never evicts another source's evidence. Catalog and BoK refresh
+failure leaves the already-bounded last-known-good snapshot unchanged. SIE
+returns the same bounded snapshot that it stores as latest diagnostic state,
+while local inspection replaces the prior inventory with a newly bounded one.
+
 ## Catalog and BoK Expiry
 
 Catalog and BoK TTL values must be positive and no greater than 24 hours. Their
@@ -67,4 +84,7 @@ schedule, retry, and concurrency bounds; schedule versus TTL constraints;
 observable Catalog/BoK exponential next attempts; same-source single-flight;
 distinct-source burst limits; bounded catalog configuration and discovery; BoK
 stale last-known-good retention; pre-transport SIE request bounds; and
-independent timestamped local inspections.
+independent timestamped local inspections. Together with
+`BokSourceRuntimeSpec` and `SieBokRuntimeSpec`, they also verify the combined
+source-count boundary, fixed Catalog quota allocation, bounded last-known-good
+retention, and Catalog, BoK, SIE, and local observation totals.

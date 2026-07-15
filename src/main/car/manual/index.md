@@ -111,6 +111,14 @@ has no excluded version, and treats every unlisted version as unassessed. The
 final live marker records the runtime source, revision, and worktree state
 rather than treating a mutable SNAPSHOT label as immutable evidence.
 
+The source-managed CAR ABI is `src/main/car/abi-manifest.json`. Run
+`scripts/check-car-abi.sh` to require its seven operation signatures to match
+generated CML model metadata and the packaged CAR. The same check proves that a
+minor operation addition is compatible, a minor removal is rejected, and an
+intentional major transition retains the breaking finding as a permitted
+decision. No historical Textus CBD Support release exists, so the current
+first-release baseline remains explicitly pending instead of being fabricated.
+
 ## Source Precedence
 
 The five source kinds preserve separate authority. Published catalogs own the

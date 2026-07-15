@@ -1,0 +1,57 @@
+{
+  "format": "cozy.car.abi-manifest.v1",
+  "car": {
+    "name": "textus-cbd-support",
+    "version": "1.0.0"
+  },
+  "abi": {
+    "version": 1,
+    "exports": {
+      "components": [
+        {
+          "name": "textus-cbd-support"
+        }
+      ],
+      "operations": [
+        {
+          "name": "searchComponents",
+          "kind": "QUERY",
+          "input": "ComponentSearchRequest",
+          "output": "ComponentSearchResponse"
+        },
+        {
+          "name": "getComponent",
+          "kind": "QUERY",
+          "input": "ComponentLookupRequest",
+          "output": "ComponentLookupResponse"
+        },
+        {
+          "name": "getUsage",
+          "kind": "QUERY",
+          "input": "ComponentUsageRequest",
+          "output": "ComponentUsageResponse"
+        },
+        {
+          "name": "resolveDependencies",
+          "kind": "QUERY",
+          "input": "DependencyResolutionRequest",
+          "output": "DependencyResolutionResponse"
+        },
+        {
+          "name": "listCatalogs",
+          "kind": "QUERY",
+          "input": "CatalogListRequest",
+          "output": "CatalogListResponse"
+        },
+        {
+          "name": "refreshCatalog",
+          "kind": "COMMAND",
+          "input": "CatalogRefreshRequest",
+          "output": "CatalogRefreshResponse"
+        }
+      ],
+      "entities": []
+    },
+    "dependencies": []
+  }
+}

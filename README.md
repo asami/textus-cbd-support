@@ -195,6 +195,13 @@ refuses unassessed or excluded candidates. Success records the selected runtime
 source, Git revision when applicable, and clean/dirty worktree state; it does
 not infer compatibility for versions absent from the matrix.
 
+Run `scripts/check-car-abi.sh` to verify the source-managed CAR ABI against
+generated CML model metadata, the built CAR, and Cozy's SemVer transition
+policy. The current first-release line has no historical release baseline;
+compatible-addition, breaking-minor, and intentional-major behavior is covered
+by policy fixtures without presenting them as released component versions. See
+[CAR ABI Governance](docs/spec/car-abi-governance.md).
+
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),
 [ComponentReference Contract](docs/spec/component-reference-contract.md),

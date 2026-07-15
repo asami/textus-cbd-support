@@ -60,6 +60,22 @@ source IDs and expose no selected observation, including when the visible
 result limit is one. A deliberately missing catalog must remain degraded with
 bounded diagnostics and unchanged immediate-retry timestamps.
 
+## CAR ABI Check
+
+Run the project-owned ABI gate before release review:
+
+```bash
+scripts/check-car-abi.sh
+```
+
+The check builds the CAR, compares `src/main/car/abi-manifest.json` with the
+generated CML operation surface and the packaged top-level manifest, then runs
+Cozy strict ABI lint over compatible-addition, breaking-minor, and
+intentional-major transition fixtures. The current `0.1.0-SNAPSHOT` line has no
+previously released baseline, so `CAR_ABI_CURRENT_BASELINE_PENDING` is expected
+until an actual release manifest is preserved under
+`src/main/car/<released-version>/abi-manifest.json`.
+
 ## Normal Workflow
 
 1. Search with a requirement such as `account authentication` and optional

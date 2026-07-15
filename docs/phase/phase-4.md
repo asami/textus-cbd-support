@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-30 declared-runtime matrix and representative execution verification is complete; the next slice establishes CAR ABI baselines and compatibility checks under P4-31.
+- Current step: P4-31 source-managed CAR ABI and SemVer transition verification is complete; the next slice governs supported older inputs and explicit incompatibility under P4-32.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -252,6 +252,23 @@ release evidence.
   passed source-aware baseline retrieval and all four policy profiles, and
   emitted `RUNTIME_COMPATIBILITY_EXECUTION_OK` with runtime
   `0.5.1-SNAPSHOT`, evidence `representative-sar`, and `worktree=clean`.
+- `src/main/car/abi-manifest.json` now owns the current CAR ABI surface. It
+  exports the component and all seven CML operations, including the
+  administration operation that runtime MCP policy keeps private, with no
+  exported entities or component ABI dependencies.
+- `scripts/check-car-abi.sh` passed on 2026-07-15. It rebuilt the CAR, matched
+  the current ABI against generated CML model metadata, and proved the CAR
+  embeds the source-managed manifest unchanged. The resulting markers reported
+  seven operations, zero entities, and package equality.
+- Cozy strict ABI lint reports the current `0.1.0-SNAPSHOT` manifest as
+  readable and `abi.baseline.missing` because no Textus CBD Support CAR has
+  been released. The repository records that honest first-release pending state
+  and does not create a fictitious versioned release baseline.
+- Transition fixtures passed the committed Cozy SemVer policy: an operation
+  addition from `0.1.0` to `0.2.0` produced `OK abi.operation.added`, an
+  operation removal in the same minor transition produced
+  `FAIL abi.operation.removed`, and the same removal in a `1.0.0` transition
+  remained visible as an intentionally permitted major-version finding.
 
 ## Closure Basis
 

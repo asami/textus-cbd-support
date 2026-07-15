@@ -137,5 +137,10 @@ machine-readable assessed-candidate matrix before any representative runtime
 work. The only current candidate, `0.5.1-SNAPSHOT`, passed the complete composed
 CBD/SIE SAR from clean CNCF revision
 `848ef5596af6927512af4e9c8c0d423d4add1253`; excluded is explicitly empty and
-unlisted versions remain unassessed. The next slice is P4-31 CAR ABI baseline
-and compatible-addition/breaking-transition governance.
+unlisted versions remain unassessed. P4-31 now packages a
+source-managed seven-operation CAR ABI that is checked against generated CML
+model metadata and the built archive. Cozy transition fixtures admit a minor
+operation addition, reject a minor removal, and retain the same removal as a
+visible permitted major transition. Because no CAR release exists yet, the
+historical baseline remains explicitly pending rather than fabricated. The
+next slice is P4-32 supported-older-input and incompatible-input governance.

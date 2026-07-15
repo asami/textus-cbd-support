@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-02 late credential resolution and source-scoped authenticated transport are complete; the next slice classifies credential lifecycle failures under P4-03.
+- Current step: P4-03 credential lifecycle failure classification is complete; the next slice proves the full authentication security matrix under P4-04.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -121,6 +121,17 @@ release evidence.
   assertions cover all three header schemes, pre-resolution cross-origin
   refusal, no-auth lookup avoidance, and source propagation through catalog,
   BoK, and SIE provider boundaries.
+- Credential resolution and authenticated HTTP responses now produce the
+  stable sanitized codes `source-credential-missing`,
+  `source-credential-unavailable`, `source-credential-expired`, and
+  `source-credential-rejected`. Expiry requires an explicit bounded
+  `WWW-Authenticate` expiry signal; other authenticated 401/403 responses are
+  rejected, while unauthenticated-source responses retain transport ownership.
+- The authentication boundary performs one lookup of the owning source's key
+  per outbound attempt and has no alternate-key fallback or authentication
+  retry. `SourceAuthenticationSpec` passed 9 focused tests on 2026-07-15,
+  including distinct failure codes, resolver-exception redaction, unsafe-value
+  rejection, explicit remote expiry, and public-source non-classification.
 
 ## Closure Basis
 

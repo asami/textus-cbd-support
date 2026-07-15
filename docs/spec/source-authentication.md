@@ -63,6 +63,27 @@ authentication CallTree attributes contain only the sanitized request URI,
 source ID, authentication scheme, and configured-state flag. They never contain
 the credential reference, resolved value, or authentication header.
 
-P4-03 owns distinct missing, unavailable, expired, and rejected credential
-failure classifications. P4-04 owns the complete executable security matrix
-for isolation, redaction, and CallTree metadata.
+## Credential Lifecycle Failures
+
+Credential lifecycle failures use stable sanitized codes:
+
+| code | evidence | consequence class |
+|---|---|---|
+| `source-credential-missing` | the source-owned configuration key has no resolved value | authentication required |
+| `source-credential-unavailable` | the CNCF resolver cannot complete the lookup | service unavailable |
+| `source-credential-expired` | an authenticated HTTP 401 carries a bounded `WWW-Authenticate` challenge that explicitly identifies expiry | authentication required |
+| `source-credential-rejected` | the local value is not a safe header value, or an authenticated request receives another 401/403 | permission denied |
+
+The resolver exception, configuration key, credential value, challenge text,
+response body, and authentication header are never copied into the failure.
+An unauthenticated source's 401/403 remains an ordinary transport failure and
+is not mislabeled as a credential lifecycle failure.
+
+Each outbound attempt resolves only the owning source's key once. Missing,
+unavailable, expired, or rejected credentials do not select another source's
+key and do not trigger an authentication retry. Refresh policy may make a later
+bounded attempt under its own rules, but the authentication boundary itself
+does not loop or fall back.
+
+P4-04 owns the complete executable security matrix for isolation, redaction,
+CallTree metadata, and production HTTP-driver integration.

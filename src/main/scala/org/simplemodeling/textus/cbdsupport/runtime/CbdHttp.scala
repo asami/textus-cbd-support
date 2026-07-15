@@ -57,7 +57,7 @@ final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with Bok
       Some(body),
       Map("Content-Type" -> "application/json"),
       sourceauthentication
-    )).flatMap(response => _bounded_response(endpoint, response, Some(maxbytes)))
+    )).flatMap(response => _bounded_response(sourceauthentication, endpoint, response, Some(maxbytes)))
 
   private def _get(
     sourceauthentication: Option[SourceAuthenticationRequest],
@@ -75,7 +75,7 @@ final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with Bok
       None,
       Map.empty,
       sourceauthentication
-    )).flatMap(response => _bounded_response(uri, response, maxbytes))
+    )).flatMap(response => _bounded_response(sourceauthentication, uri, response, maxbytes))
   }
 
   private def _request_attributes(
@@ -91,24 +91,36 @@ final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with Bok
     }.getOrElse(Map.empty)
 
   private def _bounded_response(
+    sourceauthentication: Option[SourceAuthenticationRequest],
     uri: URI,
     response: Response,
     maxbytes: Option[Int]
   ): Consequence[String] = {
     val bodybytes = response.body.getBytes(StandardCharsets.UTF_8).length
-    if (response.statuscode < 200 || response.statuscode >= 300)
-      Consequence.serviceUnavailable(
-        s"HTTP ${response.statuscode} while fetching ${InformationSourceDiagnosticPolicy.renderUri(uri)}"
-      )
-    else if (maxbytes.exists(bodybytes > _))
-      Consequence.serviceUnavailable(
-        s"HTTP response exceeds ${maxbytes.get} bytes while fetching ${InformationSourceDiagnosticPolicy.renderUri(uri)}"
-      )
-    else
-      Consequence.success(response.body)
+    SourceAuthenticationFailure.fromHttp(
+      sourceauthentication,
+      response.statuscode,
+      response.expiredchallenge
+    ) match {
+      case Some(failure) => failure.consequence
+      case None if response.statuscode < 200 || response.statuscode >= 300 =>
+        Consequence.serviceUnavailable(
+          s"HTTP ${response.statuscode} while fetching ${InformationSourceDiagnosticPolicy.renderUri(uri)}"
+        )
+      case None if maxbytes.exists(bodybytes > _) =>
+        Consequence.serviceUnavailable(
+          s"HTTP response exceeds ${maxbytes.get} bytes while fetching ${InformationSourceDiagnosticPolicy.renderUri(uri)}"
+        )
+      case None =>
+        Consequence.success(response.body)
+    }
   }
 
-  private final case class Response(statuscode: Int, body: String)
+  private final case class Response(
+    statuscode: Int,
+    body: String,
+    expiredchallenge: Boolean
+  )
 
   private final case class Call(
     core: ProviderCall.Core,
@@ -139,6 +151,10 @@ final class CbdHttp(actioncore: ActionCall.Core) extends CatalogFetcher with Bok
           case Some(value) => http_post(uri.toString, Some(value), requestheaders, Vector(Property("http.timeout-seconds", "10", None)))
           case None => http_get(uri.toString, requestheaders, Vector(Property("http.timeout-seconds", "10", None)))
         }
-      } yield Response(response.status.code, response.getString.getOrElse(""))
+      } yield Response(
+        response.status.code,
+        response.getString.getOrElse(""),
+        SourceAuthenticationFailure.isExpiredChallenge(response.headerValue("WWW-Authenticate"))
+      )
   }
 }

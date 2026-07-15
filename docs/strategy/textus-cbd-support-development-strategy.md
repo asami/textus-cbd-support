@@ -103,5 +103,8 @@ configuration-key references without projecting credential identity. P4-02
 now carries source ownership through every remote provider boundary, resolves
 the referenced value only inside the outbound CNCF ProviderCall, and scopes
 bearer, Basic, or API-key headers to that source's authorized origin without
-placing credential identity or value in CallTree metadata. The next slice is
-P4-03 credential lifecycle failure classification.
+placing credential identity or value in CallTree metadata. P4-03 now
+distinguishes missing, resolver-unavailable, explicitly expired, and rejected
+credentials with stable sanitized source-failure codes and no alternate-source
+fallback or authentication retry. The next slice is P4-04's complete
+credential-isolation, header-scope, redaction, and CallTree security matrix.

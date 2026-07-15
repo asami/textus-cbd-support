@@ -2,6 +2,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.util.Locale
+import scala.util.control.NonFatal
 
 import org.goldenport.Consequence
 
@@ -54,13 +55,17 @@ object SourceAuthenticationHeaders {
           s"Authentication for source ${source.sourceId} cannot be used outside its authorized origin."
         )
       case Some(authentication) =>
-        resolver(authentication.configKey).filter(_is_header_value) match {
-          case None =>
-            Consequence.securityAuthenticationRequired(
-              s"Authentication credential for source ${source.sourceId} is unavailable."
-            )
-          case Some(credential) =>
-            Consequence.success(_headers(authentication.scheme, credential))
+        try {
+          resolver(authentication.configKey) match {
+            case None =>
+              SourceAuthenticationFailure.missing(source).consequence
+            case Some(credential) if !_is_header_value(credential) =>
+              SourceAuthenticationFailure.rejected(source).consequence
+            case Some(credential) =>
+              Consequence.success(_headers(authentication.scheme, credential))
+          }
+        } catch {
+          case NonFatal(_) => SourceAuthenticationFailure.unavailable(source).consequence
         }
     }
 
@@ -72,6 +77,77 @@ object SourceAuthenticationHeaders {
       case SourceAuthentication.BEARER => Map(AUTHORIZATION -> s"Bearer $credential")
       case SourceAuthentication.BASIC => Map(AUTHORIZATION -> s"Basic $credential")
       case SourceAuthentication.API_KEY => Map(API_KEY_HEADER -> credential)
+    }
+}
+
+final case class SourceAuthenticationFailure(
+  code: String,
+  sourceId: String
+) {
+  require(SourceAuthenticationFailure.ALL.contains(code), s"Unsupported source authentication failure code: $code")
+
+  def consequence[A]: Consequence[A] = {
+    val message = s"$code: Authentication credential for source $sourceId is ${SourceAuthenticationFailure._description(code)}."
+    code match {
+      case SourceAuthenticationFailure.CREDENTIAL_MISSING =>
+        Consequence.securityAuthenticationRequired(message)
+      case SourceAuthenticationFailure.CREDENTIAL_UNAVAILABLE =>
+        Consequence.serviceUnavailable(message)
+      case SourceAuthenticationFailure.CREDENTIAL_EXPIRED =>
+        Consequence.securityAuthenticationRequired(message)
+      case SourceAuthenticationFailure.CREDENTIAL_REJECTED =>
+        Consequence.securityPermissionDenied(message)
+    }
+  }
+}
+
+object SourceAuthenticationFailure {
+  val CREDENTIAL_MISSING = "source-credential-missing"
+  val CREDENTIAL_UNAVAILABLE = "source-credential-unavailable"
+  val CREDENTIAL_EXPIRED = "source-credential-expired"
+  val CREDENTIAL_REJECTED = "source-credential-rejected"
+  val MAXIMUM_CHALLENGE_CHARACTERS = 2048
+  val ALL: Set[String] = Set(
+    CREDENTIAL_MISSING,
+    CREDENTIAL_UNAVAILABLE,
+    CREDENTIAL_EXPIRED,
+    CREDENTIAL_REJECTED
+  )
+
+  def missing(source: SourceAuthenticationRequest): SourceAuthenticationFailure =
+    SourceAuthenticationFailure(CREDENTIAL_MISSING, source.sourceId)
+
+  def unavailable(source: SourceAuthenticationRequest): SourceAuthenticationFailure =
+    SourceAuthenticationFailure(CREDENTIAL_UNAVAILABLE, source.sourceId)
+
+  def expired(source: SourceAuthenticationRequest): SourceAuthenticationFailure =
+    SourceAuthenticationFailure(CREDENTIAL_EXPIRED, source.sourceId)
+
+  def rejected(source: SourceAuthenticationRequest): SourceAuthenticationFailure =
+    SourceAuthenticationFailure(CREDENTIAL_REJECTED, source.sourceId)
+
+  def fromHttp(
+    source: Option[SourceAuthenticationRequest],
+    statuscode: Int,
+    expiredchallenge: Boolean
+  ): Option[SourceAuthenticationFailure] =
+    source.filter(_.authentication.nonEmpty).flatMap { authenticatedsource =>
+      statuscode match {
+        case 401 if expiredchallenge => Some(expired(authenticatedsource))
+        case 401 | 403 => Some(rejected(authenticatedsource))
+        case _ => None
+      }
+    }
+
+  def isExpiredChallenge(value: Option[String]): Boolean =
+    value.exists(_.take(MAXIMUM_CHALLENGE_CHARACTERS).toLowerCase(Locale.ROOT).contains("expired"))
+
+  private def _description(code: String): String =
+    code match {
+      case CREDENTIAL_MISSING => "missing"
+      case CREDENTIAL_UNAVAILABLE => "unavailable"
+      case CREDENTIAL_EXPIRED => "expired"
+      case CREDENTIAL_REJECTED => "rejected"
     }
 }
 

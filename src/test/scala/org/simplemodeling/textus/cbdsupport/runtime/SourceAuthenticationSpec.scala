@@ -212,5 +212,78 @@ final class SourceAuthenticationSpec extends AnyWordSpec with Matchers with Give
       result.toOption shouldBe Some(Map.empty)
       resolutioncount shouldBe 0
     }
+
+    "classify missing, unavailable, and locally rejected credentials without fallback or secret disclosure" in {
+      Given("one source-owned reference and resolvers for each pre-request lifecycle failure")
+      val source = SourceAuthenticationRequest(
+        "catalog",
+        URI.create("https://catalog.example/"),
+        Some(SourceAuthentication("bearer", "config-key/catalog-primary"))
+      )
+      val requesturi = URI.create("https://catalog.example/index.json")
+      val rawsecret = "secret-with-control\n"
+      var resolvedkeys = Vector.empty[String]
+
+      When("the outbound boundary resolves the source key once for each attempt")
+      val missing = SourceAuthenticationHeaders.headersFor(source, requesturi, key => {
+        resolvedkeys = resolvedkeys :+ key
+        None
+      })
+      val unavailable = SourceAuthenticationHeaders.headersFor(source, requesturi, key => {
+        resolvedkeys = resolvedkeys :+ key
+        throw new IllegalStateException("secret provider detail")
+      })
+      val rejected = SourceAuthenticationHeaders.headersFor(source, requesturi, key => {
+        resolvedkeys = resolvedkeys :+ key
+        Some(rawsecret)
+      })
+
+      Then("each failure has a distinct stable code and no other source key, value, or resolver detail is exposed")
+      resolvedkeys shouldBe Vector.fill(3)("catalog-primary")
+      missing.display should include(SourceAuthenticationFailure.CREDENTIAL_MISSING)
+      unavailable.display should include(SourceAuthenticationFailure.CREDENTIAL_UNAVAILABLE)
+      rejected.display should include(SourceAuthenticationFailure.CREDENTIAL_REJECTED)
+      val diagnostics = Vector(missing.display, unavailable.display, rejected.display).mkString(" ")
+      diagnostics should not include "config-key/"
+      diagnostics should not include rawsecret.trim
+      diagnostics should not include "secret provider detail"
+    }
+  }
+
+  "SourceAuthenticationFailure" should {
+    "distinguish an explicitly expired challenge from other remote credential rejection" in {
+      Given("one authenticated source and bounded HTTP authentication outcomes")
+      val source = Some(SourceAuthenticationRequest(
+        "catalog",
+        URI.create("https://catalog.example/"),
+        Some(SourceAuthentication("bearer", "config-key/catalog"))
+      ))
+      val expiredchallenge = SourceAuthenticationFailure.isExpiredChallenge(
+        Some("Bearer error=\"invalid_token\", error_description=\"access token expired\"")
+      )
+      val outofboundexpiry = SourceAuthenticationFailure.isExpiredChallenge(
+        Some("x" * SourceAuthenticationFailure.MAXIMUM_CHALLENGE_CHARACTERS + "expired")
+      )
+
+      When("the authenticated response status and sanitized challenge signal are classified")
+      val expired = SourceAuthenticationFailure.fromHttp(source, 401, expiredchallenge).get
+      val unauthorized = SourceAuthenticationFailure.fromHttp(source, 401, expiredchallenge = false).get
+      val forbidden = SourceAuthenticationFailure.fromHttp(source, 403, expiredchallenge = false).get
+      val publicresponse = SourceAuthenticationFailure.fromHttp(
+        source.map(_.copy(authentication = None)),
+        401,
+        expiredchallenge = true
+      )
+
+      Then("only explicit expiry is expired, other authenticated denials are rejected, and public failures stay transport-owned")
+      expired.code shouldBe SourceAuthenticationFailure.CREDENTIAL_EXPIRED
+      outofboundexpiry shouldBe false
+      unauthorized.code shouldBe SourceAuthenticationFailure.CREDENTIAL_REJECTED
+      forbidden.code shouldBe SourceAuthenticationFailure.CREDENTIAL_REJECTED
+      publicresponse shouldBe None
+      expired.consequence[String].display should include(SourceAuthenticationFailure.CREDENTIAL_EXPIRED)
+      expired.consequence[String].display should not include "invalid_token"
+      expired.consequence[String].display should not include "access token expired"
+    }
   }
 }

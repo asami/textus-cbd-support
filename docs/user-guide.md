@@ -44,6 +44,15 @@ and temporary SAR is removed on exit. Set `TEXTUS_SIE_ROOT` only when the
 sibling SIE checkout is in a non-default location; set `CNCF_RUNTIME_DEV_DIR`
 when validating a local CNCF runtime checkout.
 
+The baseline profile additionally serves repository-owned fixtures and ingests
+their BoK glossary into the temporary in-memory SIE. Its live source-aware
+probe requires a published-catalog `textus-runtime` at `1.0.0`, a separate
+development-directory observation at `1.1.0-SNAPSHOT`, and SIE-owned
+`architecture:runtime` evidence. The version conflict must retain both CBD
+source IDs and expose no selected observation, including when the visible
+result limit is one. A deliberately missing catalog must remain degraded with
+bounded diagnostics and unchanged immediate-retry timestamps.
+
 ## Normal Workflow
 
 1. Search with a requirement such as `account authentication` and optional

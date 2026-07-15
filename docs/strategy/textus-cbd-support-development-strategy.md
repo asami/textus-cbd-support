@@ -126,5 +126,10 @@ no administration or mutation tools. P4-21 verifies four live composed
 profiles: baseline `6/7`, global disable `0/0`, SIE service disable `6/0`, and
 per-component status-operation disable `5/6`. Exact tool-set assertions and
 disabled `tools/call` rejection prove that runtime policy only narrows declared
-readiness. The next slice is P4-22 live composed retrieval with separate
-source-owned evidence and bounded failures.
+readiness. P4-22 now runs a repository-owned
+loopback fixture through that composed endpoint and proves that published
+catalog, development-directory, and SIE semantic evidence remain separate;
+conflicting versions retain both participants with no selected winner even
+when result limits apply; and a missing catalog remains degraded under its
+bounded retry schedule. The next slice is P4-30 runtime compatibility-matrix
+governance and representative execution evidence.

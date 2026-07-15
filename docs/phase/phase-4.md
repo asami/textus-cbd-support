@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-21 runtime MCP disable-policy narrowing is complete; the next slice verifies live source ownership and bounded failure under P4-22.
+- Current step: P4-22 live composed source ownership and bounded-failure verification is complete; the next slice establishes the runtime compatibility matrix under P4-30.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -222,6 +222,20 @@ release evidence.
   baseline tools. Calls to representative globally, service, and operation-
   disabled tools returned JSON-RPC invalid-params code `-32602`; no disabled
   tool remained invocable through a hidden route.
+- The P4-22 baseline probe passed on 2026-07-15 with a repository-owned
+  loopback fixture and the composed CBD/SIE endpoint. One search returned the
+  `fixture-catalog` published-catalog observation at `1.0.0`, the `working`
+  development-directory observation at `1.1.0-SNAPSHOT`, and SIE-owned
+  `semantic` evidence for `architecture:runtime` as three separate records.
+- The conflicting CBD versions produced a `version-conflict` issue containing
+  both source IDs and no `selectedObservation`. Repeating the search with
+  `limit=1` bounded the returned observations and semantic evidence without
+  dropping either conflict participant or choosing a hidden winner.
+- The same run configured a missing catalog beside the valid fixture. It
+  remained degraded with bounded diagnostics, and an immediate second search
+  preserved its retry timestamps instead of performing unbounded repeated
+  work. The SIE term was ingested only into the temporary in-memory SIE fixture;
+  external catalog availability was not required for these assertions.
 
 ## Closure Basis
 

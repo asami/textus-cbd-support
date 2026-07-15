@@ -1,0 +1,21 @@
+{
+  "terms": [
+    {
+      "id": "architecture:runtime",
+      "slug": "runtime",
+      "title": "Runtime",
+      "reading": "runtime",
+      "category": "architecture",
+      "source_path": "glossary/architecture/runtime.dox",
+      "public_path": "glossary/architecture/runtime.html",
+      "definition_html": "<p>Runtime execution evidence owned by the P4-22 BoK fixture.</p>",
+      "summary": "Runtime execution evidence.",
+      "aliases": ["Execution Runtime", "run environment", "textus-runtime runtime"],
+      "term_type": "concept",
+      "term_refs": [],
+      "article_refs": [],
+      "rdf_refs": [],
+      "video_refs": []
+    }
+  ]
+}

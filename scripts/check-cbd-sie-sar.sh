@@ -7,14 +7,21 @@ SIE_ROOT="${TEXTUS_SIE_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-semantic-int
 CNCF_BIN="${CNCF_BIN:-$(command -v cncf || true)}"
 CNCF_VERSION_FILE="${CNCF_VERSION_FILE:-/Users/asami/src/dev2026/cncf-samples/versions/cncf-version.conf}"
 CNCF_VERSION="${CNCF_VERSION:-$(tr -d '[:space:]' < "$CNCF_VERSION_FILE")}"
+CNCF_RUNTIME_ARGS=(--runtime "$CNCF_VERSION")
+if [[ -n "${CNCF_RUNTIME_DEV_DIR:-}" ]]; then
+  CNCF_RUNTIME_ARGS+=(--runtime-dev-dir "$CNCF_RUNTIME_DEV_DIR")
+fi
 CNCF_SERVER_PORT="${CNCF_SERVER_PORT:-19535}"
 CNCF_HTTP_BASEURL="${CNCF_HTTP_BASEURL:-http://127.0.0.1:$CNCF_SERVER_PORT}"
+FIXTURE_PORT="${CBD_SIE_SAR_FIXTURE_PORT:-19537}"
+FIXTURE_BASEURL="${CBD_SIE_SAR_FIXTURE_BASEURL:-http://127.0.0.1:$FIXTURE_PORT}"
 STARTUP_TIMEOUT_SECONDS="${CBD_SIE_SAR_STARTUP_TIMEOUT_SECONDS:-120}"
 SHUTDOWN_TIMEOUT_SECONDS="${CBD_SIE_SAR_SHUTDOWN_TIMEOUT_SECONDS:-30}"
 CBD_CAR="$PROJECT_ROOT/target/textus-cbd-support-0.1.0-SNAPSHOT.car"
 SIE_CAR="$SIE_ROOT/target/textus-semantic-integration-engine-0.2.0-SNAPSHOT.car"
 SAR_DESCRIPTOR="$PROJECT_ROOT/examples/cbd-sie-sar/subsystem-descriptor.yaml"
 PROFILE_DIR="$PROJECT_ROOT/examples/cbd-sie-sar/profiles"
+FIXTURE_ROOT="$PROJECT_ROOT/examples/cbd-sie-sar/fixtures"
 PROFILES=(
   "baseline"
   "global-disabled"
@@ -35,6 +42,13 @@ case "$CNCF_HTTP_BASEURL" in
     exit 1
     ;;
 esac
+case "$FIXTURE_BASEURL" in
+  http://127.0.0.1:* | http://localhost:*) ;;
+  *)
+    echo "The representative SAR fixture requires a loopback HTTP base URL: $FIXTURE_BASEURL" >&2
+    exit 1
+    ;;
+esac
 
 if [[ ! -x "$CNCF_BIN" ]]; then
   echo "CNCF launcher is missing: $CNCF_BIN" >&2
@@ -50,8 +64,22 @@ for descriptor in "${PROFILE_DESCRIPTORS[@]}"; do
     exit 1
   fi
 done
+for fixture in \
+  "$FIXTURE_ROOT/catalog/metadata/repository/car/index.json" \
+  "$FIXTURE_ROOT/development/project.yaml" \
+  "$FIXTURE_ROOT/bok/metadata/cncf/knowledge-source.json" \
+  "$FIXTURE_ROOT/bok/metadata/glossary/terms.json"; do
+  if [[ ! -f "$fixture" ]]; then
+    echo "Representative SAR fixture is missing: $fixture" >&2
+    exit 1
+  fi
+done
 if curl -fsS "$CNCF_HTTP_BASEURL/openapi.json" >/dev/null 2>&1; then
   echo "A server already responds at $CNCF_HTTP_BASEURL; refusing to reuse an unowned process." >&2
+  exit 1
+fi
+if lsof -nP -iTCP:"$FIXTURE_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+  echo "The representative SAR fixture port is already in use: $FIXTURE_PORT" >&2
   exit 1
 fi
 
@@ -59,9 +87,12 @@ fi
 (cd "$SIE_ROOT" && sbt --batch cozyBuildCAR)
 
 runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/textus-cbd-sie-sar.XXXXXX")"
+runtime_dir="$(cd "$runtime_dir" && pwd -P)"
 server_pid=""
 server_listener_pid=""
 server_log=""
+fixture_pid=""
+fixture_log="$runtime_dir/fixture.log"
 
 stop_server() {
   local shutdown_deadline
@@ -89,6 +120,12 @@ stop_server() {
 
 cleanup() {
   stop_server || true
+  if [[ -n "$fixture_pid" ]] && kill -0 "$fixture_pid" >/dev/null 2>&1; then
+    kill "$fixture_pid" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "$fixture_pid" ]]; then
+    wait "$fixture_pid" >/dev/null 2>&1 || true
+  fi
   rm -rf "$runtime_dir"
 }
 
@@ -103,6 +140,24 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+python3 -m http.server "$FIXTURE_PORT" \
+  --bind 127.0.0.1 \
+  --directory "$FIXTURE_ROOT" >"$fixture_log" 2>&1 &
+fixture_pid=$!
+
+fixture_deadline=$((SECONDS + 10))
+while ! curl -fsS "$FIXTURE_BASEURL/bok/metadata/cncf/knowledge-source.json" >/dev/null 2>&1; do
+  if ! kill -0 "$fixture_pid" >/dev/null 2>&1; then
+    echo "The representative SAR fixture server exited before readiness." >&2
+    exit 1
+  fi
+  if ((SECONDS >= fixture_deadline)); then
+    echo "Timed out waiting for the representative SAR fixture server." >&2
+    exit 1
+  fi
+  sleep 0.25
+done
+
 run_profile() {
   local profile="$1"
   local descriptor="$2"
@@ -110,11 +165,17 @@ run_profile() {
   local component_dir="$profile_root/component.d"
   local sar_root="$profile_root/textus-cbd-sie.sar.d"
   local sar_file="$component_dir/textus-cbd-sie.sar"
+  local local_car_root="$profile_root/local"
+  local cache_car_root="$profile_root/cache"
   local deadline
   local server_ready=false
 
   server_log="$profile_root/server.log"
-  mkdir -p "$component_dir" "$sar_root"
+  mkdir -p \
+    "$component_dir" \
+    "$sar_root" \
+    "$local_car_root/repository/car" \
+    "$cache_car_root/car"
   cp "$CBD_CAR" "$SIE_CAR" "$component_dir/"
   cp "$descriptor" "$sar_root/subsystem-descriptor.yaml"
   (cd "$sar_root" && zip -qr "$sar_file" subsystem-descriptor.yaml)
@@ -129,9 +190,16 @@ run_profile() {
     CNCF_HTTP_BASEURL="$CNCF_HTTP_BASEURL" \
     TEXTUS_SIE_RDF_DB="in-memory" \
     TEXTUS_SIE_VECTOR_DB="in-memory" \
+    TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS="$FIXTURE_BASEURL" \
+    TEXTUS_CBD_CATALOGS="fixture-catalog=$FIXTURE_BASEURL/catalog/,missing-catalog=$FIXTURE_BASEURL/missing/" \
+    TEXTUS_CBD_DEVELOPMENT_DIRECTORIES="working=$FIXTURE_ROOT/development" \
+    TEXTUS_CBD_LOCAL_CAR_ROOT="$local_car_root" \
+    TEXTUS_CBD_CACHE_CAR_ROOT="$cache_car_root" \
+    TEXTUS_CBD_SIE_ALLOWED_ORIGINS="$CNCF_HTTP_BASEURL" \
+    TEXTUS_CBD_SIE_BOK_ROUTES="semantic=$CNCF_HTTP_BASEURL/mcp" \
     JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dcncf.server.port=$CNCF_SERVER_PORT -Dcncf.http.baseurl=$CNCF_HTTP_BASEURL -Dtextus.sie.rdf-db=in-memory -Dtextus.sie.vector-db=in-memory" \
     "$CNCF_BIN" \
-      --runtime "$CNCF_VERSION" \
+      "${CNCF_RUNTIME_ARGS[@]}" \
       server \
       --no-project-classpath \
       --component-dir "$component_dir" \
@@ -171,6 +239,12 @@ run_profile() {
   if ! "$SCRIPT_DIR/probe-cbd-sie-sar.py" \
     --base-url "$CNCF_HTTP_BASEURL" \
     --profile "$profile"; then
+    show_server_log
+    exit 1
+  fi
+  if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-source-aware.py" \
+    --base-url "$CNCF_HTTP_BASEURL" \
+    --fixture-url "$FIXTURE_BASEURL"; then
     show_server_log
     exit 1
   fi

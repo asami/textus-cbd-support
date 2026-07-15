@@ -29,7 +29,30 @@ code `-32602`. Any administration, mutation, legacy facade, or otherwise
 unexpected tool fails the check. The owned server and temporary SAR workspace
 are removed on exit.
 
+The baseline profile also starts a loopback server for the repository-owned
+`fixtures/` tree. It configures CBD with the `fixture-catalog` catalog, the
+`working` development directory, empty temporary local/cache CAR roots, a
+deliberately missing catalog, and the composed SIE `/mcp` route. The probe
+ingests `fixtures/bok` through SIE's administration HTTP route before using only
+the public composed MCP retrieval surface for its assertions.
+
+The source-aware assertions require the following independent evidence:
+
+- published-catalog `textus-runtime` version `1.0.0` owned by
+  `fixture-catalog`;
+- development-directory `textus-runtime` version `1.1.0-SNAPSHOT` owned by
+  `working`; and
+- SIE-owned `architecture:runtime` semantic evidence owned by `semantic`.
+
+The two versions must remain conflict participants with no selected
+observation. A `limit=1` request may bound visible observations and semantic
+evidence, but must not erase conflict provenance. The missing catalog must stay
+degraded with bounded diagnostics and unchanged retry timestamps across an
+immediate second search. These assertions do not depend on external catalog
+availability.
+
 Override `TEXTUS_SIE_ROOT`, `CNCF_BIN`, `CNCF_VERSION`,
-`CNCF_SERVER_PORT`, or `CNCF_HTTP_BASEURL` only when validating another local
-checkout or runtime candidate. Set `CNCF_RUNTIME_DEV_DIR` when the candidate is
-a local CNCF runtime checkout.
+`CNCF_SERVER_PORT`, `CNCF_HTTP_BASEURL`, `CBD_SIE_SAR_FIXTURE_PORT`, or
+`CBD_SIE_SAR_FIXTURE_BASEURL` only when validating another local checkout or
+runtime candidate. Set `CNCF_RUNTIME_DEV_DIR` when the candidate is a local CNCF
+runtime checkout. Both server base URLs must remain loopback addresses.

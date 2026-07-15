@@ -94,6 +94,14 @@ status operations are disabled. Disabled calls must return `-32602`. CBD
 catalog administration, SIE mutation/administration, the legacy SIE facade,
 and any other tool are rejected as unexpected publication.
 
+The baseline profile also runs repository-owned catalog,
+development-directory, and BoK fixtures through the live composed endpoint.
+The check keeps the catalog and development versions as separate CBD
+observations and the BoK term as separate SIE-owned semantic evidence. A
+version conflict must name both CBD sources without selecting a winner, result
+bounds must preserve those conflict participants, and a missing catalog must
+remain degraded without an immediate retry loop.
+
 ## Source Precedence
 
 The five source kinds preserve separate authority. Published catalogs own the

@@ -179,7 +179,13 @@ tool counts of `6/7` at baseline, `0/0` under global disable, `6/0` when the SIE
 service is disabled, and `5/6` when both status operations are disabled.
 Disabled calls must return JSON-RPC `-32602`; any administration, mutation,
 legacy facade, or other unexpected tool fails the check. Set
-`CNCF_RUNTIME_DEV_DIR` to validate a local CNCF checkout. See
+`CNCF_RUNTIME_DEV_DIR` to validate a local CNCF checkout. The baseline profile
+also serves repository-owned catalog, development-directory, and BoK fixtures,
+ingests the BoK fixture into temporary in-memory SIE, and verifies through live
+MCP calls that CBD observations and SIE semantic evidence remain separate. It
+requires conflicting versions to retain both source IDs with no hidden winner,
+applies result bounds without losing conflict provenance, and checks that a
+missing catalog stays degraded without an immediate retry loop. See
 [the representative SAR example](examples/cbd-sie-sar/README.md).
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),

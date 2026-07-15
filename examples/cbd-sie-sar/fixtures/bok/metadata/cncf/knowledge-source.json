@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "cncf.knowledge-source.v1",
+  "kind": "bok-site",
+  "id": "p4-22-bok",
+  "label": "P4-22 Runtime Knowledge",
+  "sourceRef": {
+    "kind": "bok-site",
+    "value": "p4-22-bok"
+  },
+  "resources": [
+    {
+      "kind": "glossary-terms",
+      "href": "metadata/glossary/terms.json",
+      "mediaType": "application/json"
+    }
+  ]
+}

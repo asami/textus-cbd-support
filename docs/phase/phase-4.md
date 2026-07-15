@@ -1,8 +1,8 @@
 # Phase 4: Runtime Hardening
 
 Stage Status:
-- Current status: DONE
-- Current step: P4-01 through P4-43 are complete; Phase 4 is closed with publication left as a separate explicitly authorized workflow.
+- Current status: ON_HOLD
+- Current step: P4-01 through P4-44 are complete; P4-45 human confirmation is deferred without being completed, and Phase 5 proceeds independently by explicit human direction.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -90,6 +90,8 @@ release evidence.
    decisions for supported, excluded, and incompatible combinations.
 5. Complete documentation, executable specifications, full tests, CAR/SAR
    builds, lint, representative runtime projection, and publish readiness.
+6. Present the completed runtime-hardening and publish-readiness evidence for
+   explicit human confirmation before Phase 4 closes.
 
 ## Verification Evidence
 
@@ -359,7 +361,39 @@ release evidence.
   rule that the `0.1.0` ABI baseline is recorded only after a real release.
   Neither a publish command nor a local publication was executed.
 
+## Stage 4.6: Human Confirmation
+
+Stage Status:
+- Current status: ON_HOLD
+- Current step: The review packet is ready; P4-45 remains unchecked and deferred until a human explicitly accepts the Phase 4 result or requests corrections.
+- Owner: Human reviewer
+- Checklist basis: `P4-44` and `P4-45`
+- Update rule: Update only from an attributable human confirmation or rejection; automated validation cannot complete P4-45.
+
+Phase 4 was reopened on 2026-07-16 solely to add a human confirmation gate
+after the existing automated and reproducible verification. The automated
+implementation, specifications, builds, lint, representative runtime checks,
+and publish-readiness result remain complete.
+
+The review artifacts and acceptance criteria are recorded in
+`docs/phase/phase-4-human-confirmation.md`. On 2026-07-16, the human reviewer
+explicitly deferred this confirmation because it cannot be completed soon and
+authorized Phase 5 work to proceed. This is a scheduling exception only: it
+does not complete P4-45, close Phase 4, authorize publication, or weaken the
+acceptance criteria.
+
+Resume rule:
+
+- an explicit human statement accepting Stage 4.6 completes P4-45 and allows
+  `cncf-goal-phase` to be invoked again for final stabilization and closure;
+- human-requested corrections become Phase 4 pre-gate work, and Stage 4.6 is
+  presented again after those corrections pass validation; and
+- silence, automated test success, Phase 5 progress, or a request to run the
+  goal skill without confirmation does not complete the gate.
+
 ## Closure Basis
 
 Phase 4 is DONE only when every item in `phase-4-checklist.md` is `[x]` and its
-verification evidence is recorded here.
+verification evidence is recorded here. P4-45 additionally requires an
+attributable human confirmation record; automated validation alone cannot close
+the phase.

@@ -2,9 +2,10 @@
 
 ## Objective
 
-Provide a dedicated CAR whose MCP surface helps generative AI perform
-Component-Based Development without coupling component catalog semantics to
-SIE's BoK knowledge model.
+Provide a dedicated CAR and development-support tooling whose MCP, Web, CLI,
+and report surfaces help generative AI and developers perform Component-Based
+Development without coupling component catalog semantics to SIE's BoK
+knowledge model.
 
 ## Development Philosophy
 
@@ -15,6 +16,12 @@ SIE's BoK knowledge model.
 - Allow configured catalogs without merging their identities silently.
 - Preserve a last known good snapshot when refresh fails.
 - Publish read-only CBD operations through MCP and keep administration private.
+- Keep CBD Web, CLI, MCP, and report projections on one application contract.
+- Lead CAR Review in CBD Support and admit Cozy, `sbt-cozy`, CNCF, SIE,
+  catalog, runtime, and AI capabilities through attributable versioned
+  providers.
+- Use `sbt-cozy` as the local and CI/CD bridge without moving Review policy into
+  the plugin or changing publication tasks implicitly.
 - Keep project identity, Scala version, dependencies, and runtime compatibility
   authoritative in `project.yaml`; keep `build.sbt` declarative and small.
 
@@ -46,9 +53,27 @@ fact.
 Add authentication, bounded caching, production refresh policy, SAR composition
 tests, compatibility governance, and release/publish evidence.
 
+### Phase 5: CBD-Led CAR Review Platform
+
+Develop CAR Review under CBD Support ownership. Add generic Review Providers,
+canonical Review Reports and Review Runs, Cozy analysis, `sbt-cozy` CI/CD
+integration, Web UI, user-facing CLI, authorized read-only MCP report queries,
+quality-capability views, optional AI/runtime evidence, and reproducible
+cross-repository verification without publishing automatically. AI Review
+reuses Textus AI's provider-neutral `AiRunner`, structured `generateRecord`,
+purpose profiles, runtime adapters, and its Phase 1 execution-fact,
+confidentiality, deterministic-provider, and lifecycle contracts while CBD
+Support retains Review policy, Evidence admission, canonical reporting, and
+gate ownership.
+
 ## Current Priority
 
-Phase 1, Phase 2, and Phase 3 are complete. Phase 2 provides bounded,
+Phases 1 through 3 are complete. Phase 4 automated work is complete, while
+Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
+unchecked. On 2026-07-16, the human reviewer authorized Phase 5 to proceed
+independently without treating that deferral as Phase 4 acceptance. Phase 5 is
+now active at P5-01 in `docs/phase/phase-5.md` and
+`docs/phase/phase-5-checklist.md`. Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
 state. Additional catalog sources now require explicit exact-origin
@@ -96,8 +121,9 @@ source-role and purpose-precedence model. Executable specifications now cover
 all five source kinds, their authorization and freshness boundaries, local path
 safety, version reconciliation, conflicts, citations, and inference labels.
 Phase 3 closure passed full tests, CAR build and descriptor inspection, CML
-lint, CAR lint, and representative source-aware MCP projection. Phase 4 is now
-defined by `docs/phase/phase-4.md` and `docs/phase/phase-4-checklist.md`.
+lint, CAR lint, and representative source-aware MCP projection. Phase 4's
+automated implementation and evidence are complete, but the phase remains open
+and on hold solely for P4-45 human confirmation.
 P4-01 now provides bounded, source-owned authentication schemes and
 configuration-key references without projecting credential identity. P4-02
 now carries source ownership through every remote provider boundary, resolves
@@ -160,4 +186,23 @@ four-profile source-aware SAR projection. P4-43 records the assessment artifact,
 runtime and dependency SNAPSHOTs, first-release ABI baseline state, residual
 warnings, dependency-first manual publication procedure, and the explicit
 `not publish-ready` result without publishing. Every Phase 4 checklist item is
-now complete; actual publication remains a separately authorized workflow.
+complete through P4-44; P4-45 remains unchecked and on hold pending explicit
+human confirmation. Phase 5 work proceeds under the recorded scheduling
+exception, while actual publication remains a separately authorized workflow.
+
+Phase 5 makes CBD Support the owner of the CAR Review product, provider
+orchestration, canonical report, Review Run, Web UI, CLI, MCP report-query, and
+gate policy. Cozy supplies CAR/CML deterministic evidence through the generic
+provider contract. `sbt-cozy` supplies build/test/package evidence and connects
+local or CI execution to Cozy and the CBD Review Application without moving
+quality policy into the plugin. The phase proceeds through normative contract,
+application core, provider/Cozy integration, sbt CI/CD, user surfaces,
+quality/AI/runtime assessment, and final cross-repository verification. Textus
+AI supplies provider-neutral structured AI execution and its Phase 1
+normalized-provenance, deterministic-fixture, restrictive-observability, and
+explicit failure/lifecycle contracts; CBD Support admits those contracts only
+with executable compatibility evidence and treats unavailable or incompatible
+capabilities as limitations or Unknown.
+Publishing, deployment, automatic AI/network enablement, arbitrary server-side
+filesystem inspection, and implicit changes to existing sbt publication tasks
+remain outside Phase 5.

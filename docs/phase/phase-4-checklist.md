@@ -35,3 +35,8 @@ deleted; a checked item requires observable evidence.
 - [x] `P4-41` Executable specifications cover every Phase 4 authentication, refresh, cache, composition, and compatibility contract.
 - [x] `P4-42` Full tests, CAR build, CML lint, CAR lint, representative SAR build, and live source-aware MCP projection pass with Phase 4 contracts.
 - [x] `P4-43` Publish-readiness evidence records ABI baseline status, dependency/runtime versions, artifact metadata, residual warnings, and the explicit manual publication procedure without publishing automatically.
+
+## Human Confirmation
+
+- [x] `P4-44` A human-confirmation packet identifies the completed Phase 4 evidence, residual warnings, non-goals, acceptance criteria, and exact confirmation or correction response.
+- [ ] `P4-45` **ON HOLD** — A human reviewer explicitly confirms that the Phase 4 runtime-hardening result, documentation, residual warnings, and separate not-publish-ready release boundary are accepted; automated validation cannot satisfy this item. The hold does not satisfy or remove the gate, but the 2026-07-16 human direction permits Phase 5 work to proceed independently while confirmation remains pending.

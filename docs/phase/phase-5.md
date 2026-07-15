@@ -1,0 +1,236 @@
+# Phase 5: CBD-Led CAR Review Platform
+
+Stage Status:
+- Current status: IN_PROGRESS
+- Current step: P5-01 — promote the CBD-owned product and provider boundary to stable design while P4-45 remains independently on hold.
+- Owner: Textus CBD development
+- Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
+
+## Purpose
+
+Develop CAR Review as a capability led and owned by `textus-cbd-support`.
+CBD Support owns provider orchestration, Review Runs, canonical reports,
+quality assessment, Web UI, user-facing CLI, CI gate policy, and authorized
+read-only MCP report queries. Cozy, `sbt-cozy`, CNCF, SIE, catalog, runtime,
+and AI integrations participate through versioned Review Provider contracts.
+
+## Source of Truth
+
+This phase operationalizes the exploratory proposal and chronological decisions
+recorded in:
+
+- `docs/notes/car-review-design-proposal.md`
+- `docs/journal/2026/07/car-review-spec-study-handoff.md`
+- `docs/journal/2026/07/car-review-design-consideration-2026-07-15.md`
+- `docs/journal/2026/07/car-review-product-boundary-2026-07-16.md`
+- `docs/journal/2026/07/car-review-provider-sbt-cozy-integration-2026-07-16.md`
+- `docs/journal/2026/07/car-review-ai-integration-modes-2026-07-16.md`
+
+The note remains non-normative. Stable decisions must be promoted to
+`docs/design` and behavior must be promoted to `docs/spec` with executable
+specifications before implementation is declared complete.
+
+## Repository Boundary
+
+Primary repository:
+
+- `textus-cbd-support`: Review Application, provider orchestration, canonical
+  report, Review Run lifecycle, quality assessment, Web UI, CLI, report
+  projections, MCP report queries, and documentation.
+
+Supporting repositories:
+
+- `cozy`: CAR/CML/build/package/ABI/documentation analyzer and preservation of
+  existing CAR lint behavior through the generic provider contract;
+- `sbt-cozy`: sbt build/test/package evidence, local and CI Review client,
+  report/check/projection tasks, and Review attestation artifacts;
+- `textus-ai`: provider-neutral `AiRunner` execution, structured
+  `generateRecord`, purpose-profile selection, Gemma/Ollama, OpenAI, and
+  Google Gemini adapters, and the Phase 1 execution-fact, confidentiality,
+  deterministic-provider, and lifecycle contracts needed by bounded AI
+  Review; and
+- CNCF, SIE, or other provider repositories only when an owned provider or
+  runtime-evidence contract cannot be implemented safely in CBD Support.
+
+CBD Support leads cross-repository design and acceptance. Supporting
+repositories do not own competing Review Reports or gate policies.
+
+## In Scope
+
+- Generic, versioned Review Provider request, descriptor, evidence-bundle,
+  capability, limitation, and compatibility contracts.
+- Canonical Review Report with attributable Evidence, Finding, Assurance,
+  Unknown, location, confidence, severity, disposition, capability assessment,
+  provider identity, limitation, and baseline records.
+- Review Run command/query model, CNCF Job execution, target admission,
+  authorization, progress, cancellation, persistence, retention, comparison,
+  and deterministic report identity.
+- Cozy provider integration without a Cozy-to-CBD dependency or duplicate
+  provider execution.
+- `sbt-cozy` generation, compile, test, dependency, CAR-build, and task-result
+  evidence plus local/CI report, gate, projection, and attestation integration.
+- CBD Support CLI for local and authorized server-backed review.
+- CBD Support Web UI for Review Runs, overview, CNCF, implementation, and
+  quality views with cross-view evidence navigation.
+- Canonical JSON plus consistent text, HTML, and findings-oriented SARIF
+  projections.
+- Explicitly authorized and redacted MCP queries for completed Review Runs and
+  reports; execution and retention commands remain private by default.
+- Initial quality-capability assessment for Security, Domain, Documentation,
+  AI Readiness, Resilience, Testability, and Observability.
+- Bounded optional AI semantic review that reuses Textus AI's provider-neutral
+  `AiRunner`, `generateRecord`, purpose profiles, and local/commercial runtime
+  adapters rather than adding provider wire APIs to CBD Support.
+- Admission of the Textus AI Phase 1 contracts under development for
+  normalized execution facts, deterministic CAR Review fixtures, restrictive
+  CallTree/metadata publication, and explicit provider/lifecycle outcomes.
+- Attributable runtime-evidence import.
+- Development, CI, and release profiles with deterministic exit/gate policy.
+- Executable specifications, cross-repository validation, user/developer
+  documentation, and phase closure evidence.
+
+## Out of Scope
+
+- Publishing, distributing, deploying, or releasing CBD Support, Cozy,
+  `sbt-cozy`, or any CAR artifact.
+- Making Cozy or `sbt-cozy` the owner of the canonical Review Report, quality
+  assessment, Web UI, or gate policy.
+- Replacing or deprecating `cozy car lint` in Phase 5.
+- Silently redefining existing sbt `publish`, `publishLocal`, distribution, or
+  deployment tasks to run or require Review.
+- Enabling network, catalog, BoK, runtime, or AI providers in standard CI
+  without explicit configuration and authorization.
+- Allowing a CBD Support server to inspect an arbitrary client filesystem path.
+- Publishing `startReview`, `cancelReview`, or retention administration through
+  MCP by default.
+- Treating absence of a Finding as an Assurance or hiding an incompatible,
+  unavailable, or disabled provider as success.
+- Claiming `Operational` maturity from static analysis alone.
+
+## Security and Reproducibility Constraints
+
+- A local project target is analyzed locally by an admitted client/provider;
+  a server target must be an authorized configured development root or admitted
+  CAR artifact.
+- Provider input, output, time, count, size, traversal, process, and network
+  behavior is bounded and attributable.
+- Credentials and sensitive source content do not enter reports,
+  attestations, SARIF, HTML, logs, CallTree properties, MCP output, or AI
+  inputs.
+- Standard CI is offline and deterministic; external and AI providers are
+  opt-in.
+- CAR Review purpose profiles keep Textus AI `web_search` and `url_context`
+  tools disabled unless a separate source, authorization, citation,
+  confidentiality, and cost contract explicitly admits them.
+- CBD Support owns bounded/redacted Evidence, prompt and output contracts,
+  result admission, cache/cost policy, and Review conclusions. Textus AI owns
+  provider resolution, execution, response normalization, and safe execution
+  facts; it does not own the canonical Review Report or gate policy.
+- Target, evidence, provider, rule-set, report, and attestation digests are
+  sufficient to detect stale or mismatched gate evidence.
+- Incompatible provider/schema versions produce explicit Unknown or failed-run
+  evidence without fallback field translation.
+- When `sbt-cozy` supplies an admitted Cozy bundle, CBD Support does not invoke
+  Cozy again for the same Review Run.
+
+## Stage 5.1: Normative Contract
+
+Stage Status:
+- Current status: IN_PROGRESS
+- Owner: Textus CBD development
+- Checklist basis: `P5-01` through `P5-04`
+- Update rule: Update when ownership, provider, report, run, or security contracts are promoted or their executable examples change.
+
+Promote the accepted product boundary and generic provider model from notes to
+stable design and specification. Fix schema identities, compatibility,
+security, redaction, profile, and lifecycle behavior before broad code changes.
+
+Phase 5 started on 2026-07-16 by explicit human direction. Phase 4 P4-45 remains
+an independent, incomplete human-confirmation gate; Phase 5 progress neither
+satisfies that gate nor authorizes Phase 4 publication.
+
+## Stage 5.2: Review Application Core
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD development
+- Checklist basis: `P5-10` through `P5-14`
+- Update rule: Update when canonical report, Review Run, provider orchestration, persistence, or gate behavior gains executable evidence.
+
+Implement the CBD-owned canonical model and Review Application. Review Runs
+execute as CNCF Jobs, admit provider bundles through explicit compatibility,
+and retain deterministic reports without merging provider identity.
+
+## Stage 5.3: Provider Framework and Cozy
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD development with Cozy provider support
+- Checklist basis: `P5-20` through `P5-24`
+- Update rule: Update when generic provider behavior or Cozy analyzer evidence changes.
+
+Establish provider registration, capability negotiation, bounded invocation,
+and limitation reporting. Adapt Cozy's CAR/CML/build/package/ABI/documentation
+analysis and existing lint results into the common evidence contract.
+
+## Stage 5.4: sbt-cozy CI/CD Bridge
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD development with sbt-cozy support
+- Checklist basis: `P5-30` through `P5-35`
+- Update rule: Update when sbt evidence, Review tasks, CI artifacts, attestation, or optional release-gate behavior changes.
+
+Connect sbt builds to Cozy and CBD Support without moving Review policy into
+the plugin. Produce canonical report, HTML, SARIF, and attestation artifacts;
+make gate failure reproducible and keep existing publication tasks unchanged by
+default.
+
+## Stage 5.5: Web, CLI, Report, and MCP Surfaces
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD development
+- Checklist basis: `P5-40` through `P5-45`
+- Update rule: Update when a user surface, report projection, authorization rule, or cross-view navigation contract changes.
+
+Provide one Review Application through Web UI and CBD CLI. Render all views
+from one canonical report and expose only bounded, authorized, redacted report
+queries through MCP.
+
+## Stage 5.6: Quality, AI, and Runtime Assessment
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD development with optional providers
+- Checklist basis: `P5-50` through `P5-55`
+- Update rule: Update when capability assessment, AI provenance, or runtime-evidence maturity behavior changes.
+
+Implement reusable quality capabilities, applicability, maturity, coverage,
+confidence, provider attribution, and first quality views. AI consumes bounded
+structured evidence through Textus AI's provider-neutral structured-generation
+surface. Phase 5 admits the Textus AI Phase 1 execution-fact,
+confidentiality, deterministic-provider, and failure/lifecycle contracts only
+after their executable evidence is available; unavailable or incompatible
+contracts remain explicit limitations or Unknown. Runtime evidence is required
+for `Operational`.
+
+## Stage 5.7: Verification and Closure
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD development
+- Checklist basis: `P5-60` through `P5-66`
+- Update rule: Update only from reproducible executable, build, lint, CI, UI, MCP, and review evidence.
+
+Verify the complete CBD-led workflow across the primary and supporting
+repositories. Promote stable behavior, document residual limitations, and
+close Phase 5 without publishing or overstating optional provider coverage.
+
+## Closure Basis
+
+Phase 5 is DONE only when every item in `phase-5-checklist.md` is `[x]`, all
+required focused and full validation passes, actionable review findings are
+resolved, the primary and supporting repositories have validated commits, and
+the verification evidence is recorded here. Any deferred item must have an
+explicit relocation target and must not remain unchecked at closure.

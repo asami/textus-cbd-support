@@ -513,19 +513,29 @@ trait ComponentCatalogProvider {
     readUsage(profile, fetcher)
 }
 
+private[runtime] sealed trait CozyCatalogReadDecision
+
+private[runtime] object CozyCatalogReadDecision {
+  final case class Accepted(snapshot: CatalogSnapshot) extends CozyCatalogReadDecision
+  final case class Unavailable(diagnostic: String) extends CozyCatalogReadDecision
+  final case class Incompatible(diagnostic: String) extends CozyCatalogReadDecision
+}
+
 final class CompatibleComponentCatalogProvider(
   cozy: CozyComponentCatalogProvider,
   publication: SimpleModelingPublicationCatalogProvider
 ) extends ComponentCatalogProvider {
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
-    cozy.read(source, fetcher) match {
-      case success: Consequence.Success[CatalogSnapshot] => success
-      case Consequence.Failure(cozyfailure) =>
+    cozy.compatibilityDecision(source, fetcher) match {
+      case CozyCatalogReadDecision.Accepted(snapshot) => Consequence.success(snapshot)
+      case CozyCatalogReadDecision.Incompatible(diagnostic) =>
+        Consequence.serviceUnavailable(diagnostic)
+      case CozyCatalogReadDecision.Unavailable(cozydiagnostic) =>
         publication.read(source, fetcher) match {
           case success: Consequence.Success[CatalogSnapshot] => success
           case Consequence.Failure(publicationfailure) =>
             Consequence.serviceUnavailable(
-              s"Cozy repository catalog unavailable: ${cozyfailure.display}; publication catalog unavailable: ${publicationfailure.display}"
+              s"Cozy repository catalog unavailable: $cozydiagnostic; publication catalog unavailable: ${publicationfailure.display}"
             )
         }
     }
@@ -555,24 +565,63 @@ final class CozyComponentCatalogProvider(
     warnings: Vector[String]
   )
 
-  def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
+  private final case class IndexDocumentRead(
+    index: Option[ParsedIndex],
+    unavailable: Option[String],
+    incompatible: Option[String]
+  )
+
+  def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
+    compatibilityDecision(source, fetcher) match {
+      case CozyCatalogReadDecision.Accepted(snapshot) => Consequence.success(snapshot)
+      case CozyCatalogReadDecision.Unavailable(diagnostic) => Consequence.serviceUnavailable(diagnostic)
+      case CozyCatalogReadDecision.Incompatible(diagnostic) => Consequence.serviceUnavailable(diagnostic)
+    }
+
+  private[runtime] def compatibilityDecision(
+    source: CatalogSource,
+    fetcher: CatalogFetcher
+  ): CozyCatalogReadDecision = {
     val documents = Vector("car", "sar").map { kind =>
       val uri = source.baseUri.resolve(s"metadata/repository/$kind/index.json")
-      fetcher.get(source, uri, policy.maxIndexBytes).flatMap(_parse_index(source, kind, uri, _))
+      fetcher.get(source, uri, policy.maxIndexBytes) match {
+        case Consequence.Success(body) =>
+          _parse_index(source, kind, uri, body) match {
+            case Consequence.Success(index) => IndexDocumentRead(Some(index), None, None)
+            case Consequence.Failure(conclusion) => IndexDocumentRead(
+              None,
+              None,
+              Some(InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
+            )
+          }
+        case Consequence.Failure(conclusion) => IndexDocumentRead(
+          None,
+          Some(InformationSourceDiagnosticPolicy.sanitize(conclusion.display)),
+          None
+        )
+      }
     }
-    _sequence_allow_missing(documents).map { case (indexes, readwarnings) =>
+    val incompatiblediagnostics = documents.flatMap(_.incompatible)
+    val unavailabilitydiagnostics = documents.flatMap(_.unavailable)
+    val indexes = documents.flatMap(_.index)
+    if (incompatiblediagnostics.nonEmpty)
+      CozyCatalogReadDecision.Incompatible(
+        s"Cozy repository catalog is incompatible and publication fallback was not attempted: ${incompatiblediagnostics.mkString("; ")}"
+      )
+    else if (indexes.nonEmpty) {
       val discoveredprofiles = indexes.flatMap(_.profiles)
       val overflowwarning = Option.when(discoveredprofiles.size > policy.maxProfiles) {
         s"Catalog profiles were truncated at ${policy.maxProfiles} entries."
       }.toVector
-      val warnings = readwarnings ++ indexes.flatMap(_.warnings) ++ overflowwarning
-      CatalogSnapshot(
+      val warnings = unavailabilitydiagnostics ++ indexes.flatMap(_.warnings) ++ overflowwarning
+      CozyCatalogReadDecision.Accepted(CatalogSnapshot(
         source,
         discoveredprofiles.take(policy.maxProfiles).sortBy(x => (x.kind, x.name, x.catalogId)),
         clock.instant(),
         if (warnings.nonEmpty) Some(warnings.mkString("; ")) else None
-      )
+      ))
     }
+    else CozyCatalogReadDecision.Unavailable(unavailabilitydiagnostics.mkString("; "))
   }
 
   def readUsage(
@@ -643,13 +692,31 @@ final class CozyComponentCatalogProvider(
     parse(body) match {
       case Left(error) => Consequence.failure(s"Invalid component catalog JSON at $uri: ${error.getMessage}")
       case Right(json) =>
-        val entries = _array(json, "entries")
-        Consequence.success(ParsedIndex(
-          entries.take(policy.maxProfiles).flatMap(_profile(source, kind, uri, _)),
-          _diagnostics(json) ++ Option.when(entries.size > policy.maxProfiles) {
-            s"Catalog $kind profiles were truncated at ${policy.maxProfiles} entries."
-          }
-        ))
+        val cursor = json.hcursor
+        val schemafield = cursor.downField("schemaVersion").focus.orElse(cursor.downField("schema").focus)
+        val declaredschema = _string(json, "schemaVersion").orElse(_string(json, "schema"))
+        val diagnosticsvalue = cursor.downField("diagnostics").focus
+        if (schemafield.nonEmpty)
+          Consequence.failure(
+            s"Unsupported declared Cozy repository catalog schema at $uri: ${declaredschema.getOrElse("non-string schema")}"
+          )
+        else if (diagnosticsvalue.exists(value => !value.isArray))
+          Consequence.failure(s"Invalid Cozy repository catalog diagnostics at $uri: diagnostics must be an array.")
+        else cursor.get[Vector[Json]]("entries").toOption match {
+          case None => Consequence.failure(s"Invalid Cozy repository catalog contract at $uri: entries must be an array.")
+          case Some(entries) =>
+            val boundedentries = entries.take(policy.maxProfiles)
+            val parsedprofiles = boundedentries.map(_profile(source, kind, uri, _))
+            val invalidentry = parsedprofiles.indexWhere(_.isEmpty)
+            if (invalidentry >= 0)
+              Consequence.failure(s"Invalid Cozy repository catalog entry ${invalidentry + 1} at $uri: component identity is required.")
+            else Consequence.success(ParsedIndex(
+              parsedprofiles.flatten,
+              _diagnostics(json) ++ Option.when(entries.size > policy.maxProfiles) {
+                s"Catalog $kind profiles were truncated at ${policy.maxProfiles} entries."
+              }
+            ))
+        }
     }
 
   private def _profile(
@@ -864,22 +931,13 @@ final class CozyComponentCatalogProvider(
   private def _strings(json: Json, name: String): Vector[String] =
     json.hcursor.get[Vector[String]](name).getOrElse(Vector.empty).map(_.trim).filter(_.nonEmpty)
 
-  private def _sequence_allow_missing[A](
-    values: Vector[Consequence[A]]
-  ): Consequence[(Vector[A], Vector[String])] = {
-    val successes = values.collect { case Consequence.Success(value) => value }
-    val warnings = values.collect {
-      case Consequence.Failure(conclusion) => InformationSourceDiagnosticPolicy.sanitize(conclusion.display)
-    }
-    if (successes.nonEmpty) Consequence.success(successes -> warnings)
-    else Consequence.serviceUnavailable(warnings.mkString("; "))
-  }
 }
 
 final class SimpleModelingPublicationCatalogProvider(
   policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT,
   clock: Clock = Clock.systemUTC()
 ) extends ComponentCatalogProvider {
+  private val _supported_schema = "cozy.publish-project.v1"
   private val _metadata_link = """href=[\"']([^\"'/]+)/metadata\.html[\"']""".r
   private val _non_component_entries = Set("maven-repository")
 
@@ -941,26 +999,51 @@ final class SimpleModelingPublicationCatalogProvider(
         case Left(error) =>
           Consequence.failure(s"Invalid publication project JSON at $catalogprojecturi: ${error.getMessage}")
         case Right(catalogjson) =>
-          val kind = _string_at(catalogjson, "project", "kind")
-            .map(_.toLowerCase(java.util.Locale.ROOT))
-          kind match {
-            case Some(componentkind @ ("car" | "sar")) =>
-              val artifacturi = source.baseUri.resolve(s"metadata/artifacts/repository/$name.json")
-              fetcher.get(source, artifacturi, policy.maxMetadataBytes).flatMap { artifactbody =>
-                parse(artifactbody) match {
-                  case Left(error) =>
-                    Consequence.failure(s"Invalid publication artifact JSON at $artifacturi: ${error.getMessage}")
-                  case Right(artifactjson) =>
-                    _profile(source, componentkind, artifacturi, artifactjson)
-                      .map(x => Consequence.success(Some(x)))
-                      .getOrElse(Consequence.failure(s"Publication artifact has no component identity at $artifacturi"))
-                }
+          _validate_publication_contract(catalogjson, "catalog-project", catalogprojecturi) match {
+            case Left(diagnostic) => Consequence.failure(diagnostic)
+            case Right(_) =>
+              val kind = _string_at(catalogjson, "project", "kind")
+                .map(_.toLowerCase(java.util.Locale.ROOT))
+              kind match {
+                case Some(componentkind @ ("car" | "sar")) =>
+                  val artifacturi = source.baseUri.resolve(s"metadata/artifacts/repository/$name.json")
+                  fetcher.get(source, artifacturi, policy.maxMetadataBytes).flatMap { artifactbody =>
+                    parse(artifactbody) match {
+                      case Left(error) =>
+                        Consequence.failure(s"Invalid publication artifact JSON at $artifacturi: ${error.getMessage}")
+                      case Right(artifactjson) =>
+                        _validate_publication_contract(artifactjson, "repository-artifact", artifacturi) match {
+                          case Left(diagnostic) => Consequence.failure(diagnostic)
+                          case Right(_) =>
+                            _profile(source, componentkind, artifacturi, artifactjson)
+                              .map(x => Consequence.success(Some(x)))
+                              .getOrElse(Consequence.failure(s"Publication artifact has no component identity at $artifacturi"))
+                        }
+                    }
+                  }
+                case Some(_) => Consequence.success(None)
+                case None => Consequence.failure(s"Publication project has no kind at $catalogprojecturi")
               }
-            case Some(_) => Consequence.success(None)
-            case None => Consequence.failure(s"Publication project has no kind at $catalogprojecturi")
           }
       }
     }
+  }
+
+  private def _validate_publication_contract(
+    json: Json,
+    expectedtype: String,
+    uri: URI
+  ): Either[String, Unit] = {
+    val cursor = json.hcursor
+    val schemafield = cursor.downField("schema").focus.orElse(cursor.downField("schemaVersion").focus)
+    val schema = _string(json, "schema").orElse(_string(json, "schemaVersion"))
+    val documenttype = _string(json, "type")
+    if (schemafield.isEmpty) Right(())
+    else if (!schema.contains(_supported_schema))
+      Left(s"Unsupported publication schema at $uri: ${schema.getOrElse("non-string schema")}")
+    else if (!documenttype.contains(expectedtype))
+      Left(s"Invalid $_supported_schema document at $uri: type must be $expectedtype.")
+    else Right(())
   }
 
   private def _profile(

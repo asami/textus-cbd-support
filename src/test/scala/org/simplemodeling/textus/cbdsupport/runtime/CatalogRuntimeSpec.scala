@@ -168,6 +168,31 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
   }
 
   "CompatibleComponentCatalogProvider" should {
+    "reject an incompatible rich index without reinterpreting it as a publication catalog" in {
+      Given("a declared but unsupported rich-index schema beside an otherwise usable publication page")
+      val source = CatalogSource("incompatible", URI.create("https://catalog.example/"), 100, true)
+      val carindex = """{"schemaVersion":"cozy.repository-index.v2","entries":[]}"""
+      val publication = """<a href="textus-order/metadata.html">Metadata</a>"""
+      val fetcher = new MapCatalogFetcher(Map(
+        source.baseUri.resolve("metadata/repository/car/index.json") -> carindex,
+        source.baseUri.resolve("en/catalog/index.html") -> publication
+      ))
+      val provider = new CompatibleComponentCatalogProvider(
+        new CozyComponentCatalogProvider(),
+        new SimpleModelingPublicationCatalogProvider()
+      )
+
+      When("the compatibility provider classifies the available rich contract")
+      val result = provider.read(source, fetcher)
+
+      Then("the source fails closed and the older publication contract is not probed")
+      result match {
+        case Consequence.Failure(conclusion) => conclusion.display should include("publication fallback was not attempted")
+        case Consequence.Success(_) => fail("An incompatible rich catalog was accepted.")
+      }
+      fetcher.requestedUris should not contain source.baseUri.resolve("en/catalog/index.html")
+    }
+
     "consume the deployed publication catalog and repository artifact metadata" in {
       Given("a publication catalog page linked to one CAR project")
       val source = CatalogSource("simplemodeling", URI.create("https://www.simplemodeling.org/"), 100, true)
@@ -238,8 +263,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       usage.warnings.exists(_.contains("operation metadata")) shouldBe true
     }
 
-    "classify snapshots separately and report publication entry failures" in {
-      Given("a publication catalog with one snapshot component and one unreadable entry")
+    "preserve the supported unversioned publication contract and report entry failures" in {
+      Given("a legacy unversioned publication catalog with one snapshot component and one unreadable entry")
       val source = CatalogSource("publication", URI.create("https://catalog.example/"), 100, true)
       val catalog =
         """<html><body>
@@ -284,6 +309,26 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       profile.latestStable shouldBe None
       profile.latestSnapshot shouldBe Some("2.0.0-SNAPSHOT")
       snapshot.warning.exists(_.contains("broken-component")) shouldBe true
+    }
+
+    "reject a declared unsupported publication schema" in {
+      Given("a publication catalog entry whose project document declares an unknown schema")
+      val source = CatalogSource("publication", URI.create("https://catalog.example/"), 100, true)
+      val catalog = """<a href="textus-order/metadata.html">Metadata</a>"""
+      val catalogproject =
+        """{"schema":"cozy.publish-project.v2","type":"catalog-project","project":{"name":"textus-order","kind":"car"}}"""
+      val artifacturi = source.baseUri.resolve("metadata/artifacts/repository/textus-order.json")
+      val fetcher = new MapCatalogFetcher(Map(
+        source.baseUri.resolve("en/catalog/index.html") -> catalog,
+        source.baseUri.resolve("metadata/catalog/projects/textus-order.json") -> catalogproject
+      ))
+
+      When("the publication provider validates the declared contract")
+      val result = new SimpleModelingPublicationCatalogProvider().read(source, fetcher)
+
+      Then("the entry is rejected before artifact metadata can be guessed")
+      result.toOption shouldBe None
+      fetcher.requestedUris should not contain artifacturi
     }
 
     "avoid reusing another publication version's artifact" in {

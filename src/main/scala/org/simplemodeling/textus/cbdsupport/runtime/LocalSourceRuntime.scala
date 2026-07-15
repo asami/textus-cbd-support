@@ -15,7 +15,7 @@ import io.circe.parser.parse
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class LocalInspectionPolicy(
@@ -309,40 +309,46 @@ object LocalInformationSourceInventory {
     policy: LocalInspectionPolicy
   ): Either[String, LocalComponentObservation] = {
     try {
-      _sha256(path, policy.maxArtifactBytes).map { checksum =>
+      _sha256(path, policy.maxArtifactBytes).flatMap { checksum =>
         val relative = source.inspectionRoot.relativize(path)
         val segments = relative.iterator().asScala.map(_.toString).toVector
         val pathname = segments.headOption
         val pathversion = segments.drop(1).headOption
-        val descriptorresult = _car_descriptor(path, policy.maxMetadataBytes)
-        val descriptor = descriptorresult.toOption
-        val descriptorname = descriptor.flatMap(_descriptor_name)
-        val descriptorversion = descriptor.flatMap(_.hcursor.get[String]("version").toOption).map(_.trim).filter(_.nonEmpty)
-        val name = descriptorname.orElse(pathname)
-        val version = descriptorversion.orElse(pathversion)
-        val versionevidence = if (descriptorversion.nonEmpty) "component-descriptor" else if (pathversion.nonEmpty) "repository-path" else "absent"
-        val diagnostics = (
-          descriptorresult.left.toOption.toVector ++
-            Option.when(descriptorname.isEmpty && pathname.nonEmpty)("component-descriptor.json has no component name; repository path name is retained as path evidence.").toVector ++
-            Option.when(descriptorversion.isEmpty && pathversion.nonEmpty)("component-descriptor.json has no version; repository path version is retained as path evidence.").toVector ++
-            Option.when(descriptorname.nonEmpty && pathname.nonEmpty && descriptorname != pathname)(s"Component name conflict: descriptor=${descriptorname.get}, path=${pathname.get}.").toVector ++
-            Option.when(descriptorversion.nonEmpty && pathversion.nonEmpty && descriptorversion != pathversion)(s"Component version conflict: descriptor=${descriptorversion.get}, path=${pathversion.get}.").toVector
-        )
-        LocalComponentObservation(
-          source.descriptor.id,
-          source.descriptor.sourceKind,
-          name,
-          None,
-          Some("car"),
-          version,
-          versionevidence,
-          source.versionState,
-          path.toUri.toString,
-          descriptorversion,
-          pathversion,
-          Some(checksum),
-          diagnostics
-        )
+        _car_descriptor(path, policy.maxMetadataBytes).flatMap { descriptor =>
+          val descriptorname = _descriptor_name(descriptor)
+          val descriptorversionfield = descriptor.hcursor.downField("version").focus
+          val descriptorversion = descriptor.hcursor.get[String]("version").toOption.map(_.trim).filter(_.nonEmpty)
+          if (descriptorname.isEmpty)
+            Left("component-descriptor.json has no component name.")
+          else if (descriptorversionfield.nonEmpty && descriptorversion.isEmpty)
+            Left("component-descriptor.json version must be a non-empty string when declared.")
+          else if (pathname.nonEmpty && descriptorname != pathname)
+            Left(s"Component name conflicts: descriptor=${descriptorname.get}, path=${pathname.get}.")
+          else if (descriptorversion.nonEmpty && pathversion.nonEmpty && descriptorversion != pathversion)
+            Left(s"Component version conflicts: descriptor=${descriptorversion.get}, path=${pathversion.get}.")
+          else {
+            val version = descriptorversion.orElse(pathversion)
+            val versionevidence = if (descriptorversion.nonEmpty) "component-descriptor" else if (pathversion.nonEmpty) "repository-path" else "absent"
+            val diagnostics = Option.when(descriptorversion.isEmpty && pathversion.nonEmpty)(
+              "component-descriptor.json has no version; repository path version is retained as supported legacy path evidence."
+            ).toVector
+            Right(LocalComponentObservation(
+              source.descriptor.id,
+              source.descriptor.sourceKind,
+              descriptorname,
+              None,
+              Some("car"),
+              version,
+              versionevidence,
+              source.versionState,
+              path.toUri.toString,
+              descriptorversion,
+              pathversion,
+              Some(checksum),
+              diagnostics
+            ))
+          }
+        }.left.map(diagnostic => s"CAR artifact ${path.getFileName} was rejected: $diagnostic")
       }
     } catch {
       case NonFatal(exception) => Left(s"CAR artifact ${path.getFileName} could not be inspected: ${exception.getClass.getSimpleName}.")

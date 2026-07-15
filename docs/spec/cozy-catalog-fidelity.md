@@ -48,6 +48,19 @@ The Cozy revision does not generate a rich SAR index. SAR uses the same
 consumer envelope when a publisher provides one, but the Phase 2 fixture and
 field claims are CAR-specific.
 
+The rich repository index is an observed unversioned producer contract. Its
+top-level `entries` value and optional `diagnostics` value must be arrays, and
+every admitted entry must identify a component. A declared schema that CBD
+Support does not recognize, invalid JSON, or a structurally incompatible
+document is rejected. It is not reinterpreted through the older publication
+adapter. Only fetch-level unavailability of the rich CAR and SAR endpoints
+permits that explicit fallback.
+
+The deployed publication adapter accepts `cozy.publish-project.v1` and the
+observed older unversioned publication JSON. A declared v1 document must also
+declare the endpoint-appropriate `catalog-project` or `repository-artifact`
+type. Other declared schemas are incompatible.
+
 ## Evidence Semantics
 
 An empty dependency array is affirmative evidence that the selected metadata

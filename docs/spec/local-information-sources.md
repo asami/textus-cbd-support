@@ -52,7 +52,11 @@ Every CAR observation retains:
 `component-descriptor.json` is authoritative when it contains a version. Older
 CARs without a descriptor version may retain the repository-path version as
 explicit `repository-path` evidence, but the adapter reports that the descriptor
-did not establish that version. A local or cached artifact is not treated as a
+did not establish that version. This is the only supported legacy CAR fallback.
+A missing or malformed descriptor, a descriptor without component identity, or
+a descriptor/path component or version conflict rejects the artifact and emits
+a bounded diagnostic; the adapter does not guess from the path or select one
+side of contradictory evidence. A local or cached artifact is not treated as a
 remote publication or recommendation.
 
 The version-state reconciliation contract preserves these storage states as
@@ -79,7 +83,9 @@ last-known-good local inventory.
 
 `LocalSourceRuntimeSpec` covers canonical path authorization, symlink rejection,
 working `project.yaml` evidence, local/cache state separation, descriptor/path
-version separation, artifact checksums, and bounded discovery diagnostics.
+version separation, the supported missing-descriptor-version transition,
+malformed/conflicting CAR rejection, artifact checksums, and bounded discovery
+diagnostics.
 `VersionStateReconciliationSpec` covers the independent availability and
 maturity projection of these local observations.
 `SourceAwareRetrievalSpec` covers runtime configuration integration, source

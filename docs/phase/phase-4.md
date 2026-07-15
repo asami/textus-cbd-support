@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-31 source-managed CAR ABI and SemVer transition verification is complete; the next slice governs supported older inputs and explicit incompatibility under P4-32.
+- Current step: P4-32 input compatibility governance is complete; the next slice closes Phase 4 documentation under P4-40.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -269,6 +269,34 @@ release evidence.
   operation removal in the same minor transition produced
   `FAIL abi.operation.removed`, and the same removal in a `1.0.0` transition
   remained visible as an intentionally permitted major-version finding.
+- `docs/spec/input-compatibility-governance.md` now records the accepted current
+  and older input shapes for Catalog, BoK, SIE, and local CAR boundaries. A
+  fallback is permitted only for a named older contract, never as a parser or
+  identity guess after incompatible evidence is observed.
+- Catalog ingestion accepts the revision-pinned unversioned Cozy index and the
+  deployed `cozy.publish-project.v1` or unversioned publication contract. The
+  publication adapter runs only when both rich-index kinds are unavailable; a
+  returned malformed, structurally invalid, or unknown-schema rich index fails
+  the source without probing publication metadata. Declared publication
+  schemas and document types are validated before component metadata is used.
+- BoK input remains fixed to `cncf.knowledge-source.v1` with no older accepted
+  schema or presentation-page fallback. SIE remains fixed to the public typed
+  `SemanticIntegrationEngine.SemanticRetrieval.searchTerms` result and rejects
+  legacy camelCase/internal-facade shapes without field translation.
+- Local CAR inspection preserves one supported legacy transition: a valid
+  descriptor with component identity but no version may retain the repository
+  path version as explicitly labeled path evidence. Missing/malformed
+  descriptors, missing component identity, and descriptor/path name or version
+  conflicts now reject the artifact instead of manufacturing an observation.
+- The four focused compatibility suites passed 51 tests on 2026-07-15,
+  including unavailable-versus-incompatible Catalog decisions, named and
+  unversioned publication input, BoK v1 refusal, typed SIE refusal, the legacy
+  local path-version transition, malformed descriptor rejection, and
+  coordinate-conflict rejection.
+- The complete 15-suite test run passed 114 tests on 2026-07-15 after the
+  P4-32 compatibility changes. Normal CAR lint had no failures; its only
+  residual warning remains the documented first-release ABI baseline pending
+  state.
 
 ## Closure Basis
 

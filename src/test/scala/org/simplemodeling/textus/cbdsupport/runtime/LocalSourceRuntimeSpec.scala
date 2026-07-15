@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class LocalSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -157,6 +157,49 @@ final class LocalSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenW
       cached.versionState shouldBe "cached"
       cached.diagnostics.exists(_.contains("no version")) shouldBe true
       cached.artifactChecksumSha256 should not be local.artifactChecksumSha256
+    }
+
+    "reject malformed or invalid CAR descriptors without guessing identity from their repository paths" in {
+      Given("two path-shaped CARs whose descriptors contain invalid JSON or an invalid declared version")
+      val work = _reset_work_area("malformed-car-descriptor")
+      val localroot = Files.createDirectories(work.resolve("local"))
+      val cacheroot = Files.createDirectories(work.resolve("cache"))
+      _write_car(
+        localroot.resolve("repository/car/textus-order/1.2.0/textus-order-1.2.0.car"),
+        "{"
+      )
+      _write_car(
+        localroot.resolve("repository/car/textus-customer/1.0.0/textus-customer-1.0.0.car"),
+        """{"name":"textus-customer","version":1,"component":"textus-customer"}"""
+      )
+      val configuration = LocalInformationSourceConfig.parse(None, Some(localroot.toString), Some(cacheroot.toString), work)
+
+      When("the local warehouse is inventoried")
+      val inventory = LocalInformationSourceInventory.inspect(configuration)
+
+      Then("both incompatible artifacts are omitted and each descriptor failure remains observable")
+      inventory.observations.count(_.sourceId == "local-car") shouldBe 0
+      inventory.warnings.exists(_.contains("component-descriptor.json is not valid JSON")) shouldBe true
+      inventory.warnings.exists(_.contains("version must be a non-empty string when declared")) shouldBe true
+    }
+
+    "reject descriptor and path version conflicts instead of selecting either input" in {
+      Given("a CAR stored under a version that contradicts its valid descriptor")
+      val work = _reset_work_area("car-version-conflict")
+      val localroot = Files.createDirectories(work.resolve("local"))
+      val cacheroot = Files.createDirectories(work.resolve("cache"))
+      _write_car(
+        localroot.resolve("repository/car/textus-order/1.2.0/textus-order-1.2.0.car"),
+        """{"name":"textus-order","version":"2.0.0","component":"textus-order"}"""
+      )
+      val configuration = LocalInformationSourceConfig.parse(None, Some(localroot.toString), Some(cacheroot.toString), work)
+
+      When("the conflicting evidence is inspected")
+      val inventory = LocalInformationSourceInventory.inspect(configuration)
+
+      Then("no observation is selected and the exact conflict is reported")
+      inventory.observations.count(_.sourceId == "local-car") shouldBe 0
+      inventory.warnings.exists(_.contains("Component version conflicts: descriptor=2.0.0, path=1.2.0")) shouldBe true
     }
 
     "stop discovery at the configured artifact bound" in {

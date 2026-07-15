@@ -143,4 +143,9 @@ model metadata and the built archive. Cozy transition fixtures admit a minor
 operation addition, reject a minor removal, and retain the same removal as a
 visible permitted major transition. Because no CAR release exists yet, the
 historical baseline remains explicitly pending rather than fabricated. The
-next slice is P4-32 supported-older-input and incompatible-input governance.
+P4-32 compatibility boundary now distinguishes unavailable Catalog endpoints
+from incompatible returned documents, permits only the named deployed
+publication contracts, fixes BoK and SIE to their public v1/typed contracts,
+and keeps only the valid descriptor-without-version local CAR transition.
+Malformed or contradictory input no longer enters an alternate parser or path
+guess. The next slice is P4-40 Phase 4 documentation closure.

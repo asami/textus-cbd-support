@@ -201,6 +201,8 @@ policy. The current first-release line has no historical release baseline;
 compatible-addition, breaking-minor, and intentional-major behavior is covered
 by policy fixtures without presenting them as released component versions. See
 [CAR ABI Governance](docs/spec/car-abi-governance.md).
+Input-version and fallback decisions are fixed by
+[Information Input Compatibility Governance](docs/spec/input-compatibility-governance.md).
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),

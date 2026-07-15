@@ -105,6 +105,26 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
         case Consequence.Success(_) => fail("SIE term response without evidence was accepted.")
       }
     }
+
+    "reject legacy response field names instead of guessing the typed public contract" in {
+      Given("a legacy-shaped result using camelCase fields from outside the public SIE contract")
+      val transport = new MemorySieBokTransport(_response(
+        "matched",
+        "Runtime",
+        """[{"id":"architecture:runtime","title":"Runtime","definition":"Definition.","termType":"term","datasetId":"bok-main","matchKind":"exact","score":1.0,"rationale":"Exact.","evidenceUri":"urn:bok:runtime"}]"""
+      ))
+
+      When("CBD validates the response without a legacy-field adapter")
+      val result = new SieBokProvider(_clock).searchTerms(_source, "Runtime", None, 10, transport)
+
+      Then("the incompatible response fails without synthesizing current field names")
+      result match {
+        case Consequence.Failure(conclusion) =>
+          conclusion.display should include("dataset_id")
+          conclusion.display should include("evidence_uri")
+        case Consequence.Success(_) => fail("A legacy SIE response shape was accepted.")
+      }
+    }
   }
 
   "CbdRuntime" should {

@@ -41,6 +41,10 @@ partial term result is accepted. Transport failures and publisher warnings pass
 through the common bounded diagnostic sanitizer before entering unified source
 state.
 
+The snake_case field names above are part of the public typed result contract.
+CBD Support does not translate camelCase or legacy internal response fields and
+does not retry through `sie.searchTerms`; such a response is incompatible.
+
 ## Ownership
 
 SIE owns terminology, definitions, datasets, semantic match classification,

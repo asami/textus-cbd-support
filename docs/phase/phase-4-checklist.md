@@ -27,7 +27,7 @@ deleted; a checked item requires observable evidence.
 
 - [x] `P4-30` Declared CNCF minimum, tested, and excluded versions are checked against a documented runtime compatibility matrix and representative execution evidence.
 - [x] `P4-31` CAR ABI baselines and compatibility checks distinguish compatible additions, breaking changes, and intentional version transitions.
-- [ ] `P4-32` Catalog, BoK manifest, SIE contract, and local CAR compatibility decisions preserve supported older inputs explicitly and reject incompatible inputs without speculative fallback.
+- [x] `P4-32` Catalog, BoK manifest, SIE contract, and local CAR compatibility decisions preserve supported older inputs explicitly and reject incompatible inputs without speculative fallback.
 
 ## Documentation, Release, and Verification
 

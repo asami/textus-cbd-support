@@ -1,0 +1,14 @@
+[mcp_servers.textus-cbd-support-smoke]
+url = "http://127.0.0.1:19534/mcp"
+enabled = true
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled_tools = [
+  "CbdSupport.CbdRetrieval.getComponent",
+  "CbdSupport.CbdRetrieval.getUsage",
+  "CbdSupport.CbdRetrieval.listCatalogs",
+  "CbdSupport.CbdRetrieval.resolveDependencies",
+  "CbdSupport.CbdRetrieval.searchComponents",
+  "CbdSupport.CbdRetrieval.status",
+]
+default_tools_approval_mode = "approve"

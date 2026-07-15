@@ -24,6 +24,21 @@ SIE_TOOLS = {
     "SemanticIntegrationEngine.SemanticRetrieval.getComponentReference",
 }
 EXPECTED_TOOLS = CBD_TOOLS | SIE_TOOLS
+DENIED_TOOLS = {
+    "CbdSupport.CbdCatalogAdmin.refreshCatalog",
+    "SemanticIntegrationEngine.SemanticRetrieval.registerSource",
+    "SemanticIntegrationEngine.SemanticRetrieval.indexDocument",
+    "SemanticIntegrationEngine.SemanticRetrieval.rebuild",
+    "SemanticIntegrationEngine.Mcp.initialize",
+    "SemanticIntegrationEngine.Mcp.listTools",
+    "SemanticIntegrationEngine.Mcp.callTool",
+    "SemanticIntegrationEngine.KnowledgeStoreAdmin.initializeFuseki",
+    "SemanticIntegrationEngine.KnowledgeStoreAdmin.initializeChroma",
+    "SemanticIntegrationEngine.KnowledgeStoreAdmin.rebuildChroma",
+    "SemanticIntegrationEngine.KnowledgeStoreAdmin.indexHtmlSite",
+    "SemanticIntegrationEngine.KnowledgeStoreAdmin.ingestBokKnowledgeSource",
+    "SemanticIntegrationEngine.InformationImport.runPaperFlow",
+}
 EXPECTED_TOOLS_BY_PROFILE = {
     "baseline": EXPECTED_TOOLS,
     "global-disabled": set(),
@@ -89,7 +104,7 @@ def _require_rejected_tool(
     error = called.get("error")
     _require(
         isinstance(error, dict) and error.get("code") == -32602,
-        f"Disabled tool call was not rejected as invalid params: {called}",
+        f"Denied tool call was not rejected as invalid params: {called}",
     )
 
 
@@ -123,7 +138,8 @@ def _run(base_url: str, profile: str, timeout: float) -> None:
         f"One or more composed MCP tools omit inputSchema: {tools}",
     )
 
-    for tool_name in sorted(REJECTED_TOOLS_BY_PROFILE[profile]):
+    denied_tools = DENIED_TOOLS | REJECTED_TOOLS_BY_PROFILE[profile]
+    for tool_name in sorted(denied_tools):
         _require_rejected_tool(base_url, tool_name, profile, timeout)
 
     cbd_count = len(tool_names & CBD_TOOLS)
@@ -131,7 +147,10 @@ def _run(base_url: str, profile: str, timeout: float) -> None:
     print(f"profile={profile} endpoint={base_url}/mcp protocol=json-rpc")
     print(f"cbd_read_tools={cbd_count} sie_read_tools={sie_count}")
     print("tool_identity_order=stable collisions=none")
-    print("administration_tools=0 unexpected_tools=0")
+    print(
+        f"denied_non_public_tools={len(DENIED_TOOLS)} "
+        "administration_tools=0 unexpected_tools=0"
+    )
     print("CBD_SIE_SAR_MCP_OK")
 
 

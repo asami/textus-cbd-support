@@ -106,11 +106,17 @@ def _run(base_url: str, profile: str, timeout: float) -> None:
     )
     _require("error" not in listed, f"MCP tools/list failed: {listed}")
     tools = listed.get("result", {}).get("tools", [])
-    tool_names = {tool.get("name") for tool in tools}
+    ordered_tool_names = [tool.get("name") for tool in tools]
+    tool_names = set(ordered_tool_names)
     expected_tools = EXPECTED_TOOLS_BY_PROFILE[profile]
     _require(
         tool_names == expected_tools,
         f"Unexpected composed MCP tool catalog for {profile}: {sorted(tool_names)}",
+    )
+    _require(
+        ordered_tool_names == sorted(expected_tools),
+        "Composed MCP tool identities are duplicated or depend on SAR declaration order: "
+        f"{ordered_tool_names}",
     )
     _require(
         all(isinstance(tool.get("inputSchema"), dict) for tool in tools),
@@ -124,6 +130,7 @@ def _run(base_url: str, profile: str, timeout: float) -> None:
     sie_count = len(tool_names & SIE_TOOLS)
     print(f"profile={profile} endpoint={base_url}/mcp protocol=json-rpc")
     print(f"cbd_read_tools={cbd_count} sie_read_tools={sie_count}")
+    print("tool_identity_order=stable collisions=none")
     print("administration_tools=0 unexpected_tools=0")
     print("CBD_SIE_SAR_MCP_OK")
 

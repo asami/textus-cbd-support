@@ -18,8 +18,10 @@ scripts/check-cbd-sie-sar.sh --profile baseline
 
 The focused command still builds both current CARs, assembles the SAR, starts
 the owned CNCF server and fixture server, verifies all 13 read-only tools, and
-proves source ownership. It skips the three policy-narrowing profiles. Running
-without `--profile` remains the complete four-profile matrix.
+proves stable `component.service.operation` identities, lexical discovery
+order, collision absence, and source ownership. It skips the three
+policy-narrowing profiles. Running without `--profile` remains the complete
+four-profile matrix.
 
 The check uses CNCF `0.5.1-SNAPSHOT` by default and builds both CARs. For each
 profile it creates a temporary `component.d` containing the two CARs and the

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-10 bounded production refresh scheduling and observable next-attempt state are complete; the next slice adds retry/backoff and concurrency control under P4-11.
+- Current step: P4-11 bounded retry/backoff and refresh concurrency control are complete; the next slice bounds retained snapshot capacity under P4-12.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -147,15 +147,28 @@ release evidence.
   defaults both lifetime and schedule to 15 minutes.
 - `nextRefreshAttemptAt` is projected through unified source state and MCP
   output: runtime start before an initial attempt, observation plus interval
-  after success, attempt plus interval after failure, and absent for disabled,
-  query-scoped SIE, or uncached local inputs. Readiness calls before the due
+  after success, attempt plus the active retry delay after failure, and absent
+  for disabled, query-scoped SIE, or uncached local inputs. Readiness calls before the due
   instant perform no remote work; administrative catalog refresh bypasses the
   normal schedule.
 - `InformationSourceRefreshSpec`, `CatalogRuntimeSpec`, and
   `ComponentFactorySpec` provide executable evidence for interval bounds,
   catalog and BoK scheduling, administrative schedule bypass, failed-attempt
-  deferral, and public next-attempt projection. Retry/backoff, single-flight,
-  and synchronized-burst protection remain explicitly deferred to P4-11.
+  deferral, and public next-attempt projection.
+- Production-default Catalog and BoK failures schedule demand-triggered retries
+  at one, two, four, and successively doubled minute intervals capped by the
+  policy maximum and normal refresh interval. Success clears the consecutive-
+  failure count; each readiness call performs at most one attempt for a due
+  source.
+- Concurrent callers for the same source join one source-kind-qualified flight.
+  A fair runtime-wide semaphore admits at most the strictest configured Catalog/
+  BoK concurrency bound (two by default), so different sources cannot create an
+  unbounded synchronized burst. Administrative refresh bypasses time scheduling
+  but still uses the same single-flight and concurrency boundary.
+- `InformationSourceRefreshSpec` and `CatalogRuntimeSpec` provide executable
+  evidence for retry/concurrency policy bounds, Catalog 1/2/4-minute backoff,
+  BoK 1/2-minute backoff, four-caller single-flight, and a three-source burst
+  limited to two active reads.
 
 ## Closure Basis
 

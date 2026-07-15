@@ -2,6 +2,10 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.time.{Clock, Duration, Instant, ZoneId, ZoneOffset}
+import java.util.concurrent.{CountDownLatch, Executors, TimeUnit}
+import java.util.concurrent.atomic.AtomicInteger
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
 import scala.io.Source
 
 import org.goldenport.Consequence
@@ -419,8 +423,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:06:00Z"))
     }
 
-    "preserve a stale last-known-good snapshot when automatic refresh fails" in {
-      Given("a provider that fails after its first snapshot reaches cache expiry")
+    "back off repeated automatic failures while preserving a stale last-known-good snapshot" in {
+      Given("a provider that fails repeatedly after its first snapshot reaches cache expiry")
       val source = CatalogSource("switchable", URI.create("https://switchable.example/"), 100, true)
       val provider = new SwitchableCatalogProvider(_component_profile(source.id))
       val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
@@ -434,22 +438,128 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       clock.advance(Duration.ofMinutes(5))
       provider.fail = true
 
-      When("readiness automatically retries the expired catalog")
+      When("readiness reaches each exponentially deferred retry boundary")
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      runtime.sourceStates(includeDisabled = false).head.nextRefreshAttemptAt shouldBe
+        Some(Instant.parse("2026-07-14T00:06:00Z"))
+      clock.advance(Duration.ofMinutes(1))
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      runtime.sourceStates(includeDisabled = false).head.nextRefreshAttemptAt shouldBe
+        Some(Instant.parse("2026-07-14T00:08:00Z"))
+      clock.advance(Duration.ofMinutes(2))
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      runtime.sourceStates(includeDisabled = false).head.nextRefreshAttemptAt shouldBe
+        Some(Instant.parse("2026-07-14T00:12:00Z"))
+      clock.advance(Duration.ofMinutes(4))
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      runtime.sourceStates(includeDisabled = false).head.nextRefreshAttemptAt shouldBe
+        Some(Instant.parse("2026-07-14T00:17:00Z"))
+      clock.advance(Duration.ofMinutes(5))
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
       val state = runtime.sourceStates(includeDisabled = false).head
 
-      Then("the source exposes stale degraded state while the previous component remains searchable")
-      provider.readCount shouldBe 2
+      Then("retry delays double from one through four minutes and remain capped at five")
+      provider.readCount shouldBe 6
       state.status shouldBe "degraded"
       state.cacheStatus shouldBe "stale"
       state.componentCount shouldBe 1
       state.refreshedAt shouldBe Some(Instant.parse("2026-07-14T00:00:00Z"))
       state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
-      state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
-      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
+      state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:17:00Z"))
+      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:22:00Z"))
       state.warning.exists(_.contains("Catalog unavailable")) shouldBe true
       runtime.get("textus-order", None, None, None, None) should not be empty
+    }
+
+    "coalesce concurrent automatic refreshes for the same source" in {
+      Given("four readiness callers blocked behind one source read")
+      val source = CatalogSource("single-flight", URI.create("https://single-flight.example/"), 100, true)
+      val provider = new CoordinatedCatalogProvider(_component_profile(source.id))
+      val runtime = CbdRuntime.create(Vector(source), provider)
+      val executor = Executors.newFixedThreadPool(4)
+      given executioncontext: ExecutionContext = ExecutionContext.fromExecutorService(executor)
+      val ready = new CountDownLatch(4)
+      val start = new CountDownLatch(1)
+
+      try {
+        When("all callers request initial readiness together")
+        val calls = Vector.fill(4)(Future {
+          ready.countDown()
+          start.await()
+          runtime.ensureReady(EmptyCatalogFetcher)
+        })
+        val callersready = ready.await(1, TimeUnit.SECONDS)
+        start.countDown()
+        val firststarted = provider.awaitReadCount(1, 1.second)
+        val secondstarted = provider.awaitReadCount(2, 200.millis)
+        provider.release()
+        val results = calls.map(Await.result(_, 5.seconds))
+
+        Then("one leader performs the read and every follower receives its completed source state")
+        callersready shouldBe true
+        firststarted shouldBe true
+        secondstarted shouldBe false
+        provider.readCount shouldBe 1
+        results.map(_.isSuccess) shouldBe Vector.fill(4)(true)
+      } finally {
+        provider.release()
+        executor.shutdownNow()
+      }
+    }
+
+    "bound synchronized refresh bursts across distinct sources" in {
+      Given("three administrative source refreshes and a runtime-wide concurrency limit of two")
+      val sources = Vector(
+        CatalogSource("burst-a", URI.create("https://burst-a.example/"), 100, true),
+        CatalogSource("burst-b", URI.create("https://burst-b.example/"), 200, true),
+        CatalogSource("burst-c", URI.create("https://burst-c.example/"), 300, true)
+      )
+      val provider = new CoordinatedCatalogProvider(_component_profile(sources.head.id))
+      val policy = InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofMinutes(1),
+        Duration.ofMinutes(15),
+        2
+      )
+      val runtime = CbdRuntime.create(
+        sources,
+        provider,
+        CatalogCachePolicy(Duration.ofMinutes(15), policy),
+        Clock.systemUTC()
+      )
+      val executor = Executors.newFixedThreadPool(3)
+      given executioncontext: ExecutionContext = ExecutionContext.fromExecutorService(executor)
+      val ready = new CountDownLatch(3)
+      val start = new CountDownLatch(1)
+
+      try {
+        When("all three distinct sources are refreshed together")
+        val calls = sources.map { source =>
+          Future {
+            ready.countDown()
+            start.await()
+            runtime.refresh(Some(source.id), EmptyCatalogFetcher)
+          }
+        }
+        val callersready = ready.await(1, TimeUnit.SECONDS)
+        start.countDown()
+        val twostarted = provider.awaitReadCount(2, 1.second)
+        val threestarted = provider.awaitReadCount(3, 200.millis)
+        provider.release()
+        val results = calls.map(Await.result(_, 5.seconds))
+
+        Then("two reads run concurrently and the third waits for an admitted refresh slot")
+        callersready shouldBe true
+        twostarted shouldBe true
+        threestarted shouldBe false
+        provider.maximumActive shouldBe 2
+        provider.readCount shouldBe 3
+        results.forall(_.isSuccess) shouldBe true
+      } finally {
+        provider.release()
+        executor.shutdownNow()
+      }
     }
 
     "preserve source, version, freshness, and checksum in a component observation" in {
@@ -855,6 +965,56 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       readCount += 1
       if (fail) Consequence.serviceUnavailable(s"Catalog unavailable: ${source.id}")
       else Consequence.success(CatalogSnapshot(source, Vector(profile), Instant.now(), None))
+    }
+
+    def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =
+      Consequence.success(ComponentUsage(profile, Vector.empty, Vector.empty, Vector.empty))
+  }
+
+  private final class CoordinatedCatalogProvider(profile: ComponentProfile) extends ComponentCatalogProvider {
+    private val _read_count = new AtomicInteger(0)
+    private val _active_count = new AtomicInteger(0)
+    private val _maximum_active = new AtomicInteger(0)
+    private val _release = new CountDownLatch(1)
+    private val _first_read = new CountDownLatch(1)
+    private val _second_read = new CountDownLatch(2)
+    private val _third_read = new CountDownLatch(3)
+
+    def readCount: Int = _read_count.get()
+
+    def maximumActive: Int = _maximum_active.get()
+
+    def awaitReadCount(count: Int, timeout: scala.concurrent.duration.Duration): Boolean = {
+      val latch = count match {
+        case 1 => _first_read
+        case 2 => _second_read
+        case 3 => _third_read
+        case _ => throw new IllegalArgumentException(s"Unsupported coordinated read count: $count")
+      }
+      latch.await(timeout.toMillis, TimeUnit.MILLISECONDS)
+    }
+
+    def release(): Unit =
+      _release.countDown()
+
+    def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
+      _read_count.incrementAndGet()
+      _first_read.countDown()
+      _second_read.countDown()
+      _third_read.countDown()
+      val active = _active_count.incrementAndGet()
+      _maximum_active.accumulateAndGet(active, Math.max)
+      try {
+        _release.await()
+        Consequence.success(CatalogSnapshot(
+          source,
+          Vector(profile.copy(catalogId = source.id)),
+          Instant.now(),
+          None
+        ))
+      } finally {
+        _active_count.decrementAndGet()
+      }
     }
 
     def readUsage(profile: ComponentProfile, fetcher: CatalogFetcher): Consequence[ComponentUsage] =

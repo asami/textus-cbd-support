@@ -111,5 +111,7 @@ SIE-mediated authentication through the production ProviderCall/UnitOfWork/
 HTTP-driver path and proves exact per-source headers, cross-origin refusal,
 redaction, and CallTree-safe metadata. P4-10 now gives catalog and BoK sources
 bounded one-minute-through-24-hour normal refresh schedules and exposes each
-next attempt without immediate repeated work after failure. The next slice is
-P4-11 bounded retry/backoff, single-flight, and synchronized-burst protection.
+next attempt without immediate repeated work after failure. P4-11 adds bounded
+exponential retry, same-source single-flight, and a fair runtime-wide concurrency
+limit against synchronized bursts. The next slice is P4-12 bounded retained
+snapshot and observation capacity.

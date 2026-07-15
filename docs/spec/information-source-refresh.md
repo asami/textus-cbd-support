@@ -33,10 +33,20 @@ and expiry remain visible. Initial failure without a snapshot exposes `empty`
 freshness and no last-known-good evidence.
 
 Before the first attempt, the next normal attempt is the runtime start time.
-Success schedules from the new observation time; failure schedules from the
-latest attempt time. Disabled, query-scoped SIE, and uncached local inputs have
-no scheduled next attempt. Administrative catalog refresh bypasses the normal
-schedule. Retry/backoff and concurrency behavior are deferred to P4-11.
+Success schedules from the new observation time. Failure schedules from the
+latest attempt time using the configured initial retry, one minute by
+production default, which doubles after each consecutive failure up to the
+policy maximum and never beyond the normal refresh interval. Success resets
+that sequence. Disabled, query-scoped SIE, and uncached local inputs have no
+scheduled next attempt.
+
+Catalog and BoK refreshes use source-kind-qualified single-flight. Concurrent
+followers wait for the leader and consume its resulting state without another
+source request. A fair runtime-wide semaphore limits distinct in-flight source
+work to the stricter configured Catalog/BoK limit, two by default. This bound
+also protects administrative catalog refresh; administration bypasses only the
+time schedule. Each readiness call makes at most one attempt per due source and
+never runs an internal retry loop.
 
 ## Non-Cached Inputs
 
@@ -52,8 +62,9 @@ an older inventory to be labeled current.
 
 ## Executable Evidence
 
-`InformationSourceRefreshSpec` verifies inclusive schedule bounds, schedule
-versus TTL constraints, observable catalog/BoK next attempts, no immediate
-repeat after failure, bounded catalog configuration and discovery, BoK stale
-last-known-good retention, pre-transport SIE request bounds, and independent
-timestamped local inspections.
+`InformationSourceRefreshSpec` and `CatalogRuntimeSpec` verify inclusive
+schedule, retry, and concurrency bounds; schedule versus TTL constraints;
+observable Catalog/BoK exponential next attempts; same-source single-flight;
+distinct-source burst limits; bounded catalog configuration and discovery; BoK
+stale last-known-good retention; pre-transport SIE request bounds; and
+independent timestamped local inspections.

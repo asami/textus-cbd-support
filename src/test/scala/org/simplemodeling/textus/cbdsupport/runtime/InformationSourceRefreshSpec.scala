@@ -27,11 +27,50 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
         InformationSourceRefreshPolicy(minimum),
         InformationSourceRefreshPolicy(maximum)
       )
+      val production = InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofMinutes(1),
+        Duration.ofMinutes(15),
+        2
+      )
 
-      Then("both boundaries are valid while shorter, longer, and post-expiry schedules are rejected")
+      Then("schedule, retry, and concurrency boundaries admit production values and reject unbounded work")
       accepted.map(_.interval) shouldBe Vector(minimum, maximum)
+      production.retryInitialInterval shouldBe Duration.ofMinutes(1)
+      production.retryMaximumInterval shouldBe Duration.ofMinutes(15)
+      production.maxConcurrentRefreshes shouldBe 2
       an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(minimum.minusSeconds(1))
       an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(maximum.plusSeconds(1))
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofSeconds(59),
+        Duration.ofMinutes(15),
+        2
+      )
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofMinutes(2),
+        Duration.ofMinutes(1),
+        2
+      )
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofMinutes(1),
+        Duration.ofMinutes(16),
+        2
+      )
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofMinutes(1),
+        Duration.ofMinutes(15),
+        0
+      )
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(
+        Duration.ofMinutes(15),
+        Duration.ofMinutes(1),
+        Duration.ofMinutes(15),
+        9
+      )
       an[IllegalArgumentException] should be thrownBy CatalogCachePolicy(
         Duration.ofMinutes(5),
         InformationSourceRefreshPolicy(Duration.ofMinutes(6))
@@ -113,17 +152,21 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       clock.advance(Duration.ofMinutes(1))
       runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
       runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+      runtime.bokSourceStates(includeDisabled = false).head.nextRefreshAttemptAt shouldBe
+        Some(Instant.parse("2026-07-14T00:06:00Z"))
+      clock.advance(Duration.ofMinutes(1))
+      runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
 
-      Then("fresh reuse performs no work and stale evidence remains attributable to the failed refresh")
-      fetcher.requests should have size 3
+      Then("fresh reuse performs no work and repeated failure backs off while stale evidence remains attributable")
+      fetcher.requests should have size 4
       runtime.bokTerms.map(_.termId) shouldBe Vector("runtime")
       val state = runtime.bokSourceStates(includeDisabled = false).head
       state.status shouldBe "degraded"
       state.cacheStatus shouldBe "stale"
       state.observedAt shouldBe Some(Instant.parse("2026-07-14T00:00:00Z"))
       state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
-      state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
-      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
+      state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:06:00Z"))
+      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:08:00Z"))
       state.diagnostics.mkString(" ") should include("unavailable")
     }
   }

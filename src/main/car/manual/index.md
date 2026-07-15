@@ -206,8 +206,11 @@ Catalog and BoK normal refresh intervals are explicit, default to 15 minutes,
 must be from one minute through 24 hours, and cannot be later than source
 expiry. `nextRefreshAttemptAt` is the earliest readiness-driven attempt;
 readiness before it performs no source request. Explicit catalog administration
-bypasses that schedule. Retry/backoff and concurrency controls are separate
-runtime policy.
+bypasses that schedule. A failed attempt retries after the configured initial
+interval, one minute by default, and doubles the delay after each consecutive
+failure up to the configured maximum; success resets the sequence. Same-source
+callers join one flight, and a fair runtime-wide limit admits two distinct
+refreshes by default. Administration uses these same concurrency bounds.
 
 ## Catalog Contract
 

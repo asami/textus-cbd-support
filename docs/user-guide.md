@@ -99,6 +99,12 @@ catalog and BoK refresh interval defaults to 15 minutes, is bounded from one
 minute through 24 hours, and cannot be later than source expiry. Readiness
 before `nextRefreshAttemptAt` reuses retained state without another source
 request; explicit catalog administration bypasses the normal schedule.
+After a source failure, retries start after the configured initial interval,
+one minute by default, and double up to the configured maximum; success resets
+the sequence. Concurrent work for the same source is coalesced into one
+request, and the runtime admits at most two distinct source refreshes by
+default. Administration shares these concurrency bounds even though it
+bypasses the time schedule.
 Catalog source/origin configuration, index and metadata bytes, and discovered
 profile count are bounded; truncation remains visible as a warning.
 

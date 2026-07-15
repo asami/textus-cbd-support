@@ -3,6 +3,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.{Clock, Duration, Instant}
+import java.util.concurrent.{CountDownLatch, Semaphore}
 import scala.util.control.NonFatal
 
 import io.circe.Json
@@ -114,7 +115,12 @@ private[runtime] object CatalogUriPolicy {
     candidate.getUserInfo == null && sameOrigin(base, candidate)
 }
 
-final case class InformationSourceRefreshPolicy(interval: Duration) {
+final case class InformationSourceRefreshPolicy(
+  interval: Duration,
+  retryInitialInterval: Duration,
+  retryMaximumInterval: Duration,
+  maxConcurrentRefreshes: Int
+) {
   require(
     interval.compareTo(InformationSourceRefreshPolicy.MINIMUM_INTERVAL) >= 0,
     "Information-source refresh interval must be at least one minute."
@@ -123,13 +129,51 @@ final case class InformationSourceRefreshPolicy(interval: Duration) {
     interval.compareTo(InformationSourceRefreshPolicy.MAXIMUM_INTERVAL) <= 0,
     "Information-source refresh interval must not exceed 24 hours."
   )
+  require(
+    retryInitialInterval.compareTo(InformationSourceRefreshPolicy.MINIMUM_RETRY_INTERVAL) >= 0,
+    "Information-source initial retry interval must be at least one minute."
+  )
+  require(
+    retryInitialInterval.compareTo(retryMaximumInterval) <= 0,
+    "Information-source initial retry interval must not exceed its maximum."
+  )
+  require(
+    retryMaximumInterval.compareTo(interval) <= 0,
+    "Information-source maximum retry interval must not exceed the normal refresh interval."
+  )
+  require(
+    maxConcurrentRefreshes >= InformationSourceRefreshPolicy.MINIMUM_CONCURRENT_REFRESHES &&
+      maxConcurrentRefreshes <= InformationSourceRefreshPolicy.MAXIMUM_CONCURRENT_REFRESHES,
+    "Information-source concurrent refresh limit must be from one through eight."
+  )
 }
 
 object InformationSourceRefreshPolicy {
   val MINIMUM_INTERVAL: Duration = Duration.ofMinutes(1)
   val MAXIMUM_INTERVAL: Duration = Duration.ofHours(24)
   val DEFAULT_INTERVAL: Duration = Duration.ofMinutes(15)
-  val DEFAULT: InformationSourceRefreshPolicy = InformationSourceRefreshPolicy(DEFAULT_INTERVAL)
+  val MINIMUM_RETRY_INTERVAL: Duration = Duration.ofMinutes(1)
+  val DEFAULT_RETRY_INITIAL_INTERVAL: Duration = Duration.ofMinutes(1)
+  val DEFAULT_RETRY_MAXIMUM_INTERVAL: Duration = Duration.ofMinutes(15)
+  val MINIMUM_CONCURRENT_REFRESHES: Int = 1
+  val MAXIMUM_CONCURRENT_REFRESHES: Int = 8
+  val DEFAULT_MAX_CONCURRENT_REFRESHES: Int = 2
+  val MAXIMUM_CONSECUTIVE_FAILURES: Int = 30
+
+  def apply(interval: Duration): InformationSourceRefreshPolicy =
+    InformationSourceRefreshPolicy(
+      interval,
+      DEFAULT_RETRY_INITIAL_INTERVAL,
+      interval,
+      DEFAULT_MAX_CONCURRENT_REFRESHES
+    )
+
+  val DEFAULT: InformationSourceRefreshPolicy = InformationSourceRefreshPolicy(
+    DEFAULT_INTERVAL,
+    DEFAULT_RETRY_INITIAL_INTERVAL,
+    DEFAULT_RETRY_MAXIMUM_INTERVAL,
+    DEFAULT_MAX_CONCURRENT_REFRESHES
+  )
 }
 
 final case class CatalogCachePolicy(
@@ -990,26 +1034,40 @@ final class CbdRuntime(
   localpolicy: LocalInspectionPolicy
 ) {
   private val _runtime_started_at = clock.instant()
+  private val _refresh_slots = new Semaphore(
+    math.min(
+      cachepolicy.refreshPolicy.maxConcurrentRefreshes,
+      bokpolicy.refreshPolicy.maxConcurrentRefreshes
+    ),
+    true
+  )
   private var _snapshots = Map.empty[String, CatalogSnapshot]
   private var _failures = Map.empty[String, String]
+  private var _refresh_failure_counts = Map.empty[String, Int]
   private var _last_refresh_attempts = Map.empty[String, Instant]
   private var _bok_snapshots = Map.empty[String, BokSourceSnapshot]
   private var _bok_failures = Map.empty[String, String]
+  private var _bok_refresh_failure_counts = Map.empty[String, Int]
   private var _bok_last_refresh_attempts = Map.empty[String, Instant]
+  private var _refresh_flights = Map.empty[String, CountDownLatch]
   private var _sie_bok_snapshots = Map.empty[String, SieBokSnapshot]
   private var _sie_bok_failures = Map.empty[String, String]
   private var _sie_bok_last_refresh_attempts = Map.empty[String, Instant]
   private var _local_inventory: Option[LocalInformationInventory] = None
 
-  def ensureReady(fetcher: CatalogFetcher): Consequence[Unit] = synchronized {
+  def ensureReady(fetcher: CatalogFetcher): Consequence[Unit] = {
     val now = clock.instant()
-    val selected = sources.filter(_.enabled).filter { source =>
-      _is_catalog_refresh_due(source, now)
+    val selected = synchronized {
+      sources.filter(_.enabled).filter { source =>
+        _is_catalog_refresh_due(source, now) || _is_refresh_in_flight(s"catalog:${source.id}")
+      }
     }
-    val refreshed = if (selected.nonEmpty) _refresh_sources(selected, fetcher) else Consequence.success(sourceStates(includeDisabled = true))
+    val refreshed = if (selected.nonEmpty) _refresh_sources(selected, fetcher, forced = false) else Consequence.success(sourceStates(includeDisabled = true))
     refreshed.flatMap { _ =>
-      if (_snapshots.nonEmpty) Consequence.success(())
-      else Consequence.serviceUnavailable(_failures.values.toVector.sorted.mkString("; "))
+      synchronized {
+        if (_snapshots.nonEmpty) Consequence.success(())
+        else Consequence.serviceUnavailable(_failures.values.toVector.sorted.mkString("; "))
+      }
     }
   }
 
@@ -1018,7 +1076,7 @@ final class CbdRuntime(
     val now = clock.instant()
     val selected = synchronized {
       bokSources.filter(_.enabled).filter { source =>
-        _is_bok_refresh_due(source, now)
+        _is_bok_refresh_due(source, now) || _is_refresh_in_flight(s"bok:${source.id}")
       }
     }
     if (selected.nonEmpty) _refresh_bok_sources(selected, fetcher)
@@ -1041,7 +1099,7 @@ final class CbdRuntime(
     val selected = sources.filter(_.enabled).filter(x => sourceid.forall(_ == x.id))
     if (selected.isEmpty)
       Consequence.failure(s"No enabled catalog source matched: ${sourceid.getOrElse("all")}")
-    else _refresh_sources(selected, fetcher)
+    else _refresh_sources(selected, fetcher, forced = true)
   }
 
   def search(
@@ -1422,34 +1480,13 @@ final class CbdRuntime(
 
   private def _refresh_sources(
     selected: Vector[CatalogSource],
-    fetcher: CatalogFetcher
+    fetcher: CatalogFetcher,
+    forced: Boolean
   ): Consequence[Vector[CatalogSourceState]] = {
     selected.foreach { source =>
-      val attemptedat = clock.instant()
-      synchronized {
-        _last_refresh_attempts = _last_refresh_attempts.updated(source.id, attemptedat)
-      }
-      provider.read(source, fetcher) match {
-        case Consequence.Success(snapshot) => synchronized {
-          val observedat = clock.instant()
-          val observationcontext = ComponentObservationContext(
-            source.id,
-            source.sourceKind,
-            observedat,
-            observedat.plus(cachepolicy.ttl),
-            snapshot.warning.toVector
-          )
-          val profiles = snapshot.profiles.map(_.copy(observationContext = Some(observationcontext)))
-          _snapshots = _snapshots.updated(source.id, snapshot.copy(
-            source = source,
-            profiles = profiles,
-            refreshedAt = observedat
-          ))
-          _failures = _failures.removed(source.id)
-        }
-        case Consequence.Failure(conclusion) => synchronized {
-          _failures = _failures.updated(source.id, InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
-        }
+      _with_refresh_single_flight(s"catalog:${source.id}") {
+        if (forced || synchronized(_is_catalog_refresh_due(source, clock.instant())))
+          _refresh_catalog_source(source, fetcher)
       }
     }
     Consequence.success(sourceStates(includeDisabled = true))
@@ -1460,23 +1497,116 @@ final class CbdRuntime(
     fetcher: BokFetcher
   ): Unit = {
     selected.foreach { source =>
-      val attemptedat = clock.instant()
-      synchronized {
-        _bok_last_refresh_attempts = _bok_last_refresh_attempts.updated(source.id, attemptedat)
-      }
-      bokprovider.read(source, fetcher, bokpolicy) match {
-        case Consequence.Success(snapshot) => synchronized {
-          _bok_snapshots = _bok_snapshots.updated(source.id, snapshot.copy(
-            source = source.descriptor,
-            observedAt = clock.instant()
-          ))
-          _bok_failures = _bok_failures.removed(source.id)
-        }
-        case Consequence.Failure(conclusion) => synchronized {
-          _bok_failures = _bok_failures.updated(source.id, InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
-        }
+      _with_refresh_single_flight(s"bok:${source.id}") {
+        if (synchronized(_is_bok_refresh_due(source, clock.instant())))
+          _refresh_bok_source(source, fetcher)
       }
     }
+  }
+
+  private def _refresh_catalog_source(source: CatalogSource, fetcher: CatalogFetcher): Unit = {
+    val attemptedat = clock.instant()
+    synchronized {
+      _last_refresh_attempts = _last_refresh_attempts.updated(source.id, attemptedat)
+    }
+    provider.read(source, fetcher) match {
+      case Consequence.Success(snapshot) => synchronized {
+        val observedat = clock.instant()
+        val observationcontext = ComponentObservationContext(
+          source.id,
+          source.sourceKind,
+          observedat,
+          observedat.plus(cachepolicy.ttl),
+          snapshot.warning.toVector
+        )
+        val profiles = snapshot.profiles.map(_.copy(observationContext = Some(observationcontext)))
+        _snapshots = _snapshots.updated(source.id, snapshot.copy(
+          source = source,
+          profiles = profiles,
+          refreshedAt = observedat
+        ))
+        _failures = _failures.removed(source.id)
+        _refresh_failure_counts = _refresh_failure_counts.removed(source.id)
+      }
+      case Consequence.Failure(conclusion) => synchronized {
+        _failures = _failures.updated(source.id, InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
+        _refresh_failure_counts = _refresh_failure_counts.updated(
+          source.id,
+          math.min(
+            _refresh_failure_counts.getOrElse(source.id, 0) + 1,
+            InformationSourceRefreshPolicy.MAXIMUM_CONSECUTIVE_FAILURES
+          )
+        )
+      }
+    }
+  }
+
+  private def _refresh_bok_source(source: BokSource, fetcher: BokFetcher): Unit = {
+    val attemptedat = clock.instant()
+    synchronized {
+      _bok_last_refresh_attempts = _bok_last_refresh_attempts.updated(source.id, attemptedat)
+    }
+    bokprovider.read(source, fetcher, bokpolicy) match {
+      case Consequence.Success(snapshot) => synchronized {
+        _bok_snapshots = _bok_snapshots.updated(source.id, snapshot.copy(
+          source = source.descriptor,
+          observedAt = clock.instant()
+        ))
+        _bok_failures = _bok_failures.removed(source.id)
+        _bok_refresh_failure_counts = _bok_refresh_failure_counts.removed(source.id)
+      }
+      case Consequence.Failure(conclusion) => synchronized {
+        _bok_failures = _bok_failures.updated(source.id, InformationSourceDiagnosticPolicy.sanitize(conclusion.display))
+        _bok_refresh_failure_counts = _bok_refresh_failure_counts.updated(
+          source.id,
+          math.min(
+            _bok_refresh_failure_counts.getOrElse(source.id, 0) + 1,
+            InformationSourceRefreshPolicy.MAXIMUM_CONSECUTIVE_FAILURES
+          )
+        )
+      }
+    }
+  }
+
+  private def _with_refresh_single_flight(key: String)(work: => Unit): Unit = {
+    val (leader, flight) = synchronized {
+      _refresh_flights.get(key) match {
+        case Some(x) => (false, x)
+        case None =>
+          val created = new CountDownLatch(1)
+          _refresh_flights = _refresh_flights.updated(key, created)
+          (true, created)
+      }
+    }
+    if (leader) {
+      _refresh_slots.acquireUninterruptibly()
+      try work
+      finally {
+        flight.countDown()
+        synchronized {
+          if (_refresh_flights.get(key).contains(flight))
+            _refresh_flights = _refresh_flights.removed(key)
+        }
+        _refresh_slots.release()
+      }
+    } else {
+      var waiting = true
+      var interrupted = false
+      while (waiting) {
+        try {
+          flight.await()
+          waiting = false
+        } catch {
+          case _: InterruptedException => interrupted = true
+        }
+      }
+      if (interrupted)
+        Thread.currentThread().interrupt()
+    }
+  }
+
+  private def _is_refresh_in_flight(key: String): Boolean = synchronized {
+    _refresh_flights.contains(key)
   }
 
   private def _expires_at(snapshot: CatalogSnapshot): Instant =
@@ -1490,7 +1620,10 @@ final class CbdRuntime(
       None
     else
       _failures.get(source.id).flatMap { _ =>
-        _last_refresh_attempts.get(source.id).map(_.plus(cachepolicy.refreshPolicy.interval))
+        _last_refresh_attempts.get(source.id).map(_.plus(_retry_interval(
+          cachepolicy.refreshPolicy,
+          _refresh_failure_counts.getOrElse(source.id, 1)
+        )))
       }.orElse(
         _snapshots.get(source.id).map(_.refreshedAt.plus(cachepolicy.refreshPolicy.interval))
       ).orElse(
@@ -1511,7 +1644,10 @@ final class CbdRuntime(
       None
     else
       _bok_failures.get(source.id).flatMap { _ =>
-        _bok_last_refresh_attempts.get(source.id).map(_.plus(bokpolicy.refreshPolicy.interval))
+        _bok_last_refresh_attempts.get(source.id).map(_.plus(_retry_interval(
+          bokpolicy.refreshPolicy,
+          _bok_refresh_failure_counts.getOrElse(source.id, 1)
+        )))
       }.orElse(
         _bok_snapshots.get(source.id).map(_.observedAt.plus(bokpolicy.refreshPolicy.interval))
       ).orElse(
@@ -1520,6 +1656,27 @@ final class CbdRuntime(
 
   private def _is_bok_refresh_due(source: BokSource, now: Instant): Boolean =
     _next_bok_refresh_attempt_at(source).exists(nextattempt => !now.isBefore(nextattempt))
+
+  private def _retry_interval(
+    policy: InformationSourceRefreshPolicy,
+    failurecount: Int
+  ): Duration = {
+    val exponent = math.max(
+      0,
+      math.min(failurecount - 1, InformationSourceRefreshPolicy.MAXIMUM_CONSECUTIVE_FAILURES - 1)
+    )
+    (0 until exponent).foldLeft(policy.retryInitialInterval) { (current, _) =>
+      if (current.compareTo(policy.retryMaximumInterval) >= 0)
+        policy.retryMaximumInterval
+      else {
+        val doubled = current.multipliedBy(2)
+        if (doubled.compareTo(policy.retryMaximumInterval) > 0)
+          policy.retryMaximumInterval
+        else
+          doubled
+      }
+    }
+  }
 
   private def _source_priority(sourceid: String): Int =
     sources.find(_.id == sourceid).map(_.priority).getOrElse(Int.MaxValue)

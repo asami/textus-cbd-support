@@ -28,12 +28,25 @@ The default catalog refresh interval is 15 minutes. Runtime readiness performs
 scheduled work on demand; P4-10 does not create a background thread. Before a
 source has been attempted, `nextRefreshAttemptAt` is the runtime start time. A
 successful refresh schedules the next normal attempt from `refreshedAt`; a
-failed refresh schedules it from `lastRefreshAttemptAt`. A readiness call before
-that instant reuses retained state and performs no source request.
+failed refresh schedules it from `lastRefreshAttemptAt` using an exponential
+retry delay. A readiness call before that instant reuses retained state and
+performs no source request.
 
-An explicit administrative refresh ignores `nextRefreshAttemptAt`. Retry
-backoff, synchronized-burst protection, and single-flight concurrency remain
-P4-11 responsibilities and do not alter this normal schedule contract yet.
+Retry starts at the configured initial interval, one minute by production
+default, and doubles after each consecutive failure up to the configured
+maximum, which cannot exceed the normal refresh interval. A success resets the
+failure sequence. One readiness call performs at most one attempt for each due
+source; there is no retry loop inside an operation.
+
+Concurrent work is source-kind and source-ID single-flight. Followers wait for
+the leader's completed state instead of issuing another request. A fair
+runtime-wide semaphore admits from one through eight distinct source refreshes,
+with a production default of two; the stricter Catalog or BoK policy controls
+the shared runtime boundary. This prevents synchronized due sources from
+creating an unbounded request burst.
+
+An explicit administrative refresh ignores `nextRefreshAttemptAt`, but still
+uses the same single-flight and runtime-wide concurrency boundary.
 
 Catalog configuration bounds configured sources and authorized origins.
 Provider reads additionally bound index and metadata response bytes plus the

@@ -198,7 +198,13 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         ),
         "ready",
         1,
-        InformationSourceFreshness("fresh", None, None, None),
+        InformationSourceFreshness(
+          "fresh",
+          None,
+          None,
+          Some(Instant.parse("2026-07-15T00:00:00Z")),
+          Some(Instant.parse("2026-07-15T00:15:00Z"))
+        ),
         Vector.empty
       )
 
@@ -208,6 +214,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       Then("callers can diagnose authentication posture without discovering credential identity")
       record.getString("authenticationScheme") shouldBe Some("bearer")
       record.getBoolean("credentialConfigured") shouldBe Some(true)
+      record.getString("nextRefreshAttemptAt") shouldBe Some("2026-07-15T00:15:00Z")
       record.getAny("credentialRef") shouldBe empty
     }
 

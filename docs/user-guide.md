@@ -90,10 +90,15 @@ exclusive allowlist. Cozy repository diagnostics remain source warnings even
 when the affected catalog entry can still be used.
 
 Catalog snapshots have a 15-minute lifetime. Retrieval operations reuse a
-fresh snapshot and automatically attempt refresh at or after `expiresAt`. A
-failed attempt retains the stale last-known-good snapshot. Use `listCatalogs`
+retained snapshot until `nextRefreshAttemptAt` and attempt refresh when that
+normal schedule is due. A failed attempt retains the stale last-known-good
+snapshot. Use `listCatalogs`
 to inspect `cacheStatus`, `refreshedAt`, `expiresAt`,
-`lastRefreshAttemptAt`, and any warning.
+`lastRefreshAttemptAt`, `nextRefreshAttemptAt`, and any warning. The normal
+catalog and BoK refresh interval defaults to 15 minutes, is bounded from one
+minute through 24 hours, and cannot be later than source expiry. Readiness
+before `nextRefreshAttemptAt` reuses retained state without another source
+request; explicit catalog administration bypasses the normal schedule.
 Catalog source/origin configuration, index and metadata bytes, and discovered
 profile count are bounded; truncation remains visible as a warning.
 

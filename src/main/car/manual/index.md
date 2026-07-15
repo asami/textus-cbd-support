@@ -172,9 +172,9 @@ an authoritative empty array requires matching `dependencyMetadataVersion`.
 ### listCatalogs
 
 Returns authorized information-source identity, base URI or path, kind, priority,
-readiness, observation count, freshness, latest refresh-attempt time, and
-diagnostics for catalog, BoK, SIE, development-directory, local warehouse, and
-cache inputs. A successfully inspected local source uses `observed` freshness;
+readiness, observation count, freshness, latest and next refresh-attempt times,
+and diagnostics for catalog, BoK, SIE, development-directory, local warehouse,
+and cache inputs. A successfully inspected local source uses `observed` freshness;
 its diagnostics make that source degraded. The response-level `warnings`
 field also reports rejected remote and local configuration. The operation name
 remains `listCatalogs` for Phase 2 compatibility.
@@ -195,11 +195,19 @@ MCP because it changes runtime state and may cause external traffic.
 
 Snapshots have a default finite TTL of 15 minutes and the runtime cache policy
 rejects non-positive lifetimes or lifetimes over 24 hours. Retrieval readiness
-reuses a fresh snapshot and automatically refreshes a missing or expired
-snapshot. If automatic refresh fails, the stale last-known-good snapshot stays
-available and the source becomes `degraded`. The same lifetime and stale
+reuses retained state before the next scheduled attempt and refreshes an
+unattempted source or a source whose normal schedule is due. If automatic
+refresh fails, the stale last-known-good snapshot stays available and the
+source becomes `degraded`. The same lifetime, schedule, and stale
 last-known-good rule applies to BoK snapshots; `refreshCatalog` itself remains
 catalog-only administration.
+
+Catalog and BoK normal refresh intervals are explicit, default to 15 minutes,
+must be from one minute through 24 hours, and cannot be later than source
+expiry. `nextRefreshAttemptAt` is the earliest readiness-driven attempt;
+readiness before it performs no source request. Explicit catalog administration
+bypasses that schedule. Retry/backoff and concurrency controls are separate
+runtime policy.
 
 ## Catalog Contract
 
@@ -247,8 +255,9 @@ the compatibility fallback to remain verified until an explicit migration.
 - All enabled sources failing initial load causes retrieval operations to fail.
 - Refresh failure with an existing snapshot returns degraded state and keeps
   serving the old snapshot.
-- Cache expiry is inclusive: a snapshot is stale at `expiresAt`, and the next
-  retrieval readiness check attempts refresh.
+- Cache expiry is inclusive: a snapshot is stale at `expiresAt`. Normal
+  readiness-driven attempts follow `nextRefreshAttemptAt`, which cannot be
+  later than that expiry.
 - Optional missing fields produce warnings where the contract can continue.
 - Catalog profile matching remains deterministic metadata matching and is not
   a claim of semantic compatibility. BoK/SIE citations remain separate

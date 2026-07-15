@@ -358,19 +358,22 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       results.map(_.profile.name) shouldBe Vector("textus-order")
     }
 
-    "refresh a catalog only after its bounded cache lifetime expires" in {
-      Given("a five-minute cache policy and a controllable clock")
+    "refresh a catalog when its explicit bounded schedule becomes due" in {
+      Given("a ten-minute cache lifetime, a five-minute refresh interval, and a controllable clock")
       val source = CatalogSource("switchable", URI.create("https://switchable.example/"), 100, true)
       val provider = new SwitchableCatalogProvider(_component_profile(source.id))
       val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
       val runtime = CbdRuntime.create(
         Vector(source),
         provider,
-        CatalogCachePolicy(Duration.ofMinutes(5)),
+        CatalogCachePolicy(
+          Duration.ofMinutes(10),
+          InformationSourceRefreshPolicy(Duration.ofMinutes(5))
+        ),
         clock
       )
 
-      When("readiness is checked before and at the cache expiry boundary")
+      When("readiness is checked before and at the refresh boundary while the snapshot remains fresh")
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
       clock.advance(Duration.ofMinutes(4))
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
@@ -379,13 +382,41 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
       val state = runtime.sourceStates(includeDisabled = false).head
 
-      Then("the fresh snapshot is reused and the expired snapshot is refreshed with observable times")
+      Then("the snapshot is reused before the schedule and refreshed when the explicit interval is due")
       provider.readCount shouldBe 2
       state.status shouldBe "ready"
       state.cacheStatus shouldBe "fresh"
       state.refreshedAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
-      state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
+      state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:15:00Z"))
       state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
+    }
+
+    "allow an administrative refresh to bypass the normal schedule" in {
+      Given("a fresh catalog whose next normal attempt is still four minutes away")
+      val source = CatalogSource("switchable", URI.create("https://switchable.example/"), 100, true)
+      val provider = new SwitchableCatalogProvider(_component_profile(source.id))
+      val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
+      val runtime = CbdRuntime.create(
+        Vector(source),
+        provider,
+        CatalogCachePolicy(
+          Duration.ofMinutes(10),
+          InformationSourceRefreshPolicy(Duration.ofMinutes(5))
+        ),
+        clock
+      )
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      clock.advance(Duration.ofMinutes(1))
+
+      When("the selected source is explicitly refreshed through administration")
+      runtime.refresh(Some(source.id), EmptyCatalogFetcher).isSuccess shouldBe true
+      val state = runtime.sourceStates(includeDisabled = false).head
+
+      Then("the source is read immediately and its normal schedule restarts from that observation")
+      provider.readCount shouldBe 2
+      state.refreshedAt shouldBe Some(Instant.parse("2026-07-14T00:01:00Z"))
+      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:06:00Z"))
     }
 
     "preserve a stale last-known-good snapshot when automatic refresh fails" in {
@@ -405,6 +436,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
 
       When("readiness automatically retries the expired catalog")
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
+      runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
       val state = runtime.sourceStates(includeDisabled = false).head
 
       Then("the source exposes stale degraded state while the previous component remains searchable")
@@ -415,6 +447,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       state.refreshedAt shouldBe Some(Instant.parse("2026-07-14T00:00:00Z"))
       state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
       state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
       state.warning.exists(_.contains("Catalog unavailable")) shouldBe true
       runtime.get("textus-order", None, None, None, None) should not be empty
     }

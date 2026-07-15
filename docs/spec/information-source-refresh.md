@@ -18,16 +18,25 @@ being presented as complete evidence.
 
 ## Catalog and BoK Expiry
 
-Catalog and BoK TTL values must be positive and no greater than 24 hours. The
-production default is 15 minutes. A snapshot is fresh strictly before
+Catalog and BoK TTL values must be positive and no greater than 24 hours. Their
+normal refresh intervals are explicit, bounded from one minute through 24
+hours, and no later than source expiry. The production default is 15 minutes
+for both lifetime and schedule. A snapshot is fresh strictly before
 `expiresAt` and stale at or after it. Readiness reuses a fresh snapshot and
-attempts refresh for a missing or stale snapshot.
+attempts refresh only when the source's observable `nextRefreshAttemptAt` is
+due. This is demand-triggered scheduled work, not a background thread.
 
 A failed refresh updates the sanitized diagnostic and
 `lastRefreshAttemptAt`, but does not replace or delete the prior snapshot. The
 source is `degraded`, its freshness is `stale`, and the prior observation time
 and expiry remain visible. Initial failure without a snapshot exposes `empty`
 freshness and no last-known-good evidence.
+
+Before the first attempt, the next normal attempt is the runtime start time.
+Success schedules from the new observation time; failure schedules from the
+latest attempt time. Disabled, query-scoped SIE, and uncached local inputs have
+no scheduled next attempt. Administrative catalog refresh bypasses the normal
+schedule. Retry/backoff and concurrency behavior are deferred to P4-11.
 
 ## Non-Cached Inputs
 
@@ -43,6 +52,8 @@ an older inventory to be labeled current.
 
 ## Executable Evidence
 
-`InformationSourceRefreshSpec` verifies bounded catalog configuration and
-discovery, BoK TTL and stale last-known-good retention, pre-transport SIE
-request bounds, and independent timestamped local inspections.
+`InformationSourceRefreshSpec` verifies inclusive schedule bounds, schedule
+versus TTL constraints, observable catalog/BoK next attempts, no immediate
+repeat after failure, bounded catalog configuration and discovery, BoK stale
+last-known-good retention, pre-transport SIE request bounds, and independent
+timestamped local inspections.

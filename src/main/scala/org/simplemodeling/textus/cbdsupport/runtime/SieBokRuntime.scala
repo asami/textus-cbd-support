@@ -99,7 +99,8 @@ final case class SieBokSourceState(
         if (!source.enabled) "disabled" else if (observedAt.nonEmpty) "observed" else "empty",
         observedAt,
         None,
-        lastRefreshAttemptAt
+        lastRefreshAttemptAt,
+        None
       ),
       diagnostics
     )

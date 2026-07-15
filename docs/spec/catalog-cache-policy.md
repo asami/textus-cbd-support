@@ -10,13 +10,30 @@ the observations needed to distinguish freshness, expiry, and refresh failure.
 
 - The production default snapshot TTL is 15 minutes.
 - A cache policy must be positive and no greater than 24 hours.
+- The production refresh interval is explicit, must be from one minute through
+  24 hours, and must not exceed the snapshot TTL.
 - `expiresAt` is `refreshedAt + TTL`.
 - A snapshot is fresh strictly before `expiresAt` and stale at or after it.
-- Retrieval readiness reuses fresh snapshots without source traffic.
-- Retrieval readiness attempts to load every enabled source whose snapshot is
-  missing or stale.
+- Retrieval readiness reuses retained snapshots without source traffic until
+  `nextRefreshAttemptAt` is due.
+- Retrieval readiness attempts to load every enabled source before its first
+  attempt or when its normal schedule is due; an interval shorter than the TTL
+  may refresh a still-fresh snapshot.
 - The administrative refresh operation ignores freshness and explicitly
   attempts the selected enabled source or every enabled source.
+
+## Normal Refresh Schedule
+
+The default catalog refresh interval is 15 minutes. Runtime readiness performs
+scheduled work on demand; P4-10 does not create a background thread. Before a
+source has been attempted, `nextRefreshAttemptAt` is the runtime start time. A
+successful refresh schedules the next normal attempt from `refreshedAt`; a
+failed refresh schedules it from `lastRefreshAttemptAt`. A readiness call before
+that instant reuses retained state and performs no source request.
+
+An explicit administrative refresh ignores `nextRefreshAttemptAt`. Retry
+backoff, synchronized-burst protection, and single-flight concurrency remain
+P4-11 responsibilities and do not alter this normal schedule contract yet.
 
 Catalog configuration bounds configured sources and authorized origins.
 Provider reads additionally bound index and metadata response bytes plus the
@@ -40,6 +57,8 @@ Each source state returns:
 - `refreshedAt`: time of the last successful snapshot replacement;
 - `expiresAt`: freshness boundary for that snapshot;
 - `lastRefreshAttemptAt`: time of the latest successful or failed attempt;
+- `nextRefreshAttemptAt`: earliest instant for the next normal readiness-driven
+  attempt, or absent for a disabled source;
 - `warning`: provider warning or latest refresh failure.
 
 A stale snapshot is degraded even before a subsequent retrieval initiates its

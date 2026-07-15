@@ -12,10 +12,37 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+  "Production refresh schedule" should {
+    "admit only finite intervals from one minute through 24 hours and no later than source expiry" in {
+      Given("the inclusive production interval bounds and source TTL constraints")
+      val minimum = InformationSourceRefreshPolicy.MINIMUM_INTERVAL
+      val maximum = InformationSourceRefreshPolicy.MAXIMUM_INTERVAL
+
+      When("boundary and out-of-bound policies are constructed")
+      val accepted = Vector(
+        InformationSourceRefreshPolicy(minimum),
+        InformationSourceRefreshPolicy(maximum)
+      )
+
+      Then("both boundaries are valid while shorter, longer, and post-expiry schedules are rejected")
+      accepted.map(_.interval) shouldBe Vector(minimum, maximum)
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(minimum.minusSeconds(1))
+      an[IllegalArgumentException] should be thrownBy InformationSourceRefreshPolicy(maximum.plusSeconds(1))
+      an[IllegalArgumentException] should be thrownBy CatalogCachePolicy(
+        Duration.ofMinutes(5),
+        InformationSourceRefreshPolicy(Duration.ofMinutes(6))
+      )
+      an[IllegalArgumentException] should be thrownBy BokInspectionPolicy(
+        refreshTtl = Duration.ofMinutes(5),
+        refreshPolicy = InformationSourceRefreshPolicy(Duration.ofMinutes(6))
+      )
+    }
+  }
+
   "Published catalog input" should {
     "bound configured sources, authorized origins, response bytes, and discovered profiles" in {
       Given("two configured catalogs and a repository index containing more profiles than the policy admits")
@@ -62,7 +89,10 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
         manifesturi -> """{"schemaVersion":"cncf.knowledge-source.v1","kind":"bok-site","id":"bok","sourceRef":{"kind":"bok-site","value":"bok"},"resources":[{"kind":"glossary-terms","href":"metadata/glossary/terms.json","mediaType":"application/json"}]}""",
         termsuri -> """{"terms":[{"id":"runtime","title":"Runtime"}]}"""
       ))
-      val policy = BokInspectionPolicy(refreshTtl = Duration.ofMinutes(5))
+      val policy = BokInspectionPolicy(
+        refreshTtl = Duration.ofMinutes(5),
+        refreshPolicy = InformationSourceRefreshPolicy(Duration.ofMinutes(5))
+      )
       val runtime = CbdRuntime.createFederated(
         Vector(catalog),
         new InMemoryComponentCatalogProvider(Vector.empty),
@@ -75,10 +105,13 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
 
       When("readiness is checked before expiry and again at expiry after the BoK source fails")
       runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
+      runtime.bokSourceStates(includeDisabled = false).head.nextRefreshAttemptAt shouldBe
+        Some(Instant.parse("2026-07-14T00:05:00Z"))
       clock.advance(Duration.ofMinutes(4))
       runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
       fetcher.fail = true
       clock.advance(Duration.ofMinutes(1))
+      runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
       runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
 
       Then("fresh reuse performs no work and stale evidence remains attributable to the failed refresh")
@@ -90,6 +123,7 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       state.observedAt shouldBe Some(Instant.parse("2026-07-14T00:00:00Z"))
       state.expiresAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
       state.lastRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:05:00Z"))
+      state.nextRefreshAttemptAt shouldBe Some(Instant.parse("2026-07-14T00:10:00Z"))
       state.diagnostics.mkString(" ") should include("unavailable")
     }
   }

@@ -12,7 +12,7 @@ deleted; a checked item requires observable evidence.
 
 ## Production Refresh and Cache Policy
 
-- [ ] `P4-10` Catalog and BoK sources have an explicit production refresh policy with bounded schedule intervals and observable next-attempt state.
+- [x] `P4-10` Catalog and BoK sources have an explicit production refresh policy with bounded schedule intervals and observable next-attempt state.
 - [ ] `P4-11` Automatic refresh uses bounded retry/backoff and concurrency control, including single-flight behavior for the same source and protection against synchronized refresh bursts.
 - [ ] `P4-12` Snapshot retention has explicit source-count, observation-count, and memory/work bounds while preserving attributable last-known-good evidence.
 - [ ] `P4-13` Authentication, transport, parse, and compatibility failures have tested refresh-state transitions and never disguise stale evidence as current.

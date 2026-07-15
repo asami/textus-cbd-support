@@ -76,7 +76,8 @@ final case class InformationSourceFreshness(
   status: String,
   observedAt: Option[Instant],
   expiresAt: Option[Instant],
-  lastRefreshAttemptAt: Option[Instant]
+  lastRefreshAttemptAt: Option[Instant],
+  nextRefreshAttemptAt: Option[Instant]
 )
 
 final case class InformationSourceState(
@@ -113,15 +114,44 @@ private[runtime] object CatalogUriPolicy {
     candidate.getUserInfo == null && sameOrigin(base, candidate)
 }
 
-final case class CatalogCachePolicy(ttl: Duration) {
+final case class InformationSourceRefreshPolicy(interval: Duration) {
+  require(
+    interval.compareTo(InformationSourceRefreshPolicy.MINIMUM_INTERVAL) >= 0,
+    "Information-source refresh interval must be at least one minute."
+  )
+  require(
+    interval.compareTo(InformationSourceRefreshPolicy.MAXIMUM_INTERVAL) <= 0,
+    "Information-source refresh interval must not exceed 24 hours."
+  )
+}
+
+object InformationSourceRefreshPolicy {
+  val MINIMUM_INTERVAL: Duration = Duration.ofMinutes(1)
+  val MAXIMUM_INTERVAL: Duration = Duration.ofHours(24)
+  val DEFAULT_INTERVAL: Duration = Duration.ofMinutes(15)
+  val DEFAULT: InformationSourceRefreshPolicy = InformationSourceRefreshPolicy(DEFAULT_INTERVAL)
+}
+
+final case class CatalogCachePolicy(
+  ttl: Duration,
+  refreshPolicy: InformationSourceRefreshPolicy
+) {
   require(!ttl.isZero && !ttl.isNegative, "Catalog cache TTL must be positive.")
   require(ttl.compareTo(CatalogCachePolicy.MAXIMUM_TTL) <= 0, "Catalog cache TTL must not exceed 24 hours.")
+  require(
+    refreshPolicy.interval.compareTo(ttl) <= 0,
+    "Catalog refresh interval must not exceed the cache TTL."
+  )
 }
 
 object CatalogCachePolicy {
   val DEFAULT_TTL: Duration = Duration.ofMinutes(15)
   val MAXIMUM_TTL: Duration = Duration.ofHours(24)
-  val DEFAULT: CatalogCachePolicy = CatalogCachePolicy(DEFAULT_TTL)
+
+  def apply(ttl: Duration): CatalogCachePolicy =
+    CatalogCachePolicy(ttl, InformationSourceRefreshPolicy(ttl))
+
+  val DEFAULT: CatalogCachePolicy = CatalogCachePolicy(DEFAULT_TTL, InformationSourceRefreshPolicy.DEFAULT)
 }
 
 final case class CatalogInspectionPolicy(
@@ -292,6 +322,7 @@ final case class CatalogSourceState(
   refreshedAt: Option[Instant],
   expiresAt: Option[Instant],
   lastRefreshAttemptAt: Option[Instant],
+  nextRefreshAttemptAt: Option[Instant],
   cacheStatus: String,
   warning: Option[String]
 ) {
@@ -300,7 +331,13 @@ final case class CatalogSourceState(
       source.descriptor,
       status,
       componentCount,
-      InformationSourceFreshness(cacheStatus, refreshedAt, expiresAt, lastRefreshAttemptAt),
+      InformationSourceFreshness(
+        cacheStatus,
+        refreshedAt,
+        expiresAt,
+        lastRefreshAttemptAt,
+        nextRefreshAttemptAt
+      ),
       warning.toVector
     )
 }
@@ -952,6 +989,7 @@ final class CbdRuntime(
   localconfiguration: LocalInformationSourceConfiguration,
   localpolicy: LocalInspectionPolicy
 ) {
+  private val _runtime_started_at = clock.instant()
   private var _snapshots = Map.empty[String, CatalogSnapshot]
   private var _failures = Map.empty[String, String]
   private var _last_refresh_attempts = Map.empty[String, Instant]
@@ -966,7 +1004,7 @@ final class CbdRuntime(
   def ensureReady(fetcher: CatalogFetcher): Consequence[Unit] = synchronized {
     val now = clock.instant()
     val selected = sources.filter(_.enabled).filter { source =>
-      _snapshots.get(source.id).forall(_is_stale(_, now))
+      _is_catalog_refresh_due(source, now)
     }
     val refreshed = if (selected.nonEmpty) _refresh_sources(selected, fetcher) else Consequence.success(sourceStates(includeDisabled = true))
     refreshed.flatMap { _ =>
@@ -980,7 +1018,7 @@ final class CbdRuntime(
     val now = clock.instant()
     val selected = synchronized {
       bokSources.filter(_.enabled).filter { source =>
-        _bok_snapshots.get(source.id).forall(_is_bok_stale(_, now))
+        _is_bok_refresh_due(source, now)
       }
     }
     if (selected.nonEmpty) _refresh_bok_sources(selected, fetcher)
@@ -1197,6 +1235,7 @@ final class CbdRuntime(
         snapshot.map(_.refreshedAt),
         snapshot.map(_expires_at),
         _last_refresh_attempts.get(source.id),
+        _next_catalog_refresh_attempt_at(source),
         if (!source.enabled) "disabled" else if (snapshot.isEmpty) "empty" else if (stale) "stale" else "fresh",
         failure
       )
@@ -1216,6 +1255,7 @@ final class CbdRuntime(
         snapshot.map(_.observedAt),
         snapshot.map(_bok_expires_at),
         _bok_last_refresh_attempts.get(source.id),
+        _next_bok_refresh_attempt_at(source),
         if (!source.enabled) "disabled" else if (snapshot.isEmpty) "empty" else if (stale) "stale" else "fresh",
         diagnostics
       )
@@ -1288,7 +1328,8 @@ final class CbdRuntime(
             if (!descriptor.enabled) "disabled" else if (inventory.isEmpty) "empty" else "observed",
             inventory.map(_.observedAt),
             None,
-            inventory.map(_.observedAt)
+            inventory.map(_.observedAt),
+            None
           ),
           diagnostics
         )
@@ -1444,11 +1485,41 @@ final class CbdRuntime(
   private def _is_stale(snapshot: CatalogSnapshot, now: Instant): Boolean =
     !now.isBefore(_expires_at(snapshot))
 
+  private def _next_catalog_refresh_attempt_at(source: CatalogSource): Option[Instant] =
+    if (!source.enabled)
+      None
+    else
+      _failures.get(source.id).flatMap { _ =>
+        _last_refresh_attempts.get(source.id).map(_.plus(cachepolicy.refreshPolicy.interval))
+      }.orElse(
+        _snapshots.get(source.id).map(_.refreshedAt.plus(cachepolicy.refreshPolicy.interval))
+      ).orElse(
+        _last_refresh_attempts.get(source.id).map(_.plus(cachepolicy.refreshPolicy.interval))
+      ).orElse(Some(_runtime_started_at))
+
+  private def _is_catalog_refresh_due(source: CatalogSource, now: Instant): Boolean =
+    _next_catalog_refresh_attempt_at(source).exists(nextattempt => !now.isBefore(nextattempt))
+
   private def _bok_expires_at(snapshot: BokSourceSnapshot): Instant =
     snapshot.observedAt.plus(bokpolicy.refreshTtl)
 
   private def _is_bok_stale(snapshot: BokSourceSnapshot, now: Instant): Boolean =
     !now.isBefore(_bok_expires_at(snapshot))
+
+  private def _next_bok_refresh_attempt_at(source: BokSource): Option[Instant] =
+    if (!source.enabled)
+      None
+    else
+      _bok_failures.get(source.id).flatMap { _ =>
+        _bok_last_refresh_attempts.get(source.id).map(_.plus(bokpolicy.refreshPolicy.interval))
+      }.orElse(
+        _bok_snapshots.get(source.id).map(_.observedAt.plus(bokpolicy.refreshPolicy.interval))
+      ).orElse(
+        _bok_last_refresh_attempts.get(source.id).map(_.plus(bokpolicy.refreshPolicy.interval))
+      ).orElse(Some(_runtime_started_at))
+
+  private def _is_bok_refresh_due(source: BokSource, now: Instant): Boolean =
+    _next_bok_refresh_attempt_at(source).exists(nextattempt => !now.isBefore(nextattempt))
 
   private def _source_priority(sourceid: String): Int =
     sources.find(_.id == sourceid).map(_.priority).getOrElse(Int.MaxValue)

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-04 executable authentication security evidence is complete; the next slice defines production refresh scheduling and next-attempt state under P4-10.
+- Current step: P4-10 bounded production refresh scheduling and observable next-attempt state are complete; the next slice adds retry/backoff and concurrency control under P4-11.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -142,6 +142,20 @@ release evidence.
   request bodies, configuration keys, resolved credentials, and authentication
   header names remain absent. CNCF additionally masks the configured-state
   value in rendered CallTree output.
+- Catalog and BoK policies now carry explicit normal refresh intervals bounded
+  from one minute through 24 hours and no later than source expiry. Production
+  defaults both lifetime and schedule to 15 minutes.
+- `nextRefreshAttemptAt` is projected through unified source state and MCP
+  output: runtime start before an initial attempt, observation plus interval
+  after success, attempt plus interval after failure, and absent for disabled,
+  query-scoped SIE, or uncached local inputs. Readiness calls before the due
+  instant perform no remote work; administrative catalog refresh bypasses the
+  normal schedule.
+- `InformationSourceRefreshSpec`, `CatalogRuntimeSpec`, and
+  `ComponentFactorySpec` provide executable evidence for interval bounds,
+  catalog and BoK scheduling, administrative schedule bypass, failed-attempt
+  deferral, and public next-attempt projection. Retry/backoff, single-flight,
+  and synchronized-burst protection remain explicitly deferred to P4-11.
 
 ## Closure Basis
 

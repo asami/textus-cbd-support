@@ -21,7 +21,8 @@ final case class BokInspectionPolicy(
   maxTerms: Int = 10000,
   maxManifestBytes: Int = 1024 * 1024,
   maxResourceBytes: Int = 8 * 1024 * 1024,
-  refreshTtl: Duration = Duration.ofMinutes(15)
+  refreshTtl: Duration = Duration.ofMinutes(15),
+  refreshPolicy: InformationSourceRefreshPolicy = InformationSourceRefreshPolicy.DEFAULT
 ) {
   require(maxSources > 0, "BoK source limit must be positive.")
   require(maxAllowedOrigins > 0, "BoK allowed-origin limit must be positive.")
@@ -31,6 +32,10 @@ final case class BokInspectionPolicy(
   require(maxResourceBytes > 0, "BoK resource byte limit must be positive.")
   require(!refreshTtl.isZero && !refreshTtl.isNegative, "BoK refresh TTL must be positive.")
   require(refreshTtl.compareTo(BokInspectionPolicy.MAXIMUM_TTL) <= 0, "BoK refresh TTL must not exceed 24 hours.")
+  require(
+    refreshPolicy.interval.compareTo(refreshTtl) <= 0,
+    "BoK refresh interval must not exceed the refresh TTL."
+  )
 }
 
 object BokInspectionPolicy {
@@ -108,6 +113,7 @@ final case class BokSourceState(
   observedAt: Option[Instant],
   expiresAt: Option[Instant],
   lastRefreshAttemptAt: Option[Instant],
+  nextRefreshAttemptAt: Option[Instant],
   cacheStatus: String,
   diagnostics: Vector[String]
 ) {
@@ -120,7 +126,8 @@ final case class BokSourceState(
         cacheStatus,
         observedAt,
         expiresAt,
-        lastRefreshAttemptAt
+        lastRefreshAttemptAt,
+        nextRefreshAttemptAt
       ),
       diagnostics
     )

@@ -473,6 +473,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         "refreshedAt" -> state.freshness.observedAt.map(_.toString),
         "expiresAt" -> state.freshness.expiresAt.map(_.toString),
         "lastRefreshAttemptAt" -> state.freshness.lastRefreshAttemptAt.map(_.toString),
+        "nextRefreshAttemptAt" -> state.freshness.nextRefreshAttemptAt.map(_.toString),
         "diagnostics" -> state.diagnostics,
         "warning" -> state.diagnostics.headOption
       )

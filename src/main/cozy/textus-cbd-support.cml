@@ -649,6 +649,7 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | refreshedAt | CatalogRefreshTime | ? |
 | expiresAt | CatalogRefreshTime | ? |
 | lastRefreshAttemptAt | CatalogRefreshTime | ? |
+| nextRefreshAttemptAt | CatalogRefreshTime | ? |
 | diagnostics | CbdWarning | * |
 | warning | CbdWarning | ? |
 

@@ -109,5 +109,7 @@ credentials with stable sanitized source-failure codes and no alternate-source
 fallback or authentication retry. P4-04 now executes catalog, BoK-site, and
 SIE-mediated authentication through the production ProviderCall/UnitOfWork/
 HTTP-driver path and proves exact per-source headers, cross-origin refusal,
-redaction, and CallTree-safe metadata. The next slice is P4-10 production
-refresh scheduling and observable next-attempt state.
+redaction, and CallTree-safe metadata. P4-10 now gives catalog and BoK sources
+bounded one-minute-through-24-hour normal refresh schedules and exposes each
+next attempt without immediate repeated work after failure. The next slice is
+P4-11 bounded retry/backoff, single-flight, and synchronized-burst protection.

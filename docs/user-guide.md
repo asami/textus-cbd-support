@@ -34,13 +34,15 @@ scripts/check-cbd-sie-sar.sh
 ```
 
 The command builds the CBD Support and sibling SIE snapshot CARs, creates a
-temporary `textus-cbd-sie` SAR, starts one owned loopback CNCF server, and
-checks its `/mcp` JSON-RPC tool catalog. Success requires exactly the six CBD
-retrieval tools and seven SIE semantic-retrieval tools. CBD catalog
-administration, SIE mutation/administration, the legacy SIE MCP facade, and all
-other unexpected tools must remain absent. The server and temporary SAR are
-removed on exit. Set `TEXTUS_SIE_ROOT` only when the sibling SIE checkout is in
-a non-default location.
+temporary `textus-cbd-sie` SAR for each policy profile, and checks each through
+a separately owned loopback CNCF server. Success requires exact CBD/SIE counts
+of baseline `6/7`, global disable `0/0`, SIE service disable `6/0`, and status-
+operation disable `5/6`. Representative disabled calls must return JSON-RPC
+`-32602`. CBD catalog administration, SIE mutation/administration, the legacy
+SIE MCP facade, and all other unexpected tools must remain absent. Each server
+and temporary SAR is removed on exit. Set `TEXTUS_SIE_ROOT` only when the
+sibling SIE checkout is in a non-default location; set `CNCF_RUNTIME_DEV_DIR`
+when validating a local CNCF runtime checkout.
 
 ## Normal Workflow
 

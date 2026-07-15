@@ -20,7 +20,7 @@ deleted; a checked item requires observable evidence.
 ## SAR Composition and Runtime Projection
 
 - [x] `P4-20` A representative SAR composes CBD Support and SIE and exposes their selected read-only tools through one live CNCF `/mcp` endpoint without exposing either component's administration operations.
-- [ ] `P4-21` Runtime disable policy can narrow the composed MCP tool set globally, by service, and by operation without expanding component-declared readiness.
+- [x] `P4-21` Runtime disable policy can narrow the composed MCP tool set globally, by service, and by operation without expanding component-declared readiness.
 - [ ] `P4-22` Live composed retrieval preserves CBD catalog/local evidence and SIE semantic evidence as separate source-owned records with bounded failures and no hidden winner.
 
 ## Compatibility Governance

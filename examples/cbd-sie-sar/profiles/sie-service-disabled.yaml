@@ -1,0 +1,9 @@
+subsystem: textus-cbd-sie
+version: 0.1.0-SNAPSHOT
+components:
+  - component: textus-cbd-support
+    coordinate: org.textus.car:textus-cbd-support:0.1.0-SNAPSHOT
+  - component: textus-semantic-integration-engine
+    coordinate: org.textus.car:textus-semantic-integration-engine:0.2.0-SNAPSHOT
+    config:
+      cncf.mcp.disabled-services: "SemanticRetrieval"

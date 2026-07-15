@@ -173,11 +173,14 @@ operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 ## Representative CBD and SIE SAR
 
 Run `scripts/check-cbd-sie-sar.sh` to build both local snapshot CARs, assemble
-the representative `textus-cbd-sie` SAR, start one temporary loopback CNCF
-server, and verify its live JSON-RPC `/mcp` surface. The expected surface is
-exactly six CBD retrieval tools plus seven SIE semantic-retrieval tools; any
-administration, mutation, legacy facade, or other unexpected tool fails the
-check. See [the representative SAR example](examples/cbd-sie-sar/README.md).
+the representative `textus-cbd-sie` SAR profiles, and verify each through a
+separately owned loopback CNCF server. The policy matrix requires exact CBD/SIE
+tool counts of `6/7` at baseline, `0/0` under global disable, `6/0` when the SIE
+service is disabled, and `5/6` when both status operations are disabled.
+Disabled calls must return JSON-RPC `-32602`; any administration, mutation,
+legacy facade, or other unexpected tool fails the check. Set
+`CNCF_RUNTIME_DEV_DIR` to validate a local CNCF checkout. See
+[the representative SAR example](examples/cbd-sie-sar/README.md).
 
 See [User Guide](docs/user-guide.md), [Reference Manual](src/main/car/manual/index.md),
 [Cozy Catalog Fidelity](docs/spec/cozy-catalog-fidelity.md),

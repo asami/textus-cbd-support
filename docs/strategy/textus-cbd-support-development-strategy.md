@@ -122,5 +122,9 @@ stale source-owned evidence until a successful bounded retry establishes a new
 current observation. P4-20 builds the two snapshot CARs into a representative
 `textus-cbd-sie` SAR and verifies one live CNCF `/mcp` endpoint whose exact
 surface is six CBD retrieval tools and seven SIE semantic-retrieval tools with
-no administration or mutation tools. The next slice is P4-21 runtime
-disable-policy narrowing across that composed surface.
+no administration or mutation tools. P4-21 verifies four live composed
+profiles: baseline `6/7`, global disable `0/0`, SIE service disable `6/0`, and
+per-component status-operation disable `5/6`. Exact tool-set assertions and
+disabled `tools/call` rejection prove that runtime policy only narrows declared
+readiness. The next slice is P4-22 live composed retrieval with separate
+source-owned evidence and bounded failures.

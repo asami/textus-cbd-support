@@ -87,11 +87,12 @@ CNCF MCP publication can be narrowed with:
 
 The repository's representative `textus-cbd-sie` SAR composes this CAR and the
 Textus Semantic Integration Engine CAR. Run `scripts/check-cbd-sie-sar.sh` from
-the repository checkout to build both CARs and verify one temporary live
-JSON-RPC `/mcp` endpoint. Its tool catalog must contain only six CBD retrieval
-tools and seven SIE semantic-retrieval tools. CBD catalog administration, SIE
-mutation/administration, the legacy SIE facade, and any other tool are rejected
-as unexpected publication.
+the repository checkout to build both CARs and verify four temporary live
+JSON-RPC `/mcp` profiles. Exact CBD/SIE counts must be `6/7` at baseline, `0/0`
+under global disable, `6/0` under SIE service disable, and `5/6` when both
+status operations are disabled. Disabled calls must return `-32602`. CBD
+catalog administration, SIE mutation/administration, the legacy SIE facade,
+and any other tool are rejected as unexpected publication.
 
 ## Source Precedence
 

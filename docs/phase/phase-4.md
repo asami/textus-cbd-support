@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-20 representative SAR composition is complete; the next slice verifies runtime MCP disable policy under P4-21.
+- Current step: P4-21 runtime MCP disable-policy narrowing is complete; the next slice verifies live source ownership and bounded failure under P4-22.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -212,6 +212,16 @@ release evidence.
   seven `SemanticIntegrationEngine.SemanticRetrieval` tools. No CBD catalog
   administration, SIE mutation/administration, legacy facade, or unexpected
   tool was exposed.
+- The P4-21 live matrix passed on 2026-07-15 against the local CNCF
+  `0.5.1-SNAPSHOT` checkout containing runtime-config preservation commit
+  `848ef559`. Four separately owned server runs exposed exact CBD/SIE tool
+  counts of `6/7` for baseline, `0/0` when MCP was globally disabled, `6/0`
+  when the SIE `SemanticRetrieval` service was disabled, and `5/6` when each
+  component's `status` operation was disabled.
+- Every matrix profile remained a subset of the thirteen component-declared
+  baseline tools. Calls to representative globally, service, and operation-
+  disabled tools returned JSON-RPC invalid-params code `-32602`; no disabled
+  tool remained invocable through a hidden route.
 
 ## Closure Basis
 

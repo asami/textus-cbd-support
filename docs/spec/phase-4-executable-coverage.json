@@ -1,0 +1,269 @@
+{
+  "schemaVersion": "textus-cbd-support.phase-4-executable-coverage.v1",
+  "items": [
+    {
+      "id": "P4-01",
+      "area": "authentication",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/SourceAuthenticationSpec.scala",
+          "anchor": "admit bounded credential references for configured remote sources"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/ComponentFactorySpec.scala",
+          "anchor": "project source authentication posture without a credential reference"
+        }
+      ]
+    },
+    {
+      "id": "P4-02",
+      "area": "authentication",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/SourceAuthenticationSpec.scala",
+          "anchor": "resolve each supported scheme only when a same-origin request reaches the outbound boundary"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CbdHttpSecuritySpec.scala",
+          "anchor": "isolate catalog, BoK, and SIE credentials while recording only safe CallTree metadata"
+        }
+      ]
+    },
+    {
+      "id": "P4-03",
+      "area": "authentication",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/SourceAuthenticationSpec.scala",
+          "anchor": "classify missing, unavailable, and locally rejected credentials without fallback or secret disclosure"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/SourceAuthenticationSpec.scala",
+          "anchor": "distinguish an explicitly expired challenge from other remote credential rejection"
+        }
+      ]
+    },
+    {
+      "id": "P4-04",
+      "area": "authentication",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CbdHttpSecuritySpec.scala",
+          "anchor": "isolate catalog, BoK, and SIE credentials while recording only safe CallTree metadata"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CbdHttpSecuritySpec.scala",
+          "anchor": "refuse cross-origin work for every authenticated source before the HTTP driver"
+        }
+      ]
+    },
+    {
+      "id": "P4-10",
+      "area": "refresh-cache",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InformationSourceRefreshSpec.scala",
+          "anchor": "admit only finite intervals from one minute through 24 hours and no later than source expiry"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InformationSourceRefreshSpec.scala",
+          "anchor": "refresh at finite expiry and retain stale last-known-good evidence after failure"
+        }
+      ]
+    },
+    {
+      "id": "P4-11",
+      "area": "refresh-cache",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CatalogRuntimeSpec.scala",
+          "anchor": "back off repeated automatic failures while preserving a stale last-known-good snapshot"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CatalogRuntimeSpec.scala",
+          "anchor": "coalesce concurrent automatic refreshes for the same source"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CatalogRuntimeSpec.scala",
+          "anchor": "bound synchronized refresh bursts across distinct sources"
+        }
+      ]
+    },
+    {
+      "id": "P4-12",
+      "area": "refresh-cache",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InformationSourceRefreshSpec.scala",
+          "anchor": "admit only positive retention limits at or below the production hard caps"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InformationSourceRefreshSpec.scala",
+          "anchor": "reject a configured source set larger than the retained source bound"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CatalogRuntimeSpec.scala",
+          "anchor": "bound retained profiles across sources without evicting attributable last-known-good evidence"
+        }
+      ]
+    },
+    {
+      "id": "P4-13",
+      "area": "refresh-cache",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InformationSourceRefreshSpec.scala",
+          "anchor": "preserve stale evidence across authentication, transport, parse, and compatibility failures until recovery"
+        }
+      ]
+    },
+    {
+      "id": "P4-20",
+      "area": "sar-composition",
+      "evidence": [
+        {
+          "kind": "script-gate",
+          "path": "scripts/probe-cbd-sie-sar.py",
+          "anchor": "administration_tools=0 unexpected_tools=0"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/probe-cbd-sie-sar.py",
+          "anchor": "CBD_SIE_SAR_MCP_OK"
+        }
+      ]
+    },
+    {
+      "id": "P4-21",
+      "area": "sar-composition",
+      "evidence": [
+        {
+          "kind": "script-gate",
+          "path": "scripts/probe-cbd-sie-sar.py",
+          "anchor": "EXPECTED_TOOLS_BY_PROFILE"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-cbd-sie-sar.sh",
+          "anchor": "CBD_SIE_SAR_POLICY_MATRIX_OK"
+        }
+      ]
+    },
+    {
+      "id": "P4-22",
+      "area": "sar-composition",
+      "evidence": [
+        {
+          "kind": "script-gate",
+          "path": "scripts/probe-cbd-sie-source-aware.py",
+          "anchor": "bounded_observations=1 conflict_participants=fixture-catalog,working"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/probe-cbd-sie-source-aware.py",
+          "anchor": "CBD_SIE_SOURCE_AWARE_OK"
+        }
+      ]
+    },
+    {
+      "id": "P4-30",
+      "area": "compatibility",
+      "evidence": [
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-runtime-compatibility.py",
+          "anchor": "RUNTIME_COMPATIBILITY_DECLARATION_OK"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-runtime-compatibility.py",
+          "anchor": "RUNTIME_COMPATIBILITY_CANDIDATE_OK"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-cbd-sie-sar.sh",
+          "anchor": "RUNTIME_COMPATIBILITY_EXECUTION_OK"
+        }
+      ]
+    },
+    {
+      "id": "P4-31",
+      "area": "compatibility",
+      "evidence": [
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-car-abi.sh",
+          "anchor": "CAR_ABI_CURRENT_BASELINE_PENDING"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-car-abi.sh",
+          "anchor": "CAR_ABI_COMPATIBLE_ADDITION_OK"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-car-abi.sh",
+          "anchor": "CAR_ABI_BREAKING_MINOR_REJECTED"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-car-abi.sh",
+          "anchor": "CAR_ABI_INTENTIONAL_MAJOR_OK"
+        },
+        {
+          "kind": "script-gate",
+          "path": "scripts/check-car-abi.sh",
+          "anchor": "CAR_ABI_GOVERNANCE_OK"
+        }
+      ]
+    },
+    {
+      "id": "P4-32",
+      "area": "compatibility",
+      "evidence": [
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CatalogRuntimeSpec.scala",
+          "anchor": "reject an incompatible rich index without reinterpreting it as a publication catalog"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/CatalogRuntimeSpec.scala",
+          "anchor": "preserve the supported unversioned publication contract and report entry failures"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/BokSourceRuntimeSpec.scala",
+          "anchor": "fail an incompatible manifest without scraping a rendered page or guessing a glossary path"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/SieBokRuntimeSpec.scala",
+          "anchor": "reject legacy response field names instead of guessing the typed public contract"
+        },
+        {
+          "kind": "scala-spec",
+          "path": "src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/LocalSourceRuntimeSpec.scala",
+          "anchor": "reject descriptor and path version conflicts instead of selecting either input"
+        }
+      ]
+    }
+  ]
+}

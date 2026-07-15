@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-40 Phase 4 documentation alignment is complete; the next slice audits executable specification coverage under P4-41.
+- Current step: P4-41 executable specification coverage is complete; the next slice runs every Phase 4 verification gate under P4-42.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -313,6 +313,22 @@ release evidence.
   source-ownership, and failure-state guidance was checked against the static
   contracts. The stale link to a concurrently moved publisher candidate was
   removed while its stable `FUTURE-CATALOG-PUBLISHER-01` identity remains.
+- `docs/spec/phase-4-executable-coverage.json` now maps all fourteen behavioral
+  checklist IDs, P4-01 through P4-32, to exact Scala scenario names or
+  executable script-gate markers. Its four areas cover authentication,
+  refresh/cache, SAR composition, and compatibility without treating the
+  documentation and release gates as behavioral specifications.
+- `Phase4ExecutableCoverageSpec` reads the authoritative checklist and the
+  machine-readable map together. It rejects a missing, duplicate, or extra
+  behavioral ID; an unknown area or evidence kind; a non-relative or missing
+  evidence path; a non-executable script gate; and an absent exact scenario or
+  marker anchor.
+- The focused P4-41 coverage suite passed two tests on 2026-07-15. Existing
+  behavior specifications and live gates remain the contract evidence; the new
+  meta-specification makes future checklist or scenario drift fail visibly.
+- The complete 16-suite test run then passed 116 tests. Normal CAR lint again
+  reported no failures and only the documented first-release ABI baseline
+  pending warning.
 
 ## Closure Basis
 

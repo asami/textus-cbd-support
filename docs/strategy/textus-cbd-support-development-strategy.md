@@ -151,5 +151,8 @@ Malformed or contradictory input no longer enters an alternate parser or path
 guess. P4-40 now projects the same authentication, bounded refresh/cache, SAR
 composition, runtime/ABI/input compatibility, and operational failure
 contracts through README, user guide, CAR reference manual, strategy, phase
-ledger, and a static documentation map. The next slice is P4-41 executable
-specification coverage audit.
+ledger, and a static documentation map. P4-41 now maps all fourteen behavioral
+Phase 4 checklist IDs to exact Scala scenarios or executable gate markers and
+adds a meta-specification that rejects checklist, evidence-path, or anchor
+drift. The next slice is P4-42 full verification across tests, CAR/CML lint and
+build, and the representative source-aware SAR projection.

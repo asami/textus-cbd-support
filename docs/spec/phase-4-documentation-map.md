@@ -36,3 +36,14 @@ ledger then receive audience-appropriate projections in the same development
 slice. P4-40 is complete only when all six document surfaces cover all five
 areas without a contradictory command, field name, fallback, source-of-truth,
 or failure-state statement.
+
+## Executable Coverage
+
+[`phase-4-executable-coverage.json`](phase-4-executable-coverage.json) is the
+machine-readable P4-41 map from every behavioral Phase 4 checklist ID to exact
+Scala scenario names or executable script-gate markers.
+`Phase4ExecutableCoverageSpec` compares that map with the authoritative
+checklist and verifies every declared path, evidence kind, executable bit, and
+anchor. Behavior changes must update the owning scenario or gate and this map
+in the same slice; renaming or removing mapped evidence therefore fails the
+coverage suite instead of silently reducing Phase 4 verification.

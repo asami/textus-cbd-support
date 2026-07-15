@@ -99,6 +99,9 @@ Phase 3 closure passed full tests, CAR build and descriptor inspection, CML
 lint, CAR lint, and representative source-aware MCP projection. Phase 4 is now
 defined by `docs/phase/phase-4.md` and `docs/phase/phase-4-checklist.md`.
 P4-01 now provides bounded, source-owned authentication schemes and
-configuration-key references without projecting credential identity. The next
-slice resolves those references and scopes authenticated outbound headers under
-P4-02.
+configuration-key references without projecting credential identity. P4-02
+now carries source ownership through every remote provider boundary, resolves
+the referenced value only inside the outbound CNCF ProviderCall, and scopes
+bearer, Basic, or API-key headers to that source's authorized origin without
+placing credential identity or value in CallTree metadata. The next slice is
+P4-03 credential lifecycle failure classification.

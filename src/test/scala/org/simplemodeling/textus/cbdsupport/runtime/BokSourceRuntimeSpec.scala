@@ -12,7 +12,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -85,6 +85,7 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
       And("only the fixed manifest and its declared machine-readable resource are fetched with byte bounds")
       fetcher.requests.map(_._1) shouldBe Vector(manifesturi, termsuri)
       fetcher.requests.map(_._2) shouldBe Vector(BokInspectionPolicy.DEFAULT.maxManifestBytes, BokInspectionPolicy.DEFAULT.maxResourceBytes)
+      fetcher.requestedSourceIds.distinct shouldBe Vector(source.id)
     }
 
     "reject unsafe or non-JSON resource declarations before fetching them" in {
@@ -251,6 +252,7 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
 
   private final class MemoryBokFetcher(responses: Map[URI, String]) extends CatalogFetcher with BokFetcher {
     val requests = ArrayBuffer.empty[(URI, Int)]
+    var requestedSourceIds = Vector.empty[String]
 
     def get(uri: URI): Consequence[String] =
       responses.get(uri).map(Consequence.success).getOrElse(Consequence.serviceUnavailable(s"No fixture for $uri"))
@@ -263,6 +265,11 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
           Consequence.serviceUnavailable(s"Response exceeds $maxbytes bytes.")
         case Some(body) => Consequence.success(body)
       }
+    }
+
+    override def get(source: BokSource, uri: URI, maxbytes: Int): Consequence[String] = {
+      requestedSourceIds = requestedSourceIds :+ source.id
+      get(uri, maxbytes)
     }
   }
 }

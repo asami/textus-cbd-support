@@ -107,6 +107,14 @@ final case class SieBokSourceState(
 
 trait SieBokTransport {
   def postJson(endpoint: URI, body: String, maxbytes: Int): Consequence[String]
+
+  def postJson(
+    source: SieBokSource,
+    endpoint: URI,
+    body: String,
+    maxbytes: Int
+  ): Consequence[String] =
+    postJson(endpoint, body, maxbytes)
 }
 
 object SieBokConfig {
@@ -220,7 +228,7 @@ final class SieBokProvider(clock: Clock = Clock.systemUTC()) {
           "arguments" -> Json.fromJsonObject(arguments)
         )
       )
-      transport.postJson(source.endpoint, request.noSpaces, policy.maxResponseBytes).flatMap { body =>
+      transport.postJson(source, source.endpoint, request.noSpaces, policy.maxResponseBytes).flatMap { body =>
         _parse_response(source, boundedquery, body, boundedlimit, policy)
       }
     }

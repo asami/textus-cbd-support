@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-01 source authentication references are complete; the next slice resolves credentials and scopes authenticated outbound headers under P4-02.
+- Current step: P4-02 late credential resolution and source-scoped authenticated transport are complete; the next slice classifies credential lifecycle failures under P4-03.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -106,6 +106,21 @@ release evidence.
 - `SourceAuthenticationSpec`, `CatalogRuntimeSpec`, `BokSourceRuntimeSpec`,
   `SieBokRuntimeSpec`, and `ComponentFactorySpec` passed 47 focused tests on
   2026-07-15, including explicit binding-bound truncation.
+- Catalog, BoK-site, and SIE providers now pass their owning source into
+  source-aware fetcher/transport overloads. `CbdHttp` resolves the internal
+  configuration key only inside `ProviderCall.build_Program` through
+  `provider_config_string`, then uses CNCF `http_get`/`http_post`; no direct
+  HTTP or configuration client was added.
+- Header construction checks the owning source's exact normalized origin before
+  resolution, performs no lookup for unauthenticated or cross-origin requests,
+  and maps bearer, pre-encoded Basic, and API-key values to their defined
+  headers. CallTree request attributes retain only a sanitized URI, source ID,
+  scheme, and configured state.
+- `SourceAuthenticationSpec`, `CatalogRuntimeSpec`, `BokSourceRuntimeSpec`, and
+  `SieBokRuntimeSpec` passed 39 focused tests on 2026-07-15. The executable
+  assertions cover all three header schemes, pre-resolution cross-origin
+  refusal, no-auth lookup avoidance, and source propagation through catalog,
+  BoK, and SIE provider boundaries.
 
 ## Closure Basis
 

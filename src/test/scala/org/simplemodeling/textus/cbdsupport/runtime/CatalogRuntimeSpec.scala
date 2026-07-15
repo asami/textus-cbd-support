@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -87,7 +87,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val profile = provider.read(source, fetcher).toOption.get.profiles.head
 
       When("usage evidence is read")
-      val usage = provider.readUsage(profile, fetcher).toOption.get
+      val usage = provider.readUsage(source, profile, fetcher).toOption.get
 
       Then("the sidecar remains visible as evidence but no cross-origin request is made")
       profile.modelMetadataUri shouldBe Some(sidecar)
@@ -159,6 +159,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       )
       snapshot.warning.exists(_.contains("catalog-without-project for textus-georesolver")) shouldBe true
       usage.operations shouldBe Vector(ComponentOperation(Some("OrderQuery"), "getOrder", Some("query"), Some("Return one order.")))
+      fetcher.requestedSourceIds.distinct shouldBe Vector(source.id)
     }
   }
 
@@ -796,10 +797,16 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
 
   private final class MapCatalogFetcher(values: Map[URI, String]) extends CatalogFetcher {
     var requestedUris = Vector.empty[URI]
+    var requestedSourceIds = Vector.empty[String]
 
     def get(uri: URI): Consequence[String] = {
       requestedUris = requestedUris :+ uri
       values.get(uri).map(Consequence.success).getOrElse(Consequence.serviceUnavailable(s"Missing fixture: $uri"))
+    }
+
+    override def get(source: CatalogSource, uri: URI, maxbytes: Int): Consequence[String] = {
+      requestedSourceIds = requestedSourceIds :+ source.id
+      get(uri, maxbytes)
     }
   }
 

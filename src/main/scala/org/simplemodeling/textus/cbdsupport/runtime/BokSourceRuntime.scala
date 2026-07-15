@@ -128,6 +128,9 @@ final case class BokSourceState(
 
 trait BokFetcher {
   def get(uri: URI, maxbytes: Int): Consequence[String]
+
+  def get(source: BokSource, uri: URI, maxbytes: Int): Consequence[String] =
+    get(uri, maxbytes)
 }
 
 object BokSourceConfig {
@@ -244,7 +247,7 @@ final class BokKnowledgeSourceProvider(clock: Clock = Clock.systemUTC()) {
     policy: BokInspectionPolicy = BokInspectionPolicy.DEFAULT
   ): Consequence[BokSourceSnapshot] = {
     val manifesturi = source.baseUri.resolve(BokKnowledgeSourceProvider.MANIFEST_PATH)
-    fetcher.get(manifesturi, policy.maxManifestBytes).flatMap { body =>
+    fetcher.get(source, manifesturi, policy.maxManifestBytes).flatMap { body =>
       _bounded_json(body, policy.maxManifestBytes, "BoK KnowledgeSource manifest").flatMap(_parse_manifest(source, _, policy)) match {
         case Left(warning) => Consequence.serviceUnavailable(s"BoK source ${source.id}: $warning")
         case Right(manifest) =>
@@ -383,7 +386,7 @@ final class BokKnowledgeSourceProvider(clock: Clock = Clock.systemUTC()) {
     fetcher: BokFetcher,
     policy: BokInspectionPolicy
   ): (Vector[BokTermObservation], Vector[String]) = {
-    fetcher.get(resource.uri, policy.maxResourceBytes) match {
+    fetcher.get(source, resource.uri, policy.maxResourceBytes) match {
       case Consequence.Success(body) =>
         _bounded_json(body, policy.maxResourceBytes, "glossary-terms resource") match {
           case Left(warning) => Vector.empty -> Vector(s"BoK source ${source.id}: $warning")

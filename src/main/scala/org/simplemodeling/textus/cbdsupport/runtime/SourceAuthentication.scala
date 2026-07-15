@@ -1,6 +1,9 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
+import java.net.URI
 import java.util.Locale
+
+import org.goldenport.Consequence
 
 /*
  * @since   Jul. 15, 2026
@@ -16,6 +19,60 @@ final case class SourceAuthentication(
 
   def configKey: String =
     credentialRef.stripPrefix(SourceAuthentication.CREDENTIAL_REFERENCE_PREFIX)
+}
+
+final case class SourceAuthenticationRequest(
+  sourceId: String,
+  authorizedUri: URI,
+  authentication: Option[SourceAuthentication]
+)
+
+object SourceAuthenticationRequest {
+  def from(source: CatalogSource): SourceAuthenticationRequest =
+    SourceAuthenticationRequest(source.id, source.baseUri, source.authentication)
+
+  def from(source: BokSource): SourceAuthenticationRequest =
+    SourceAuthenticationRequest(source.id, source.baseUri, source.authentication)
+
+  def from(source: SieBokSource): SourceAuthenticationRequest =
+    SourceAuthenticationRequest(source.id, source.endpoint, source.authentication)
+}
+
+object SourceAuthenticationHeaders {
+  val AUTHORIZATION = "Authorization"
+  val API_KEY_HEADER = "X-Api-Key"
+
+  def headersFor(
+    source: SourceAuthenticationRequest,
+    requesturi: URI,
+    resolver: String => Option[String]
+  ): Consequence[Map[String, String]] =
+    source.authentication match {
+      case None => Consequence.success(Map.empty)
+      case Some(authentication) if !CatalogUriPolicy.isAuthorizedFetch(source.authorizedUri, requesturi) =>
+        Consequence.securityPermissionDenied(
+          s"Authentication for source ${source.sourceId} cannot be used outside its authorized origin."
+        )
+      case Some(authentication) =>
+        resolver(authentication.configKey).filter(_is_header_value) match {
+          case None =>
+            Consequence.securityAuthenticationRequired(
+              s"Authentication credential for source ${source.sourceId} is unavailable."
+            )
+          case Some(credential) =>
+            Consequence.success(_headers(authentication.scheme, credential))
+        }
+    }
+
+  private def _is_header_value(value: String): Boolean =
+    value.nonEmpty && !value.exists(character => Character.isISOControl(character))
+
+  private def _headers(scheme: String, credential: String): Map[String, String] =
+    scheme match {
+      case SourceAuthentication.BEARER => Map(AUTHORIZATION -> s"Bearer $credential")
+      case SourceAuthentication.BASIC => Map(AUTHORIZATION -> s"Basic $credential")
+      case SourceAuthentication.API_KEY => Map(API_KEY_HEADER -> credential)
+    }
 }
 
 object SourceAuthentication {

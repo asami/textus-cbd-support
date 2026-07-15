@@ -368,6 +368,9 @@ trait CatalogFetcher {
       if (body.getBytes(StandardCharsets.UTF_8).length <= maxbytes) Consequence.success(body)
       else Consequence.serviceUnavailable(s"Response exceeds $maxbytes bytes: ${InformationSourceDiagnosticPolicy.renderUri(uri)}")
     }
+
+  def get(source: CatalogSource, uri: URI, maxbytes: Int): Consequence[String] =
+    get(uri, maxbytes)
 }
 
 trait ComponentCatalogProvider {
@@ -377,6 +380,13 @@ trait ComponentCatalogProvider {
     profile: ComponentProfile,
     fetcher: CatalogFetcher
   ): Consequence[ComponentUsage]
+
+  def readUsage(
+    source: CatalogSource,
+    profile: ComponentProfile,
+    fetcher: CatalogFetcher
+  ): Consequence[ComponentUsage] =
+    readUsage(profile, fetcher)
 }
 
 final class CompatibleComponentCatalogProvider(
@@ -402,6 +412,14 @@ final class CompatibleComponentCatalogProvider(
   ): Consequence[ComponentUsage] =
     if (profile.modelMetadataUri.nonEmpty) cozy.readUsage(profile, fetcher)
     else publication.readUsage(profile, fetcher)
+
+  override def readUsage(
+    source: CatalogSource,
+    profile: ComponentProfile,
+    fetcher: CatalogFetcher
+  ): Consequence[ComponentUsage] =
+    if (profile.modelMetadataUri.nonEmpty) cozy.readUsage(source, profile, fetcher)
+    else publication.readUsage(source, profile, fetcher)
 }
 
 final class CozyComponentCatalogProvider(
@@ -416,7 +434,7 @@ final class CozyComponentCatalogProvider(
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
     val documents = Vector("car", "sar").map { kind =>
       val uri = source.baseUri.resolve(s"metadata/repository/$kind/index.json")
-      fetcher.get(uri, policy.maxIndexBytes).flatMap(_parse_index(source, kind, uri, _))
+      fetcher.get(source, uri, policy.maxIndexBytes).flatMap(_parse_index(source, kind, uri, _))
     }
     _sequence_allow_missing(documents).map { case (indexes, readwarnings) =>
       val discoveredprofiles = indexes.flatMap(_.profiles)
@@ -436,6 +454,20 @@ final class CozyComponentCatalogProvider(
   def readUsage(
     profile: ComponentProfile,
     fetcher: CatalogFetcher
+  ): Consequence[ComponentUsage] =
+    _read_usage(None, profile, fetcher)
+
+  override def readUsage(
+    source: CatalogSource,
+    profile: ComponentProfile,
+    fetcher: CatalogFetcher
+  ): Consequence[ComponentUsage] =
+    _read_usage(Some(source), profile, fetcher)
+
+  private def _read_usage(
+    source: Option[CatalogSource],
+    profile: ComponentProfile,
+    fetcher: CatalogFetcher
   ): Consequence[ComponentUsage] = {
     val references = Vector(
       Some(("catalog", profile.evidenceUri, true)),
@@ -453,7 +485,7 @@ final class CozyComponentCatalogProvider(
           profile.warnings :+ s"Model metadata was not fetched because $reason: ${InformationSourceDiagnosticPolicy.renderUri(uri)}."
         ))
       case Some(uri) =>
-        fetcher.get(uri, policy.maxMetadataBytes) match {
+        source.fold(fetcher.get(uri, policy.maxMetadataBytes))(fetcher.get(_, uri, policy.maxMetadataBytes)) match {
           case Consequence.Success(body) =>
             _parse_operations(body, uri).map { operations =>
               ComponentUsage(profile, operations, references, profile.warnings)
@@ -729,7 +761,7 @@ final class SimpleModelingPublicationCatalogProvider(
 
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] = {
     val cataloguri = source.baseUri.resolve("en/catalog/index.html")
-    fetcher.get(cataloguri, policy.maxIndexBytes).flatMap { body =>
+    fetcher.get(source, cataloguri, policy.maxIndexBytes).flatMap { body =>
       val discoverednames = _metadata_link.findAllMatchIn(body)
         .map(_.group(1).trim)
         .filter(x => x.nonEmpty && !_non_component_entries.contains(x))
@@ -780,7 +812,7 @@ final class SimpleModelingPublicationCatalogProvider(
     name: String
   ): Consequence[Option[ComponentProfile]] = {
     val catalogprojecturi = source.baseUri.resolve(s"metadata/catalog/projects/$name.json")
-    fetcher.get(catalogprojecturi, policy.maxMetadataBytes).flatMap { catalogbody =>
+    fetcher.get(source, catalogprojecturi, policy.maxMetadataBytes).flatMap { catalogbody =>
       parse(catalogbody) match {
         case Left(error) =>
           Consequence.failure(s"Invalid publication project JSON at $catalogprojecturi: ${error.getMessage}")
@@ -790,7 +822,7 @@ final class SimpleModelingPublicationCatalogProvider(
           kind match {
             case Some(componentkind @ ("car" | "sar")) =>
               val artifacturi = source.baseUri.resolve(s"metadata/artifacts/repository/$name.json")
-              fetcher.get(artifacturi, policy.maxMetadataBytes).flatMap { artifactbody =>
+              fetcher.get(source, artifacturi, policy.maxMetadataBytes).flatMap { artifactbody =>
                 parse(artifactbody) match {
                   case Left(error) =>
                     Consequence.failure(s"Invalid publication artifact JSON at $artifacturi: ${error.getMessage}")
@@ -1057,7 +1089,9 @@ final class CbdRuntime(
     intent: Option[String],
     fetcher: CatalogFetcher
   ): Consequence[ComponentUsage] =
-    provider.readUsage(profile, fetcher).map(IntentAwareUsageGuidance.enrich(_, intent))
+    sources.find(_.id == profile.catalogId)
+      .fold(provider.readUsage(profile, fetcher))(provider.readUsage(_, profile, fetcher))
+      .map(IntentAwareUsageGuidance.enrich(_, intent))
 
   def resolveDependencies(
     profile: ComponentProfile,

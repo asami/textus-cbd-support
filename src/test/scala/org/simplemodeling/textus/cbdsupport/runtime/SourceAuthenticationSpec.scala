@@ -117,4 +117,100 @@ final class SourceAuthenticationSpec extends AnyWordSpec with Matchers with Give
       rendered should not include "config-key/"
     }
   }
+
+  "SourceAuthenticationHeaders" should {
+    "resolve each supported scheme only when a same-origin request reaches the outbound boundary" in {
+      Given("three authenticated sources and one resolver containing their runtime credentials")
+      val credentials = Map(
+        "bearer" -> "bearer-token",
+        "basic" -> "dXNlcjpwYXNz",
+        "api-key" -> "api-key-value"
+      )
+      var resolvedkeys = Vector.empty[String]
+      val resolver = (key: String) => {
+        resolvedkeys = resolvedkeys :+ key
+        credentials.get(key)
+      }
+      val sources = Vector(
+        SourceAuthenticationRequest(
+          "catalog",
+          URI.create("https://catalog.example/base/"),
+          Some(SourceAuthentication("bearer", "config-key/bearer"))
+        ) -> URI.create("https://catalog.example/metadata/index.json"),
+        SourceAuthenticationRequest(
+          "bok",
+          URI.create("https://bok.example/knowledge/"),
+          Some(SourceAuthentication("basic", "config-key/basic"))
+        ) -> URI.create("https://bok.example/knowledge/terms.json"),
+        SourceAuthenticationRequest(
+          "sie",
+          URI.create("https://sie.example/mcp"),
+          Some(SourceAuthentication("api-key", "config-key/api-key"))
+        ) -> URI.create("https://sie.example/mcp")
+      )
+
+      When("header construction runs immediately before each authorized outbound request")
+      val headers = sources.map { case (source, requesturi) =>
+        SourceAuthenticationHeaders.headersFor(source, requesturi, resolver).toOption.get
+      }
+
+      Then("the resolver is invoked once per request and each scheme produces only its defined header")
+      resolvedkeys shouldBe Vector("bearer", "basic", "api-key")
+      headers shouldBe Vector(
+        Map("Authorization" -> "Bearer bearer-token"),
+        Map("Authorization" -> "Basic dXNlcjpwYXNz"),
+        Map("X-Api-Key" -> "api-key-value")
+      )
+    }
+
+    "refuse cross-origin credential use before resolving a secret" in {
+      Given("one source-owned bearer reference and a request for another origin")
+      val source = SourceAuthenticationRequest(
+        "catalog",
+        URI.create("https://catalog.example/base/"),
+        Some(SourceAuthentication("bearer", "config-key/catalog"))
+      )
+      var resolutioncount = 0
+
+      When("the outbound authentication boundary checks the request origin")
+      val result = SourceAuthenticationHeaders.headersFor(
+        source,
+        URI.create("https://other.example/metadata/index.json"),
+        _ => {
+          resolutioncount += 1
+          Some("must-not-be-read")
+        }
+      )
+
+      Then("the request fails without consulting or exposing the source credential")
+      result.toOption shouldBe None
+      resolutioncount shouldBe 0
+      result.display should not include "config-key/catalog"
+      result.display should not include "must-not-be-read"
+    }
+
+    "avoid credential resolution for a source without an authentication binding" in {
+      Given("one authorized source with no authentication reference")
+      val source = SourceAuthenticationRequest(
+        "public-catalog",
+        URI.create("https://catalog.example/"),
+        None
+      )
+      var resolutioncount = 0
+
+      When("the request reaches outbound header construction")
+      val result = SourceAuthenticationHeaders.headersFor(
+        source,
+        URI.create("https://catalog.example/index.json"),
+        _ => {
+          resolutioncount += 1
+          Some("unused")
+        }
+      )
+
+      Then("the request remains unauthenticated and no resolver work occurs")
+      result.toOption shouldBe Some(Map.empty)
+      resolutioncount shouldBe 0
+    }
+  }
 }

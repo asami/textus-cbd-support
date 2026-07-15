@@ -34,9 +34,35 @@ shared information-source descriptor and MCP source-status record expose only:
 They never expose `credentialRef`. Runtime environment configuration is not
 written into generated CML, CAR metadata, source diagnostics, or MCP output.
 
-## Deferred Resolution
+## Outbound Resolution
 
-P4-01 defines and validates references only. P4-02 owns late resolution through
-the CNCF provider/configuration boundary, authenticated header construction,
-source/origin scoping, and CallTree-safe request metadata. No P4-01 code reads a
-secret or adds an authentication header.
+Catalog, BoK-site, and SIE providers pass the owning source through source-aware
+fetcher/transport methods. Compatibility overloads remain available to test and
+in-memory providers, but the production `CbdHttp` path never infers source
+ownership from a URI or selects a credential by origin alone.
+
+`CbdHttp` resolves `config-key/...` only inside `ProviderCall.build_Program`,
+immediately before the CNCF `http_get` or `http_post` operation is constructed.
+Resolution uses `provider_config_string`, so the value comes from CNCF resolved
+runtime parameters rather than request properties, environment access in the
+transport, or a direct secret-store client. A source without an authentication
+binding performs no credential lookup.
+
+Before lookup, the request URI must have the same normalized origin as the
+owning source and must not contain URI user information. A failed origin check
+does not invoke the resolver. The supported header mappings are:
+
+- `bearer`: `Authorization: Bearer <credential>`;
+- `basic`: `Authorization: Basic <credential>`, where the resolved value is the
+  pre-encoded Basic credential payload;
+- `api-key`: `X-Api-Key: <credential>`.
+
+Empty values and values containing control characters are rejected without
+including the credential or configuration key in the failure. Provider and
+authentication CallTree attributes contain only the sanitized request URI,
+source ID, authentication scheme, and configured-state flag. They never contain
+the credential reference, resolved value, or authentication header.
+
+P4-03 owns distinct missing, unavailable, expired, and rejected credential
+failure classifications. P4-04 owns the complete executable security matrix
+for isolation, redaction, and CallTree metadata.

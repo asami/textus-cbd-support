@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -78,6 +78,7 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
       ))
 
       And("the request uses only the typed public operation and a bounded response")
+      transport.sourceId shouldBe Some(_source.id)
       transport.maxBytes shouldBe SieBokPolicy.DEFAULT.maxResponseBytes
       val request = parse(transport.body).toOption.get.hcursor
       request.get[String]("method").toOption shouldBe Some("tools/call")
@@ -176,6 +177,7 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
 }
 
 private final class MemorySieBokTransport(response: String) extends SieBokTransport {
+  var sourceId: Option[String] = None
   var endpoint: URI = URI.create("https://invalid.example/")
   var body: String = ""
   var maxBytes: Int = 0
@@ -185,6 +187,16 @@ private final class MemorySieBokTransport(response: String) extends SieBokTransp
     this.body = body
     maxBytes = maxbytes
     Consequence.success(response)
+  }
+
+  override def postJson(
+    source: SieBokSource,
+    endpoint: URI,
+    body: String,
+    maxbytes: Int
+  ): Consequence[String] = {
+    sourceId = Some(source.id)
+    postJson(endpoint, body, maxbytes)
   }
 }
 

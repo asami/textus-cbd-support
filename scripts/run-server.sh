@@ -27,4 +27,5 @@ exec java \
   -cp "$runtime_classpath:$sample_classpath" \
   "$CNCF_MAIN_CLASS" \
   "${CNCF_COMMON_ARGS[@]}" \
-  server
+  server \
+  "$@"

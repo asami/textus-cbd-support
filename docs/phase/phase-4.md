@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-03 credential lifecycle failure classification is complete; the next slice proves the full authentication security matrix under P4-04.
+- Current step: P4-04 executable authentication security evidence is complete; the next slice defines production refresh scheduling and next-attempt state under P4-10.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -132,6 +132,16 @@ release evidence.
   retry. `SourceAuthenticationSpec` passed 9 focused tests on 2026-07-15,
   including distinct failure codes, resolver-exception redaction, unsafe-value
   rejection, explicit remote expiry, and public-source non-classification.
+- `CbdHttpSecuritySpec` executes catalog, BoK-site, and SIE-mediated requests
+  through the production `CbdHttp` ProviderCall, UnitOfWork interpreter, and a
+  recording CNCF HTTP driver. Its 2 executable specifications passed on
+  2026-07-15 and prove exact per-source bearer, Basic, and API-key headers,
+  three-way credential isolation, and pre-driver cross-origin refusal.
+- The same execution captures the CNCF CallTree and proves that it retains the
+  sanitized URI, source ID, and authentication scheme while query data,
+  request bodies, configuration keys, resolved credentials, and authentication
+  header names remain absent. CNCF additionally masks the configured-state
+  value in rendered CallTree output.
 
 ## Closure Basis
 

@@ -85,5 +85,21 @@ key and do not trigger an authentication retry. Refresh policy may make a later
 bounded attempt under its own rules, but the authentication boundary itself
 does not loop or fall back.
 
-P4-04 owns the complete executable security matrix for isolation, redaction,
-CallTree metadata, and production HTTP-driver integration.
+## Executable Security Matrix
+
+`CbdHttpSecuritySpec` executes authenticated catalog, BoK-site, and SIE-mediated
+requests through `CbdHttp`, CNCF ProviderCall, the UnitOfWork interpreter, and
+an instrumented HTTP driver. The specification requires:
+
+- bearer, Basic, and API-key requests to carry only the owning source's exact
+  header, with no credential copied into either of the other source calls;
+- a cross-origin target to fail before every HTTP-driver invocation;
+- provider CallTree entries to retain only sanitized URI, source ID,
+  authentication scheme, and a framework-masked configured-state attribute;
+- query data, request bodies, configuration keys, resolved values,
+  `Authorization`, and `X-Api-Key` to remain absent from rendered CallTree and
+  failure diagnostics.
+
+This matrix complements the pure header and lifecycle specifications by
+exercising the production outbound execution boundary rather than a parallel
+test-only authentication path.

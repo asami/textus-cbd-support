@@ -106,5 +106,8 @@ bearer, Basic, or API-key headers to that source's authorized origin without
 placing credential identity or value in CallTree metadata. P4-03 now
 distinguishes missing, resolver-unavailable, explicitly expired, and rejected
 credentials with stable sanitized source-failure codes and no alternate-source
-fallback or authentication retry. The next slice is P4-04's complete
-credential-isolation, header-scope, redaction, and CallTree security matrix.
+fallback or authentication retry. P4-04 now executes catalog, BoK-site, and
+SIE-mediated authentication through the production ProviderCall/UnitOfWork/
+HTTP-driver path and proves exact per-source headers, cross-origin refusal,
+redaction, and CallTree-safe metadata. The next slice is P4-10 production
+refresh scheduling and observable next-attempt state.

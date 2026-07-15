@@ -154,5 +154,8 @@ contracts through README, user guide, CAR reference manual, strategy, phase
 ledger, and a static documentation map. P4-41 now maps all fourteen behavioral
 Phase 4 checklist IDs to exact Scala scenarios or executable gate markers and
 adds a meta-specification that rejects checklist, evidence-path, or anchor
-drift. The next slice is P4-42 full verification across tests, CAR/CML lint and
-build, and the representative source-aware SAR projection.
+drift. P4-42 now passes the full CBD and SIE test suites, CAR builds, CML and
+CAR lint, packaged SIE component-local dependency resolution, and the complete
+four-profile source-aware SAR projection. The next slice is P4-43
+publish-readiness evidence and its explicit manual publication procedure,
+without publishing automatically.

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P4-41 executable specification coverage is complete; the next slice runs every Phase 4 verification gate under P4-42.
+- Current step: P4-42 full verification is complete; the next slice records publish-readiness evidence under P4-43 without publishing.
 - Owner: Textus CBD development
 - Update rule: Update after each checklist item obtains reproducible evidence; closure is based only on `phase-4-checklist.md`.
 
@@ -329,6 +329,20 @@ release evidence.
 - The complete 16-suite test run then passed 116 tests. Normal CAR lint again
   reported no failures and only the documented first-release ABI baseline
   pending warning.
+- P4-42 passed the complete verification boundary on 2026-07-15. CBD Support
+  passed 116 tests across 16 suites, while SIE passed 81 tests across 11
+  suites. Both projects passed CML lint and normal CAR lint; CBD retained only
+  the documented first-release `abi.baseline.missing` warning, and SIE retained
+  its existing missing ABI manifest warning.
+- The same gate rebuilt both snapshot CARs and verified that the SIE CAR
+  declares `org.jsoup:jsoup:1.18.1` as a component-local dependency without
+  bundling it. The resolved CNCF `0.5.1-SNAPSHOT` runtime loaded that dependency
+  through the packaged-CAR classloader and completed the source-aware baseline
+  retrieval.
+- The representative SAR then completed all four live policy profiles with
+  exact CBD/SIE read-tool counts of `6/7`, `0/0`, `6/0`, and `5/6`. It emitted
+  `CBD_SIE_SOURCE_AWARE_OK`, `CBD_SIE_SAR_POLICY_MATRIX_OK`, and
+  `RUNTIME_COMPATIBILITY_EXECUTION_OK` for the resolved runtime coordinate.
 
 ## Closure Basis
 

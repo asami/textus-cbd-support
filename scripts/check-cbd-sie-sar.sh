@@ -108,6 +108,30 @@ fi
 (cd "$PROJECT_ROOT" && sbt --batch cozyBuildCAR)
 (cd "$SIE_ROOT" && sbt --batch cozyBuildCAR)
 
+if ! sie_dependency_manifest="$(unzip -p "$SIE_CAR" component-dependencies.yaml 2>/dev/null)"; then
+  echo "The SIE CAR is missing component-dependencies.yaml." >&2
+  exit 1
+fi
+if [[ "$sie_dependency_manifest" != *$'  local:\n    - "org.jsoup:jsoup:1.18.1"'* ]]; then
+  echo "The SIE CAR does not declare its component-local jsoup dependency." >&2
+  exit 1
+fi
+if ! sie_archive_entries="$(jar tf "$SIE_CAR")"; then
+  echo "The SIE CAR archive listing could not be read." >&2
+  exit 1
+fi
+sie_bundled_jsoup=""
+while IFS= read -r entry; do
+  if [[ "$entry" =~ ^lib/jsoup-[^/]*\.jar$ ]]; then
+    sie_bundled_jsoup="$entry"
+  fi
+done <<< "$sie_archive_entries"
+if [[ -n "$sie_bundled_jsoup" ]]; then
+  echo "The SIE CAR bundles jsoup instead of resolving its declared local dependency." >&2
+  exit 1
+fi
+echo "SIE_CAR_LOCAL_DEPENDENCY_OK coordinate=org.jsoup:jsoup:1.18.1 bundled=false"
+
 runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/textus-cbd-sie-sar.XXXXXX")"
 runtime_dir="$(cd "$runtime_dir" && pwd -P)"
 server_pid=""
@@ -154,7 +178,7 @@ cleanup() {
 show_server_log() {
   if [[ -s "$server_log" ]]; then
     echo "CNCF server log:" >&2
-    tail -n 100 "$server_log" >&2
+    tail -n 300 "$server_log" >&2
   fi
 }
 

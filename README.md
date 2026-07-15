@@ -217,6 +217,10 @@ applies result bounds without losing conflict provenance, and checks that a
 missing catalog stays degraded without an immediate retry loop. See
 [the representative SAR example](examples/cbd-sie-sar/README.md).
 
+Use `scripts/check-cbd-sie-sar.sh --profile baseline` when validating only the
+two-main-component composition and source-ownership boundary. Omitting
+`--profile` remains the complete publication-policy matrix gate.
+
 The same command is the representative execution gate for the declared CNCF
 runtime matrix. It first checks `project.yaml` against the machine-readable
 [runtime compatibility matrix](docs/spec/runtime-compatibility-matrix.md) and

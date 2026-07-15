@@ -52,6 +52,29 @@ PROFILE_DESCRIPTORS=(
   "$PROFILE_DIR/sie-service-disabled.yaml"
   "$PROFILE_DIR/operation-disabled.yaml"
 )
+SELECTED_PROFILES=("${PROFILES[@]}")
+SELECTED_PROFILE_DESCRIPTORS=("${PROFILE_DESCRIPTORS[@]}")
+
+if (($# > 0)); then
+  if (($# != 2)) || [[ "$1" != "--profile" ]]; then
+    echo "Usage: $0 [--profile baseline|global-disabled|sie-service-disabled|operation-disabled]" >&2
+    exit 2
+  fi
+  selected_profile="$2"
+  selected_descriptor=""
+  for index in "${!PROFILES[@]}"; do
+    if [[ "${PROFILES[$index]}" == "$selected_profile" ]]; then
+      selected_descriptor="${PROFILE_DESCRIPTORS[$index]}"
+      break
+    fi
+  done
+  if [[ -z "$selected_descriptor" ]]; then
+    echo "Unknown representative SAR profile: $selected_profile" >&2
+    exit 2
+  fi
+  SELECTED_PROFILES=("$selected_profile")
+  SELECTED_PROFILE_DESCRIPTORS=("$selected_descriptor")
+fi
 
 "$SCRIPT_DIR/check-runtime-compatibility.py" \
   --runtime "$CNCF_VERSION" \
@@ -80,7 +103,7 @@ if [[ ! -f "$SIE_ROOT/project.yaml" ]]; then
   echo "SIE project is missing: $SIE_ROOT" >&2
   exit 1
 fi
-for descriptor in "${PROFILE_DESCRIPTORS[@]}"; do
+for descriptor in "${SELECTED_PROFILE_DESCRIPTORS[@]}"; do
   if [[ ! -f "$descriptor" ]]; then
     echo "Representative SAR descriptor is missing: $descriptor" >&2
     exit 1
@@ -300,9 +323,13 @@ run_profile() {
   fi
 }
 
-for index in "${!PROFILES[@]}"; do
-  run_profile "${PROFILES[$index]}" "${PROFILE_DESCRIPTORS[$index]}"
+for index in "${!SELECTED_PROFILES[@]}"; do
+  run_profile "${SELECTED_PROFILES[$index]}" "${SELECTED_PROFILE_DESCRIPTORS[$index]}"
 done
 
-echo "CBD_SIE_SAR_POLICY_MATRIX_OK"
+if ((${#SELECTED_PROFILES[@]} == ${#PROFILES[@]})); then
+  echo "CBD_SIE_SAR_POLICY_MATRIX_OK"
+else
+  echo "CBD_SIE_SAR_PROFILE_OK profile=${SELECTED_PROFILES[0]}"
+fi
 echo "RUNTIME_COMPATIBILITY_EXECUTION_OK runtime=$CNCF_VERSION evidence=representative-sar source=$RUNTIME_SOURCE revision=$RUNTIME_REVISION worktree=$RUNTIME_WORKTREE_STATE"

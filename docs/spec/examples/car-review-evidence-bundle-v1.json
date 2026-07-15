@@ -1,0 +1,100 @@
+{
+  "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+  "documentType": "evidence-bundle",
+  "evidence": [
+    {
+      "facts": {
+        "componentName": "textus-user-account",
+        "projectKind": "car"
+      },
+      "id": "evidence-project-yaml",
+      "kind": "car-project",
+      "location": {
+        "path": "project.yaml"
+      },
+      "origin": {
+        "providerId": "cozy",
+        "sourceType": "file"
+      },
+      "subject": {
+        "id": "project.yaml",
+        "kind": "file"
+      }
+    },
+    {
+      "facts": {
+        "componentName": "textus-user-account",
+        "modelFormat": "cml"
+      },
+      "id": "evidence-cml-model",
+      "kind": "cml-model",
+      "location": {
+        "path": "src/main/cozy/textus-user-account.cml"
+      },
+      "origin": {
+        "providerId": "cozy",
+        "sourceType": "file"
+      },
+      "subject": {
+        "id": "textus-user-account",
+        "kind": "component"
+      }
+    }
+  ],
+  "limitations": [
+    {
+      "code": "runtime-evidence-not-supported",
+      "message": "Operational maturity cannot be assessed from Cozy static evidence.",
+      "retryable": false,
+      "scope": "capability",
+      "subjectId": "cozy.car-analysis"
+    }
+  ],
+  "observations": [
+    {
+      "confidence": "high",
+      "evidenceIds": [
+        "evidence-project-yaml",
+        "evidence-cml-model"
+      ],
+      "id": "observation-component-identity",
+      "message": "Project and CML component identities agree.",
+      "ruleId": "cozy.car.identity-consistency",
+      "subject": {
+        "id": "textus-user-account",
+        "kind": "component"
+      },
+      "type": "assurance"
+    },
+    {
+      "confidence": "high",
+      "evidenceIds": [],
+      "id": "observation-runtime-unknown",
+      "message": "No admitted runtime evidence is available.",
+      "ruleId": "cozy.car.runtime-evidence",
+      "subject": {
+        "id": "textus-user-account",
+        "kind": "component"
+      },
+      "type": "unknown"
+    }
+  ],
+  "provider": {
+    "id": "cozy",
+    "version": "0.1.14"
+  },
+  "requestDigest": "sha256:d88fe085924cc9d234d233963bb624e584826bb8f02f19fc47253888a7c21d97",
+  "reviewId": "review-example-001",
+  "ruleSet": {
+    "id": "cozy.car-review",
+    "version": "1.0.0"
+  },
+  "schemaVersion": "textus.cbd.review-provider.v1",
+  "target": {
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kind": "project",
+    "name": "textus-user-account",
+    "organization": "org.textus",
+    "version": "0.2.0-SNAPSHOT"
+  }
+}

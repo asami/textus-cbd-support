@@ -1,0 +1,42 @@
+{
+  "capabilities": [
+    {
+      "evidenceKinds": [
+        "car-project",
+        "cml-model",
+        "car-package",
+        "abi",
+        "documentation"
+      ],
+      "id": "cozy.car-analysis",
+      "observationKinds": [
+        "finding",
+        "assurance",
+        "unknown"
+      ],
+      "version": "1.0"
+    }
+  ],
+  "documentType": "provider-descriptor",
+  "limitations": [
+    {
+      "code": "runtime-evidence-not-supported",
+      "message": "Cozy static analysis does not supply runtime evidence.",
+      "retryable": false,
+      "scope": "capability",
+      "subjectId": "cozy.car-analysis"
+    }
+  ],
+  "provider": {
+    "id": "cozy",
+    "version": "0.1.14"
+  },
+  "ruleSet": {
+    "id": "cozy.car-review",
+    "version": "1.0.0"
+  },
+  "schemaVersion": "textus.cbd.review-provider.v1",
+  "supportedSchemaVersions": [
+    "textus.cbd.review-provider.v1"
+  ]
+}

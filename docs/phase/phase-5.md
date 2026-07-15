@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-02 — specify the versioned Review Provider request, descriptor, evidence-bundle, capability, limitation, digest, and compatibility contracts.
+- Current step: P5-03 — specify the canonical Review Report, Review Run, observation, assessment, baseline, and attestation contracts.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -157,6 +157,15 @@ P5-01 completed on 2026-07-16 by promoting the CBD-owned product boundary,
 provider authority matrix, canonical processing topology, call/dependency
 directions, Textus AI execution boundary, and user/automation surface ownership
 to `docs/design/car-review-architecture.md`. Exact schemas remain P5-02 work.
+
+P5-02 completed on 2026-07-16 with
+`docs/spec/car-review-provider-contract.md`, the strict
+`textus.cbd.review-provider.v1` JSON Schema, descriptor/request/evidence-bundle
+examples, and `CarReviewProviderContractSpec`. The executable specification
+proves schema and document identities, capability admission, provider/rule-set,
+Review and target agreement, unique local references, bounded request values,
+and recomputable request and bundle digests. Canonical report and Review Run
+semantics remain P5-03 work.
 
 ## Stage 5.2: Review Application Core
 

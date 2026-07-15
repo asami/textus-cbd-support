@@ -1,0 +1,37 @@
+{
+  "baseline": {
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "reportId": "review-baseline-001"
+  },
+  "documentType": "provider-request",
+  "limits": {
+    "maxEvidenceItems": 2000,
+    "maxInputBytes": 16777216,
+    "maxObservations": 1000,
+    "timeoutMillis": 120000
+  },
+  "requestedCapabilities": [
+    "cozy.car-analysis"
+  ],
+  "requestedEvidenceKinds": [
+    "car-project",
+    "cml-model",
+    "abi",
+    "documentation"
+  ],
+  "reviewId": "review-example-001",
+  "rules": {
+    "exclude": [],
+    "include": [
+      "cozy.car.*"
+    ]
+  },
+  "schemaVersion": "textus.cbd.review-provider.v1",
+  "target": {
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kind": "project",
+    "name": "textus-user-account",
+    "organization": "org.textus",
+    "version": "0.2.0-SNAPSHOT"
+  }
+}

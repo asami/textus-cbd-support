@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simplemodeling.org/schema/textus/cbd/car-review-provider-v1.schema.json",
+  "title": "Textus CBD CAR Review Provider v1",
+  "oneOf": [
+    { "$ref": "#/$defs/providerDescriptor" },
+    { "$ref": "#/$defs/providerRequest" },
+    { "$ref": "#/$defs/evidenceBundle" }
+  ],
+  "$defs": {
+    "schemaVersion": {
+      "const": "textus.cbd.review-provider.v1"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "ruleSelector": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*(\\.\\*)?$"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "providerIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" }
+      }
+    },
+    "ruleSetIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "evidenceKinds", "observationKinds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" },
+        "evidenceKinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "observationKinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["finding", "assurance", "unknown"] }
+        }
+      }
+    },
+    "limitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "scope", "message", "retryable"],
+      "properties": {
+        "code": { "$ref": "#/$defs/identifier" },
+        "scope": {
+          "enum": ["provider", "capability", "rule", "target", "evidence", "observation"]
+        },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "digest"],
+      "properties": {
+        "kind": { "enum": ["project", "car"] },
+        "organization": { "$ref": "#/$defs/identifier" },
+        "name": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "ruleSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["include", "exclude"],
+      "properties": {
+        "include": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/ruleSelector" }
+        },
+        "exclude": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/ruleSelector" }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxEvidenceItems", "maxObservations", "maxInputBytes", "timeoutMillis"],
+      "properties": {
+        "maxEvidenceItems": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "maxObservations": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "maxInputBytes": { "type": "integer", "minimum": 1, "maximum": 1073741824 },
+        "timeoutMillis": { "type": "integer", "minimum": 1, "maximum": 86400000 }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportId", "digest"],
+      "properties": {
+        "reportId": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/identifier" },
+        "id": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerId", "sourceType"],
+      "properties": {
+        "providerId": { "$ref": "#/$defs/identifier" },
+        "sourceType": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uri": { "type": "string", "maxLength": 2048 },
+        "path": { "type": "string", "maxLength": 2048 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      },
+      "anyOf": [
+        { "required": ["uri"] },
+        { "required": ["path"] }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "subject", "origin", "facts"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "$ref": "#/$defs/identifier" },
+        "subject": { "$ref": "#/$defs/subject" },
+        "origin": { "$ref": "#/$defs/origin" },
+        "location": { "$ref": "#/$defs/location" },
+        "facts": {
+          "type": "object",
+          "maxProperties": 256
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "ruleId", "subject", "message", "confidence", "evidenceIds"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "type": { "enum": ["finding", "assurance", "unknown"] },
+        "ruleId": { "$ref": "#/$defs/identifier" },
+        "subject": { "$ref": "#/$defs/subject" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "evidenceIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "finding" } } },
+          "then": { "required": ["severity"] }
+        }
+      ]
+    },
+    "providerDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "provider", "ruleSet", "supportedSchemaVersions", "capabilities", "limitations"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "documentType": { "const": "provider-descriptor" },
+        "provider": { "$ref": "#/$defs/providerIdentity" },
+        "ruleSet": { "$ref": "#/$defs/ruleSetIdentity" },
+        "supportedSchemaVersions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/capability" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/limitation" }
+        }
+      }
+    },
+    "providerRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "reviewId", "target", "requestedCapabilities", "requestedEvidenceKinds", "rules", "limits"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "documentType": { "const": "provider-request" },
+        "reviewId": { "$ref": "#/$defs/identifier" },
+        "target": { "$ref": "#/$defs/target" },
+        "requestedCapabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "requestedEvidenceKinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "rules": { "$ref": "#/$defs/ruleSelection" },
+        "limits": { "$ref": "#/$defs/limits" },
+        "baseline": { "$ref": "#/$defs/baseline" }
+      }
+    },
+    "evidenceBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "reviewId", "target", "provider", "ruleSet", "requestDigest", "bundleDigest", "evidence", "observations", "limitations"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "documentType": { "const": "evidence-bundle" },
+        "reviewId": { "$ref": "#/$defs/identifier" },
+        "target": { "$ref": "#/$defs/target" },
+        "provider": { "$ref": "#/$defs/providerIdentity" },
+        "ruleSet": { "$ref": "#/$defs/ruleSetIdentity" },
+        "requestDigest": { "$ref": "#/$defs/digest" },
+        "bundleDigest": { "$ref": "#/$defs/digest" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "observations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/observation" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/limitation" }
+        }
+      }
+    }
+  }
+}

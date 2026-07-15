@@ -72,8 +72,8 @@ Phases 1 through 3 are complete. Phase 4 automated work is complete, while
 Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
 unchecked. On 2026-07-16, the human reviewer authorized Phase 5 to proceed
 independently without treating that deferral as Phase 4 acceptance. Phase 5 is
-now active at P5-02 after completing the P5-01 stable ownership and provider
-architecture in `docs/design/car-review-architecture.md`; current status is in
+now active at P5-03 after completing the P5-01 stable ownership architecture
+and the P5-02 versioned Review Provider JSON contract; current status is in
 `docs/phase/phase-5.md` and `docs/phase/phase-5-checklist.md`. Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache

@@ -341,8 +341,14 @@ and Target-bound provider descriptors, provider requests, and evidence bundles.
 CBD returns `{"canonicalResponse":"<canonical-review-response JSON>"}`;
 the inner response is CBD-owned and is the only report/gate result the caller
 may use. The role must be `reviewer`, `operator`, or `admin`. This operation is
-private to MCP. A local CLI adapter uses the identical inner contract through
-stdin; its standalone command is documented when the CBD Support CLI is added.
+private to MCP. `CarReviewCliMain review submit` accepts that identical inner
+document from stdin. Without `--endpoint` it uses the local Review Application
+and roles resolved by its process boundary; with `--endpoint <private-post-url>`
+it sends the generated outer HTTP envelope and delegates authorization to the
+server. It does not accept a CLI role flag, workspace path, command, report,
+or gate. Its `review-cli-result` JSON retains only CBD's Review ID, canonical
+response, and gate; exit codes are `0` pass, `2` fail, `3` unknown, and `1`
+for a request, authorization, transport, or response failure.
 
 ## Catalog Contract
 

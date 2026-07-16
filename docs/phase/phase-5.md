@@ -468,6 +468,18 @@ Provide one Review Application through Web UI and CBD CLI. Render all views
 from one canonical report and expose only bounded, authorized, redacted report
 queries through MCP.
 
+P5-40 implementation has begun with `CarReviewCliMain review submit`. It
+accepts the exact `textus.cbd.review-submission.v1` inner document from stdin.
+The local route calls `CarReviewSubmissionCliAdapter` and requires roles from
+the process boundary; the server route sends the generated private HTTP
+envelope with no role or credential forwarding and trusts server-side
+authentication. Both routes parse the CBD-owned canonical response into a
+stable `review-cli-result` containing Review ID, canonical response, gate, and
+documented exit behavior. `CarReviewCliSpec` proves the local and server
+adapter paths, canonical identity/gate retention, and malformed response
+refusal. A real authorized HTTP command scenario remains required before
+checking P5-40.
+
 ## Stage 5.6: Quality, AI, and Runtime Assessment
 
 Stage Status:

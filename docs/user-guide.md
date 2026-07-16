@@ -59,11 +59,25 @@ or `admin`; it never accepts a workspace path, process command, policy
 template, or caller-selected gate.
 
 `sbt-cozy` uses `review.cbd.endpoint` and the `cozyReviewSubmit` task to invoke
-Cozy locally, combine Cozy and sbt evidence, and exchange this envelope. For
-local non-HTTP callers, the Review submission CLI adapter consumes the same
-inner document on stdin. The standalone CBD Support CLI command is a later
-Review user-surface task, so integrations should use the configured sbt task
-or the component gateway until then.
+Cozy locally, combine Cozy and sbt evidence, and exchange this envelope. CBD
+Support also provides the same submission contract as a CLI main class:
+
+```bash
+TEXTUS_CBD_REVIEW_PROCESS_ROLES=reviewer \
+  sbt --batch 'runMain org.simplemodeling.textus.cbdsupport.runtime.CarReviewCliMain review submit' \
+  < provider-document-submission.json
+
+sbt --batch 'runMain org.simplemodeling.textus.cbdsupport.runtime.CarReviewCliMain review submit --endpoint http://127.0.0.1:19538/rest/v1/cbd-support/cbd-review-admin/post' \
+  < provider-document-submission.json
+```
+
+The local command resolves roles only from its process boundary; it has no
+`--role` option. The server-backed command sends no role header, credential, or
+workspace path, and relies on the configured server authentication boundary.
+Both variants print one stable `review-cli-result` JSON document containing the
+CBD Review ID (`runId`), canonical response, and gate. Exit code `0` is `pass`,
+`2` is `fail`, `3` is `unknown`, and `1` denotes usage, transport, admission,
+or response errors.
 
 ## Representative SAR Check
 

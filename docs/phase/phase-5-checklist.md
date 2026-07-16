@@ -42,7 +42,7 @@ contract.
 - [ ] `P5-40` The CBD Support CLI runs local and authorized server-backed Review through the same Review Application contract and returns stable run, report, gate, and exit behavior.
 - [ ] `P5-41` The Web UI displays Review Run progress, target/provider state, limitations, and completed report overview without deriving conclusions outside the canonical report.
 - [ ] `P5-42` CNCF, implementation, and quality views project shared Evidence and Observation identities and support cross-view navigation to provider and implementation locations.
-- [ ] `P5-43` Text, canonical JSON, HTML, and SARIF projections are deterministic and consistent; SARIF remains an explicitly lossy location-bearing Finding projection.
+- [x] `P5-43` Text, canonical JSON, HTML, and SARIF projections are deterministic and consistent; SARIF remains an explicitly lossy location-bearing Finding projection. Evidence: `CarReviewReportProjection` and `CarReviewReportProjectionSpec` prove same-Report deterministic text/JSON/HTML/SARIF rendering, common Review/gate identity, HTML escaping boundary, and location-bearing-Finding-only SARIF with explicit omission count/policy.
 - [ ] `P5-44` Authorized, bounded, redacted queries can retrieve Review Run, summary, report, Finding, and Assurance information through MCP without exposing sensitive evidence or arbitrary report history.
 - [ ] `P5-45` Review start, cancellation, retention administration, filesystem access, external-provider enablement, and AI-cost-bearing operations remain private to MCP unless an explicit later policy admits them.
 

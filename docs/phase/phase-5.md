@@ -507,6 +507,13 @@ proves a representative Report can navigate from every view back to the same
 canonical identifiers. Exposing completed Report views through the authorized
 Web/MCP read surface remains required before checking P5-42.
 
+P5-43 completed on 2026-07-16 with `CarReviewReportProjection`. CBD renders
+the same canonical Report into stable text, canonical JSON, safe HTML, and
+SARIF. SARIF includes only Findings with a usable location and carries both
+the omitted Finding count and `location-bearing-findings-only` projection
+policy. `CarReviewReportProjectionSpec` proves repeat rendering remains
+identical and does not project a location-free Unknown as SARIF.
+
 ## Stage 5.6: Quality, AI, and Runtime Assessment
 
 Stage Status:

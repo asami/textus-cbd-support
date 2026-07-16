@@ -2,11 +2,12 @@ package org.simplemodeling.textus.cbdsupport
 
 import java.nio.file.{Files, Path}
 
-import io.circe.Json
+import io.circe.{Json, Printer}
 import io.circe.parser.parse
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
@@ -32,10 +33,32 @@ final class CarReviewSubmissionContractSpec extends AnyWordSpec with Matchers wi
       _properties(response) should contain allOf ("report", "gateResult")
       _properties(definitions("providerDocuments").getOrElse(fail("Missing provider documents definition."))) shouldBe Set("availability", "descriptor", "providerRequest", "bundle")
     }
+
+    "decode one bounded provider-document request without a client template" in {
+      Given("one submission document containing only identity and provider JSON")
+      val request = Json.obj(
+        "schemaVersion" -> Json.fromString("textus.cbd.review-submission.v1"),
+        "documentType" -> Json.fromString("provider-document-submission"),
+        "reviewId" -> Json.fromString("review-example-001"),
+        "target" -> Json.obj("kind" -> Json.fromString("project"), "organization" -> Json.fromString("org.textus"), "name" -> Json.fromString("textus-user-account"), "version" -> Json.fromString("0.2.0-SNAPSHOT"), "digest" -> Json.fromString("sha256:" + ("a" * 64))),
+        "providers" -> Json.arr(Json.obj("availability" -> Json.fromString("enabled"), "descriptor" -> Json.fromString(_document("car-review-provider-descriptor-v1.json")), "providerRequest" -> Json.fromString(_document("car-review-provider-request-v1.json")), "bundle" -> Json.fromString(_document("car-review-evidence-bundle-v1.json"))))
+      )
+
+      When("CBD decodes the transport-neutral request")
+      val decoded = CarReviewSubmissionWireCodec.decodeRequest(_printer.print(request))
+
+      Then("provider documents retain their Review/Target binding without a template field")
+      decoded.map(_.bundles.map(_.reviewId)) shouldBe Right(Vector(ReviewId("review-example-001")))
+    }
   }
+
+  private val _printer = Printer.noSpaces.copy(sortKeys = true)
 
   private def _json(path: Path): Json =
     parse(Files.readString(path)).fold(error => fail(error.message), identity)
+
+  private def _document(name: String): String =
+    Files.readString(Path.of("docs", "spec", "examples", name))
 
   private def _properties(json: Json): Set[String] =
     json.hcursor.downField("properties").focus.flatMap(_.asObject).map(_.keys.toSet).getOrElse(fail("Missing properties."))

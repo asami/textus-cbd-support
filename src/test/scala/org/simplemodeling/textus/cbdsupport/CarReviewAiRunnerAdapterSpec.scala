@@ -42,11 +42,31 @@ final class CarReviewAiRunnerAdapterSpec extends AnyWordSpec with Matchers with 
       val runner = new RecordingRunner
       val adapter = new CarReviewAiRunnerAdapter(runner)
       val invalidPurpose = adapter.review(CarReviewAiReviewRequest(ReviewId("review-ai-002"), "car-review.web-search", Vector(CarReviewAiEvidence(ReviewEvidenceId("evidence"), "component", "summary"))))
-      val tooMany = adapter.review(CarReviewAiReviewRequest(ReviewId("review-ai-003"), "car-review.semantic-consistency", Vector.fill(CarReviewAiRunnerAdapter.MaxEvidence + 1)(CarReviewAiEvidence(ReviewEvidenceId("evidence"), "component", "summary"))))
+      val tooMany = adapter.review(CarReviewAiReviewRequest(ReviewId("review-ai-003"), "car-review.semantic-consistency", Vector.fill(CarReviewAiRunnerAdapter.maxEvidence + 1)(CarReviewAiEvidence(ReviewEvidenceId("evidence"), "component", "summary"))))
 
       invalidPurpose.isSuccess shouldBe false
       tooMany.isSuccess shouldBe false
       runner.request shouldBe None
+    }
+
+    "retain only digest-safe normalized execution provenance" in {
+      Given("a response containing valid and spoofed execution facts")
+      given ExecutionContext = ExecutionContext.create()
+      val adapter = new CarReviewAiRunnerAdapter(new ProvenanceRunner)
+
+      When("CBD normalizes one bounded Review request")
+      val response = adapter.review(CarReviewAiReviewRequest(
+        ReviewId("review-ai-004"),
+        "car-review.documentation-clarity",
+        Vector(CarReviewAiEvidence(ReviewEvidenceId("evidence"), "component", "summary"))
+      )).toOption.get
+
+      Then("purpose, digests, usage, retry, and limitations remain bounded while spoofed facts are withheld")
+      response.executionFacts should contain("ai.execution.purpose" -> "car-review.documentation-clarity")
+      response.executionFacts should contain("ai.execution.input_digest" -> "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+      response.executionFacts should contain("ai.usage.total_tokens" -> "58")
+      response.executionFacts should not contain "ai.execution.response_id"
+      response.executionFacts should not contain "provider.raw.response"
     }
   }
 
@@ -62,5 +82,19 @@ final class CarReviewAiRunnerAdapterSpec extends AnyWordSpec with Matchers with 
         "provider.raw.response" -> "credential=not-public"
       )))
     }
+  }
+
+  private final class ProvenanceRunner extends AiRunner {
+    def generate(req: AiGenerateRequest)(using ExecutionContext): Consequence[AiGenerateResponse] = Consequence.operationInvalid("not-used")
+    def chat(req: AiChatRequest)(using ExecutionContext): Consequence[AiChatResponse] = Consequence.operationInvalid("not-used")
+    def generateRecord(req: AiRecordRequest)(using ExecutionContext): Consequence[AiRecordResponse] =
+      Consequence.success(AiRecordResponse(Record.dataAuto("findings" -> Vector.empty[Record]), None, Map(
+        "ai.execution.purpose" -> "car-review.documentation-clarity",
+        "ai.execution.input_digest" -> "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ai.execution.output_digest" -> "sha256:not-a-digest",
+        "ai.usage.total_tokens" -> "58",
+        "ai.execution.response_id" -> "raw-provider-id",
+        "provider.raw.response" -> "secret"
+      )))
   }
 }

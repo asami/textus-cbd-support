@@ -589,6 +589,16 @@ model aliases, or provider-specific response parser. Actual Textus AI Phase 1
 fixture and provenance compatibility, including unsupported output vocabulary,
 remains P5-55 work.
 
+P5-55 completed on 2026-07-16 across `textus-ai` and CBD Support. Textus AI's
+deterministic CAR Review fixture now emits the CBD v1 `medium` severity plus
+purpose and input/output digests. CBD accepts only a bounded normalized
+provenance allowlist and verifies digest, counter, identifier, and requested
+purpose shapes before retaining facts. An incompatible candidate becomes an
+attributable provider failure and canonical Unknown through the coordinator;
+there is no fallback. Finally, `ai.advisory.*` candidate Findings remain in the
+report but are excluded from deterministic assessment/gate calculation until a
+future deterministic or human corroboration policy admits them.
+
 ## Stage 5.7: Verification and Closure
 
 Stage Status:

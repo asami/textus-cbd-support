@@ -21,7 +21,8 @@ final case class ReviewAssessmentGateResult(
 /** Builds one CBD-owned deterministic assessment and gate after reconciliation. */
 object CarReviewAssessmentGateBuilder {
   def build(input: ReviewAssessmentGateInput): ReviewAssessmentGateResult = {
-    val observations = input.observations.sortBy(_.id.value)
+    val observations = input.observations.filterNot(_is_advisory).sortBy(_.id.value)
+    val advisoryobservations = input.observations.filter(_is_advisory).sortBy(_.id.value)
     val subjects = observations.map(_.subject).distinct.sortBy(value => (value.kind, value.id))
     val unknownsubjects = observations.filter(_.`type`.value == "unknown").map(_.subject).toSet
     val assessedsubjects = subjects.filterNot(unknownsubjects.contains)
@@ -48,7 +49,8 @@ object CarReviewAssessmentGateBuilder {
     val evidenceids = observations.flatMap(_.evidenceIds).distinct.sortBy(_.value)
     val strengths = if assuranceids.nonEmpty then Vector("Admitted provider Assurance is evidence-backed.") else Vector.empty
     val gaps = (if findingids.nonEmpty then Vector("CBD gate has active Finding evidence.") else Vector.empty) ++
-      (if unknownids.nonEmpty then Vector("Unknown observations prevent complete assessment.") else Vector.empty)
+      (if unknownids.nonEmpty then Vector("Unknown observations prevent complete assessment.") else Vector.empty) ++
+      (if advisoryobservations.nonEmpty then Vector("AI candidate observations require deterministic or human corroboration.") else Vector.empty)
     val assessment = ReviewAssessment(
       input.capabilityId,
       ReviewApplicability(if applicable == 0 then "unknown" else "applicable"),
@@ -82,4 +84,7 @@ object CarReviewAssessmentGateBuilder {
     )
     ReviewAssessmentGateResult(assessment, gate)
   }
+
+  private def _is_advisory(value: ReviewObservation): Boolean =
+    value.rule.id.value.startsWith("ai.advisory.")
 }

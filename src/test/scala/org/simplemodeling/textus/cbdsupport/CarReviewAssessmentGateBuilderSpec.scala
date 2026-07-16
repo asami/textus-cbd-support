@@ -40,6 +40,23 @@ final class CarReviewAssessmentGateBuilderSpec extends AnyWordSpec with Matchers
       result.gate.result shouldBe ReviewGateResult("fail")
       result.gate.blockingObservationIds shouldBe Vector(ReviewObservationId("cozy:failure"))
     }
+
+    "exclude advisory AI candidate Findings from deterministic gate decisions" in {
+      Given("one deterministic Assurance and one AI advisory candidate Finding")
+      val ai = _observation("finding", "candidate", Vector(_evidence.id)).copy(
+        id = ReviewObservationId("textus-ai:candidate"),
+        rule = ReviewRuleIdentity(ReviewRuleId("ai.advisory.documentation.clarity"), ReviewVersion("1.0.0"))
+      )
+      val input = _input(Vector(_observation("assurance", "assured", Vector(_evidence.id)), ai))
+
+      When("CBD derives the deterministic profile gate")
+      val result = CarReviewAssessmentGateBuilder.build(input)
+
+      Then("the candidate remains reportable but cannot fail or pass the deterministic gate")
+      result.gate.result shouldBe ReviewGateResult("pass")
+      result.gate.blockingObservationIds shouldBe empty
+      result.assessment.gaps should contain("AI candidate observations require deterministic or human corroboration.")
+    }
   }
 
   private val _provider = ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("0.1.14"))

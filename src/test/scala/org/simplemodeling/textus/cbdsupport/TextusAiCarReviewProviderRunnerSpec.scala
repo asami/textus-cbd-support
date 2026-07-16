@@ -66,7 +66,11 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
       val profile = _profile()
       val malformed = new TextusAiCarReviewProviderRunner(profile, new CarReviewAiRunnerAdapter(new RecordingRunner(_unsupported_candidate)))
       val descriptor = TextusAiCarReviewProviderRunner.descriptorDocument(profile)
-      val malformedresult = malformed.execute(_request(descriptor))
+      val malformedrequest = _request(descriptor)
+      val malformedresult = malformed.execute(malformedrequest)
+      val registry = new CarReviewProviderRegistry()
+      registry.register(descriptor, malformed).isRight shouldBe true
+      val coordinated = new CarReviewProviderExecutionCoordinator().execute(malformedrequest, registry)
 
       When("the Review is cancelled before invoking an otherwise usable provider")
       val recording = new RecordingRunner(_candidate)
@@ -78,6 +82,9 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
       Then("both outcomes are attributable failures and no alternate AI provider is selected")
       malformedresult should matchPattern {
         case ProviderBundleRunnerResult.Failed("ai-structured-output-invalid", _, _) =>
+      }
+      coordinated should matchPattern {
+        case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("failed"), ReviewLimitation("ai-structured-output-invalid", _, _, _, _), true)) =>
       }
       cancelledresult should matchPattern {
         case ProviderBundleRunnerResult.Failed("provider-cancelled", _, _) =>

@@ -270,6 +270,30 @@ ReviewObservationResponse
 
 Return a bounded, redacted Assurance projection for one exact Report ID. This operation never enumerates Review history.
 
+### OPERATION
+
+#### getReviewViews
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetReviewViewsRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewViewsResponse
+
+##### DESCRIPTION
+
+Return canonical CNCF, implementation, and quality views for one exact Report ID. Each item keeps canonical Evidence/Observation IDs and provider/location navigation links.
+
 ## CbdCatalogAdmin
 
 ### DESCRIPTION
@@ -604,6 +628,18 @@ Read-only bounded request for one exact Report's Assurance projection.
 | reportId | ReviewReportId | 1 |
 | limit | int | ? |
 
+## GetReviewViewsRequest
+
+### DESCRIPTION
+
+Read-only request for the canonical cross-view projection of one exact Review Report.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+
 # VALUE
 
 ## CatalogRefreshResponse
@@ -788,6 +824,40 @@ Bounded projection of one typed Review Run and its exact CNCF Job binding.
 | providers | ReviewMcpProvider | * |
 | observations | ReviewMcpObservation | * |
 | limitations | ReviewMcpLimitation | * |
+
+## ReviewViewsResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| cncf | ReviewViewItem | * |
+| implementation | ReviewViewItem | * |
+| quality | ReviewViewItem | * |
+
+## ReviewViewItem
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| key | CbdWarning | 1 |
+| observationIds | ReviewObservationId | * |
+| evidenceIds | ReviewEvidenceId | * |
+| providerLinks | ReviewMcpProviderLink | * |
+| locations | CbdWarning | * |
+
+## ReviewMcpProviderLink
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| providerId | ReviewProviderId | 1 |
+| providerVersion | ReviewVersion | 1 |
+| ruleId | ReviewRuleId | 1 |
+| ruleVersion | ReviewVersion | 1 |
+| bundleDigest | ReviewDigest | 1 |
 
 ## ReviewObservationResponse
 
@@ -1640,6 +1710,14 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 | value | string | 1 |
 
 ## ReviewObservationId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewEvidenceId
 
 ### ATTRIBUTE
 

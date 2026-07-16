@@ -50,6 +50,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val reportready = component.isMcpReady("CbdRetrieval", "getReviewReport")
       val findingsready = component.isMcpReady("CbdRetrieval", "listReviewFindings")
       val assurancesready = component.isMcpReady("CbdRetrieval", "listReviewAssurances")
+      val viewsready = component.isMcpReady("CbdRetrieval", "getReviewViews")
       val refreshready = component.isMcpReady("CbdCatalogAdmin", "refreshCatalog")
       val startready = component.isMcpReady("CbdReviewAdmin", "startReview")
       val cancelready = component.isMcpReady("CbdReviewAdmin", "cancelReview")
@@ -63,6 +64,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       reportready shouldBe true
       findingsready shouldBe true
       assurancesready shouldBe true
+      viewsready shouldBe true
       refreshready shouldBe false
       startready shouldBe false
       cancelready shouldBe false
@@ -96,7 +98,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.getReviewSummary",
         "CbdSupport.CbdRetrieval.getReviewReport",
         "CbdSupport.CbdRetrieval.listReviewFindings",
-        "CbdSupport.CbdRetrieval.listReviewAssurances"
+        "CbdSupport.CbdRetrieval.listReviewAssurances",
+        "CbdSupport.CbdRetrieval.getReviewViews"
       )
       tools.map(x => x.name -> x.description).toMap shouldBe Map(
         "CbdSupport.CbdRetrieval.searchComponents" -> "CbdSupport.CbdRetrieval.searchComponents",
@@ -109,7 +112,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.getReviewSummary" -> "CbdSupport.CbdRetrieval.getReviewSummary",
         "CbdSupport.CbdRetrieval.getReviewReport" -> "CbdSupport.CbdRetrieval.getReviewReport",
         "CbdSupport.CbdRetrieval.listReviewFindings" -> "CbdSupport.CbdRetrieval.listReviewFindings",
-        "CbdSupport.CbdRetrieval.listReviewAssurances" -> "CbdSupport.CbdRetrieval.listReviewAssurances"
+        "CbdSupport.CbdRetrieval.listReviewAssurances" -> "CbdSupport.CbdRetrieval.listReviewAssurances",
+        "CbdSupport.CbdRetrieval.getReviewViews" -> "CbdSupport.CbdRetrieval.getReviewViews"
       )
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
         "sourceId",
@@ -132,6 +136,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val reviewrun = "textus-cbd-support.cbd-retrieval.get-review-run"
       val reviewsummary = "textus-cbd-support.cbd-retrieval.get-review-summary"
       val reviewreport = "textus-cbd-support.cbd-retrieval.get-review-report"
+      val reviewviews = "textus-cbd-support.cbd-retrieval.get-review-views"
       val adminrefresh = "textus-cbd-support.cbd-catalog-admin.refresh-catalog"
 
       Then("each form targets its owning service and Review progress remains in the form section")
@@ -139,6 +144,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       form should include(reviewrun)
       form should include(reviewsummary)
       form should include(reviewreport)
+      form should include(reviewviews)
       form should include(adminrefresh)
       form.indexOf(reviewrun) should be < form.indexOf("admin:")
       form.substring(form.indexOf(reviewrun), form.indexOf("admin:")) should include("access: authenticated")
@@ -155,6 +161,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val retained = factory.retainReviewReport(report)
       val summary = factory.reviewReads.summary(report.reportId, Set("viewer"))
       val findings = factory.reviewReads.findings(report.reportId, Set("viewer"), 10)
+      val views = factory.reviewReads.views(report.reportId, Set("viewer"))
       val denied = factory.reviewReads.report(report.reportId, Set.empty)
       val missing = factory.reviewReads.report(ReviewReportId("report-missing"), Set("viewer"))
 
@@ -162,6 +169,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       retained.isSuccess shouldBe true
       summary.toOption.map(_.reportId) shouldBe Some(report.reportId)
       findings.toOption.map(_.map(_.`type`.value).toSet) shouldBe Some(Set("finding"))
+      views.toOption.map(_.implementation.flatMap(_.locations).flatMap(_.path).toSet) shouldBe Some(Set("project.yaml", "src/main/cozy/textus-user-account.cml"))
       denied.isSuccess shouldBe false
       missing.isSuccess shouldBe false
     }

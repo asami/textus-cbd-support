@@ -55,6 +55,12 @@ an explicit limit from 1 to 100. The report projection excludes Evidence facts
 and rationale, redacts credential-shaped messages, and reduces local paths to
 a basename.
 
+Use `CbdRetrieval.getReviewViews` for the corresponding CNCF, implementation,
+and quality navigation views. Every view item retains the Report's canonical
+Evidence and Observation IDs plus provider/rule/bundle attribution and safely
+rendered implementation locations; the view does not rerun analysis or choose
+one provider conclusion.
+
 ## Review Submission Gateway
 
 For an authorized local or CI integration, submit provider evidence to the

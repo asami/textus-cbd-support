@@ -499,13 +499,13 @@ that the form belongs to the retrieval service and remains inside the `form:`
 descriptor section. A completed-report overview and live progress scenario are
 still required before checking P5-41.
 
-P5-42 implementation has begun with `CarReviewViewProjection`. The CNCF,
-implementation, and quality view collections group only canonical mappings;
-each item preserves the original Evidence/Observation IDs, provider/rule-set/
-bundle attribution, and implementation locations. `CarReviewViewProjectionSpec`
-proves a representative Report can navigate from every view back to the same
-canonical identifiers. Exposing completed Report views through the authorized
-Web/MCP read surface remains required before checking P5-42.
+P5-42 completed on 2026-07-16 with `CarReviewViewProjection` exposed through
+the authorized Retrieval `getReviewViews` operation and authenticated Web
+form. The CNCF, implementation, and quality view collections group only
+canonical mappings; each item preserves original Evidence/Observation IDs,
+provider/rule-set/bundle attribution, and safely rendered implementation
+locations. `ComponentFactorySpec` proves the generated MCP/Web surface retains
+all canonical locations rather than choosing a hidden one.
 
 P5-43 completed on 2026-07-16 with `CarReviewReportProjection`. CBD renders
 the same canonical Report into stable text, canonical JSON, safe HTML, and

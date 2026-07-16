@@ -9,7 +9,7 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 
 /*
  * @since   Jul. 14, 2026
@@ -101,6 +101,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: ListReviewAssurancesRequest
     ): ListReviewAssurancesActionCall = ListReviewAssurancesActionCallImpl(core, action)
+
+    override def createGetReviewViewsActionCall(
+      core: ActionCall.Core,
+      action: GetReviewViewsRequest
+    ): GetReviewViewsActionCall = GetReviewViewsActionCallImpl(core, action)
   }
 
   private final class CbdCatalogAdminServiceFactoryImpl
@@ -340,6 +345,18 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         CarReviewAuthorization.roles(core.executionContext),
         _optional_int(action.record, "limit").getOrElse(CarReviewMcpReadApplication.MAX_OBSERVATIONS)
       ).map(observations => OperationResponse(Record.dataAuto("observations" -> observations.map(_review_observation_record))))
+    }
+  }
+
+  private final case class GetReviewViewsActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.GetReviewViewsRequest
+  ) extends CbdRetrievalService.GetReviewViewsActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_reads.views(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        CarReviewAuthorization.roles(core.executionContext)
+      ).map(views => OperationResponse(_review_views_record(views)))
     }
   }
 
@@ -784,6 +801,33 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "providerId" -> observation.providerId.value,
       "locations" -> observation.locations
     )
+
+  private[cbdsupport] def _review_views_record(views: CarReviewViewProjection): Record =
+    Record.dataAuto(
+      "cncf" -> views.cncf.map(_review_view_record),
+      "implementation" -> views.implementation.map(_review_view_record),
+      "quality" -> views.quality.map(_review_view_record)
+    )
+
+  private[cbdsupport] def _review_view_record(view: CarReviewViewItem): Record =
+    Record.dataAuto(
+      "key" -> view.key,
+      "observationIds" -> view.observationIds.map(_.value),
+      "evidenceIds" -> view.evidenceIds.map(_.value),
+      "providerLinks" -> view.providerLinks.map { link =>
+        Record.dataAuto(
+          "providerId" -> link.provider.id.value,
+          "providerVersion" -> link.provider.version.value,
+          "ruleId" -> link.ruleSet.id.value,
+          "ruleVersion" -> link.ruleSet.version.value,
+          "bundleDigest" -> link.bundleDigest.value
+        )
+      },
+      "locations" -> view.locations.flatMap(_safe_review_location).distinct.sorted
+    )
+
+  private def _safe_review_location(location: ReviewLocation): Option[String] =
+    CarReviewMcpReadApplication.renderLocation(location)
 
   private[cbdsupport] def _review_limitation_record(limitation: ReviewLimitation): Record =
     Record.dataAuto(

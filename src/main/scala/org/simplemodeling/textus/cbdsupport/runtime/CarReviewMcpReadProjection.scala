@@ -48,6 +48,9 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
   def report(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewMcpReport] =
     _authorized(roles).flatMap(_ => _report(reportid).map(_report_projection))
 
+  def views(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewViewProjection] =
+    _authorized(roles).flatMap(_ => _report(reportid).map(CarReviewViewProjection.project))
+
   def findings(reportid: ReviewReportId, roles: Set[String], limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
     _observations(reportid, roles, "finding", limit)
 
@@ -100,7 +103,7 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
     value.copy(message = InformationSourceDiagnosticPolicy.sanitize(value.message))
 
   private def _location(value: ReviewLocation): Option[String] =
-    value.uri.map(uri => scala.util.Try(URI.create(uri)).toOption.map(InformationSourceDiagnosticPolicy.renderUri).getOrElse("[redacted-uri]")).orElse(value.path.map(_basename))
+    CarReviewMcpReadApplication.renderLocation(value)
 
   private def _basename(value: String): String =
     value.replace('\\', '/').split('/').filter(_.nonEmpty).lastOption.getOrElse("[redacted-location]")
@@ -108,4 +111,12 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
 
 object CarReviewMcpReadApplication {
   val MAX_OBSERVATIONS = 100
+
+  def renderLocation(value: ReviewLocation): Option[String] =
+    value.uri.map(uri => scala.util.Try(URI.create(uri)).toOption.map(InformationSourceDiagnosticPolicy.renderUri).getOrElse("[redacted-uri]")).orElse(
+      value.path.map(_basename)
+    )
+
+  private def _basename(value: String): String =
+    value.replace('\\', '/').split('/').filter(_.nonEmpty).lastOption.getOrElse("[redacted-location]")
 }

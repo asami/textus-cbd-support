@@ -35,7 +35,7 @@ contract.
 - [ ] `P5-32` Sbt Review tasks produce or obtain the canonical report, apply the CBD gate result, and materialize selected JSON, HTML, and SARIF projections with documented stable task and setting names.
 - [ ] `P5-33` CI writes report, HTML, SARIF, and attestation artifacts under a stable target path, and attestation binds target digest, report digest, profile, providers, rule sets, and gate result.
 - [x] `P5-34` Standard CI runs deterministic providers offline with external and AI providers disabled unless explicitly configured, and secrets never enter task output or Review artifacts. Evidence: `sbt-cozy` `SbtReviewCiPolicy`, `cozyReviewCiPolicy`, `SbtReviewCiPolicySpec`, and `SbtReviewReportArtifactsSpec` prove default local-only provider admission, loopback-only gateway execution, named opt-ins, invalid profile refusal, attestation-digest verification, and sensitive field/value refusal before any artifact write.
-- [ ] `P5-35` Any connection from a successful Review attestation to publish, distribution, or deployment is explicit and opt-in; existing sbt publication tasks retain their default behavior.
+- [x] `P5-35` Any connection from a successful Review attestation to publish, distribution, or deployment is explicit and opt-in; existing sbt publication tasks retain their default behavior. Evidence: `sbt-cozy` `cozyReviewPublish`, `cozyReviewDistribute`, `reviewGatedTaskLabel`, and `CozyPublishVersionPolicySpec` prove that only named Review-gated CAR/SAR release tasks require `cozyReviewGate`, while ordinary publish/distribute task labels remain unchanged.
 
 ## Web, CLI, Report, and MCP Surfaces
 

@@ -456,6 +456,16 @@ sensitive JSON fields or credential-shaped values. `SbtReviewCiPolicySpec` and
 `SbtReviewReportArtifactsSpec` make those refusals executable. The decision
 record is `docs/journal/2026/07/car-review-p5-34-deterministic-ci-2026-07-16.md`.
 
+P5-35 completed on 2026-07-16 in `sbt-cozy`. `cozyReviewPublish` and
+`cozyReviewDistribute` are opt-in tasks: each first requires
+`cozyReviewGate`, then delegates to the selected CAR/SAR release publication
+or distribution task. Existing `publish`, `cozyPublishCar`, `cozyPublishSar`,
+`cozyDistributeCar`, and `cozyDistributeSar` have no Review dependency and
+retain their default behavior. `CozyPublishVersionPolicySpec` proves both
+unchanged ordinary task selection and the complete explicit Review-gated
+mapping. The decision record is
+`docs/journal/2026/07/car-review-p5-35-opt-in-release-gate-2026-07-16.md`.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

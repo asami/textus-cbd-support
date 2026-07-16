@@ -1,5 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
+import org.goldenport.cncf.action.ActionCall
+
 /*
  * @since   Jul. 16, 2026
  * @version Jul. 16, 2026
@@ -77,15 +79,30 @@ final class CarReviewProviderExecutionCoordinator {
     request: ProviderBundleExecutionRequest,
     registry: CarReviewProviderRegistry
   ): ProviderBundleExecutionOutcome = synchronized {
+    _execute_registered(request, registry, identity)
+  }
+
+  def execute(
+    request: ProviderBundleExecutionRequest,
+    registry: CarReviewProviderRegistry,
+    actioncore: ActionCall.Core
+  ): ProviderBundleExecutionOutcome = synchronized {
+    _execute_registered(request, registry, runner => new CncfCarReviewProviderRunner(actioncore, runner))
+  }
+
+  private def _execute_registered(
+    request: ProviderBundleExecutionRequest,
+    registry: CarReviewProviderRegistry,
+    runnertransform: CarReviewProviderRunner => CarReviewProviderRunner
+  ): ProviderBundleExecutionOutcome =
     registry.registrationFor(request.provider) match {
       case None => _refused(request.provider, "unavailable", "provider-not-registered", runfailure = false)
       case Some(registration) =>
         CarReviewProviderBundleAdmission.describeDescriptor(request.descriptor) match {
-          case Right(descriptor) if descriptor == registration.descriptor => execute(request, registration.runner)
+          case Right(descriptor) if descriptor == registration.descriptor => execute(request, runnertransform(registration.runner))
           case _ => _refused(request.provider, "incompatible", "provider-registration-mismatch", runfailure = false)
         }
     }
-  }
 
   private def _execute_new(
     request: ProviderBundleExecutionRequest,

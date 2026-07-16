@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-20 — establish the CBD-owned provider framework and its Cozy adapter boundary.
+- Current step: P5-21 — adapt Cozy analysis into the CBD-owned provider contract.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -294,14 +294,15 @@ Establish provider registration, capability negotiation, bounded invocation,
 and limitation reporting. Adapt Cozy's CAR/CML/build/package/ABI/documentation
 analysis and existing lint results into the common evidence contract.
 
-P5-20 begins with `CarReviewProviderRegistry`: strict descriptor admission,
+P5-20 completed on 2026-07-16 with `CarReviewProviderRegistry`: strict descriptor admission,
 immutable provider registration, bounded deterministic capability discovery,
 local runner lookup, CNCF `ProviderCall` execution/cancellation, and
 CallTree-safe observability are now executable. Registry-to-coordinator
 selection now rejects unregistered or descriptor-mismatched runners before
-execution; production Review Application wiring that constructs its selected
-runner through the CNCF adapter remains in the same open checklist item. The
-decision record is
+execution. `CarReviewProviderExecutionApplication` constructs the selected
+runner through the CNCF adapter at the CBD-owned application entry point; its
+specification proves the full exchange does not enter CallTree. The decision
+record is
 `docs/journal/2026/07/car-review-p5-20-provider-registry-2026-07-16.md`.
 
 ## Stage 5.4: sbt-cozy CI/CD Bridge

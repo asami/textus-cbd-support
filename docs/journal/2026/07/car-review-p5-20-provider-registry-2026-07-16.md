@@ -1,7 +1,7 @@
 # P5-20 Provider registry foundation
 
 date=2026-07-16
-status=in-progress
+status=complete
 checklist=P5-20
 
 ## Decision
@@ -40,7 +40,13 @@ match the execution request. An unregistered identity or a descriptor mismatch
 is an attributable refused provider outcome and cannot execute a caller-supplied
 runner. The selection specification also proves the normal admitted path.
 
-P5-20 remains open. The next slice must construct the selected production
-runner through `CncfCarReviewProviderRunner` in authorized CBD Review
-Application wiring. Cozy adapter and lint preservation are then P5-21 and
+`CarReviewProviderExecutionApplication` is the CBD-owned application execution
+entry point. It invokes the coordinator with an ActionCall core, so the
+descriptor-selected runner is constructed as `CncfCarReviewProviderRunner`
+only after exact registry admission. Its executable specification proves a
+canonical registered exchange reaches `ProviderCall`, preserves the selected
+provider identity, and does not publish descriptor, request, or bundle text in
+CallTree.
+
+P5-20 is complete. Cozy adapter and lint preservation begin at P5-21 and
 P5-22 respectively.

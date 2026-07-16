@@ -22,7 +22,7 @@ contract.
 
 ## Provider Framework and Cozy
 
-- [ ] `P5-20` CBD Support implements provider registration, capability discovery, bounded invocation, timeout/cancellation, CallTree-safe observability, and limitation reporting through CNCF provider/driver boundaries.
+- [x] `P5-20` CBD Support implements provider registration, capability discovery, bounded invocation, timeout/cancellation, CallTree-safe observability, and limitation reporting through CNCF provider/driver boundaries. Evidence: `CarReviewProviderRegistry`, `CarReviewProviderExecutionCoordinator`, `CarReviewProviderExecutionApplication`, `CncfCarReviewProviderRunner`, and their executable specifications prove immutable strict registration, deterministic bounded discovery, exact descriptor-bound runner selection, timeout/cancellation/limitation handling, request-digest duplicate prevention, and CNCF ProviderCall execution with safe CallTree properties.
 - [ ] `P5-21` Cozy emits a generic `ReviewEvidenceBundle` for CAR/CML/model/build/package/ABI/documentation analysis with Cozy, rule-set, CML, CAR, and supported CNCF version identity.
 - [ ] `P5-22` Cozy's existing CAR lint findings are preserved exactly through the provider adapter, and `cozy car lint` remains a focused independent command backed by the same rule results.
 - [ ] `P5-23` CBD Support can invoke Cozy through the provider protocol for an admitted CAR while Cozy has no dependency on or call to CBD Support.

@@ -34,7 +34,7 @@ contract.
 - [ ] `P5-31` `sbt-cozy` invokes Cozy locally, submits Cozy and sbt evidence bundles to the CBD Review Application, and receives one canonical report and gate result without granting a server arbitrary workspace access.
 - [ ] `P5-32` Sbt Review tasks produce or obtain the canonical report, apply the CBD gate result, and materialize selected JSON, HTML, and SARIF projections with documented stable task and setting names.
 - [ ] `P5-33` CI writes report, HTML, SARIF, and attestation artifacts under a stable target path, and attestation binds target digest, report digest, profile, providers, rule sets, and gate result.
-- [ ] `P5-34` Standard CI runs deterministic providers offline with external and AI providers disabled unless explicitly configured, and secrets never enter task output or Review artifacts.
+- [x] `P5-34` Standard CI runs deterministic providers offline with external and AI providers disabled unless explicitly configured, and secrets never enter task output or Review artifacts. Evidence: `sbt-cozy` `SbtReviewCiPolicy`, `cozyReviewCiPolicy`, `SbtReviewCiPolicySpec`, and `SbtReviewReportArtifactsSpec` prove default local-only provider admission, loopback-only gateway execution, named opt-ins, invalid profile refusal, attestation-digest verification, and sensitive field/value refusal before any artifact write.
 - [ ] `P5-35` Any connection from a successful Review attestation to publish, distribution, or deployment is explicit and opt-in; existing sbt publication tasks retain their default behavior.
 
 ## Web, CLI, Report, and MCP Surfaces

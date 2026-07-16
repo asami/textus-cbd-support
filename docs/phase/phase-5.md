@@ -444,6 +444,18 @@ Report, target, profile, provider/rule-set/bundle identities, and Gate.
 `cozyReviewAttestation` and never manufactures a local substitute. Live CI
 materialization remains required before checking P5-33.
 
+P5-34 completed on 2026-07-16 in `sbt-cozy`. `SbtReviewCiPolicy` selects
+standard CI from `CI=true` or an explicit `review.ci.profile: standard` and
+admits only the deterministic local Cozy and sbt-cozy providers by default.
+A configured CBD HTTP gateway must be loopback in that profile. External,
+AI, and network gateway use are each separate, named boolean opt-ins, so
+enabling a server route cannot silently enable a cost-bearing provider. Before
+writing canonical JSON, HTML, SARIF, or attestation output,
+`SbtReviewReportArtifacts` verifies the CBD attestation digest and refuses
+sensitive JSON fields or credential-shaped values. `SbtReviewCiPolicySpec` and
+`SbtReviewReportArtifactsSpec` make those refusals executable. The decision
+record is `docs/journal/2026/07/car-review-p5-34-deterministic-ci-2026-07-16.md`.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

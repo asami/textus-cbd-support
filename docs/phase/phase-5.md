@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-23 — invoke Cozy through the provider protocol for an admitted CAR.
+- Current step: P5-24 — complete the provider behavior matrix with executable specifications.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -330,6 +330,19 @@ output and normal exit policy against the same result. P5-23 must now connect
 the CBD-owned provider protocol to this Cozy boundary without adding a Cozy
 dependency on CBD Support. The decision record is
 `docs/journal/2026/07/car-review-p5-22-cozy-lint-preservation-2026-07-16.md`.
+
+P5-23 completed on 2026-07-16 with a one-way local provider boundary. CBD
+Support's `CozyCarReviewProviderRunner` first binds the configured local root
+to the admitted `ReviewTarget`, then invokes only the fixed
+`cozy review car-evidence` command template with the provider request on
+stdin. Its process transport clears the child environment, uses the request
+timeout, keeps the response in a bounded CBD-owned output root, and never
+exposes the exchange document to logs or CallTree. Cozy independently parses
+the neutral v1 request and emits the provider evidence bundle; it imports or
+calls no CBD Support code. The executable specifications cover registry
+selection, target refusal before execution, bounded command exchange, and the
+Cozy command's request-digest binding. The decision record is
+`docs/journal/2026/07/car-review-p5-23-cozy-provider-transport-2026-07-16.md`.
 
 ## Stage 5.4: sbt-cozy CI/CD Bridge
 

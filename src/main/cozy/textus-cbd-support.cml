@@ -256,6 +256,30 @@ ReviewRunResponse
 
 Authorize cancellation and propagate it to the CNCF Job bound to one non-terminal Review Run.
 
+### OPERATION
+
+#### submitReviewDocuments
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ReviewSubmissionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewSubmissionResponse
+
+##### DESCRIPTION
+
+Accept one bounded provider-document submission through the private HTTP or local CLI boundary and return only the CBD-owned canonical response.
+
 # COMMAND
 
 ## CatalogRefreshRequest
@@ -298,6 +322,18 @@ Private request to cancel one Review Run by its CBD-owned identity.
 | name | type | multiplicity |
 |------|------|--------------|
 | reviewId | ReviewId | 1 |
+
+## ReviewSubmissionRequest
+
+### DESCRIPTION
+
+Private transport request containing the exact `textus.cbd.review-submission.v1` document. It never contains caller roles, a workspace path, process command, credentials, a Report template, or a Gate.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| submissionDocument | ReviewSubmissionDocument | 1 |
 
 # QUERY
 
@@ -543,6 +579,18 @@ Bounded projection of one typed Review Run and its exact CNCF Job binding.
 | reportId | ReviewReportId | ? |
 | reportDigest | ReviewDigest | ? |
 | failureCode | ReviewFailureCode | ? |
+
+## ReviewSubmissionResponse
+
+### DESCRIPTION
+
+CBD-owned canonical response document for one authorized provider-document submission.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| canonicalResponse | ReviewSubmissionDocument | 1 |
 
 ## ReviewRunLimitation
 
@@ -1182,6 +1230,18 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## CbdStatusDetail
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewSubmissionDocument
+
+### DESCRIPTION
+
+One exact JSON document exchanged at the private CAR Review submission boundary.
 
 ### ATTRIBUTE
 

@@ -3,7 +3,6 @@ package org.simplemodeling.textus.cbdsupport
 import java.nio.file.{Files, Path}
 
 import io.circe.{Json, Printer}
-import org.goldenport.Consequence
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -55,12 +54,12 @@ final class CarReviewSubmissionTransportAdaptersSpec extends AnyWordSpec with Ma
   }
 
   private lazy val _wire_application =
-    new CarReviewSubmissionWireApplication(new CarReviewProviderDocumentSubmissionApplication(new CarReviewCanonicalTemplateProvider {
-      def template(reviewId: ReviewId, target: ReviewTarget): Consequence[CarReviewReport] =
-        Consequence.success(CarReviewReportCodec.decode(Files.readString(Path.of("docs", "spec", "examples", "car-review-report-v1.json"))).fold(_fail, identity).copy(baseline = None))
-    }))
-
-  private def _fail(error: CarReviewCodecFailure): Nothing = fail(s"${error.code}: ${error.message}")
+    new CarReviewSubmissionWireApplication(new CarReviewProviderDocumentSubmissionApplication(
+      new CarReviewDevelopmentTemplateProvider(
+        ReviewInstant("2026-07-16T00:00:00Z"),
+        () => ReviewReportId("report-transport-spec")
+      )
+    ))
 
   private lazy val _submission_document =
     Printer.noSpaces.print(Json.obj(

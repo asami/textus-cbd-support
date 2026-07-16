@@ -402,9 +402,13 @@ before that resolver is called. The JSON wire contract and concrete
 P5-31 now supports both private HTTP and local CLI submission adapters over
 that same wire/application boundary. HTTP accepts only `application/json` and
 the bounded request body after gateway role resolution; CLI accepts the same
-bounded JSON through stdin with process-resolved roles. Neither adapter gains
-workspace, process, credential, Report-template, or Gate authority. Actual
-server route/CLI command wiring and sbt endpoint configuration remain open.
+bounded JSON through stdin with process-resolved roles. The private
+`CbdReviewAdmin.submitReviewDocuments` component operation now invokes the
+same bounded admission and a CBD-owned development template provider, returning
+only its canonical response. Neither adapter or operation gains workspace,
+process, credential, Report-template, or Gate authority. Raw server-route and
+standalone CLI-command gateway wiring, plus sbt endpoint configuration, remain
+open.
 
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 

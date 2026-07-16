@@ -43,6 +43,13 @@ one bounded JSON stdin document. Both delegate to the identical wire and Review
 Application boundary and use resolved caller roles, so their choice cannot
 alter canonical Report/Gate ownership or admit workspace/process authority.
 
+The generated private `CbdReviewAdmin.submitReviewDocuments` operation is the
+component-level handoff for both forms. It applies the same bounded admission
+to the submitted document and derives the initial development Report template
+from the CNCF execution clock and ID generator. The protocol gateway still has
+to map a raw HTTP body and the standalone CLI stdin/stdout command to this
+operation; no raw route or CLI executable is claimed yet.
+
 ## Evidence
 
 - `CarReviewCanonicalResponseApplicationSpec` proves canonical report/gate

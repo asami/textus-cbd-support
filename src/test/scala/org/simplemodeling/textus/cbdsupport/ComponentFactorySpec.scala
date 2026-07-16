@@ -48,6 +48,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val refreshready = component.isMcpReady("CbdCatalogAdmin", "refreshCatalog")
       val startready = component.isMcpReady("CbdReviewAdmin", "startReview")
       val cancelready = component.isMcpReady("CbdReviewAdmin", "cancelReview")
+      val submissionready = component.isMcpReady("CbdReviewAdmin", "submitReviewDocuments")
 
       Then("CBD read operations are ready while catalog and Review commands remain private")
       searchready shouldBe true
@@ -55,6 +56,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       refreshready shouldBe false
       startready shouldBe false
       cancelready shouldBe false
+      submissionready shouldBe false
     }
 
     "project the CBD detail operations as distinct CNCF MCP tools" in {
@@ -263,6 +265,26 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       Then("the original MCP scalar values are preserved")
       requirement shouldBe Some("semantic integration")
       kind shouldBe Some("car")
+    }
+
+    "keep provider-document submission private while preserving its exact document field" in {
+      Given("one private Review submission command request")
+      val request = Request.of(
+        component = "CbdSupport",
+        service = "CbdReviewAdmin",
+        operation = "submitReviewDocuments",
+        properties = List(Property("submissionDocument", "{\"documentType\":\"provider-document-submission\"}", None))
+      )
+
+      When("the generated private operation normalizes its request")
+      val action = CbdSupportComponent.CbdReviewAdminService.SubmitReviewDocumentsOperation
+        .createOperationRequest(request).toOption.get
+      val document = new impl.ComponentFactory()._optional_string(action.record, "submissionDocument")
+
+      Then("the operation retains the wire document without becoming an MCP tool")
+      document shouldBe Some("{\"documentType\":\"provider-document-submission\"}")
+      new impl.ComponentFactory().createUninitializedComponent()
+        .isMcpReady("CbdReviewAdmin", "submitReviewDocuments") shouldBe false
     }
 
     "preserve CAR or SAR kind during usage and dependency handoff" in {

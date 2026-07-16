@@ -9,7 +9,7 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewRunApplication, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewProfile, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewProviderDocumentSubmissionApplication, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 
 /*
  * @since   Jul. 14, 2026
@@ -100,6 +100,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: ReviewCancelRequest
     ): CancelReviewActionCall = CancelReviewActionCallImpl(core, action)
+
+    override def createSubmitReviewDocumentsActionCall(
+      core: ActionCall.Core,
+      action: ReviewSubmissionRequest
+    ): SubmitReviewDocumentsActionCall = SubmitReviewDocumentsActionCallImpl(core, action)
   }
 
   private final case class SearchComponentsActionCallImpl(
@@ -319,6 +324,31 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           ReviewInstant(ctx.clock.instant().toString),
           gateway
         ).map(admission => OperationResponse(_review_run_record(admission)))
+      }
+    }
+  }
+
+  private final case class SubmitReviewDocumentsActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdReviewAdminService.ReviewSubmissionRequest
+  ) extends CbdReviewAdminService.SubmitReviewDocumentsActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+      val ctx = core.executionContext
+      val now = ReviewInstant(ctx.clock.instant().toString)
+      val application = new CarReviewSubmissionBoundedAdapter(new CarReviewSubmissionWireApplication(
+        new CarReviewProviderDocumentSubmissionApplication(
+          new CarReviewDevelopmentTemplateProvider(
+            now,
+            () => ReviewReportId(s"report-${ctx.idGeneration.opaqueId("cbd.review.report")}")
+          )
+        )
+      ))
+      application.submit(
+        _required_string(action.record, "submissionDocument"),
+        CarReviewAuthorization.roles(ctx)
+      ).map { response =>
+        OperationResponse(Record.dataAuto("canonicalResponse" -> response))
       }
     }
   }

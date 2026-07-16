@@ -558,6 +558,14 @@ Unknown observation references. It deliberately has no aggregate quality score:
 callers must interpret the attributable capability accounting rather than rely
 on an unexplained scalar.
 
+P5-52 completed on 2026-07-16 with the expanded `CarReviewCapabilityCatalog`
+and `CarReviewCapabilityAssessment`. Every Security, Domain, Documentation, AI
+Readiness, Resilience, Testability, and Observability capability defines its
+assessment focus and representative evidence kinds. Assessment admits only
+observations explicitly mapped to a defined capability; its executable matrix
+proves attributable representative assessment for all seven categories and
+refuses an unspecified category.
+
 ## Stage 5.7: Verification and Closure
 
 Stage Status:

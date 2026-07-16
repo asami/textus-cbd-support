@@ -252,6 +252,16 @@ timeout, cancellation, and provider-failure paths. P5-12 is complete.
 Provider discovery and the production Cozy adapter remain P5-21 work, and
 report reconciliation begins at P5-13.
 
+P5-13 begins with `CarReviewBundleReconciler` and
+`CarReviewBundleReconcilerSpec`. The reconciliation boundary accepts only a
+bundle paired with its exact typed admission, creates canonical report-local
+Evidence and Observation IDs without losing provider-local IDs or bundle
+digest, and ignores a repeated admitted bundle rather than reconciling it
+twice. It preserves each provider Observation and returns explicit conflicts;
+it neither selects a winner nor creates an Assurance without admitted Evidence.
+Multi-provider assessment, gate construction, and persisted reconciliation are
+still P5-13/P5-14 work.
+
 ## Stage 5.3: Provider Framework and Cozy
 
 Stage Status:

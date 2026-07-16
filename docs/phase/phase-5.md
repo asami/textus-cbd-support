@@ -420,6 +420,12 @@ redirect, malformed, non-JSON, and oversized exchanges. Its executable HTTP
 fixture proves the envelope round trip. For a loopback development server only,
 `review.cbd.role` may carry one of `reviewer`, `operator`, or `admin` as the
 fixed `role` header; arbitrary headers and URL credentials remain unsupported.
+`review.cozy.provider_version` explicitly records the Cozy runtime version in
+the provider documents instead of incorrectly using the reviewed CAR version.
+Both outer-envelope and inner canonical-response JSON are structurally decoded
+and exact-shaped before artifacts are written. The installed Cozy launcher has
+not yet released its Review commands; the maintained Cozy development runtime
+provides them for the remaining live-exchange verification.
 Production uses the configured CBD authentication boundary rather than this
 development fallback. The standalone CBD CLI and its loopback private HTTP
 exchange are completed in P5-40; the broader multi-provider local/CI

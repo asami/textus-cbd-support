@@ -69,6 +69,15 @@ optional `review.cbd.role` setting. It admits only `reviewer`, `operator`, or
 arbitrary headers, or a caller-chosen privilege token. Production must use the
 CBD deployment's configured authentication boundary, not this fallback.
 
+Follow-up: the sbt-side HTTP and canonical-response transports now decode JSON
+structurally. The generated outer response must contain exactly one non-empty
+`canonicalResponse` string; the inner response must have the exact v1
+canonical-response shape, object Report/attestation documents, and a declared
+Gate value. This removes string-scanning ambiguity before any Review artifact
+is written. `review.cozy.provider_version` is also an explicit setting: the
+Cozy provider runtime version is no longer inferred from the version of the
+CAR being reviewed.
+
 ## Evidence
 
 - `CarReviewCanonicalResponseApplicationSpec` proves canonical report/gate
@@ -96,3 +105,10 @@ P5-31 remains open until an authorized running CBD server accepts an actual
 paired Cozy and `sbt-cozy` exchange. The local CLI adapter already shares the
 same contract, but its standalone user command belongs to P5-40.
 Provider-refusal-to-Unknown workflow coverage remains part of P5-63.
+
+The installed `cozy 0.2.25` launcher does not yet expose `review
+car-descriptor` / `review car-evidence`. The maintained Cozy development source
+at `/Users/asami/src/dev2025/cozy` does expose and test those commands at
+`0.3.0-SNAPSHOT`; P5-31's live exchange therefore uses that development
+runtime until the corresponding Cozy release is installed. Publishing that
+runtime is a Cozy release task, not a CBD Support compatibility fallback.

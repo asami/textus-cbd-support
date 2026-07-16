@@ -99,7 +99,7 @@ object TextusAiCarReviewProviderRunner {
         cursor.get[Vector[String]]("requestedCapabilities").toOption.contains(Vector(capabilityId.value)) &&
         cursor.get[Vector[String]]("requestedEvidenceKinds").toOption.contains(Vector(evidenceKind)) &&
         CarReviewProviderBundleAdmission.requestDigest(value).isRight &&
-        CarReviewAiRunnerAdapter.Purposes.contains(profile.purpose)
+        CarReviewAiRunnerAdapter.purposes.contains(profile.purpose)
     }
 
   private[runtime] def bundle(

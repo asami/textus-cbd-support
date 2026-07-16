@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-21 — adapt Cozy analysis into the CBD-owned provider contract.
+- Current step: P5-22 — preserve Cozy CAR lint findings exactly through the provider adapter.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -304,6 +304,23 @@ runner through the CNCF adapter at the CBD-owned application entry point; its
 specification proves the full exchange does not enter CallTree. The decision
 record is
 `docs/journal/2026/07/car-review-p5-20-provider-registry-2026-07-16.md`.
+
+P5-21 completed on 2026-07-16 in Cozy with the CBD-neutral
+`CozyCarReviewProvider`. It emits the v1 descriptor and an attributable bundle
+from CAR project metadata, resolved CML/model source, build metadata, generated
+CAR archives, and the integrated lint's ABI and documentation results. The
+bundle binds CBD's Review/target/request identity without importing CBD Support,
+keeps the Cozy provider/rule-set identity and declared CNCF versions explicit,
+and reports the absence of runtime evidence as a limitation. Provider-request
+limits validate positive evidence/observation/input-byte/time values, bound the
+CAR/CML/documentation analysis inputs, and report invalid, input-byte,
+evidence-count, or observation-count limits without permissive fallback. Its
+capability, Evidence-kind, and include/exclude rule selection are also explicit:
+an unrequested Cozy capability produces no static analysis and an attributable
+limitation rather than another provider behavior. Its executable specification
+is `cozy.review.CozyCarReviewProviderSpec`. The
+decision record is
+`docs/journal/2026/07/car-review-p5-21-cozy-evidence-provider-2026-07-16.md`.
 
 ## Stage 5.4: sbt-cozy CI/CD Bridge
 

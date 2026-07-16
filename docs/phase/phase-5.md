@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-14 — persist immutable Review Runs and reports with retention, comparison, and stale-evidence rejection.
+- Current step: P5-20 — establish the CBD-owned provider framework and its Cozy adapter boundary.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -194,7 +194,7 @@ begins at P5-10.
 ## Stage 5.2: Review Application Core
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: COMPLETE
 - Owner: Textus CBD development
 - Checklist basis: `P5-10` through `P5-14`
 - Update rule: Update when canonical report, Review Run, provider orchestration, persistence, or gate behavior gains executable evidence.
@@ -273,9 +273,14 @@ assessment/gate result into one immutable canonical report before invoking the
 existing deterministic report codec. Broader multi-capability policy remains
 open in P5-13.
 
-P5-13 is complete. P5-14 now owns durable Run/report retention, target and
-report attribution, comparison, baseline behavior, and stale gate-evidence
-rejection.
+P5-13 is complete. P5-14 completes the Review Application Core with
+`CarReviewRepository`. It atomically retains a completed Run and Report only
+when their review, target, report ID, and digest attribution agree; it also
+enforces finite per-target Run/Report limits, records content-free
+expiry/deletion audit entries, and rejects stale or target-mismatched
+gate/baseline evidence. The detailed decision and executable evidence are in
+`docs/journal/2026/07/car-review-p5-14-retention-2026-07-16.md` and
+`CarReviewRepositorySpec`.
 
 ## Stage 5.3: Provider Framework and Cozy
 

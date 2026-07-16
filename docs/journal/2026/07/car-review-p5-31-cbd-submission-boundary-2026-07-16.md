@@ -37,6 +37,12 @@ then resolves canonical policy before the paired boundary is called. This
 prevents an sbt/CI client from supplying a Report template or choosing a gate
 policy, and authorization occurs before policy resolution.
 
+Follow-up: both selected transport forms now have CBD adapters. The HTTP
+adapter requires `application/json` and a bounded body; the CLI adapter reads
+one bounded JSON stdin document. Both delegate to the identical wire and Review
+Application boundary and use resolved caller roles, so their choice cannot
+alter canonical Report/Gate ownership or admit workspace/process authority.
+
 ## Evidence
 
 - `CarReviewCanonicalResponseApplicationSpec` proves canonical report/gate

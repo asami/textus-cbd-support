@@ -399,6 +399,13 @@ policy provider before it admits evidence. An unauthorized caller is rejected
 before that resolver is called. The JSON wire contract and concrete
 `sbt-cozy` transport remain the next P5-31 slice.
 
+P5-31 now supports both private HTTP and local CLI submission adapters over
+that same wire/application boundary. HTTP accepts only `application/json` and
+the bounded request body after gateway role resolution; CLI accepts the same
+bounded JSON through stdin with process-resolved roles. Neither adapter gains
+workspace, process, credential, Report-template, or Gate authority. Actual
+server route/CLI command wiring and sbt endpoint configuration remain open.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

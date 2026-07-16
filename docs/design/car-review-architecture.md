@@ -100,6 +100,21 @@ or a CNCF provider call. Transport choice does not change ownership or report
 semantics. Filesystem, process, and network access remain behind authorized
 CNCF provider/driver boundaries.
 
+## Submission Transport Adapters
+
+The initial P5-31 provider-document submission has two supported adapters over
+the exact same `textus.cbd.review-submission.v1` body:
+
+- the private HTTP `POST` adapter for an authorized CBD server; and
+- the local CBD CLI adapter using one JSON document on stdin and one JSON
+  response on stdout.
+
+Both adapters enforce their own content-type/input-byte bound and resolve
+caller roles before invoking the same CBD submission application. Neither
+accepts a workspace path, command, environment, credential, report template,
+or gate from the caller. The HTTP adapter is disabled for the standard offline
+CI policy; the CLI adapter remains local and receives no source path.
+
 ## Call and Dependency Directions
 
 The supported local and CI route is:

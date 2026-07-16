@@ -89,6 +89,15 @@ credentials, environment names, header values, and secret-store responses are
 not Review request or report fields. Credential values and references are not
 persisted or projected.
 
+The private Review submission HTTP adapter is an inbound authorized service
+boundary, not an external provider. It accepts only JSON POST bodies under the
+submission input bound after gateway authentication resolves caller roles; it
+does not resolve credentials from the body. The local CLI submission adapter
+has no network behavior and accepts one bounded JSON stdin body. Both invoke
+the same Review Application and neither accepts a workspace path or process
+argument. Standard offline CI disables the HTTP adapter and may use only the
+local CLI adapter or in-process test adapter.
+
 ## Redaction and Output Boundary
 
 The same redaction policy applies before content enters canonical reports,

@@ -35,3 +35,17 @@ client must not infer or replace it locally.
 The contract is transport-neutral. A later private CBD HTTP/CLI adapter and
 the `sbt-cozy` transport use this exact JSON body; neither gains server-side
 workspace authority.
+
+## HTTP and CLI Adapters
+
+The HTTP adapter accepts only `POST` with
+`Content-Type: application/json`, an already authenticated/authorized caller,
+and at most 128 MiB of UTF-8 request data. It returns the exact canonical
+response document and does not proxy, follow redirects, fetch source, or
+resolve credentials.
+
+The CLI adapter accepts one UTF-8 request document on stdin, emits one exact
+canonical response document on stdout, and has the same 128 MiB input bound.
+Its command syntax never accepts a project path, arbitrary command, environment
+assignment, template, or gate option. Process identity supplies authorization;
+JSON never carries caller roles or credentials.

@@ -1,0 +1,293 @@
+{
+  "assessments": [
+    {
+      "applicability": "applicable",
+      "capabilityId": "quality.domain.identity-consistency",
+      "confidence": "high",
+      "coverage": {
+        "applicableSubjects": 2,
+        "assessedSubjects": 1,
+        "basisPoints": 5000,
+        "unknownSubjects": 1
+      },
+      "evidenceIds": [
+        "report-evidence-project-yaml",
+        "report-evidence-cml-model"
+      ],
+      "gaps": [
+        "Runtime identity evidence is not available."
+      ],
+      "maturity": "partial",
+      "observationIds": [
+        "report-assurance-component-identity",
+        "report-unknown-runtime"
+      ],
+      "providerIds": [
+        "cozy"
+      ],
+      "strengths": [
+        "Project and CML component identities agree."
+      ]
+    }
+  ],
+  "baseline": {
+    "addedObservationIds": [
+      "report-finding-missing-rationale"
+    ],
+    "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "removedObservationIds": [],
+    "reportId": "review-baseline-001",
+    "unchangedObservationIds": [
+      "report-assurance-component-identity",
+      "report-unknown-runtime"
+    ]
+  },
+  "createdAt": "2026-07-16T00:02:01Z",
+  "documentType": "review-report",
+  "evidence": [
+    {
+      "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "facts": {
+        "componentName": "textus-user-account",
+        "projectKind": "car"
+      },
+      "id": "report-evidence-project-yaml",
+      "kind": "car-project",
+      "location": {
+        "path": "project.yaml"
+      },
+      "providerEvidenceId": "evidence-project-yaml",
+      "providerId": "cozy",
+      "subject": {
+        "id": "project.yaml",
+        "kind": "file"
+      }
+    },
+    {
+      "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "facts": {
+        "componentName": "textus-user-account",
+        "modelFormat": "cml"
+      },
+      "id": "report-evidence-cml-model",
+      "kind": "cml-model",
+      "location": {
+        "path": "src/main/cozy/textus-user-account.cml"
+      },
+      "providerEvidenceId": "evidence-cml-model",
+      "providerId": "cozy",
+      "subject": {
+        "id": "textus-user-account",
+        "kind": "component"
+      }
+    }
+  ],
+  "execution": {
+    "completedAt": "2026-07-16T00:02:00Z",
+    "providers": [
+      {
+        "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+        "completedAt": "2026-07-16T00:01:59Z",
+        "limitations": [
+          {
+            "code": "runtime-evidence-not-supported",
+            "message": "Cozy static analysis does not supply runtime evidence.",
+            "retryable": false,
+            "scope": "provider",
+            "subjectId": "cozy"
+          }
+        ],
+        "provider": {
+          "id": "cozy",
+          "version": "0.1.14"
+        },
+        "ruleSet": {
+          "id": "cozy.car-review",
+          "version": "1.0.0"
+        },
+        "startedAt": "2026-07-16T00:00:01Z",
+        "state": "completed"
+      }
+    ],
+    "startedAt": "2026-07-16T00:00:00Z"
+  },
+  "gate": {
+    "blockingObservationIds": [
+      "report-finding-missing-rationale"
+    ],
+    "policyId": "cbd-review.development",
+    "policyVersion": "1.0.0",
+    "reasons": [
+      "One active medium-severity Finding is not accepted by the development profile."
+    ],
+    "result": "fail"
+  },
+  "limitations": [
+    {
+      "code": "runtime-evidence-not-supported",
+      "message": "Operational maturity remains unknown without admitted runtime evidence.",
+      "retryable": false,
+      "scope": "assessment",
+      "subjectId": "quality.domain.identity-consistency"
+    }
+  ],
+  "observations": [
+    {
+      "confidence": "high",
+      "disposition": {
+        "state": "active"
+      },
+      "evidenceIds": [
+        "report-evidence-project-yaml"
+      ],
+      "id": "report-finding-missing-rationale",
+      "locations": [
+        {
+          "path": "project.yaml"
+        }
+      ],
+      "mappings": {
+        "cncfFeatures": [],
+        "implementationSubjects": [
+          "project.yaml"
+        ],
+        "qualityCapabilities": [
+          "quality.documentation.rationale"
+        ]
+      },
+      "message": "The project metadata does not identify a review rationale.",
+      "provider": {
+        "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+        "provider": {
+          "id": "cozy",
+          "version": "0.1.14"
+        },
+        "ruleSet": {
+          "id": "cozy.car-review",
+          "version": "1.0.0"
+        }
+      },
+      "rationale": "The admitted project evidence has no review rationale field.",
+      "rule": {
+        "id": "cozy.car.documentation-rationale",
+        "version": "1.0.0"
+      },
+      "severity": "medium",
+      "subject": {
+        "id": "project.yaml",
+        "kind": "file"
+      },
+      "type": "finding"
+    },
+    {
+      "confidence": "high",
+      "disposition": {
+        "state": "active"
+      },
+      "evidenceIds": [
+        "report-evidence-project-yaml",
+        "report-evidence-cml-model"
+      ],
+      "id": "report-assurance-component-identity",
+      "locations": [
+        {
+          "path": "project.yaml"
+        },
+        {
+          "path": "src/main/cozy/textus-user-account.cml"
+        }
+      ],
+      "mappings": {
+        "cncfFeatures": [
+          "cncf.component-model"
+        ],
+        "implementationSubjects": [
+          "textus-user-account"
+        ],
+        "qualityCapabilities": [
+          "quality.domain.identity-consistency"
+        ]
+      },
+      "message": "Project and CML component identities agree.",
+      "provider": {
+        "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+        "provider": {
+          "id": "cozy",
+          "version": "0.1.14"
+        },
+        "ruleSet": {
+          "id": "cozy.car-review",
+          "version": "1.0.0"
+        }
+      },
+      "rationale": "Both admitted identity facts contain textus-user-account.",
+      "rule": {
+        "id": "cozy.car.identity-consistency",
+        "version": "1.0.0"
+      },
+      "subject": {
+        "id": "textus-user-account",
+        "kind": "component"
+      },
+      "type": "assurance"
+    },
+    {
+      "confidence": "high",
+      "disposition": {
+        "author": "review-owner",
+        "reason": "Runtime capture is deferred to an authorized environment.",
+        "state": "deferred"
+      },
+      "evidenceIds": [],
+      "id": "report-unknown-runtime",
+      "locations": [],
+      "mappings": {
+        "cncfFeatures": [
+          "cncf.observability"
+        ],
+        "implementationSubjects": [
+          "textus-user-account"
+        ],
+        "qualityCapabilities": [
+          "quality.observability.runtime-evidence"
+        ]
+      },
+      "message": "No admitted runtime evidence is available.",
+      "provider": {
+        "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+        "provider": {
+          "id": "cozy",
+          "version": "0.1.14"
+        },
+        "ruleSet": {
+          "id": "cozy.car-review",
+          "version": "1.0.0"
+        }
+      },
+      "rationale": "The selected static provider cannot supply operational observations.",
+      "rule": {
+        "id": "cozy.car.runtime-evidence",
+        "version": "1.0.0"
+      },
+      "subject": {
+        "id": "textus-user-account",
+        "kind": "component"
+      },
+      "type": "unknown"
+    }
+  ],
+  "profile": "development",
+  "reportDigest": "sha256:578571b5b241b6daf20ca3f340f68c8667074ea7c795352d5e5470741a21ff6d",
+  "reportId": "report-example-001",
+  "reviewId": "review-example-001",
+  "schemaVersion": "textus.cbd.review-report.v1",
+  "target": {
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kind": "project",
+    "name": "textus-user-account",
+    "organization": "org.textus",
+    "version": "0.2.0-SNAPSHOT"
+  }
+}

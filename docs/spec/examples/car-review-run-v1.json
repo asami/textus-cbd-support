@@ -1,0 +1,53 @@
+{
+  "completedAt": "2026-07-16T00:02:01Z",
+  "documentType": "review-run",
+  "limitations": [
+    {
+      "code": "runtime-evidence-not-supported",
+      "message": "Operational maturity remains unknown without admitted runtime evidence.",
+      "retryable": false,
+      "scope": "run",
+      "subjectId": "review-example-001"
+    }
+  ],
+  "profile": "development",
+  "providers": [
+    {
+      "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+      "completedAt": "2026-07-16T00:01:59Z",
+      "limitations": [
+        {
+          "code": "runtime-evidence-not-supported",
+          "message": "Cozy static analysis does not supply runtime evidence.",
+          "retryable": false,
+          "scope": "provider",
+          "subjectId": "cozy"
+        }
+      ],
+      "provider": {
+        "id": "cozy",
+        "version": "0.1.14"
+      },
+      "ruleSet": {
+        "id": "cozy.car-review",
+        "version": "1.0.0"
+      },
+      "startedAt": "2026-07-16T00:00:01Z",
+      "state": "completed"
+    }
+  ],
+  "reportDigest": "sha256:578571b5b241b6daf20ca3f340f68c8667074ea7c795352d5e5470741a21ff6d",
+  "reportId": "report-example-001",
+  "reviewId": "review-example-001",
+  "schemaVersion": "textus.cbd.review-report.v1",
+  "startedAt": "2026-07-16T00:00:00Z",
+  "state": "completed",
+  "target": {
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "kind": "project",
+    "name": "textus-user-account",
+    "organization": "org.textus",
+    "version": "0.2.0-SNAPSHOT"
+  },
+  "updatedAt": "2026-07-16T00:02:01Z"
+}

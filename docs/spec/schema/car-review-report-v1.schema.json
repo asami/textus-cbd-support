@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simplemodeling.org/schema/textus/cbd/car-review-report-v1.schema.json",
+  "title": "Textus CBD CAR Review Report v1",
+  "oneOf": [
+    { "$ref": "#/$defs/reviewRun" },
+    { "$ref": "#/$defs/reviewReport" },
+    { "$ref": "#/$defs/reviewAttestation" }
+  ],
+  "$defs": {
+    "schemaVersion": { "const": "textus.cbd.review-report.v1" },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "version": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "instant": { "type": "string", "format": "date-time" },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "digest"],
+      "properties": {
+        "kind": { "enum": ["project", "car"] },
+        "organization": { "$ref": "#/$defs/identifier" },
+        "name": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "providerIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" }
+      }
+    },
+    "ruleSetIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/version" }
+      }
+    },
+    "limitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "scope", "message", "retryable"],
+      "properties": {
+        "code": { "$ref": "#/$defs/identifier" },
+        "scope": { "enum": ["run", "provider", "report", "evidence", "observation", "assessment", "gate"] },
+        "subjectId": { "$ref": "#/$defs/identifier" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "providerExecution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "ruleSet", "state", "limitations"],
+      "properties": {
+        "provider": { "$ref": "#/$defs/providerIdentity" },
+        "ruleSet": { "$ref": "#/$defs/ruleSetIdentity" },
+        "state": { "enum": ["queued", "running", "completed", "failed", "disabled", "incompatible", "unavailable", "cancelled"] },
+        "bundleDigest": { "$ref": "#/$defs/digest" },
+        "startedAt": { "$ref": "#/$defs/instant" },
+        "completedAt": { "$ref": "#/$defs/instant" },
+        "limitations": { "type": "array", "items": { "$ref": "#/$defs/limitation" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "completed" } } },
+          "then": { "required": ["bundleDigest", "startedAt", "completedAt"] }
+        }
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/identifier" },
+        "id": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uri": { "type": "string", "maxLength": 2048 },
+        "path": { "type": "string", "maxLength": 2048 },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "endColumn": { "type": "integer", "minimum": 1 }
+      },
+      "anyOf": [{ "required": ["uri"] }, { "required": ["path"] }]
+    },
+    "reportEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "subject", "providerId", "bundleDigest", "providerEvidenceId", "facts"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "kind": { "$ref": "#/$defs/identifier" },
+        "subject": { "$ref": "#/$defs/subject" },
+        "providerId": { "$ref": "#/$defs/identifier" },
+        "bundleDigest": { "$ref": "#/$defs/digest" },
+        "providerEvidenceId": { "$ref": "#/$defs/identifier" },
+        "location": { "$ref": "#/$defs/location" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "facts": { "type": "object", "maxProperties": 256 }
+      }
+    },
+    "providerAttribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "ruleSet", "bundleDigest"],
+      "properties": {
+        "provider": { "$ref": "#/$defs/providerIdentity" },
+        "ruleSet": { "$ref": "#/$defs/ruleSetIdentity" },
+        "bundleDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "enum": ["active", "accepted", "suppressed", "deferred"] },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "author": { "$ref": "#/$defs/identifier" },
+        "expiresAt": { "$ref": "#/$defs/instant" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "enum": ["accepted", "suppressed", "deferred"] } } },
+          "then": { "required": ["reason", "author"] }
+        }
+      ]
+    },
+    "mappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cncfFeatures", "implementationSubjects", "qualityCapabilities"],
+      "properties": {
+        "cncfFeatures": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "implementationSubjects": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "qualityCapabilities": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "rule", "subject", "message", "rationale", "confidence", "evidenceIds", "locations", "provider", "disposition", "mappings"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "type": { "enum": ["finding", "assurance", "unknown"] },
+        "rule": { "$ref": "#/$defs/ruleSetIdentity" },
+        "subject": { "$ref": "#/$defs/subject" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "rationale": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "evidenceIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "locations": { "type": "array", "items": { "$ref": "#/$defs/location" } },
+        "provider": { "$ref": "#/$defs/providerAttribution" },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "mappings": { "$ref": "#/$defs/mappings" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "finding" } } },
+          "then": { "required": ["severity"] },
+          "else": { "not": { "required": ["severity"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "assurance" } } },
+          "then": {
+            "properties": {
+              "evidenceIds": { "minItems": 1 }
+            }
+          }
+        }
+      ]
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicableSubjects", "assessedSubjects", "unknownSubjects", "basisPoints"],
+      "properties": {
+        "applicableSubjects": { "type": "integer", "minimum": 1 },
+        "assessedSubjects": { "type": "integer", "minimum": 0 },
+        "unknownSubjects": { "type": "integer", "minimum": 0 },
+        "basisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capabilityId", "applicability", "maturity", "coverage", "confidence", "providerIds", "observationIds", "evidenceIds", "strengths", "gaps"],
+      "properties": {
+        "capabilityId": { "$ref": "#/$defs/identifier" },
+        "applicability": { "enum": ["applicable", "not-applicable", "unknown"] },
+        "maturity": { "enum": ["unassessed", "missing", "ad-hoc", "partial", "established", "verified", "operational"] },
+        "coverage": { "oneOf": [{ "$ref": "#/$defs/coverage" }, { "type": "null" }] },
+        "confidence": { "enum": ["low", "medium", "high"] },
+        "providerIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "observationIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "evidenceIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "strengths": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+        "gaps": { "type": "array", "items": { "type": "string", "maxLength": 1024 } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "applicability": { "const": "applicable" } } },
+          "then": { "properties": { "coverage": { "$ref": "#/$defs/coverage" } } },
+          "else": { "properties": { "coverage": { "type": "null" } } }
+        }
+      ]
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reportId", "digest", "addedObservationIds", "removedObservationIds", "unchangedObservationIds"],
+      "properties": {
+        "reportId": { "$ref": "#/$defs/identifier" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "addedObservationIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "removedObservationIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "unchangedObservationIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policyId", "policyVersion", "result", "reasons", "blockingObservationIds"],
+      "properties": {
+        "policyId": { "$ref": "#/$defs/identifier" },
+        "policyVersion": { "$ref": "#/$defs/version" },
+        "result": { "enum": ["pass", "fail", "unknown"] },
+        "reasons": { "type": "array", "items": { "type": "string", "maxLength": 1024 } },
+        "blockingObservationIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startedAt", "completedAt", "providers"],
+      "properties": {
+        "startedAt": { "$ref": "#/$defs/instant" },
+        "completedAt": { "$ref": "#/$defs/instant" },
+        "providers": { "type": "array", "items": { "$ref": "#/$defs/providerExecution" } }
+      }
+    },
+    "reviewRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "reviewId", "target", "profile", "state", "providers", "limitations", "startedAt", "updatedAt"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "documentType": { "const": "review-run" },
+        "reviewId": { "$ref": "#/$defs/identifier" },
+        "target": { "$ref": "#/$defs/target" },
+        "profile": { "$ref": "#/$defs/identifier" },
+        "state": { "enum": ["admitted", "queued", "running", "cancelling", "cancelled", "completed", "failed"] },
+        "providers": { "type": "array", "items": { "$ref": "#/$defs/providerExecution" } },
+        "limitations": { "type": "array", "items": { "$ref": "#/$defs/limitation" } },
+        "startedAt": { "$ref": "#/$defs/instant" },
+        "updatedAt": { "$ref": "#/$defs/instant" },
+        "completedAt": { "$ref": "#/$defs/instant" },
+        "reportId": { "$ref": "#/$defs/identifier" },
+        "reportDigest": { "$ref": "#/$defs/digest" },
+        "failureCode": { "$ref": "#/$defs/identifier" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "completed" } } },
+          "then": { "required": ["completedAt", "reportId", "reportDigest"] },
+          "else": {
+            "not": {
+              "anyOf": [
+                { "required": ["reportId"] },
+                { "required": ["reportDigest"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "failed" } } },
+          "then": { "required": ["completedAt", "failureCode"] }
+        }
+      ]
+    },
+    "reviewReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "reportId", "reportDigest", "reviewId", "createdAt", "target", "profile", "execution", "evidence", "observations", "assessments", "limitations", "gate"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "documentType": { "const": "review-report" },
+        "reportId": { "$ref": "#/$defs/identifier" },
+        "reportDigest": { "$ref": "#/$defs/digest" },
+        "reviewId": { "$ref": "#/$defs/identifier" },
+        "createdAt": { "$ref": "#/$defs/instant" },
+        "target": { "$ref": "#/$defs/target" },
+        "profile": { "$ref": "#/$defs/identifier" },
+        "execution": { "$ref": "#/$defs/execution" },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/reportEvidence" } },
+        "observations": { "type": "array", "items": { "$ref": "#/$defs/observation" } },
+        "assessments": { "type": "array", "items": { "$ref": "#/$defs/assessment" } },
+        "limitations": { "type": "array", "items": { "$ref": "#/$defs/limitation" } },
+        "baseline": { "$ref": "#/$defs/baseline" },
+        "gate": { "$ref": "#/$defs/gate" }
+      }
+    },
+    "attestedProvider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "ruleSet", "bundleDigest"],
+      "properties": {
+        "provider": { "$ref": "#/$defs/providerIdentity" },
+        "ruleSet": { "$ref": "#/$defs/ruleSetIdentity" },
+        "bundleDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "reviewAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "attestationId", "attestationDigest", "reviewId", "reportId", "reportDigest", "targetDigest", "profile", "providers", "gate", "createdAt"],
+      "properties": {
+        "schemaVersion": { "$ref": "#/$defs/schemaVersion" },
+        "documentType": { "const": "review-attestation" },
+        "attestationId": { "$ref": "#/$defs/identifier" },
+        "attestationDigest": { "$ref": "#/$defs/digest" },
+        "reviewId": { "$ref": "#/$defs/identifier" },
+        "reportId": { "$ref": "#/$defs/identifier" },
+        "reportDigest": { "$ref": "#/$defs/digest" },
+        "targetDigest": { "$ref": "#/$defs/digest" },
+        "profile": { "$ref": "#/$defs/identifier" },
+        "providers": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/attestedProvider" } },
+        "gate": { "$ref": "#/$defs/gate" },
+        "createdAt": { "$ref": "#/$defs/instant" }
+      }
+    }
+  }
+}

@@ -72,8 +72,10 @@ Phases 1 through 3 are complete. Phase 4 automated work is complete, while
 Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
 unchecked. On 2026-07-16, the human reviewer authorized Phase 5 to proceed
 independently without treating that deferral as Phase 4 acceptance. Phase 5 is
-now active at P5-03 after completing the P5-01 stable ownership architecture
-and the P5-02 versioned Review Provider JSON contract; current status is in
+now active at P5-04 after completing the P5-01 stable ownership architecture,
+the P5-02 versioned Review Provider JSON contract, and the P5-03 canonical
+Review Run, Report, assessment, gate, baseline, and attestation contract;
+current status is in
 `docs/phase/phase-5.md` and `docs/phase/phase-5-checklist.md`. Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
@@ -207,3 +209,11 @@ capabilities as limitations or Unknown.
 Publishing, deployment, automatic AI/network enablement, arbitrary server-side
 filesystem inspection, and implicit changes to existing sbt publication tasks
 remain outside Phase 5.
+
+The P5-03 canonical report contract now fixes one immutable CBD-owned result
+with attributable Evidence, Finding, Assurance, Unknown, capability
+assessment, baseline, and gate records. A completed Run and CI attestation bind
+the same target, profile, providers, rule sets, report digest, and gate result;
+integer coverage and normalized SHA-256 digests keep projections and CI
+evidence reproducible. P5-04 is the current priority and must fix the security
+and offline-execution envelope before runtime implementation begins.

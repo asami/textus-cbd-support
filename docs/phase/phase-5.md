@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-03 — specify the canonical Review Report, Review Run, observation, assessment, baseline, and attestation contracts.
+- Current step: P5-04 — specify Review target admission, authorization, containment, redaction, retention, MCP exposure, and deterministic/offline execution boundaries.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -166,6 +166,17 @@ proves schema and document identities, capability admission, provider/rule-set,
 Review and target agreement, unique local references, bounded request values,
 and recomputable request and bundle digests. Canonical report and Review Run
 semantics remain P5-03 work.
+
+P5-03 completed on 2026-07-16 with
+`docs/spec/car-review-report-contract.md`, the strict
+`textus.cbd.review-report.v1` JSON Schema, coherent Review Run, canonical
+Report, and attestation examples, and `CarReviewReportContractSpec`. The
+executable specification proves controlled Observation and assessment terms,
+local Evidence and Observation reference integrity, provider attribution,
+Finding-only severity, disposition accountability, integer coverage,
+cross-document identity, and recomputable report and attestation digests.
+Target admission, authorization, containment, redaction, retention, MCP
+exposure, and deterministic/offline execution remain P5-04 work.
 
 ## Stage 5.2: Review Application Core
 

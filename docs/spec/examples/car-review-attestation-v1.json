@@ -1,0 +1,36 @@
+{
+  "attestationDigest": "sha256:822e2d73b26be5f5e7a058bbaf24c5c7b483cb1fd29edd0765985483c61345d4",
+  "attestationId": "attestation-example-001",
+  "createdAt": "2026-07-16T00:02:02Z",
+  "documentType": "review-attestation",
+  "gate": {
+    "blockingObservationIds": [
+      "report-finding-missing-rationale"
+    ],
+    "policyId": "cbd-review.development",
+    "policyVersion": "1.0.0",
+    "reasons": [
+      "One active medium-severity Finding is not accepted by the development profile."
+    ],
+    "result": "fail"
+  },
+  "profile": "development",
+  "providers": [
+    {
+      "bundleDigest": "sha256:6feabc3d18f6b5dd9c62d9dcbd478b22aacd46fa50a0c8415950ce26b39ba875",
+      "provider": {
+        "id": "cozy",
+        "version": "0.1.14"
+      },
+      "ruleSet": {
+        "id": "cozy.car-review",
+        "version": "1.0.0"
+      }
+    }
+  ],
+  "reportDigest": "sha256:578571b5b241b6daf20ca3f340f68c8667074ea7c795352d5e5470741a21ff6d",
+  "reportId": "report-example-001",
+  "reviewId": "review-example-001",
+  "schemaVersion": "textus.cbd.review-report.v1",
+  "targetDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

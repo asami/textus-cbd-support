@@ -234,6 +234,18 @@ gateway and an actual held `InMemoryJobEngine`; `ComponentFactorySpec` proves
 the generated service/MCP boundary. Provider execution and evidence-bundle
 admission now begin at P5-12.
 
+P5-12 admission begins with `CarReviewProviderBundleAdmission` and
+`CarReviewProviderBundleAdmissionSpec`. This CBD-owned boundary admits only
+the exact v1 descriptor/request/bundle exchange: document identity, strict root
+shape, advertised capability and evidence-kind coverage, Review/target/digest
+agreement, local IDs/references, normalized request/bundle digests, and finite
+bundle item/byte limits are checked before any provider Observation can enter
+reconciliation. `incompatible`, `unavailable`, and `disabled` outcomes are
+retained as provider-attributed Unknown-shaped refusals; `failed` retains the
+same attribution as a run failure. It has no implicit provider rerun or
+fallback. Provider invocation, elapsed-time enforcement, and reconciliation
+remain the following P5-12/P5-13 work, so P5-12 stays open.
+
 ## Stage 5.3: Provider Framework and Cozy
 
 Stage Status:

@@ -27,7 +27,14 @@ discovery, immutable registration conflict refusal, runner lookup, and bounded
 discovery failure. `CarReviewProviderBundleAdmission` remains the authority for
 descriptor shape and compatibility validation.
 
-P5-20 remains open. The next slice must bind registered runners to authorized
-CNCF provider/driver execution, bounded cancellation/timeout propagation, and
-CallTree-safe provider observability. Cozy adapter and lint preservation are
-then P5-21 and P5-22 respectively.
+`CncfCarReviewProviderRunner` now places local runner execution and cancellation
+behind `ProviderCall`, `ProviderEngine`, and one UnitOfWork provider step. Its
+CallTree attributes contain only Review ID, provider identity/version, and
+target digest; descriptor, request, Evidence-bundle, and provider exception
+content are never supplied as observability properties. The executable spec
+proves both execution and cancellation behavior.
+
+P5-20 remains open. The next slice must connect capability selection from the
+registry to the execution coordinator and construct production runners through
+authorized CBD Review Application wiring. Cozy adapter and lint preservation
+are then P5-21 and P5-22 respectively.

@@ -380,6 +380,18 @@ the `cozy/review-evidence` scripted fixture prove the document and task
 contracts. Submission, canonical report admission, and gate application remain
 P5-31/P5-32 work.
 
+P5-31 CBD-side admission is now available through
+`CarReviewPairedBundleReviewApplication`. It accepts a bounded vector of
+path-free provider descriptor/request/bundle documents, checks each document's
+Review and Target binding against the canonical report template, admits each
+bundle through the generic v1 boundary, and returns the one CBD-owned Report
+and Gate. It reconstructs completed provider executions from admitted bundle
+identity and never silently drops a stale baseline or chooses between two
+different bundles from the same provider identity. The local `sbt-cozy` client
+and its Cozy command transport already produce the paired document submission;
+the remaining P5-31 work is to bind that client transport to this public CBD
+submission contract and prove the actual two-provider exchange.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

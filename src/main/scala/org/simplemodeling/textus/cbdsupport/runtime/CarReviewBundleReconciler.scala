@@ -154,7 +154,8 @@ object CarReviewBundleReconciler {
           scope <- _string(value, "scope")
           message <- _string(value, "message")
           retryable <- value.hcursor.get[Boolean]("retryable").toOption.toRight(_failure("limitation-retryable-invalid", "Limitation retryability is missing."))
-        } yield xs :+ ReviewLimitation(code, ReviewLimitationScope(scope), value.hcursor.get[String]("subjectId").toOption, message, retryable)
+          reportscope = if CarReviewVocabulary.LIMITATION_SCOPES.contains(scope) then scope else "provider"
+        } yield xs :+ ReviewLimitation(code, ReviewLimitationScope(reportscope), value.hcursor.get[String]("subjectId").toOption, message, retryable)
       }
     }
 

@@ -74,6 +74,17 @@ final class CarReviewBundleReconcilerSpec extends AnyWordSpec with Matchers with
       result.toOption.flatMap(_.observations.find(_.id.value == "cozy:observation-component-identity")).map(_.`type`.value) shouldBe Some("unknown")
       result.toOption.map(_.limitations.map(_.code).contains("provider-assurance-without-evidence")) shouldBe Some(true)
     }
+
+    "project provider-only limitation scopes into the canonical report vocabulary" in {
+      Given("an admitted provider bundle with a capability-scoped limitation")
+      val input = AdmittedProviderBundleInput(_admitted, _bundle)
+
+      When("CBD reconciles the provider limitation into its report")
+      val result = CarReviewBundleReconciler.reconcile(Vector(input))
+
+      Then("the report retains the limitation content with provider attribution")
+      result.toOption.flatMap(_.limitations.find(_.code == "runtime-evidence-not-supported")).map(_.scope.value) shouldBe Some("provider")
+    }
   }
 
   private val _bundle = Files.readString(Path.of("docs", "spec", "examples", "car-review-evidence-bundle-v1.json"))

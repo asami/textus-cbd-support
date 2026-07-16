@@ -9,6 +9,7 @@ import io.circe.JsonObject
  */
 final case class ReviewId(value: String)
 final case class ReviewReportId(value: String)
+final case class ReviewAttestationId(value: String)
 final case class ReviewEvidenceId(value: String)
 final case class ReviewObservationId(value: String)
 final case class ReviewCapabilityId(value: String)
@@ -186,6 +187,21 @@ final case class CarReviewReport(
   limitations: Vector[ReviewLimitation],
   baseline: Option[ReviewBaseline],
   gate: ReviewGate
+)
+
+final case class CarReviewAttestation(
+  schemaVersion: ReviewSchemaVersion,
+  documentType: ReviewDocumentType,
+  attestationId: ReviewAttestationId,
+  attestationDigest: ReviewDigest,
+  reviewId: ReviewId,
+  reportId: ReviewReportId,
+  reportDigest: ReviewDigest,
+  targetDigest: ReviewDigest,
+  profile: ReviewProfile,
+  providers: Vector[ReviewProviderAttribution],
+  gate: ReviewGate,
+  createdAt: ReviewInstant
 )
 
 final case class CarReviewCodecFailure(

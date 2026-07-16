@@ -30,6 +30,14 @@ final class CarReviewCanonicalResponseApplicationSpec extends AnyWordSpec with M
       response.report.evidence.nonEmpty shouldBe true
       response.gate.result.value shouldBe "unknown"
       response.report.execution.providers.map(_.provider.id.value) shouldBe Vector("cozy")
+      response.attestation.reviewId shouldBe response.report.reviewId
+      response.attestation.reportId shouldBe response.report.reportId
+      response.attestation.reportDigest shouldBe response.report.reportDigest
+      response.attestation.targetDigest shouldBe response.report.target.digest
+      response.attestation.profile shouldBe response.report.profile
+      response.attestation.gate shouldBe response.report.gate
+      response.attestation.providers.map(_.provider.id.value) shouldBe Vector("cozy")
+      CarReviewAttestationCodec.encode(response.attestation).isRight shouldBe true
     }
 
     "refuse an ambiguous capability template instead of silently discarding an assessment" in {

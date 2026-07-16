@@ -25,12 +25,12 @@ final class CarReviewSubmissionContractSpec extends AnyWordSpec with Matchers wi
       val request = definitions("providerDocumentSubmission").getOrElse(fail("Missing provider-document submission definition."))
       val response = definitions("canonicalReviewResponse").getOrElse(fail("Missing canonical response definition."))
 
-      Then("only provider documents can enter the request and CBD returns its report/gate result")
+      Then("only provider documents can enter the request and CBD returns its report, attestation, and gate result")
       schema.hcursor.get[String]("$id").toOption shouldBe Some("https://simplemodeling.org/schema/textus/cbd/car-review-submission-v1.schema.json")
       request.hcursor.get[Boolean]("additionalProperties").toOption shouldBe Some(false)
       response.hcursor.get[Boolean]("additionalProperties").toOption shouldBe Some(false)
       _properties(request).intersect(Set("workspacePath", "projectRoot", "command", "environment", "template", "report", "gate")) shouldBe empty
-      _properties(response) should contain allOf ("report", "gateResult")
+      _properties(response) should contain allOf ("report", "attestation", "gateResult")
       _properties(definitions("providerDocuments").getOrElse(fail("Missing provider documents definition."))) shouldBe Set("availability", "descriptor", "providerRequest", "bundle")
     }
 

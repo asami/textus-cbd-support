@@ -10,7 +10,8 @@ import org.goldenport.Consequence
 /** Builds the sole CBD-owned canonical report and gate from already admitted provider bundles. */
 final case class CarReviewCanonicalResponse(
   report: CarReviewReport,
-  gate: ReviewGate
+  gate: ReviewGate,
+  attestation: CarReviewAttestation
 )
 
 final class CarReviewCanonicalResponseApplication {
@@ -34,7 +35,11 @@ final class CarReviewCanonicalResponseApplication {
             template.gate.policyVersion
           ))
           report <- _assemble(template, bundles, reconciled, assessed)
-        } yield CarReviewCanonicalResponse(report, report.gate)
+          attestation <- CarReviewAttestationCodec.fromReport(report) match {
+            case Right(value) => Consequence.success(value)
+            case Left(error) => Consequence.operationInvalid(s"${error.code}: ${error.message}")
+          }
+        } yield CarReviewCanonicalResponse(report, report.gate, attestation)
       case _ =>
         Consequence.operationInvalid("canonical review response requires exactly one configured capability assessment")
     }

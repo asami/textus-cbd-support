@@ -28,9 +28,11 @@ field. CBD resolves its own canonical template after authorization.
 
 ## Response
 
-`canonical-review-response` contains the canonical `review-report` JSON and
-the matching CBD Gate result. The result must equal `report.gate.result`; a
-client must not infer or replace it locally.
+`canonical-review-response` contains the canonical `review-report`, the
+CBD-owned `review-attestation`, and the matching CBD Gate result. The result
+must equal `report.gate.result`; the attestation binds the exact Report,
+target, profile, providers/rule sets/bundles, and Gate. A client must not infer
+or replace either the Gate or attestation locally.
 
 The contract is transport-neutral. A later private CBD HTTP/CLI adapter and
 the `sbt-cozy` transport use this exact JSON body; neither gains server-side

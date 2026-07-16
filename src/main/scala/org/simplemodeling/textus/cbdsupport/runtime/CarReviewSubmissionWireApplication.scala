@@ -52,10 +52,13 @@ object CarReviewSubmissionWireCodec {
     for {
       report <- CarReviewReportCodec.encode(value.report).left.map(_.code)
       json <- parse(report).left.map(_ => "canonical-report-json-invalid")
+      attestation <- CarReviewAttestationCodec.encode(value.attestation).left.map(_.code)
+      attestationjson <- parse(attestation).left.map(_ => "canonical-attestation-json-invalid")
     } yield _printer.print(Json.obj(
       "schemaVersion" -> Json.fromString(_schema_version),
       "documentType" -> Json.fromString("canonical-review-response"),
       "report" -> json,
+      "attestation" -> attestationjson,
       "gateResult" -> Json.fromString(value.gate.result.value)
     ))
 

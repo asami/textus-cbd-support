@@ -43,11 +43,12 @@
     },
     "canonicalReviewResponse": {
       "type": "object", "additionalProperties": false,
-      "required": ["schemaVersion", "documentType", "report", "gateResult"],
+      "required": ["schemaVersion", "documentType", "report", "attestation", "gateResult"],
       "properties": {
         "schemaVersion": { "const": "textus.cbd.review-submission.v1" },
         "documentType": { "const": "canonical-review-response" },
         "report": { "type": "object" },
+        "attestation": { "type": "object" },
         "gateResult": { "enum": ["pass", "fail", "unknown"] }
       }
     }

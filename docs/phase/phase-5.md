@@ -436,6 +436,14 @@ prove these projection and refusal contracts. P5-32 remains open until the
 configured task route produces its selected artifacts against a real canonical
 CBD response.
 
+P5-33 now has a CBD-owned canonical attestation path. CBD attaches the
+attestation to the submission response and binds its digest to the canonical
+Report, target, profile, provider/rule-set/bundle identities, and Gate.
+`sbt-cozy` validates those bindings before writing
+`target/cbd-review/sbt-cozy/canonical-attestation.json`; it exposes the file as
+`cozyReviewAttestation` and never manufactures a local substitute. Live CI
+materialization remains required before checking P5-33.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

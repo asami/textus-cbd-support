@@ -36,6 +36,7 @@ trait CarReviewJobGateway {
 
 object CarReviewAuthorization {
   val startRoles: Set[String] = Set("reviewer", "operator", "admin")
+  val submitBundleRoles: Set[String] = startRoles
   val readRoles: Set[String] = Set("viewer", "reviewer", "operator", "admin")
   val cancelRoles: Set[String] = Set("operator", "admin")
 
@@ -57,6 +58,7 @@ object CarReviewAuthorization {
   ): Consequence[Unit] = {
     val allowed = action match {
       case "review.start" => startRoles
+      case "review.submit-bundle" => submitBundleRoles
       case "review.read-run" => readRoles
       case "review.cancel" => cancelRoles
       case _ => Set.empty[String]

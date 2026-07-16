@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-12 — admit provider bundles only after exact schema, capability, target, digest, and compatibility validation.
+- Current step: P5-13 — reconcile admitted Evidence and Observations without selecting an implicit provider winner or fabricating Assurance.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -243,8 +243,14 @@ bundle item/byte limits are checked before any provider Observation can enter
 reconciliation. `incompatible`, `unavailable`, and `disabled` outcomes are
 retained as provider-attributed Unknown-shaped refusals; `failed` retains the
 same attribution as a run failure. It has no implicit provider rerun or
-fallback. Provider invocation, elapsed-time enforcement, and reconciliation
-remain the following P5-12/P5-13 work, so P5-12 stays open.
+fallback. `CarReviewProviderExecutionCoordinator` follows this boundary with
+one injected provider runner: it applies the request timeout, propagates
+cancellation, retains provider failures, and caches each admitted
+provider/request digest so it never re-runs an already admitted bundle.
+`CarReviewProviderExecutionCoordinatorSpec` proves the normal, cached,
+timeout, cancellation, and provider-failure paths. P5-12 is complete.
+Provider discovery and the production Cozy adapter remain P5-21 work, and
+report reconciliation begins at P5-13.
 
 ## Stage 5.3: Provider Framework and Cozy
 

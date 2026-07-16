@@ -1,6 +1,6 @@
 # P5-12 Provider Bundle Admission — 2026-07-16
 
-status=in-progress
+status=complete
 checklist=P5-12
 
 ## Decision
@@ -30,5 +30,17 @@ provider, retries implicitly, or manufactures an Assurance.
 and `CarReviewProviderBundleAdmissionSpec` proves the compatible, target-
 digest mismatch, unavailable, disabled, and failed cases. Provider invocation,
 timeout measurement/cancellation at the execution boundary, duplicate bundle
-memory across runs, and report reconciliation remain open P5-12/P5-13 work;
-the P5-12 checklist item therefore remains unchecked.
+memory across runs, and report reconciliation remained open when the initial
+admission boundary was recorded.
+
+## Execution Follow-up
+
+The follow-up execution coordinator uses the normalized provider request digest
+as its cache key. Once a bundle has been admitted for the same provider and
+request, the coordinator returns the admitted result without invoking the
+provider again. The coordinator checks the provider-declared timeout against
+injected execution timestamps, sends cancellation to the runner on timeout or
+pre-cancelled work, and keeps cancellation, timeout, and runner failures as
+provider-attributed outcomes. This is a provider-neutral CBD boundary; actual
+Cozy discovery/adapter work is still P5-21 and later. The P5-12 checklist item
+is complete; P5-13 owns canonical report reconciliation.

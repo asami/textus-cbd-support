@@ -78,6 +78,8 @@ object ProviderBundleAdmissionOutcome {
  */
 object CarReviewProviderBundleAdmission {
   private val _schema_version = "textus.cbd.review-provider.v1"
+  private val _request_fields = Set("schemaVersion", "documentType", "reviewId", "target", "requestedCapabilities", "requestedEvidenceKinds", "rules", "limits", "baseline")
+  private val _request_required_fields = Set("schemaVersion", "documentType", "reviewId", "target", "requestedCapabilities", "requestedEvidenceKinds", "rules", "limits")
   private val _printer = Printer.noSpaces.copy(sortKeys = true)
   private val _digest_pattern = "sha256:[0-9a-f]{64}".r
 
@@ -104,6 +106,21 @@ object CarReviewProviderBundleAdmission {
     }
   }
 
+  def requestDigest(value: String): Either[String, ReviewDigest] =
+    for {
+      request <- _parse(value, "request")
+      _ <- _document(request, "provider-request", "request")
+      _ <- _shape(request, _request_fields, _request_required_fields, "request")
+    } yield ReviewDigest(_sha256(request))
+
+  def timeoutMillis(value: String): Either[String, Long] =
+    for {
+      request <- _parse(value, "request")
+      _ <- _document(request, "provider-request", "request")
+      limits <- request.hcursor.downField("limits").focus.flatMap(_.asObject).toRight("request-limits-invalid")
+      timeout <- limits("timeoutMillis").flatMap(_.asNumber).flatMap(_.toLong).filter(_ > 0).toRight("request-timeout-invalid")
+    } yield timeout
+
   private def _validate(
     context: ProviderBundleAdmissionContext,
     descriptor: Json,
@@ -115,7 +132,7 @@ object CarReviewProviderBundleAdmission {
       _ <- _document(request, "provider-request", "request")
       _ <- _document(bundle, "evidence-bundle", "bundle")
       _ <- _shape(descriptor, Set("schemaVersion", "documentType", "provider", "ruleSet", "supportedSchemaVersions", "capabilities", "limitations"), Set("schemaVersion", "documentType", "provider", "ruleSet", "supportedSchemaVersions", "capabilities", "limitations"), "descriptor")
-      _ <- _shape(request, Set("schemaVersion", "documentType", "reviewId", "target", "requestedCapabilities", "requestedEvidenceKinds", "rules", "limits", "baseline"), Set("schemaVersion", "documentType", "reviewId", "target", "requestedCapabilities", "requestedEvidenceKinds", "rules", "limits"), "request")
+      _ <- _shape(request, _request_fields, _request_required_fields, "request")
       _ <- _shape(bundle, Set("schemaVersion", "documentType", "reviewId", "target", "provider", "ruleSet", "requestDigest", "bundleDigest", "evidence", "observations", "limitations"), Set("schemaVersion", "documentType", "reviewId", "target", "provider", "ruleSet", "requestDigest", "bundleDigest", "evidence", "observations", "limitations"), "bundle")
       provider <- _provider_identity(descriptor).toRight("descriptor-provider-missing")
       ruleset <- _rule_identity(descriptor).toRight("descriptor-ruleset-missing")

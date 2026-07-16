@@ -72,10 +72,11 @@ Phases 1 through 3 are complete. Phase 4 automated work is complete, while
 Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
 unchecked. On 2026-07-16, the human reviewer authorized Phase 5 to proceed
 independently without treating that deferral as Phase 4 acceptance. Phase 5 is
-now active at P5-10 after completing the P5-01 stable ownership architecture,
+now active at P5-11 after completing the P5-01 stable ownership architecture,
 the P5-02 versioned Review Provider JSON contract, the P5-03 canonical Review
 Run, Report, assessment, gate, baseline, and attestation contract, and the
-P5-04 security/reproducibility policy contract; current status is in
+P5-04 security/reproducibility policy contract, and the P5-10 typed canonical
+Report model/deterministic codec; current status is in
 `docs/phase/phase-5.md` and `docs/phase/phase-5-checklist.md`. Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
@@ -222,5 +223,8 @@ redaction covers every projection and AI input, MCP publishes only bounded
 authorized read queries, and standard CI is pinned and offline. The same audit
 excludes volatile execution identity, times, and array arrival order from the
 stable report digest while retaining them in the execution-specific
-attestation. Stage 5.1 is complete; P5-10 canonical model and codec
-implementation is the current priority.
+attestation. Stage 5.1 is complete. P5-10 now implements distinct domain value
+types, strict wire and invariant admission, canonical JSON encoding, stable
+content digests, and typed sanitized codec failures. P5-11 authorized Review
+Run command/query lifecycle through CNCF Job execution is the current
+priority.

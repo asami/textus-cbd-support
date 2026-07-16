@@ -14,7 +14,7 @@ contract.
 
 ## Review Application Core
 
-- [ ] `P5-10` CBD Support implements a canonical Review Report model and deterministic codec whose identity and digest are stable for equivalent normalized evidence.
+- [x] `P5-10` CBD Support implements a canonical Review Report model and deterministic codec whose identity and digest are stable for equivalent normalized evidence. Evidence: `CarReviewModel`, `CarReviewReportCodec`, and `CarReviewReportCodecSpec` prove distinct value types, strict wire/model admission, canonical encoding, stable digest normalization, rejection behavior, and digest recalculation.
 - [ ] `P5-11` CBD Support implements Review Run command/query lifecycle through CNCF Job execution with authorized start, progress, cancellation, completion, failure, and limitation state.
 - [ ] `P5-12` CBD Support admits provider bundles only after schema, capability, target, digest, and compatibility validation and preserves incompatible, unavailable, disabled, and failed providers as attributable Unknown or run failures.
 - [ ] `P5-13` CBD Support reconciles Evidence and Observations without losing provider identity, fabricating Assurance, choosing an implicit source winner, or rerunning an already admitted provider bundle.

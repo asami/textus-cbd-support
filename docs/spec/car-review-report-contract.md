@@ -190,3 +190,13 @@ P5-03 does not define target-path authorization, credential resolution,
 redaction, retention limits, MCP command publication, or offline/AI execution
 policy. Those are P5-04 responsibilities. Runtime implementation and
 persistence begin under P5-10 through P5-14.
+
+## Runtime Implementation
+
+P5-10 implements this canonical report boundary in `CarReviewModel` and
+`CarReviewReportCodec`. Schema identities, Review/report/Evidence/Observation/
+capability/provider/rule identities, digests, versions, profiles, timestamps,
+and controlled report vocabularies remain distinct Scala value types while
+their v1 JSON representation stays scalar. The codec performs strict unknown
+field and model-invariant admission, canonical array/key ordering, stable
+content digest calculation, and sanitized typed failure reporting.

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-10 — implement the canonical Review Report model and deterministic codec from the completed Stage 5.1 contracts.
+- Current step: P5-11 — implement authorized Review Run command/query lifecycle through CNCF Job execution.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -202,6 +202,19 @@ Stage Status:
 Implement the CBD-owned canonical model and Review Application. Review Runs
 execute as CNCF Jobs, admit provider bundles through explicit compatibility,
 and retain deterministic reports without merging provider identity.
+
+P5-10 completed on 2026-07-16 with `CarReviewModel`,
+`CarReviewReportCodec`, and `CarReviewReportCodecSpec`. The runtime model uses
+distinct Scala value types for Review/report/Evidence/Observation/capability,
+provider/rule, digest/version/profile/instant, and all controlled report
+vocabularies rather than collapsing them into undifferentiated strings. The
+codec rejects unknown wire fields and incompatible identities, checks local
+references, provider attribution, Finding/Assurance/Unknown semantics,
+disposition, coverage, baseline, gate, bounds, duplicates, and timestamp
+ordering, and emits canonical JSON. Executable scenarios prove typed decode,
+stable encode/decode, equivalent digest across volatile Run metadata and array
+arrival order, six distinct rejection classes, and validated digest
+recalculation. Review Run Job lifecycle begins at P5-11.
 
 ## Stage 5.3: Provider Framework and Cozy
 

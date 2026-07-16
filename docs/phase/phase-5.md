@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-30 — emit attributable sbt-cozy build evidence.
+- Current step: P5-31 — submit local Cozy and sbt-cozy evidence through the CBD Review Application.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -365,6 +365,20 @@ Connect sbt builds to Cozy and CBD Support without moving Review policy into
 the plugin. Produce canonical report, HTML, SARIF, and attestation artifacts;
 make gate failure reproducible and keep existing publication tasks unchanged by
 default.
+
+P5-30 completed on 2026-07-16 in `sbt-cozy`. `cozyReviewSbtEvidence` now
+records generation, compilation, test, dependency-resolution, CAR-build, and
+aggregate task-result outcomes in deterministic v1 provider descriptor,
+request, and evidence-bundle documents under
+`target/cbd-review/sbt-cozy`. Its source digest excludes generated output, and
+the task uses a dynamic CAR branch so non-CAR builds record `not-applicable`
+without evaluating CAR packaging. The descriptor advertises only attributable
+build evidence and a possible `unknown` Observation vocabulary; each bundle
+contains no Observations, no assessment, and the explicit
+`sbt-evidence-no-quality-assessment` limitation. `SbtReviewEvidenceSpec` and
+the `cozy/review-evidence` scripted fixture prove the document and task
+contracts. Submission, canonical report admission, and gate application remain
+P5-31/P5-32 work.
 
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 

@@ -30,7 +30,7 @@ contract.
 
 ## sbt-cozy CI/CD Bridge
 
-- [ ] `P5-30` `sbt-cozy` emits attributable generation, compilation, test, dependency-resolution, CAR-build, and task-result evidence without implementing CBD quality assessment.
+- [x] `P5-30` `sbt-cozy` emits attributable generation, compilation, test, dependency-resolution, CAR-build, and task-result evidence without implementing CBD quality assessment. Evidence: `SbtReviewEvidence`, `cozyReviewSbtEvidence`, `SbtReviewEvidenceSpec`, and the `cozy/review-evidence` scripted fixture prove deterministic provider-v1 descriptor/request/bundle documents, source-content target digesting, bounded stable output, CAR-only build invocation, and explicit no-quality-assessment limitation.
 - [ ] `P5-31` `sbt-cozy` invokes Cozy locally, submits Cozy and sbt evidence bundles to the CBD Review Application, and receives one canonical report and gate result without granting a server arbitrary workspace access.
 - [ ] `P5-32` Sbt Review tasks produce or obtain the canonical report, apply the CBD gate result, and materialize selected JSON, HTML, and SARIF projections with documented stable task and setting names.
 - [ ] `P5-33` CI writes report, HTML, SARIF, and attestation artifacts under a stable target path, and attestation binds target digest, report digest, profile, providers, rule sets, and gate result.

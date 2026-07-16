@@ -262,6 +262,12 @@ it neither selects a winner nor creates an Assurance without admitted Evidence.
 Multi-provider assessment, gate construction, and persisted reconciliation are
 still P5-13/P5-14 work.
 
+`CarReviewAssessmentGateBuilder` derives a deterministic capability assessment
+and profile gate from reconciled records. It retains provider and
+Evidence/Observation identities, calculates integer coverage, keeps Unknown
+accounting explicit, and fails only from canonical Findings. Multi-capability
+policy configuration and report assembly remain P5-13 work.
+
 ## Stage 5.3: Provider Framework and Cozy
 
 Stage Status:

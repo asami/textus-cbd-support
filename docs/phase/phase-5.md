@@ -490,14 +490,14 @@ paths, canonical identity/gate retention, malformed-response refusal, and an
 authorized loopback private HTTP exchange where server-side role resolution
 owns authorization.
 
-P5-41 implementation has begun with a protected static Web form for
-`CbdRetrieval.getReviewRun`. It projects the typed Review Run record directly:
-Review/Job identity, digest-bound target, profile, lifecycle state, timestamps,
-provider-attributed limitations, and completed report ID/digest remain source
-fields rather than Web-derived conclusions. `ComponentFactorySpec` verifies
-that the form belongs to the retrieval service and remains inside the `form:`
-descriptor section. A completed-report overview and live progress scenario are
-still required before checking P5-41.
+P5-41 completed on 2026-07-16 with protected static Web forms for
+`CbdRetrieval.getReviewRun`, canonical summary/report, Findings, Assurances,
+and cross views. The forms project typed CBD source fields directly: Review/Job
+identity, digest-bound target, profile, lifecycle state/timestamps,
+provider-attributed state/limitations, and completed Report information remain
+canonical rather than Web-derived conclusions. `ComponentFactorySpec` verifies
+form placement and exact report readback; `CarReviewRunApplicationSpec` proves
+the lifecycle transitions and completed Report binding that progress displays.
 
 P5-42 completed on 2026-07-16 with `CarReviewViewProjection` exposed through
 the authorized Retrieval `getReviewViews` operation and authenticated Web

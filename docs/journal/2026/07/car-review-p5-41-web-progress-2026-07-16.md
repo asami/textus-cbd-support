@@ -1,17 +1,18 @@
 # P5-41 Review Web Progress
 
-status=in-progress
+status=complete
 phase=5
 checklist=P5-41
 updated_at=2026-07-16
 
 ## Decision
 
-The first CBD Review Web surface is a protected static form for the existing
-read-only `CbdRetrieval.getReviewRun` operation. It accepts one Review ID and
-renders only the typed Review Run projection: Review/Job identity, target and
-profile, lifecycle state/timestamps, provider-attributed limitations, and
-completed Report ID/digest. It cannot start/cancel a Run, fetch arbitrary
+CBD Review Web forms are protected, static projections for the read-only
+Retrieval operations. `getReviewRun` accepts one Review ID and renders only the
+typed Review Run projection: Review/Job identity, target and profile, lifecycle
+state/timestamps, limitations, and completed Report ID/digest. Exact Report-ID
+forms then render the canonical summary, report/provider state, Findings,
+Assurances, and cross views. They cannot start/cancel a Run, fetch arbitrary
 filesystem evidence, or create a new quality conclusion.
 
 The descriptor keeps this form under `form:` rather than under the unrelated
@@ -21,13 +22,11 @@ future generated Review forms keep the same structure.
 
 ## Evidence
 
-- `ComponentFactorySpec` proves the protected `get-review-run` form belongs to
-  CBD Retrieval, remains in the form section, and does not replace unrelated
-  operation ownership.
+- `ComponentFactorySpec` proves all protected Review forms belong to CBD
+  Retrieval, remain in the form section, expose report retention/readback, and
+  do not replace unrelated operation ownership.
+- `CarReviewRunApplicationSpec` proves the authorized CBD lifecycle transitions
+  that the `getReviewRun` form projects, including queue/running/completed and
+  canonical Report binding.
 - `CozyWebDescriptorSyncSpec` proves sbt-cozy places a generated form block
   before a following top-level `admin:` section.
-
-## Remaining Work
-
-Add the completed canonical report overview and execute a live authenticated
-progress scenario before checking P5-41.

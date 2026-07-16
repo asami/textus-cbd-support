@@ -29,6 +29,14 @@ the same provider identity rather than selecting or discarding data silently.
 Provider limitation scopes that are valid in provider-v1 but not report-v1 are
 retained as provider-attributed report limitations.
 
+Follow-up: `CarReviewProviderDocumentSubmissionApplication` separates the
+client-facing payload from the internal paired-bundle assembly. It accepts a
+`SuppliedProviderBundleSet` with only provider documents and derives the
+single Review/Target binding. A CBD-owned `CarReviewCanonicalTemplateProvider`
+then resolves canonical policy before the paired boundary is called. This
+prevents an sbt/CI client from supplying a Report template or choosing a gate
+policy, and authorization occurs before policy resolution.
+
 ## Evidence
 
 - `CarReviewCanonicalResponseApplicationSpec` proves canonical report/gate
@@ -37,6 +45,8 @@ retained as provider-attributed report limitations.
 - `CarReviewPairedBundleReviewApplicationSpec` proves path-free client
   admission, canonical response construction, and Review identity refusal.
 - `CarReviewBundleReconcilerSpec` proves provider limitation scope projection.
+- `CarReviewProviderDocumentSubmissionApplicationSpec` proves that CBD resolves
+  its own Report template and refuses an unauthorized caller before resolution.
 - `sbt --batch test` passed 194 CBD Support specifications on 2026-07-16.
 
 ## Remaining Work

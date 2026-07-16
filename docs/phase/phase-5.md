@@ -392,6 +392,13 @@ and its Cozy command transport already produce the paired document submission;
 the remaining P5-31 work is to bind that client transport to this public CBD
 submission contract and prove the actual two-provider exchange.
 
+`CarReviewProviderDocumentSubmissionApplication` now makes the public CBD
+boundary explicit: the client supplies only one Review/Target-bound provider
+document set, while CBD resolves the canonical report template through its own
+policy provider before it admits evidence. An unauthorized caller is rejected
+before that resolver is called. The JSON wire contract and concrete
+`sbt-cozy` transport remain the next P5-31 slice.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

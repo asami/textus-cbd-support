@@ -514,6 +514,13 @@ the omitted Finding count and `location-bearing-findings-only` projection
 policy. `CarReviewReportProjectionSpec` proves repeat rendering remains
 identical and does not project a location-free Unknown as SARIF.
 
+P5-44 implementation has begun with `CarReviewMcpReadApplication`. Authorized
+callers can request one retained Report ID's summary, redacted report, bounded
+Findings, or bounded Assurances. The model omits Evidence facts/rationale,
+sanitizes credential-shaped text, reduces paths to a basename, rejects an
+unknown Report ID, and rejects limits outside 1–100. Its MCP CML service and
+runtime storage integration remain required before checking P5-44.
+
 ## Stage 5.6: Quality, AI, and Runtime Assessment
 
 Stage Status:

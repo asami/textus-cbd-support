@@ -112,6 +112,10 @@ final class CarReviewRepository(
     _bindings.get(reviewid)
   }
 
+  def report(reportid: ReviewReportId): Option[CarReviewReport] = synchronized {
+    _reports.get(reportid)
+  }
+
   def validateGateEvidence(evidence: CarReviewGateEvidence): Either[CarReviewRepositoryFailure, CarReviewRunReportBinding] = synchronized {
     _bindings.get(evidence.reviewId) match {
       case Some(binding) if _reports.contains(binding.reportId) && _matches(binding, evidence) => Right(binding)

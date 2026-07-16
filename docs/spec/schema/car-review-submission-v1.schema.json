@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simplemodeling.org/schema/textus/cbd/car-review-submission-v1.schema.json",
+  "title": "Textus CBD CAR Review Submission v1",
+  "oneOf": [
+    { "$ref": "#/$defs/providerDocumentSubmission" },
+    { "$ref": "#/$defs/canonicalReviewResponse" }
+  ],
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "name", "digest"],
+      "properties": {
+        "kind": { "enum": ["project", "car"] },
+        "organization": { "$ref": "#/$defs/identifier" },
+        "name": { "$ref": "#/$defs/identifier" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "providerDocuments": {
+      "type": "object", "additionalProperties": false,
+      "required": ["availability", "descriptor", "providerRequest", "bundle"],
+      "properties": {
+        "availability": { "enum": ["enabled", "unavailable", "disabled", "failed"] },
+        "descriptor": { "type": "string", "minLength": 2, "maxLength": 16777216 },
+        "providerRequest": { "type": "string", "minLength": 2, "maxLength": 16777216 },
+        "bundle": { "type": "string", "minLength": 2, "maxLength": 16777216 }
+      }
+    },
+    "providerDocumentSubmission": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "reviewId", "target", "providers"],
+      "properties": {
+        "schemaVersion": { "const": "textus.cbd.review-submission.v1" },
+        "documentType": { "const": "provider-document-submission" },
+        "reviewId": { "$ref": "#/$defs/identifier" },
+        "target": { "$ref": "#/$defs/target" },
+        "providers": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/providerDocuments" } }
+      }
+    },
+    "canonicalReviewResponse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "documentType", "report", "gateResult"],
+      "properties": {
+        "schemaVersion": { "const": "textus.cbd.review-submission.v1" },
+        "documentType": { "const": "canonical-review-response" },
+        "report": { "type": "object" },
+        "gateResult": { "enum": ["pass", "fail", "unknown"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "schemaVersion": "textus.cbd.review-security.v1",
+  "documentType": "review-security-policy",
+  "policyId": "cbd-review.security.development",
+  "policyVersion": "1.0.0",
+  "profile": "development",
+  "targetAdmission": {
+    "defaultDecision": "deny",
+    "modes": [
+      {
+        "mode": "local-development-directory",
+        "executor": "client",
+        "targetKinds": ["project"],
+        "rootRefs": ["development-root/textus-projects"],
+        "acceptsCallerPath": true,
+        "canonicalRealPath": true,
+        "followSymbolicLinks": false,
+        "requireDigest": true,
+        "maxArtifactBytes": 268435456
+      },
+      {
+        "mode": "local-car",
+        "executor": "client",
+        "targetKinds": ["car"],
+        "rootRefs": ["storage-root/local-car", "storage-root/car-cache"],
+        "acceptsCallerPath": true,
+        "canonicalRealPath": true,
+        "followSymbolicLinks": false,
+        "requireDigest": true,
+        "maxArtifactBytes": 67108864
+      },
+      {
+        "mode": "server-development-root",
+        "executor": "server",
+        "targetKinds": ["project"],
+        "rootRefs": ["development-root/server-admitted"],
+        "acceptsCallerPath": false,
+        "canonicalRealPath": true,
+        "followSymbolicLinks": false,
+        "requireDigest": true,
+        "maxArtifactBytes": 268435456
+      },
+      {
+        "mode": "uploaded-car",
+        "executor": "server",
+        "targetKinds": ["car"],
+        "rootRefs": ["staging-root/uploaded-car"],
+        "acceptsCallerPath": false,
+        "canonicalRealPath": true,
+        "followSymbolicLinks": false,
+        "requireDigest": true,
+        "maxArtifactBytes": 67108864
+      }
+    ]
+  },
+  "authorization": {
+    "defaultDecision": "deny",
+    "rules": [
+      { "action": "review.start", "roles": ["reviewer", "operator", "admin"], "mcpExposure": "private" },
+      { "action": "review.cancel", "roles": ["operator", "admin"], "mcpExposure": "private" },
+      { "action": "review.read-run", "roles": ["viewer", "reviewer", "operator", "admin"], "mcpExposure": "ready" },
+      { "action": "review.read-summary", "roles": ["viewer", "reviewer", "operator", "admin"], "mcpExposure": "ready" },
+      { "action": "review.read-report", "roles": ["viewer", "reviewer", "operator", "admin"], "mcpExposure": "ready" },
+      { "action": "review.list-findings", "roles": ["viewer", "reviewer", "operator", "admin"], "mcpExposure": "ready" },
+      { "action": "review.list-assurances", "roles": ["viewer", "reviewer", "operator", "admin"], "mcpExposure": "ready" },
+      { "action": "review.delete", "roles": ["admin"], "mcpExposure": "private" },
+      { "action": "retention.configure", "roles": ["admin"], "mcpExposure": "private" },
+      { "action": "provider.external-enable", "roles": ["operator", "admin"], "mcpExposure": "private" },
+      { "action": "provider.ai-enable", "roles": ["operator", "admin"], "mcpExposure": "private" },
+      { "action": "filesystem.configure", "roles": ["admin"], "mcpExposure": "private" }
+    ]
+  },
+  "filesystem": {
+    "mode": "bounded-read-only",
+    "readRootRefs": ["development-root/textus-projects", "development-root/server-admitted", "storage-root/local-car", "storage-root/car-cache", "staging-root/uploaded-car"],
+    "writeRootRef": "output-root/review-run",
+    "maxDepth": 32,
+    "maxFiles": 20000,
+    "maxTotalBytes": 268435456,
+    "maxFileBytes": 8388608,
+    "followSymbolicLinks": false
+  },
+  "process": {
+    "mode": "exact-command-allowlist",
+    "commands": ["cozy", "sbt"],
+    "argumentMode": "fixed-operation-templates",
+    "operationTemplates": ["cozy.inspect-evidence", "sbt.review-evidence"],
+    "environmentRefs": ["config-key/java-home"],
+    "inheritEnvironment": false,
+    "maxInvocations": 16,
+    "timeoutMilliseconds": 600000,
+    "maxStdoutBytes": 4194304,
+    "maxStderrBytes": 4194304
+  },
+  "network": {
+    "mode": "disabled",
+    "origins": [],
+    "followRedirects": false,
+    "maxRequests": 1,
+    "maxResponseBytes": 1048576,
+    "timeoutMilliseconds": 30000
+  },
+  "credentials": {
+    "referenceSchemes": ["config-key"],
+    "resolveAt": "outbound-provider-boundary",
+    "persistReferences": false,
+    "persistValues": false,
+    "projectReferences": false,
+    "projectValues": false
+  },
+  "redaction": {
+    "surfaces": ["report", "attestation", "text", "html", "sarif", "log", "calltree", "mcp", "ai-input"],
+    "forbiddenContent": ["credential", "credential-reference", "token", "request-body", "response-body", "raw-source", "absolute-local-path", "ambient-environment", "provider-wire-payload"],
+    "locationMode": "relative-path-or-admitted-evidence-uri",
+    "stripUriUserInfo": true,
+    "stripUriQuery": true,
+    "stripUriFragment": true,
+    "maxTextLength": 4096,
+    "maxLocations": 256
+  },
+  "aiInput": {
+    "enabledByDefault": false,
+    "mode": "structured-evidence-only",
+    "allowedFields": ["fact", "subject", "rule", "location", "digest", "deterministic-observation"],
+    "includeRawSource": false,
+    "includeCredentials": false,
+    "webSearch": false,
+    "urlContext": false,
+    "deterministicFindingsAuthority": true,
+    "mayEstablishFinalAssurance": false,
+    "maxEvidenceItems": 1000,
+    "maxInputBytes": 1048576,
+    "maxOutputBytes": 262144,
+    "maxCostUnits": 100
+  },
+  "mcp": {
+    "defaultDecision": "deny",
+    "readyQueries": ["getReviewRun", "getReviewSummary", "getReviewReport", "listReviewFindings", "listReviewAssurances"],
+    "privateOperations": ["startReview", "cancelReview", "deleteReview", "configureRetention", "enableExternalProvider", "enableAiProvider", "configureFilesystem"],
+    "maxPageSize": 100,
+    "reportQueriesRequireCompletedRun": true,
+    "requireAuthorization": true,
+    "requireRedaction": true
+  },
+  "retention": {
+    "runDays": 30,
+    "reportDays": 90,
+    "evidenceBundleDays": 30,
+    "uploadedArtifactDays": 7,
+    "maxRunsPerTarget": 100,
+    "maxBundlesPerRun": 32,
+    "immutability": "digest-bound-until-expiry-or-authorized-deletion",
+    "deletionRoles": ["admin"],
+    "auditDeletion": true
+  },
+  "reproducibility": {
+    "offline": true,
+    "deterministic": true,
+    "enabledProviderClasses": ["deterministic", "heuristic"],
+    "disabledProviderClasses": ["external", "runtime-network", "ai"],
+    "pinnedProviderVersions": true,
+    "pinnedRuleSetVersions": true,
+    "locale": "C",
+    "timezone": "UTC",
+    "randomSeed": 0,
+    "arrayOrdering": "canonical-json",
+    "volatileReportFieldsExcludedFromDigest": true,
+    "resolveCredentials": false
+  }
+}

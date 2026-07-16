@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simplemodeling.org/schema/textus/cbd/car-review-security-policy-v1.schema.json",
+  "title": "Textus CBD CAR Review Security Policy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "policyId",
+    "policyVersion",
+    "profile",
+    "targetAdmission",
+    "authorization",
+    "filesystem",
+    "process",
+    "network",
+    "credentials",
+    "redaction",
+    "aiInput",
+    "mcp",
+    "retention",
+    "reproducibility"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "textus.cbd.review-security.v1" },
+    "documentType": { "const": "review-security-policy" },
+    "policyId": { "$ref": "#/$defs/identifier" },
+    "policyVersion": { "$ref": "#/$defs/version" },
+    "profile": { "enum": ["development", "ci", "release", "server"] },
+    "targetAdmission": { "$ref": "#/$defs/targetAdmission" },
+    "authorization": { "$ref": "#/$defs/authorization" },
+    "filesystem": { "$ref": "#/$defs/filesystem" },
+    "process": { "$ref": "#/$defs/process" },
+    "network": { "$ref": "#/$defs/network" },
+    "credentials": { "$ref": "#/$defs/credentials" },
+    "redaction": { "$ref": "#/$defs/redaction" },
+    "aiInput": { "$ref": "#/$defs/aiInput" },
+    "mcp": { "$ref": "#/$defs/mcp" },
+    "retention": { "$ref": "#/$defs/retention" },
+    "reproducibility": { "$ref": "#/$defs/reproducibility" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "version": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "positiveInteger": { "type": "integer", "minimum": 1 },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(development-root|storage-root|staging-root|output-root|config-key)/[A-Za-z0-9][A-Za-z0-9._/-]*$"
+    },
+    "targetMode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "executor",
+        "targetKinds",
+        "rootRefs",
+        "acceptsCallerPath",
+        "canonicalRealPath",
+        "followSymbolicLinks",
+        "requireDigest",
+        "maxArtifactBytes"
+      ],
+      "properties": {
+        "mode": { "enum": ["local-development-directory", "local-car", "server-development-root", "uploaded-car"] },
+        "executor": { "enum": ["client", "server"] },
+        "targetKinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["project", "car"] }
+        },
+        "rootRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "acceptsCallerPath": { "type": "boolean" },
+        "canonicalRealPath": { "const": true },
+        "followSymbolicLinks": { "const": false },
+        "requireDigest": { "const": true },
+        "maxArtifactBytes": { "$ref": "#/$defs/positiveInteger" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "executor": { "const": "server" } } },
+          "then": { "properties": { "acceptsCallerPath": { "const": false } } }
+        }
+      ]
+    },
+    "targetAdmission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultDecision", "modes"],
+      "properties": {
+        "defaultDecision": { "const": "deny" },
+        "modes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/targetMode" }
+        }
+      }
+    },
+    "authorizationRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "roles", "mcpExposure"],
+      "properties": {
+        "action": {
+          "enum": [
+            "review.start",
+            "review.cancel",
+            "review.read-run",
+            "review.read-summary",
+            "review.read-report",
+            "review.list-findings",
+            "review.list-assurances",
+            "review.delete",
+            "retention.configure",
+            "provider.external-enable",
+            "provider.ai-enable",
+            "filesystem.configure"
+          ]
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["viewer", "reviewer", "operator", "admin"] }
+        },
+        "mcpExposure": { "enum": ["ready", "private"] }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultDecision", "rules"],
+      "properties": {
+        "defaultDecision": { "const": "deny" },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/authorizationRule" }
+        }
+      }
+    },
+    "filesystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "readRootRefs", "maxDepth", "maxFiles", "maxTotalBytes", "maxFileBytes", "followSymbolicLinks"],
+      "properties": {
+        "mode": { "enum": ["denied", "bounded-read-only"] },
+        "readRootRefs": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/reference" } },
+        "writeRootRef": { "$ref": "#/$defs/reference" },
+        "maxDepth": { "$ref": "#/$defs/positiveInteger" },
+        "maxFiles": { "$ref": "#/$defs/positiveInteger" },
+        "maxTotalBytes": { "$ref": "#/$defs/positiveInteger" },
+        "maxFileBytes": { "$ref": "#/$defs/positiveInteger" },
+        "followSymbolicLinks": { "const": false }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "bounded-read-only" } } },
+          "then": {
+            "required": ["writeRootRef"],
+            "properties": { "readRootRefs": { "minItems": 1 } }
+          },
+          "else": {
+            "properties": { "readRootRefs": { "maxItems": 0 } },
+            "not": { "required": ["writeRootRef"] }
+          }
+        }
+      ]
+    },
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "commands", "argumentMode", "operationTemplates", "environmentRefs", "inheritEnvironment", "maxInvocations", "timeoutMilliseconds", "maxStdoutBytes", "maxStderrBytes"],
+      "properties": {
+        "mode": { "enum": ["disabled", "exact-command-allowlist"] },
+        "commands": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "argumentMode": { "const": "fixed-operation-templates" },
+        "operationTemplates": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "environmentRefs": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/reference" } },
+        "inheritEnvironment": { "const": false },
+        "maxInvocations": { "$ref": "#/$defs/positiveInteger" },
+        "timeoutMilliseconds": { "$ref": "#/$defs/positiveInteger" },
+        "maxStdoutBytes": { "$ref": "#/$defs/positiveInteger" },
+        "maxStderrBytes": { "$ref": "#/$defs/positiveInteger" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "exact-command-allowlist" } } },
+          "then": {
+            "properties": {
+              "commands": { "minItems": 1 },
+              "operationTemplates": { "minItems": 1 }
+            }
+          },
+          "else": {
+            "properties": {
+              "commands": { "maxItems": 0 },
+              "operationTemplates": { "maxItems": 0 },
+              "environmentRefs": { "maxItems": 0 }
+            }
+          }
+        }
+      ]
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "origins", "followRedirects", "maxRequests", "maxResponseBytes", "timeoutMilliseconds"],
+      "properties": {
+        "mode": { "enum": ["disabled", "exact-origin-allowlist"] },
+        "origins": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^https?://[A-Za-z0-9.-]+(?::[0-9]{1,5})?$",
+            "maxLength": 256
+          }
+        },
+        "followRedirects": { "const": false },
+        "maxRequests": { "$ref": "#/$defs/positiveInteger" },
+        "maxResponseBytes": { "$ref": "#/$defs/positiveInteger" },
+        "timeoutMilliseconds": { "$ref": "#/$defs/positiveInteger" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "exact-origin-allowlist" } } },
+          "then": { "properties": { "origins": { "minItems": 1 } } },
+          "else": { "properties": { "origins": { "maxItems": 0 } } }
+        }
+      ]
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["referenceSchemes", "resolveAt", "persistReferences", "persistValues", "projectReferences", "projectValues"],
+      "properties": {
+        "referenceSchemes": { "const": ["config-key"] },
+        "resolveAt": { "const": "outbound-provider-boundary" },
+        "persistReferences": { "const": false },
+        "persistValues": { "const": false },
+        "projectReferences": { "const": false },
+        "projectValues": { "const": false }
+      }
+    },
+    "redaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["surfaces", "forbiddenContent", "locationMode", "stripUriUserInfo", "stripUriQuery", "stripUriFragment", "maxTextLength", "maxLocations"],
+      "properties": {
+        "surfaces": {
+          "type": "array",
+          "minItems": 9,
+          "uniqueItems": true,
+          "items": { "enum": ["report", "attestation", "text", "html", "sarif", "log", "calltree", "mcp", "ai-input"] }
+        },
+        "forbiddenContent": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["credential", "credential-reference", "token", "request-body", "response-body", "raw-source", "absolute-local-path", "ambient-environment", "provider-wire-payload"] }
+        },
+        "locationMode": { "const": "relative-path-or-admitted-evidence-uri" },
+        "stripUriUserInfo": { "const": true },
+        "stripUriQuery": { "const": true },
+        "stripUriFragment": { "const": true },
+        "maxTextLength": { "$ref": "#/$defs/positiveInteger" },
+        "maxLocations": { "$ref": "#/$defs/positiveInteger" }
+      }
+    },
+    "aiInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabledByDefault", "mode", "allowedFields", "includeRawSource", "includeCredentials", "webSearch", "urlContext", "deterministicFindingsAuthority", "mayEstablishFinalAssurance", "maxEvidenceItems", "maxInputBytes", "maxOutputBytes", "maxCostUnits"],
+      "properties": {
+        "enabledByDefault": { "const": false },
+        "mode": { "const": "structured-evidence-only" },
+        "allowedFields": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["fact", "subject", "rule", "location", "digest", "deterministic-observation"] }
+        },
+        "includeRawSource": { "const": false },
+        "includeCredentials": { "const": false },
+        "webSearch": { "const": false },
+        "urlContext": { "const": false },
+        "deterministicFindingsAuthority": { "const": true },
+        "mayEstablishFinalAssurance": { "const": false },
+        "maxEvidenceItems": { "$ref": "#/$defs/positiveInteger" },
+        "maxInputBytes": { "$ref": "#/$defs/positiveInteger" },
+        "maxOutputBytes": { "$ref": "#/$defs/positiveInteger" },
+        "maxCostUnits": { "$ref": "#/$defs/positiveInteger" }
+      }
+    },
+    "mcp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultDecision", "readyQueries", "privateOperations", "maxPageSize", "reportQueriesRequireCompletedRun", "requireAuthorization", "requireRedaction"],
+      "properties": {
+        "defaultDecision": { "const": "deny" },
+        "readyQueries": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["getReviewRun", "getReviewSummary", "getReviewReport", "listReviewFindings", "listReviewAssurances"] }
+        },
+        "privateOperations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["startReview", "cancelReview", "deleteReview", "configureRetention", "enableExternalProvider", "enableAiProvider", "configureFilesystem"] }
+        },
+        "maxPageSize": { "$ref": "#/$defs/positiveInteger" },
+        "reportQueriesRequireCompletedRun": { "const": true },
+        "requireAuthorization": { "const": true },
+        "requireRedaction": { "const": true }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runDays", "reportDays", "evidenceBundleDays", "uploadedArtifactDays", "maxRunsPerTarget", "maxBundlesPerRun", "immutability", "deletionRoles", "auditDeletion"],
+      "properties": {
+        "runDays": { "$ref": "#/$defs/positiveInteger" },
+        "reportDays": { "$ref": "#/$defs/positiveInteger" },
+        "evidenceBundleDays": { "$ref": "#/$defs/positiveInteger" },
+        "uploadedArtifactDays": { "$ref": "#/$defs/positiveInteger" },
+        "maxRunsPerTarget": { "$ref": "#/$defs/positiveInteger" },
+        "maxBundlesPerRun": { "$ref": "#/$defs/positiveInteger" },
+        "immutability": { "const": "digest-bound-until-expiry-or-authorized-deletion" },
+        "deletionRoles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["admin"] } },
+        "auditDeletion": { "const": true }
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offline", "deterministic", "enabledProviderClasses", "disabledProviderClasses", "pinnedProviderVersions", "pinnedRuleSetVersions", "locale", "timezone", "randomSeed", "arrayOrdering", "volatileReportFieldsExcludedFromDigest", "resolveCredentials"],
+      "properties": {
+        "offline": { "type": "boolean" },
+        "deterministic": { "type": "boolean" },
+        "enabledProviderClasses": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["deterministic", "heuristic", "external", "runtime-network", "ai"] } },
+        "disabledProviderClasses": { "type": "array", "uniqueItems": true, "items": { "enum": ["heuristic", "external", "runtime-network", "ai"] } },
+        "pinnedProviderVersions": { "type": "boolean" },
+        "pinnedRuleSetVersions": { "type": "boolean" },
+        "locale": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "timezone": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "randomSeed": { "type": "integer" },
+        "arrayOrdering": { "const": "canonical-json" },
+        "volatileReportFieldsExcludedFromDigest": { "const": true },
+        "resolveCredentials": { "type": "boolean" }
+      }
+    }
+  }
+}

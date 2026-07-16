@@ -143,11 +143,25 @@ The attestation binds:
 - the exact canonical gate result; and
 - creation time.
 
-`reportDigest` is SHA-256 over normalized report JSON with root
-`reportDigest` omitted. `attestationDigest` is SHA-256 over normalized
-attestation JSON with root `attestationDigest` omitted. Normalization is the
-same sorted-key, no-whitespace UTF-8 form defined by the P5-02 provider
-contract. Signing and trust policy remain later CI/release integration work.
+`reportDigest` is SHA-256 over deterministic report content. Normalization:
+
+1. omits root `reportDigest`, `reportId`, `reviewId`, and `createdAt`;
+2. omits execution and provider-execution `startedAt`/`completedAt`;
+3. omits the optional baseline `reportId` while retaining its digest;
+4. recursively sorts every array by its normalized canonical JSON value; and
+5. emits sorted-key, no-whitespace UTF-8 JSON.
+
+The omitted fields remain in the stored report for lifecycle and navigation,
+but cannot make identical admitted Evidence produce different local and CI
+digests. IDs, times, or array arrival order are therefore not quality facts.
+Target, profile, provider/rule-set/bundle identity, Evidence, Observations,
+assessments, limitations, baseline digest, and gate remain digest-bound.
+
+`attestationDigest` is SHA-256 over normalized attestation JSON with root
+`attestationDigest` omitted, using sorted keys and no whitespace without
+omitting its Run/report IDs or creation time. The attestation therefore binds
+one concrete execution to the stable report content. Signing and trust policy
+remain later CI/release integration work.
 
 ## Admission Invariants
 
@@ -161,7 +175,8 @@ CBD Support accepts these documents only when:
 5. every assessment Observation/Evidence reference resolves inside the report;
 6. every gate blocking ID resolves to a Finding;
 7. coverage counts and basis points satisfy the defined equation;
-8. report and attestation digests recompute exactly; and
+8. stable-content report and execution-specific attestation digests recompute
+   exactly; and
 9. a completed Run and its attestation reference the same report, target,
    profile, providers, and gate result.
 

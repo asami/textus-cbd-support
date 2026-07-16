@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-04 — specify Review target admission, authorization, containment, redaction, retention, MCP exposure, and deterministic/offline execution boundaries.
+- Current step: P5-10 — implement the canonical Review Report model and deterministic codec from the completed Stage 5.1 contracts.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -140,7 +140,7 @@ repositories do not own competing Review Reports or gate policies.
 ## Stage 5.1: Normative Contract
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: DONE
 - Owner: Textus CBD development
 - Checklist basis: `P5-01` through `P5-04`
 - Update rule: Update when ownership, provider, report, run, or security contracts are promoted or their executable examples change.
@@ -178,10 +178,23 @@ cross-document identity, and recomputable report and attestation digests.
 Target admission, authorization, containment, redaction, retention, MCP
 exposure, and deterministic/offline execution remain P5-04 work.
 
+P5-04 completed on 2026-07-16 with
+`docs/spec/car-review-security-contract.md`, the strict
+`textus.cbd.review-security.v1` policy Schema, development and standard CI
+policy examples, and `CarReviewSecurityContractSpec`. The contract fixes
+deny-by-default action and MCP authority, client/server target admission,
+bounded filesystem/process/network work, outbound-only credential resolution,
+shared projection redaction, structured AI input, finite immutable retention,
+and pinned offline CI behavior. The same determinism audit refined P5-03 so
+volatile Run/report IDs, execution timestamps, baseline report ID, and array
+arrival order do not affect `reportDigest`; the attestation still binds one
+concrete execution. Stage 5.1 is complete and Review Application model work
+begins at P5-10.
+
 ## Stage 5.2: Review Application Core
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD development
 - Checklist basis: `P5-10` through `P5-14`
 - Update rule: Update when canonical report, Review Run, provider orchestration, persistence, or gate behavior gains executable evidence.

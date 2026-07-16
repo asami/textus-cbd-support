@@ -36,7 +36,7 @@
       "state": "completed"
     }
   ],
-  "reportDigest": "sha256:578571b5b241b6daf20ca3f340f68c8667074ea7c795352d5e5470741a21ff6d",
+  "reportDigest": "sha256:bcdb18448fcafbb5ed6e220518172768d0c50076fc6574b5ce3ddeff11b1c89f",
   "reportId": "report-example-001",
   "reviewId": "review-example-001",
   "schemaVersion": "textus.cbd.review-report.v1",

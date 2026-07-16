@@ -134,7 +134,8 @@ final class CarReviewReportContractSpec extends AnyWordSpec with Matchers with G
         val assessments = _json_array(report, "assessments")
 
         When("coverage counts and normalized report content are evaluated")
-        val normalizedreport = report.mapObject(_.remove("reportDigest"))
+        val normalizedreport = _normalized_report_content(report)
+        val alternatereport = _alternative_run_metadata(_reverse_arrays(report))
 
         Then("each applicable coverage record preserves denominator and Unknown accounting")
         assessments.foreach { assessment =>
@@ -147,8 +148,9 @@ final class CarReviewReportContractSpec extends AnyWordSpec with Matchers with G
           _integer(coverage, "basisPoints") shouldBe assessed * 10000 / applicable
         }
 
-        And("the report digest binds the complete canonical report content")
+        And("the report digest binds deterministic canonical report content")
         _string(report, "reportDigest") shouldBe _sha256_json(normalizedreport)
+        _sha256_json(_normalized_report_content(alternatereport)) shouldBe _string(report, "reportDigest")
         _string(report, "reportDigest") should fullyMatch regex _digest_pattern
       }
     }
@@ -286,6 +288,71 @@ final class CarReviewReportContractSpec extends AnyWordSpec with Matchers with G
       _string(provider, "bundleDigest")
     )
   }
+
+  private def _normalized_report_content(report: Json): Json = {
+    val withoutrootvolatile = report.mapObject(
+      _.remove("reportDigest").remove("reportId").remove("reviewId").remove("createdAt")
+    )
+    val withoutexecutionvolatile = withoutrootvolatile.mapObject { root =>
+      val execution = _field(withoutrootvolatile, "execution").mapObject { value =>
+        val providers = _json_array(_field(withoutrootvolatile, "execution"), "providers").map(
+          _.mapObject(_.remove("startedAt").remove("completedAt"))
+        )
+        value
+          .remove("startedAt")
+          .remove("completedAt")
+          .add("providers", Json.fromValues(providers))
+      }
+      val withoutbaselineidentity = root("baseline").map(_.mapObject(_.remove("reportId")))
+      val withexecution = root.add("execution", execution)
+      withoutbaselineidentity.fold(withexecution)(withexecution.add("baseline", _))
+    }
+    _canonicalize_arrays(withoutexecutionvolatile)
+  }
+
+  private def _alternative_run_metadata(report: Json): Json =
+    report.mapObject { root =>
+      val execution = _field(report, "execution").mapObject { value =>
+        val providers = _json_array(_field(report, "execution"), "providers").map(
+          _.mapObject(
+            _.add("startedAt", Json.fromString("2030-01-01T00:00:01Z"))
+              .add("completedAt", Json.fromString("2030-01-01T00:00:02Z"))
+          )
+        )
+        value
+          .add("startedAt", Json.fromString("2030-01-01T00:00:00Z"))
+          .add("completedAt", Json.fromString("2030-01-01T00:00:03Z"))
+          .add("providers", Json.fromValues(providers))
+      }
+      val baseline = root("baseline").map(_.mapObject(_.add("reportId", Json.fromString("another-baseline"))))
+      val changed = root
+        .add("reportId", Json.fromString("another-report"))
+        .add("reviewId", Json.fromString("another-review"))
+        .add("createdAt", Json.fromString("2030-01-01T00:00:04Z"))
+        .add("execution", execution)
+      baseline.fold(changed)(changed.add("baseline", _))
+    }
+
+  private def _canonicalize_arrays(json: Json): Json =
+    json.arrayOrObject(
+      json,
+      values => {
+        val normalized = values.map(_canonicalize_arrays)
+        Json.fromValues(normalized.sortBy(_canonical_printer.print))
+      },
+      fields => Json.fromJsonObject(
+        JsonObject.fromIterable(fields.toVector.map { case (key, value) => key -> _canonicalize_arrays(value) })
+      )
+    )
+
+  private def _reverse_arrays(json: Json): Json =
+    json.arrayOrObject(
+      json,
+      values => Json.fromValues(values.reverse.map(_reverse_arrays)),
+      fields => Json.fromJsonObject(
+        JsonObject.fromIterable(fields.toVector.map { case (key, value) => key -> _reverse_arrays(value) })
+      )
+    )
 
   private def _sha256_json(json: Json): String = {
     val bytes = _canonical_printer.print(json).getBytes(StandardCharsets.UTF_8)

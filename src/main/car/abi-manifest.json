@@ -56,6 +56,36 @@
           "output": "ReviewRunResponse"
         },
         {
+          "name": "getReviewSummary",
+          "kind": "QUERY",
+          "input": "GetReviewSummaryRequest",
+          "output": "ReviewSummaryResponse"
+        },
+        {
+          "name": "getReviewReport",
+          "kind": "QUERY",
+          "input": "GetReviewReportRequest",
+          "output": "ReviewReportResponse"
+        },
+        {
+          "name": "listReviewFindings",
+          "kind": "QUERY",
+          "input": "ListReviewFindingsRequest",
+          "output": "ReviewObservationResponse"
+        },
+        {
+          "name": "listReviewAssurances",
+          "kind": "QUERY",
+          "input": "ListReviewAssurancesRequest",
+          "output": "ReviewObservationResponse"
+        },
+        {
+          "name": "getReviewViews",
+          "kind": "QUERY",
+          "input": "GetReviewViewsRequest",
+          "output": "ReviewViewsResponse"
+        },
+        {
           "name": "refreshCatalog",
           "kind": "COMMAND",
           "input": "CatalogRefreshRequest",
@@ -72,6 +102,18 @@
           "kind": "COMMAND",
           "input": "ReviewCancelRequest",
           "output": "ReviewRunResponse"
+        },
+        {
+          "name": "submitReviewDocuments",
+          "kind": "COMMAND",
+          "input": "ReviewSubmissionRequest",
+          "output": "ReviewSubmissionResponse"
+        },
+        {
+          "name": "post",
+          "kind": "COMMAND",
+          "input": "ReviewHttpSubmissionRequest",
+          "output": "ReviewSubmissionResponse"
         }
       ],
       "entities": []

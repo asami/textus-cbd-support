@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 import com.sun.net.httpserver.{HttpExchange, HttpHandler, HttpServer}
 
 import io.circe.{Json, Printer}
+import io.circe.parser.parse
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -52,6 +53,20 @@ final class CarReviewCliSpec extends AnyWordSpec with Matchers with GivenWhenThe
       result.runId shouldBe "review-example-001"
       result.gate shouldBe "unknown"
       result.exitCode shouldBe 3
+    }
+
+    "produce an identical canonical response through local and CI HTTP admission for the same evidence" in {
+      Given("one path-free provider submission and one shared CBD Review Application")
+      val local = new CarReviewSubmissionCliAdapter(_wire)
+      val http = new CarReviewSubmissionHttpAdapter(_wire)
+
+      When("local stdin and the authorized CI HTTP adapter submit the exact document")
+      val localresponse = local.submitStdin(_submission_document, Set("reviewer")).fold(error => fail(error.toString), identity)
+      val ciresponse = http.postJson("application/json", _submission_document, Set("reviewer")).fold(error => fail(error.toString), identity)
+
+      Then("CBD emits the same canonical Report and unknown gate without transport-specific policy")
+      ciresponse shouldBe localresponse
+      parse(ciresponse).toOption.flatMap(_.hcursor.get[String]("gateResult").toOption) shouldBe Some("unknown")
     }
 
     "refuse a server response which omits the canonical Report run identity" in {

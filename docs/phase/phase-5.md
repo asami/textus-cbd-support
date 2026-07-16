@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-63 — prove equivalent local/CI report workflow outcomes and exceptional provider paths.
+- Current step: P5-65 — complete the implemented Review workflow documentation audit.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 

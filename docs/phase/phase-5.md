@@ -425,6 +425,17 @@ development fallback. A standalone CBD CLI executable and a role-authenticated
 live server exchange remain P5-40/P5-63 work; the shared CLI adapter is
 intentionally not represented as a separate command yet.
 
+P5-32 implementation has begun in `sbt-cozy`. `cozyReviewSubmit` now writes a
+deterministic canonical JSON artifact plus `cozyReviewCanonicalJson`,
+`cozyReviewReportHtml`, `cozyReviewReportSarif`, and `cozyReviewGate` task
+surfaces. The HTML view safely projects the CBD-owned report; SARIF projects
+only location-bearing Findings and records its lossy projection policy; the
+gate task rejects every non-`pass` CBD result. The artifact renderer refuses an
+outer response gate that disagrees with the report gate. Unit specifications
+prove these projection and refusal contracts. P5-32 remains open until the
+configured task route produces its selected artifacts against a real canonical
+CBD response.
+
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 
 Stage Status:

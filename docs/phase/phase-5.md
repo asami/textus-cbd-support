@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-13 — reconcile admitted Evidence and Observations without selecting an implicit provider winner or fabricating Assurance.
+- Current step: P5-14 — persist immutable Review Runs and reports with retention, comparison, and stale-evidence rejection.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -272,6 +272,10 @@ policy configuration and report assembly remain P5-13 work.
 assessment/gate result into one immutable canonical report before invoking the
 existing deterministic report codec. Broader multi-capability policy remains
 open in P5-13.
+
+P5-13 is complete. P5-14 now owns durable Run/report retention, target and
+report attribution, comparison, baseline behavior, and stale gate-evidence
+rejection.
 
 ## Stage 5.3: Provider Framework and Cozy
 

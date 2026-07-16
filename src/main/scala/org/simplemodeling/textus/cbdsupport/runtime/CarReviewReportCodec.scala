@@ -297,6 +297,15 @@ object CarReviewReportCodec {
       report.assessments.zipWithIndex.flatMap { case (assessment, index) =>
         _assessment_failures(assessment, s"$$.assessments[$index]")
       } ++
+      report.assessments.zipWithIndex.map { case (assessment, index) =>
+        _failure_unless(
+          assessment.maturity.value != "operational" ||
+            CarReviewRuntimeEvidencePolicy.supportsOperational(assessment, report.evidence, report.observations),
+          "runtime-evidence-required",
+          s"$$.assessments[$index]",
+          "Operational maturity requires admitted runtime-observation Evidence and an attributable mapped Observation."
+        )
+      } ++
       report.limitations.zipWithIndex.flatMap { case (limitation, index) =>
         _limitation_failures(limitation, s"$$.limitations[$index]")
       } ++

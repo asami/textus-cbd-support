@@ -566,6 +566,13 @@ observations explicitly mapped to a defined capability; its executable matrix
 proves attributable representative assessment for all seven categories and
 refuses an unspecified category.
 
+P5-54 completed on 2026-07-16 with `CarReviewRuntimeEvidencePolicy`, enforced
+by `CarReviewReportCodec`. `Operational` maturity cannot be encoded from
+static evidence: it requires bounded, provider/bundle-attributable
+`runtime-observation` Evidence that is referenced by an Observation mapped to
+the assessed capability. This preserves both the runtime source and the
+specific claim it supports.
+
 ## Stage 5.7: Verification and Closure
 
 Stage Status:

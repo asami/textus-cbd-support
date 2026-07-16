@@ -46,6 +46,25 @@ empty successful Review. Provider bundle execution begins in P5-12, so P5-11
 establishes the operation and Job lifecycle rather than claiming provider
 coverage.
 
+## Review Submission Gateway
+
+For an authorized local or CI integration, submit provider evidence to the
+private HTTP gateway with `POST /rest/v1/cbd-support/cbd-review-admin/post`.
+Set `Content-Type: application/json` and send a generated outer object whose
+only field is `submissionDocument`; its value is the complete
+`textus.cbd.review-submission.v1` JSON document encoded as a JSON string. The
+response's `canonicalResponse` field is likewise a JSON string containing the
+CBD-owned canonical response. The gateway accepts only `reviewer`, `operator`,
+or `admin`; it never accepts a workspace path, process command, policy
+template, or caller-selected gate.
+
+`sbt-cozy` uses `review.cbd.endpoint` and the `cozyReviewSubmit` task to invoke
+Cozy locally, combine Cozy and sbt evidence, and exchange this envelope. For
+local non-HTTP callers, the Review submission CLI adapter consumes the same
+inner document on stdin. The standalone CBD Support CLI command is a later
+Review user-surface task, so integrations should use the configured sbt task
+or the component gateway until then.
+
 ## Representative SAR Check
 
 From the CBD Support project root, run:

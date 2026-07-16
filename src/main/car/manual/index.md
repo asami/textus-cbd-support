@@ -324,6 +324,26 @@ request; a later `getReviewRun` projects terminal `cancelled`. Terminal Runs
 remain immutable and a failed or cancelled Run never fabricates a report.
 This command is private to MCP.
 
+### post (private Review submission HTTP gateway)
+
+The generated HTTP gateway accepts a bounded Review provider-document
+submission at:
+
+```text
+POST /rest/v1/cbd-support/cbd-review-admin/post
+Content-Type: application/json
+```
+
+The generated outer request is
+`{"submissionDocument":"<provider-document-submission JSON>"}`. The inner
+string uses `textus.cbd.review-submission.v1` and must contain only the Review
+and Target-bound provider descriptors, provider requests, and evidence bundles.
+CBD returns `{"canonicalResponse":"<canonical-review-response JSON>"}`;
+the inner response is CBD-owned and is the only report/gate result the caller
+may use. The role must be `reviewer`, `operator`, or `admin`. This operation is
+private to MCP. A local CLI adapter uses the identical inner contract through
+stdin; its standalone command is documented when the CBD Support CLI is added.
+
 ## Catalog Contract
 
 CBD Support first attempts the Cozy repository contract for each kind:

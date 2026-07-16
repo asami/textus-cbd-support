@@ -43,12 +43,25 @@ one bounded JSON stdin document. Both delegate to the identical wire and Review
 Application boundary and use resolved caller roles, so their choice cannot
 alter canonical Report/Gate ownership or admit workspace/process authority.
 
-The generated private `CbdReviewAdmin.submitReviewDocuments` operation is the
-component-level handoff for both forms. It applies the same bounded admission
-to the submitted document and derives the initial development Report template
-from the CNCF execution clock and ID generator. The protocol gateway still has
-to map a raw HTTP body and the standalone CLI stdin/stdout command to this
-operation; no raw route or CLI executable is claimed yet.
+The generated private `CbdReviewAdmin.submitReviewDocuments` operation remains
+the component-level handoff. The companion generated `CbdReviewAdmin.post`
+operation makes the HTTP form executable through the normal CNCF REST route:
+`POST /rest/v1/cbd-support/cbd-review-admin/post`. It accepts the generated
+outer object with one `submissionDocument` JSON-string field and returns one
+`canonicalResponse` JSON-string field. The inner string is exactly the
+versioned provider-document submission/canonical-response wire contract.
+`ComponentFactory` sends both operations to the same bounded CBD-owned
+application and derives the development template from the CNCF execution clock
+and ID generator. The operation stays private to MCP and retains
+`reviewer`/`operator`/`admin` submission authorization.
+
+`sbt-cozy` binds its explicit `review.cbd.endpoint` setting and
+`cozyReviewSubmit` task to that outer HTTP contract. It still runs the fixed
+Cozy provider commands locally and sends only the two provider document sets;
+the CBD endpoint cannot receive a workspace path, process command, Report
+template, or Gate decision. The local CLI adapter remains available over the
+identical inner wire contract. A user-facing standalone CLI executable is
+deferred to P5-40 rather than creating a second submission protocol now.
 
 ## Evidence
 
@@ -60,11 +73,20 @@ operation; no raw route or CLI executable is claimed yet.
 - `CarReviewBundleReconcilerSpec` proves provider limitation scope projection.
 - `CarReviewProviderDocumentSubmissionApplicationSpec` proves that CBD resolves
   its own Report template and refuses an unauthorized caller before resolution.
-- `sbt --batch test` passed 194 CBD Support specifications on 2026-07-16.
+- `ComponentFactorySpec` proves that the generated gateway is `POST` in the
+  OpenAPI projection and remains private to MCP.
+- `SbtCarReviewClientSpec` runs a loopback HTTP gateway and proves that
+  `sbt-cozy` sends the generated envelope and receives the exact canonical
+  response document.
+- `sbt --batch test` passes 203 CBD Support specifications after the endpoint
+  operation; `cozy lint car .` reports only the pre-existing missing released
+  ABI baseline warning.
+- `sbt --batch test` passes 84 `sbt-cozy` specifications, including the HTTP
+  envelope integration fixture.
 
 ## Remaining Work
 
-P5-31 remains open. `sbt-cozy` must still implement its concrete transport to
-the CBD public submission contract and demonstrate one Cozy plus one
-`sbt-cozy` bundle in an end-to-end scenario. Provider-refusal-to-Unknown
-workflow coverage remains part of P5-63.
+P5-31 remains open until an authorized running CBD server accepts an actual
+paired Cozy and `sbt-cozy` exchange. The local CLI adapter already shares the
+same contract, but its standalone user command belongs to P5-40.
+Provider-refusal-to-Unknown workflow coverage remains part of P5-63.

@@ -105,6 +105,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: ReviewSubmissionRequest
     ): SubmitReviewDocumentsActionCall = SubmitReviewDocumentsActionCallImpl(core, action)
+
+    override def createPostActionCall(
+      core: ActionCall.Core,
+      action: ReviewHttpSubmissionRequest
+    ): PostActionCall = PostActionCallImpl(core, action)
   }
 
   private final case class SearchComponentsActionCallImpl(
@@ -335,15 +340,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       given org.goldenport.cncf.context.ExecutionContext = core.executionContext
       val ctx = core.executionContext
-      val now = ReviewInstant(ctx.clock.instant().toString)
-      val application = new CarReviewSubmissionBoundedAdapter(new CarReviewSubmissionWireApplication(
-        new CarReviewProviderDocumentSubmissionApplication(
-          new CarReviewDevelopmentTemplateProvider(
-            now,
-            () => ReviewReportId(s"report-${ctx.idGeneration.opaqueId("cbd.review.report")}")
-          )
-        )
-      ))
+      val application = _review_submission_application(ctx)
       application.submit(
         _required_string(action.record, "submissionDocument"),
         CarReviewAuthorization.roles(ctx)
@@ -351,6 +348,37 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         OperationResponse(Record.dataAuto("canonicalResponse" -> response))
       }
     }
+  }
+
+  private final case class PostActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdReviewAdminService.ReviewHttpSubmissionRequest
+  ) extends CbdReviewAdminService.PostActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+      val ctx = core.executionContext
+      val application = _review_submission_application(ctx)
+      application.submit(
+        _required_string(action.record, "submissionDocument"),
+        CarReviewAuthorization.roles(ctx)
+      ).map { response =>
+        OperationResponse(Record.dataAuto("canonicalResponse" -> response))
+      }
+    }
+  }
+
+  private def _review_submission_application(
+    ctx: org.goldenport.cncf.context.ExecutionContext
+  ): CarReviewSubmissionBoundedAdapter = {
+    val now = ReviewInstant(ctx.clock.instant().toString)
+    new CarReviewSubmissionBoundedAdapter(new CarReviewSubmissionWireApplication(
+      new CarReviewProviderDocumentSubmissionApplication(
+        new CarReviewDevelopmentTemplateProvider(
+          now,
+          () => ReviewReportId(s"report-${ctx.idGeneration.opaqueId("cbd.review.report")}")
+        )
+      )
+    ))
   }
 
   private def _selection(record: Record, kind: Option[String]): ExactComponentSelection =

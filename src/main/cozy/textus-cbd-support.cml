@@ -280,6 +280,30 @@ ReviewSubmissionResponse
 
 Accept one bounded provider-document submission through the private HTTP or local CLI boundary and return only the CBD-owned canonical response.
 
+### OPERATION
+
+#### post
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ReviewHttpSubmissionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewSubmissionResponse
+
+##### DESCRIPTION
+
+Private HTTP POST gateway operation. It accepts the Review submission document in the generated request envelope and returns the CBD-owned canonical response envelope.
+
 # COMMAND
 
 ## CatalogRefreshRequest
@@ -328,6 +352,18 @@ Private request to cancel one Review Run by its CBD-owned identity.
 ### DESCRIPTION
 
 Private transport request containing the exact `textus.cbd.review-submission.v1` document. It never contains caller roles, a workspace path, process command, credentials, a Report template, or a Gate.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| submissionDocument | ReviewSubmissionDocument | 1 |
+
+## ReviewHttpSubmissionRequest
+
+### DESCRIPTION
+
+Private HTTP gateway envelope for one exact Review submission document.
 
 ### ATTRIBUTE
 

@@ -399,16 +399,27 @@ policy provider before it admits evidence. An unauthorized caller is rejected
 before that resolver is called. The JSON wire contract and concrete
 `sbt-cozy` transport remain the next P5-31 slice.
 
-P5-31 now supports both private HTTP and local CLI submission adapters over
-that same wire/application boundary. HTTP accepts only `application/json` and
-the bounded request body after gateway role resolution; CLI accepts the same
-bounded JSON through stdin with process-resolved roles. The private
-`CbdReviewAdmin.submitReviewDocuments` component operation now invokes the
-same bounded admission and a CBD-owned development template provider, returning
-only its canonical response. Neither adapter or operation gains workspace,
-process, credential, Report-template, or Gate authority. Raw server-route and
-standalone CLI-command gateway wiring, plus sbt endpoint configuration, remain
-open.
+P5-31 supports both private HTTP and local CLI submission adapters over the
+same wire/application boundary. HTTP accepts only `application/json` and the
+bounded request body after gateway role resolution; CLI accepts the same
+bounded JSON through stdin with process-resolved roles. The generated private
+`CbdReviewAdmin.post` operation exposes the HTTP form at
+`POST /rest/v1/cbd-support/cbd-review-admin/post`: its outer generated request
+is `{ "submissionDocument": "<provider-document-submission JSON>" }` and its
+outer response is `{ "canonicalResponse": "<canonical-review-response JSON>" }`.
+The component operation and the `CarReviewSubmissionCliAdapter` invoke the same
+bounded admission and CBD-owned development template provider, returning only
+the canonical response. Neither transport or operation gains workspace,
+process, credential, Report-template, or Gate authority.
+
+`sbt-cozy` now configures this endpoint with `review.cbd.endpoint` and
+`cozyReviewSubmit`; it invokes Cozy locally, submits the paired Cozy and sbt
+provider documents in the generated HTTP envelope, then unwraps only CBD's
+canonical response. The endpoint client rejects credential-bearing, non-HTTP,
+redirect, malformed, non-JSON, and oversized exchanges. Its executable HTTP
+fixture proves the envelope round trip. A standalone CBD CLI executable and a
+role-authenticated live server exchange remain P5-40/P5-63 work; the shared
+CLI adapter is intentionally not represented as a separate command yet.
 
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 

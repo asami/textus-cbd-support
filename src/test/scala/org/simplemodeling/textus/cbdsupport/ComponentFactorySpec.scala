@@ -6,6 +6,7 @@ import java.time.Instant
 
 import org.goldenport.cncf.component.{ComponentCreate, ComponentOrigin}
 import org.goldenport.cncf.mcp.McpToolCatalog
+import org.goldenport.cncf.projection.OpenApiProjection
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
@@ -49,6 +50,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val startready = component.isMcpReady("CbdReviewAdmin", "startReview")
       val cancelready = component.isMcpReady("CbdReviewAdmin", "cancelReview")
       val submissionready = component.isMcpReady("CbdReviewAdmin", "submitReviewDocuments")
+      val httppostready = component.isMcpReady("CbdReviewAdmin", "post")
 
       Then("CBD read operations are ready while catalog and Review commands remain private")
       searchready shouldBe true
@@ -57,6 +59,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       startready shouldBe false
       cancelready shouldBe false
       submissionready shouldBe false
+      httppostready shouldBe false
     }
 
     "project the CBD detail operations as distinct CNCF MCP tools" in {
@@ -285,6 +288,21 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       document shouldBe Some("{\"documentType\":\"provider-document-submission\"}")
       new impl.ComponentFactory().createUninitializedComponent()
         .isMcpReady("CbdReviewAdmin", "submitReviewDocuments") shouldBe false
+    }
+
+    "project the private Review submission gateway as an HTTP POST operation" in {
+      Given("an initialized CBD component")
+      val subsystem = DefaultSubsystemFactory.default(Some("server"))
+      val component = new impl.ComponentFactory().create(
+        ComponentCreate(subsystem, ComponentOrigin.Repository("cbd-support-spec"))
+      ).primary
+
+      When("the generated OpenAPI projection is read")
+      val openapi = OpenApiProjection.projectComponent(component)
+
+      Then("the generated Review gateway has a POST route but remains absent from MCP")
+      openapi should include("\"/cbd-support/cbd-review-admin/post\":{\"post\"")
+      component.isMcpReady("CbdReviewAdmin", "post") shouldBe false
     }
 
     "preserve CAR or SAR kind during usage and dependency handoff" in {

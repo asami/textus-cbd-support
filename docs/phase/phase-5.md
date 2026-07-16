@@ -521,6 +521,12 @@ sanitizes credential-shaped text, reduces paths to a basename, rejects an
 unknown Report ID, and rejects limits outside 1–100. Its MCP CML service and
 runtime storage integration remain required before checking P5-44.
 
+P5-45 completed on 2026-07-16 with `CarReviewMcpExposurePolicy`. Its fixed
+MCP allowlist is read-only Review projection names; start/cancel, retention,
+filesystem, external-provider, and AI enablement actions are explicitly
+private, and an unknown Review action is private by default. The generated CBD
+component continues to expose only Retrieval operations through MCP.
+
 ## Stage 5.6: Quality, AI, and Runtime Assessment
 
 Stage Status:

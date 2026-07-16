@@ -298,8 +298,10 @@ P5-20 begins with `CarReviewProviderRegistry`: strict descriptor admission,
 immutable provider registration, bounded deterministic capability discovery,
 local runner lookup, CNCF `ProviderCall` execution/cancellation, and
 CallTree-safe observability are now executable. Registry-to-coordinator
-selection and production Review Application wiring remain in the same open
-checklist item. The decision record is
+selection now rejects unregistered or descriptor-mismatched runners before
+execution; production Review Application wiring that constructs its selected
+runner through the CNCF adapter remains in the same open checklist item. The
+decision record is
 `docs/journal/2026/07/car-review-p5-20-provider-registry-2026-07-16.md`.
 
 ## Stage 5.4: sbt-cozy CI/CD Bridge

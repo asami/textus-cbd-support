@@ -57,4 +57,8 @@ final class CarReviewProviderRegistry {
   def runnerFor(provider: ReviewProviderIdentity): Option[CarReviewProviderRunner] = synchronized {
     _providers.get(provider).map(_.runner)
   }
+
+  def registrationFor(provider: ReviewProviderIdentity): Option[CarReviewRegisteredProvider] = synchronized {
+    _providers.get(provider)
+  }
 }

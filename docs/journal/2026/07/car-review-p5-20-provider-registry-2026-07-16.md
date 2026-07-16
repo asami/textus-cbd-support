@@ -34,7 +34,13 @@ target digest; descriptor, request, Evidence-bundle, and provider exception
 content are never supplied as observability properties. The executable spec
 proves both execution and cancellation behavior.
 
-P5-20 remains open. The next slice must connect capability selection from the
-registry to the execution coordinator and construct production runners through
-authorized CBD Review Application wiring. Cozy adapter and lint preservation
-are then P5-21 and P5-22 respectively.
+`CarReviewProviderExecutionCoordinator` now selects a runner only from a
+registry registration whose provider identity and parsed descriptor exactly
+match the execution request. An unregistered identity or a descriptor mismatch
+is an attributable refused provider outcome and cannot execute a caller-supplied
+runner. The selection specification also proves the normal admitted path.
+
+P5-20 remains open. The next slice must construct the selected production
+runner through `CncfCarReviewProviderRunner` in authorized CBD Review
+Application wiring. Cozy adapter and lint preservation are then P5-21 and
+P5-22 respectively.

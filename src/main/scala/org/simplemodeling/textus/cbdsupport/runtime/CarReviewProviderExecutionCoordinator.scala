@@ -73,6 +73,20 @@ final class CarReviewProviderExecutionCoordinator {
     }
   }
 
+  def execute(
+    request: ProviderBundleExecutionRequest,
+    registry: CarReviewProviderRegistry
+  ): ProviderBundleExecutionOutcome = synchronized {
+    registry.registrationFor(request.provider) match {
+      case None => _refused(request.provider, "unavailable", "provider-not-registered", runfailure = false)
+      case Some(registration) =>
+        CarReviewProviderBundleAdmission.describeDescriptor(request.descriptor) match {
+          case Right(descriptor) if descriptor == registration.descriptor => execute(request, registration.runner)
+          case _ => _refused(request.provider, "incompatible", "provider-registration-mismatch", runfailure = false)
+        }
+    }
+  }
+
   private def _execute_new(
     request: ProviderBundleExecutionRequest,
     runner: CarReviewProviderRunner,

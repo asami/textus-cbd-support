@@ -89,6 +89,45 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
       runner.executions shouldBe 1
       runner.cancellations shouldBe 0
     }
+
+    "execute only the runner bound to the exact registered provider descriptor" in {
+      Given("a registered Cozy provider and its canonical request")
+      val coordinator = new CarReviewProviderExecutionCoordinator()
+      val registry = new CarReviewProviderRegistry()
+      val runner = new FakeRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
+      registry.register(_descriptor, runner).isRight shouldBe true
+
+      When("CBD selects the registered provider through the coordinator")
+      val result = coordinator.execute(_request(), registry)
+
+      Then("only the registered runner executes and its admitted evidence remains attributable")
+      result should matchPattern {
+        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false) =>
+      }
+      runner.executions shouldBe 1
+    }
+
+    "refuse unregistered or descriptor-mismatched runners before provider execution" in {
+      Given("an empty registry and a conflicting descriptor for the same provider identity")
+      val coordinator = new CarReviewProviderExecutionCoordinator()
+      val registry = new CarReviewProviderRegistry()
+      val runner = new FakeRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
+      val conflicting = _descriptor.replace("\"version\": \"1.0.0\"", "\"version\": \"1.0.1\"")
+
+      When("the unregistered and mismatched requests reach selection")
+      val unavailable = coordinator.execute(_request(), registry)
+      registry.register(_descriptor, runner).isRight shouldBe true
+      val mismatched = coordinator.execute(_request(descriptor = conflicting), registry)
+
+      Then("neither path invokes an arbitrary runner")
+      unavailable should matchPattern {
+        case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("unavailable"), ReviewLimitation("provider-not-registered", _, _, _, _), false)) =>
+      }
+      mismatched should matchPattern {
+        case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("incompatible"), ReviewLimitation("provider-registration-mismatch", _, _, _, _), false)) =>
+      }
+      runner.executions shouldBe 0
+    }
   }
 
   private val _descriptor = _load("car-review-provider-descriptor-v1.json")
@@ -97,7 +136,8 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
 
   private def _request(
     reviewid: String = "review-example-001",
-    cancellationrequested: Boolean = false
+    cancellationrequested: Boolean = false,
+    descriptor: String = _descriptor
   ): ProviderBundleExecutionRequest =
     ProviderBundleExecutionRequest(
       ReviewId(reviewid),
@@ -110,7 +150,7 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
       ),
       ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("0.1.14")),
       ProviderBundleAvailability.Enabled,
-      _descriptor,
+      descriptor,
       _providerrequest.replace("review-example-001", reviewid),
       startedAtMillis = 0L,
       cancellationRequested = cancellationrequested

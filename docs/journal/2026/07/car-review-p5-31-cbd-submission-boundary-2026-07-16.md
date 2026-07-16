@@ -1,6 +1,6 @@
 # P5-31 CBD Submission Boundary
 
-status=in-progress
+status=complete
 phase=5
 checklist=P5-31
 updated_at=2026-07-16
@@ -112,15 +112,24 @@ submission application with process-resolved roles.
 - `sbt --batch test` passes 225 CBD Support specifications after the endpoint
   operation; CAR lint reports only pre-existing ambient-boundary and missing
   released ABI-baseline warnings.
-- `sbt --batch test` passes 96 `sbt-cozy` specifications, including HTTP
-  envelope validation without client-supplied roles.
+- `sbt --batch test` passes 97 `sbt-cozy` specifications, including HTTP
+  envelope validation without client-supplied roles and order-independent
+  provider-binding attestation validation.
+- `sbt --batch test` passes 562 Cozy specifications, including omission of an
+  empty root-relative evidence location that the CBD unsafe-location policy
+  rejects.
+- `CNCF_RUNTIME_DEV_DIR=/Users/asami/src/dev2025/cloud-native-component-framework CBD_STANDALONE_SBT_COZY_REVIEW_PROBE=true scripts/check-cbd-standalone.sh`
+  publishes the local sbt-cozy snapshot, runs the `cozy/review-submit` fixture,
+  invokes Cozy `0.3.0-SNAPSHOT` locally, and verifies both the direct paired
+  submission and `cozyReviewSubmit` against the running CBD HTTP endpoint. It
+  reports `CBD_SBT_COZY_REVIEW_SUBMISSION_OK` and verifies the CBD-owned
+  canonical report, gate, JSON, HTML, SARIF, and attestation artifacts.
 
 ## Remaining Work
 
-P5-31 remains open until an authorized running CBD server accepts an actual
-paired Cozy and `sbt-cozy` exchange. The local CLI adapter already shares the
-same contract, but its standalone user command belongs to P5-40.
-Provider-refusal-to-Unknown workflow coverage remains part of P5-63.
+P5-31 is complete. The local CLI adapter already shares the same contract, but
+its standalone user command belongs to P5-40. Provider-refusal-to-Unknown
+workflow coverage remains part of P5-63.
 
 The installed `cozy 0.2.25` launcher does not yet expose `review
 car-descriptor` / `review car-evidence`. The maintained Cozy development source

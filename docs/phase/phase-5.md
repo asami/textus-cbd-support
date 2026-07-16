@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-31 — submit local Cozy and sbt-cozy evidence through the CBD Review Application.
+- Current step: P5-32 — prove stable sbt-cozy canonical Review task and projection behavior against a configured CBD response.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -388,9 +388,12 @@ bundle through the generic v1 boundary, and returns the one CBD-owned Report
 and Gate. It reconstructs completed provider executions from admitted bundle
 identity and never silently drops a stale baseline or chooses between two
 different bundles from the same provider identity. The local `sbt-cozy` client
-and its Cozy command transport already produce the paired document submission;
-the remaining P5-31 work is to bind that client transport to this public CBD
-submission contract and prove the actual two-provider exchange.
+and its Cozy command transport produce the paired document submission. P5-31
+completed on 2026-07-16: the `cozy/review-submit` scripted fixture runs the
+maintained Cozy development runtime locally, submits the paired Cozy and
+sbt-cozy provider documents to the representative running CBD HTTP endpoint,
+and receives one CBD-owned canonical response. The server receives neither a
+workspace path nor a process command, and the client sends no role header.
 
 `CarReviewProviderDocumentSubmissionApplication` now makes the public CBD
 boundary explicit: the client supplies only one Review/Target-bound provider

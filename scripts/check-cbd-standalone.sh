@@ -239,6 +239,10 @@ if ! python3 "$SCRIPT_DIR/probe-cbd-review-submission.py" \
   show_server_log
   exit 1
 fi
+if [[ "${CBD_STANDALONE_SBT_COZY_REVIEW_PROBE:-false}" == "true" ]] && ! "$SCRIPT_DIR/probe-cbd-review-sbt-cozy.sh" --base-url "$CNCF_HTTP_BASEURL"; then
+  show_server_log
+  exit 1
+fi
 if ! stop_server; then
   show_server_log
   exit 1

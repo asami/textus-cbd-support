@@ -63,6 +63,12 @@ template, or Gate decision. The local CLI adapter remains available over the
 identical inner wire contract. A user-facing standalone CLI executable is
 deferred to P5-40 rather than creating a second submission protocol now.
 
+For development-loopback validation only, `sbt-cozy` additionally accepts the
+optional `review.cbd.role` setting. It admits only `reviewer`, `operator`, or
+`admin` and sends that exact `role` header; it cannot carry credentials,
+arbitrary headers, or a caller-chosen privilege token. Production must use the
+CBD deployment's configured authentication boundary, not this fallback.
+
 ## Evidence
 
 - `CarReviewCanonicalResponseApplicationSpec` proves canonical report/gate
@@ -81,8 +87,8 @@ deferred to P5-40 rather than creating a second submission protocol now.
 - `sbt --batch test` passes 203 CBD Support specifications after the endpoint
   operation; `cozy lint car .` reports only the pre-existing missing released
   ABI baseline warning.
-- `sbt --batch test` passes 84 `sbt-cozy` specifications, including the HTTP
-  envelope integration fixture.
+- `sbt --batch test` passes 85 `sbt-cozy` specifications, including HTTP
+  envelope and development-role validation fixtures.
 
 ## Remaining Work
 

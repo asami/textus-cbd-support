@@ -417,9 +417,13 @@ process, credential, Report-template, or Gate authority.
 provider documents in the generated HTTP envelope, then unwraps only CBD's
 canonical response. The endpoint client rejects credential-bearing, non-HTTP,
 redirect, malformed, non-JSON, and oversized exchanges. Its executable HTTP
-fixture proves the envelope round trip. A standalone CBD CLI executable and a
-role-authenticated live server exchange remain P5-40/P5-63 work; the shared
-CLI adapter is intentionally not represented as a separate command yet.
+fixture proves the envelope round trip. For a loopback development server only,
+`review.cbd.role` may carry one of `reviewer`, `operator`, or `admin` as the
+fixed `role` header; arbitrary headers and URL credentials remain unsupported.
+Production uses the configured CBD authentication boundary rather than this
+development fallback. A standalone CBD CLI executable and a role-authenticated
+live server exchange remain P5-40/P5-63 work; the shared CLI adapter is
+intentionally not represented as a separate command yet.
 
 ## Stage 5.5: Web, CLI, Report, and MCP Surfaces
 

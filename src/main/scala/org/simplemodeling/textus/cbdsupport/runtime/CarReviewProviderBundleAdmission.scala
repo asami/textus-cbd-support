@@ -57,6 +57,19 @@ final case class AdmittedProviderBundle(
   limitations: Vector[ReviewLimitation]
 )
 
+final case class ReviewProviderCapability(
+  id: ReviewCapabilityId,
+  version: ReviewVersion,
+  evidenceKinds: Vector[String],
+  observationKinds: Vector[String]
+)
+
+final case class CarReviewProviderDescriptor(
+  provider: ReviewProviderIdentity,
+  ruleSet: ReviewRuleIdentity,
+  capabilities: Vector[ReviewProviderCapability]
+)
+
 final case class ProviderBundleUnknown(
   provider: Option[ReviewProviderIdentity],
   state: ReviewProviderState,
@@ -82,6 +95,18 @@ object CarReviewProviderBundleAdmission {
   private val _request_required_fields = Set("schemaVersion", "documentType", "reviewId", "target", "requestedCapabilities", "requestedEvidenceKinds", "rules", "limits")
   private val _printer = Printer.noSpaces.copy(sortKeys = true)
   private val _digest_pattern = "sha256:[0-9a-f]{64}".r
+
+  def describeDescriptor(value: String): Either[String, CarReviewProviderDescriptor] =
+    for {
+      descriptor <- _parse(value, "descriptor")
+      _ <- _document(descriptor, "provider-descriptor", "descriptor")
+      _ <- _shape(descriptor, Set("schemaVersion", "documentType", "provider", "ruleSet", "supportedSchemaVersions", "capabilities", "limitations"), Set("schemaVersion", "documentType", "provider", "ruleSet", "supportedSchemaVersions", "capabilities", "limitations"), "descriptor")
+      provider <- _provider_identity(descriptor).toRight("descriptor-provider-missing")
+      ruleset <- _rule_identity(descriptor).toRight("descriptor-ruleset-missing")
+      _ <- Either.cond(_strings(descriptor, "supportedSchemaVersions").exists(_.contains(_schema_version)), (), "descriptor-schema-not-supported")
+      capabilities <- _descriptor_capabilities(descriptor)
+      _ <- _limitations(descriptor)
+    } yield CarReviewProviderDescriptor(provider, ruleset, capabilities)
 
   def admit(context: ProviderBundleAdmissionContext): ProviderBundleAdmissionOutcome = {
     val descriptor = _parse(context.descriptor, "descriptor")
@@ -141,6 +166,7 @@ object CarReviewProviderBundleAdmission {
       requestedevidencekinds <- _strings(request, "requestedEvidenceKinds").toRight("request-evidence-kinds-invalid")
       _ <- _rules(request)
       capabilities <- _capabilities(descriptor)
+      _ <- _limitations(descriptor)
       _ <- Either.cond(requestedcapabilities.forall(capabilities.keySet.contains), (), "unsupported-capability")
       _ <- Either.cond(requestedevidencekinds.forall(kind => capabilities.values.exists(_.contains(kind))), (), "unsupported-evidence-kind")
       _ <- _target_matches(context.target, request, "request")
@@ -209,20 +235,26 @@ object CarReviewProviderBundleAdmission {
     }
 
   private def _capabilities(descriptor: Json): Either[String, Map[String, Vector[String]]] =
+    _descriptor_capabilities(descriptor).map(_.map(capability => capability.id.value -> capability.evidenceKinds).toMap)
+
+  private def _descriptor_capabilities(descriptor: Json): Either[String, Vector[ReviewProviderCapability]] =
     _jsons(descriptor, "capabilities").flatMap { values =>
       val parsed = values.map { value =>
         for {
           fields <- value.asObject.toRight("descriptor-capability-invalid")
           _ <- Either.cond(fields.keys.toSet == Set("id", "version", "evidenceKinds", "observationKinds"), (), "descriptor-capability-unknown-field")
           id <- fields("id").flatMap(_.asString).filter(_valid_identifier).toRight("descriptor-capability-id-invalid")
-          _ <- fields("version").flatMap(_.asString).filter(_valid_version).toRight("descriptor-capability-version-invalid")
+          version <- fields("version").flatMap(_.asString).filter(_valid_version).toRight("descriptor-capability-version-invalid")
           evidence <- fields("evidenceKinds").flatMap(_.asArray).map(_.toVector.flatMap(_.asString)).filter(_.size == fields("evidenceKinds").flatMap(_.asArray).fold(0)(_.size)).toRight("descriptor-evidence-kinds-invalid")
-        } yield id -> evidence
+          observations <- fields("observationKinds").flatMap(_.asArray).map(_.toVector.flatMap(_.asString)).filter(_.size == fields("observationKinds").flatMap(_.asArray).fold(0)(_.size)).toRight("descriptor-observation-kinds-invalid")
+          _ <- Either.cond(evidence.nonEmpty && evidence.distinct.size == evidence.size, (), "descriptor-evidence-kinds-invalid")
+          _ <- Either.cond(observations.nonEmpty && observations.distinct.size == observations.size && observations.forall(CarReviewVocabulary.OBSERVATION_TYPES.contains), (), "descriptor-observation-kinds-invalid")
+        } yield ReviewProviderCapability(ReviewCapabilityId(id), ReviewVersion(version), evidence, observations)
       }
-      parsed.foldLeft[Either[String, Vector[(String, Vector[String])]]](Right(Vector.empty)) { (z, value) =>
+      parsed.foldLeft[Either[String, Vector[ReviewProviderCapability]]](Right(Vector.empty)) { (z, value) =>
         for { xs <- z; x <- value } yield xs :+ x
       }.flatMap { values =>
-        Either.cond(values.nonEmpty && values.map(_._1).distinct.size == values.size, values.toMap, "descriptor-capabilities-duplicate-or-empty")
+        Either.cond(values.nonEmpty && values.map(_.id).distinct.size == values.size, values, "descriptor-capabilities-duplicate-or-empty")
       }
     }
 

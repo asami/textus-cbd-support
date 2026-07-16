@@ -294,6 +294,13 @@ Establish provider registration, capability negotiation, bounded invocation,
 and limitation reporting. Adapt Cozy's CAR/CML/build/package/ABI/documentation
 analysis and existing lint results into the common evidence contract.
 
+P5-20 begins with `CarReviewProviderRegistry`: strict descriptor admission,
+immutable provider registration, bounded deterministic capability discovery,
+and local runner lookup are now executable. CNCF provider/driver invocation,
+CallTree-safe observability, and production cancellation/timeout propagation
+remain in the same open checklist item. The decision record is
+`docs/journal/2026/07/car-review-p5-20-provider-registry-2026-07-16.md`.
+
 ## Stage 5.4: sbt-cozy CI/CD Bridge
 
 Stage Status:

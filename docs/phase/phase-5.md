@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-60 — record executable coverage for each completed Phase 5 behavior.
+- Current step: P5-63 — prove equivalent local/CI report workflow outcomes and exceptional provider paths.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 

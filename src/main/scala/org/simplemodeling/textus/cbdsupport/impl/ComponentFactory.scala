@@ -6,23 +6,28 @@ import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
-import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService}
+import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewRunApplication, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewProfile, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
   private val _runtime = CbdRuntime.create()
+  private val _review_application = new CarReviewRunApplication()
 
   override val CbdRetrieval: CbdSupportComponent.CbdRetrievalServiceFactory =
     new CbdRetrievalServiceFactoryImpl()
 
   override val CbdCatalogAdmin: CbdSupportComponent.CbdCatalogAdminServiceFactory =
     new CbdCatalogAdminServiceFactoryImpl()
+
+  override val CbdReviewAdmin: CbdSupportComponent.CbdReviewAdminServiceFactory =
+    new CbdReviewAdminServiceFactoryImpl()
 
   override protected def create_Component(params: ComponentCreate): Component =
     createUninitializedComponent()
@@ -65,6 +70,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: CbdStatusRequest
     ): StatusActionCall = StatusActionCallImpl(core, action)
+
+    override def createGetReviewRunActionCall(
+      core: ActionCall.Core,
+      action: ReviewRunRequest
+    ): GetReviewRunActionCall = GetReviewRunActionCallImpl(core, action)
   }
 
   private final class CbdCatalogAdminServiceFactoryImpl
@@ -75,6 +85,21 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: CatalogRefreshRequest
     ): RefreshCatalogActionCall = RefreshCatalogActionCallImpl(core, action)
+  }
+
+  private final class CbdReviewAdminServiceFactoryImpl
+    extends CbdSupportComponent.CbdReviewAdminServiceFactory {
+    import CbdReviewAdminService.*
+
+    override def createStartReviewActionCall(
+      core: ActionCall.Core,
+      action: ReviewStartRequest
+    ): StartReviewActionCall = StartReviewActionCallImpl(core, action)
+
+    override def createCancelReviewActionCall(
+      core: ActionCall.Core,
+      action: ReviewCancelRequest
+    ): CancelReviewActionCall = CancelReviewActionCallImpl(core, action)
   }
 
   private final case class SearchComponentsActionCallImpl(
@@ -216,6 +241,22 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     }
   }
 
+  private final case class GetReviewRunActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.ReviewRunRequest
+  ) extends CbdRetrievalService.GetReviewRunActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+      _review_gateway(core).flatMap { gateway =>
+        _review_application.get(
+          ReviewId(_required_string(action.record, "reviewId")),
+          CarReviewAuthorization.roles(core.executionContext),
+          gateway
+        ).map(admission => OperationResponse(_review_run_record(admission)))
+      }
+    }
+  }
+
   private final case class RefreshCatalogActionCallImpl(
     core: ActionCall.Core,
     override val action: CbdCatalogAdminService.CatalogRefreshRequest
@@ -229,6 +270,55 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           "componentCount" -> _runtime.componentCount,
           "warnings" -> states.flatMap(_.warning)
         ))
+      }
+    }
+  }
+
+  private final case class StartReviewActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdReviewAdminService.ReviewStartRequest
+  ) extends CbdReviewAdminService.StartReviewActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+      val ctx = core.executionContext
+      val now = ReviewInstant(ctx.clock.instant().toString)
+      val reviewid = ReviewId(s"review-${ctx.idGeneration.opaqueId("cbd.review")}")
+      val request = RuntimeReviewStartRequest(
+        reviewid,
+        ReviewTarget(
+          ReviewTargetKind(_required_string(action.record, "targetKind")),
+          _optional_string(action.record, "organization"),
+          _required_string(action.record, "name"),
+          _optional_string(action.record, "version").map(ReviewVersion.apply),
+          ReviewDigest(_required_string(action.record, "targetDigest"))
+        ),
+        ReviewProfile(_required_string(action.record, "profile")),
+        now
+      )
+      _review_gateway(core).flatMap { gateway =>
+        _review_application.start(
+          request,
+          CarReviewAuthorization.roles(ctx),
+          gateway
+        ).map(admission => OperationResponse(_review_run_record(admission)))
+      }
+    }
+  }
+
+  private final case class CancelReviewActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdReviewAdminService.ReviewCancelRequest
+  ) extends CbdReviewAdminService.CancelReviewActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+      val ctx = core.executionContext
+      _review_gateway(core).flatMap { gateway =>
+        _review_application.cancel(
+          ReviewId(_required_string(action.record, "reviewId")),
+          CarReviewAuthorization.roles(ctx),
+          ReviewInstant(ctx.clock.instant().toString),
+          gateway
+        ).map(admission => OperationResponse(_review_run_record(admission)))
       }
     }
   }
@@ -481,6 +571,45 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
 
   private def _source_warnings: Vector[String] =
     _runtime.configurationWarnings ++ _runtime.informationSourceStates(includeDisabled = false).flatMap(_.diagnostics)
+
+  private def _review_gateway(
+    core: ActionCall.Core
+  ): org.goldenport.Consequence[CncfCarReviewJobGateway] =
+    core.component
+      .map(component => org.goldenport.Consequence.success(new CncfCarReviewJobGateway(component.jobEngine)))
+      .getOrElse(org.goldenport.Consequence.operationInvalid("CNCF component context is required for Review Job execution."))
+
+  private[cbdsupport] def _review_run_record(admission: ReviewRunAdmission): Record = {
+    val run = admission.run
+    Record.dataAuto(
+      "schemaVersion" -> run.schemaVersion.value,
+      "documentType" -> run.documentType.value,
+      "reviewId" -> run.reviewId.value,
+      "jobId" -> admission.binding.jobId.value,
+      "targetKind" -> run.target.kind.value,
+      "organization" -> run.target.organization,
+      "name" -> run.target.name,
+      "version" -> run.target.version.map(_.value),
+      "targetDigest" -> run.target.digest.value,
+      "profile" -> run.profile.value,
+      "state" -> run.state.value,
+      "limitations" -> run.limitations.map { limitation =>
+        Record.dataAuto(
+          "code" -> limitation.code,
+          "scope" -> limitation.scope.value,
+          "subjectId" -> limitation.subjectId,
+          "message" -> limitation.message,
+          "retryable" -> limitation.retryable
+        )
+      },
+      "startedAt" -> run.startedAt.value,
+      "updatedAt" -> run.updatedAt.value,
+      "completedAt" -> run.completedAt.map(_.value),
+      "reportId" -> run.reportId.map(_.value),
+      "reportDigest" -> run.reportDigest.map(_.value),
+      "failureCode" -> run.failureCode.map(_.value)
+    )
+  }
 
   private def _required_string(record: Record, key: String): String =
     _optional_string(record, key)

@@ -25,6 +25,27 @@ exists.
 6. Pass the returned `ComponentReference` to `getComponent`, `getUsage`, or
    `resolveDependencies` by using its identity fields, including `kind`.
 
+## Review Run Operations
+
+Use the private `CbdReviewAdmin.startReview` command with `targetKind`, `name`,
+`targetDigest`, and `profile`; organization and version are optional. The
+caller needs the `reviewer`, `operator`, or `admin` role. The response contains
+both the CBD-owned Review ID and its bound CNCF Job ID.
+
+Use the MCP-ready `CbdRetrieval.getReviewRun` query with that Review ID to read
+bounded progress. The caller needs `viewer`, `reviewer`, `operator`, or
+`admin`. Only `operator` or `admin` may invoke the private
+`CbdReviewAdmin.cancelReview` command. Start and cancellation are deliberately
+absent from MCP; the Web, CLI, `sbt-cozy`, or internal component command path
+must supply the authorized call.
+
+A completed Run always has a canonical report ID and digest. A Job that fails,
+is cancelled, or succeeds without a canonical report is projected as an
+explicit failed/cancelled Run with limitations; it is never presented as an
+empty successful Review. Provider bundle execution begins in P5-12, so P5-11
+establishes the operation and Job lifecycle rather than claiming provider
+coverage.
+
 ## Representative SAR Check
 
 From the CBD Support project root, run:
@@ -36,8 +57,8 @@ scripts/check-cbd-sie-sar.sh
 The command builds the CBD Support and sibling SIE snapshot CARs, creates a
 temporary `textus-cbd-sie` SAR for each policy profile, and checks each through
 a separately owned loopback CNCF server. Success requires exact CBD/SIE counts
-of baseline `6/7`, global disable `0/0`, SIE service disable `6/0`, and status-
-operation disable `5/6`. Representative disabled calls must return JSON-RPC
+of baseline `7/7`, global disable `0/0`, SIE service disable `7/0`, and status-
+operation disable `6/6`. Representative disabled calls must return JSON-RPC
 `-32602`. CBD catalog administration, SIE mutation/administration, the legacy
 SIE MCP facade, and all other unexpected tools must remain absent. Each server
 and temporary SAR is removed on exit. Set `TEXTUS_SIE_ROOT` only when the

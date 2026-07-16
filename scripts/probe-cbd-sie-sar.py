@@ -13,6 +13,7 @@ CBD_TOOLS = {
     "CbdSupport.CbdRetrieval.resolveDependencies",
     "CbdSupport.CbdRetrieval.listCatalogs",
     "CbdSupport.CbdRetrieval.status",
+    "CbdSupport.CbdRetrieval.getReviewRun",
 }
 SIE_TOOLS = {
     "SemanticIntegrationEngine.SemanticRetrieval.query",
@@ -26,6 +27,8 @@ SIE_TOOLS = {
 EXPECTED_TOOLS = CBD_TOOLS | SIE_TOOLS
 DENIED_TOOLS = {
     "CbdSupport.CbdCatalogAdmin.refreshCatalog",
+    "CbdSupport.CbdReviewAdmin.startReview",
+    "CbdSupport.CbdReviewAdmin.cancelReview",
     "SemanticIntegrationEngine.SemanticRetrieval.registerSource",
     "SemanticIntegrationEngine.SemanticRetrieval.indexDocument",
     "SemanticIntegrationEngine.SemanticRetrieval.rebuild",

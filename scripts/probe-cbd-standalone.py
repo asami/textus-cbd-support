@@ -13,6 +13,7 @@ CBD_TOOLS = {
     "CbdSupport.CbdRetrieval.resolveDependencies",
     "CbdSupport.CbdRetrieval.listCatalogs",
     "CbdSupport.CbdRetrieval.status",
+    "CbdSupport.CbdRetrieval.getReviewRun",
 }
 SIE_REFERENCE_TOOL = (
     "SemanticIntegrationEngine.SemanticRetrieval.searchComponentReferences"
@@ -175,7 +176,7 @@ def _run(base_url: str, timeout: float) -> None:
         f"Standalone SAR accepted an SIE tool: {rejected}",
     )
 
-    print("mcp_tools=6 components=CbdSupport sie_components=0")
+    print("mcp_tools=7 components=CbdSupport sie_components=0")
     print("information_sources=fixture-catalog sie_bok_sources=0")
     print("detail=textus-runtime:car@1.0.0 usage=RuntimeInspection.inspectRuntime")
     print("CBD_STANDALONE_INDEPENDENCE_OK")

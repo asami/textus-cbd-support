@@ -152,6 +152,28 @@ CbdStatusResponse
 
 Report federated information-source readiness, selected component counts, and degraded source state.
 
+#### getReviewRun
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ReviewRunRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewRunResponse
+
+##### DESCRIPTION
+
+Return authorized, bounded, redacted progress for one CBD-owned Review Run and its bound CNCF Job.
+
 ## CbdCatalogAdmin
 
 ### DESCRIPTION
@@ -182,6 +204,58 @@ CatalogRefreshResponse
 
 Refresh one configured catalog or all enabled catalogs while preserving the last known good snapshot on source failure.
 
+## CbdReviewAdmin
+
+### DESCRIPTION
+
+Private Review execution and cancellation operations for Web, CLI, sbt-cozy, and internal callers. This service is never MCP ready.
+
+### OPERATION
+
+#### startReview
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ReviewStartRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewRunResponse
+
+##### DESCRIPTION
+
+Authorize and admit one digest-bound Review target, create one Review ID, submit one CNCF Job, and return their stable binding.
+
+#### cancelReview
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ReviewCancelRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewRunResponse
+
+##### DESCRIPTION
+
+Authorize cancellation and propagate it to the CNCF Job bound to one non-terminal Review Run.
+
 # COMMAND
 
 ## CatalogRefreshRequest
@@ -195,6 +269,35 @@ Administrative request to refresh configured catalogs.
 | name | type | multiplicity |
 |------|------|--------------|
 | sourceId | CatalogSourceId | ? |
+
+## ReviewStartRequest
+
+### DESCRIPTION
+
+Private request to start one digest-bound Review Run. Server-side target admission never accepts a caller host path through this contract.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| targetKind | ReviewTargetKind | 1 |
+| organization | ComponentOrganization | ? |
+| name | ComponentName | 1 |
+| version | ComponentVersion | ? |
+| targetDigest | ReviewDigest | 1 |
+| profile | ReviewProfile | 1 |
+
+## ReviewCancelRequest
+
+### DESCRIPTION
+
+Private request to cancel one Review Run by its CBD-owned identity.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | ReviewId | 1 |
 
 # QUERY
 
@@ -270,6 +373,18 @@ Administrative request to refresh configured catalogs.
 | name | type | multiplicity |
 |------|------|--------------|
 | detail | CbdStatusDetail | ? |
+
+## ReviewRunRequest
+
+### DESCRIPTION
+
+Read-only request for one authorized Review Run.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | ReviewId | 1 |
 
 # VALUE
 
@@ -399,6 +514,51 @@ Administrative request to refresh configured catalogs.
 | readySourceCount | int | 1 |
 | componentCount | int | 1 |
 | detail | CbdStatusDetail | ? |
+
+## ReviewRunResponse
+
+### DESCRIPTION
+
+Bounded projection of one typed Review Run and its exact CNCF Job binding.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| schemaVersion | ReviewSchemaVersion | 1 |
+| documentType | ReviewDocumentType | 1 |
+| reviewId | ReviewId | 1 |
+| jobId | ReviewJobId | 1 |
+| targetKind | ReviewTargetKind | 1 |
+| organization | ComponentOrganization | ? |
+| name | ComponentName | 1 |
+| version | ComponentVersion | ? |
+| targetDigest | ReviewDigest | 1 |
+| profile | ReviewProfile | 1 |
+| state | ReviewRunState | 1 |
+| limitations | ReviewRunLimitation | * |
+| startedAt | ReviewInstant | 1 |
+| updatedAt | ReviewInstant | 1 |
+| completedAt | ReviewInstant | ? |
+| reportId | ReviewReportId | ? |
+| reportDigest | ReviewDigest | ? |
+| failureCode | ReviewFailureCode | ? |
+
+## ReviewRunLimitation
+
+### DESCRIPTION
+
+Safe attributable limitation projected from one Review Run.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| code | ReviewFailureCode | 1 |
+| scope | ReviewLimitationScope | 1 |
+| subjectId | ReviewSubjectId | ? |
+| message | CbdWarning | 1 |
+| retryable | boolean | 1 |
 
 ## ComponentMatch
 
@@ -1022,6 +1182,110 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 | value | string | 1 |
 
 ## CbdStatusDetail
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewReportId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewJobId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewSchemaVersion
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewDocumentType
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewTargetKind
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewDigest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewProfile
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewRunState
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewInstant
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewFailureCode
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewLimitationScope
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewSubjectId
 
 ### ATTRIBUTE
 

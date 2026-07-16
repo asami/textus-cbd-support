@@ -11,11 +11,13 @@ outputs must match the generated `cozy.cml.model-metadata.v1` surface from
 manifest unchanged.
 
 The current `0.1.0-SNAPSHOT` manifest exports the `textus-cbd-support`
-component and seven operations: the six read-only `CbdRetrieval` operations and
-the private-to-MCP `refreshCatalog` administration operation. MCP readiness is
-a runtime publication policy; it does not remove an operation from the CAR ABI.
-The component currently exports no CML entities and declares no component ABI
-dependencies.
+component and ten operations: seven read-only `CbdRetrieval` operations,
+private-to-MCP `refreshCatalog`, and private-to-MCP `startReview` and
+`cancelReview`. `getReviewRun` is the only Review operation in the current
+MCP-ready service; the two Review commands are isolated in `CbdReviewAdmin`.
+MCP readiness is a runtime publication policy; it does not remove an operation
+from the CAR ABI. The component currently exports no CML entities and declares
+no component ABI dependencies.
 
 ## Baseline Lifecycle
 

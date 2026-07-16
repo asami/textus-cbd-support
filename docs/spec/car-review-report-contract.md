@@ -45,8 +45,9 @@ A Review Run records:
 Run states are `admitted`, `queued`, `running`, `cancelling`, `cancelled`,
 `completed`, and `failed`. A completed Run references exactly one immutable
 report identity. A failed or cancelled Run does not fabricate a report.
-Detailed command authorization, cancellation propagation, persistence, and
-state-transition implementation are P5-11 and P5-14 work.
+Command authorization, cancellation propagation, and state-transition
+implementation are P5-11 behavior. Durable Run/report persistence and
+retention remain P5-14 work.
 
 ## Canonical Review Report
 
@@ -209,5 +210,11 @@ cancelled, Succeeded requires exactly one canonical report identity, and Failed
 requires a stable failure code. A successful Job without a report fails the Run
 as `review-report-missing`. Cancellation intent is visible as `cancelling`,
 terminal Runs are immutable, and identical terminal Job readback is idempotent.
-Operation admission, Review-to-Job binding, and authorized command/query
-publication remain the next P5-11 runtime layer.
+`CarReviewRunApplication` admits `review.start`, `review.read-run`, and
+`review.cancel` with the P5-04 roles and binds each admitted Review ID to one
+CNCF Job ID. `CncfCarReviewJobGateway` submits persistent asynchronous Jobs,
+rechecks read/cancel authorization at the Job boundary, projects canonical
+report completion, and treats a succeeded Job without report identity as the
+explicit `review-report-missing` failure. CML exposes `getReviewRun` in the
+MCP-ready read service while `startReview` and `cancelReview` remain in a
+private service.

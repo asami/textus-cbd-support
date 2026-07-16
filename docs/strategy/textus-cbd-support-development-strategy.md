@@ -72,7 +72,7 @@ Phases 1 through 3 are complete. Phase 4 automated work is complete, while
 Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
 unchecked. On 2026-07-16, the human reviewer authorized Phase 5 to proceed
 independently without treating that deferral as Phase 4 acceptance. Phase 5 is
-now active at P5-11 after completing the P5-01 stable ownership architecture,
+now active at P5-12 after completing the P5-01 stable ownership architecture,
 the P5-02 versioned Review Provider JSON contract, the P5-03 canonical Review
 Run, Report, assessment, gate, baseline, and attestation contract, and the
 P5-04 security/reproducibility policy contract, and the P5-10 typed canonical
@@ -151,10 +151,10 @@ authentication, transport, parse, and compatibility failures all preserve
 stale source-owned evidence until a successful bounded retry establishes a new
 current observation. P4-20 builds the two snapshot CARs into a representative
 `textus-cbd-sie` SAR and verifies one live CNCF `/mcp` endpoint whose exact
-surface is six CBD retrieval tools and seven SIE semantic-retrieval tools with
+surface is seven CBD retrieval tools and seven SIE semantic-retrieval tools with
 no administration or mutation tools. P4-21 verifies four live composed
-profiles: baseline `6/7`, global disable `0/0`, SIE service disable `6/0`, and
-per-component status-operation disable `5/6`. Exact tool-set assertions and
+profiles: baseline `7/7`, global disable `0/0`, SIE service disable `7/0`, and
+per-component status-operation disable `6/6`. Exact tool-set assertions and
 disabled `tools/call` rejection prove that runtime policy only narrows declared
 readiness. P4-22 now runs a repository-owned
 loopback fixture through that composed endpoint and proves that published
@@ -228,5 +228,8 @@ types, strict wire and invariant admission, canonical JSON encoding, stable
 content digests, and typed sanitized codec failures. P5-11 now has a typed
 Review Run codec and CNCF Job status projection covering progress,
 cancellation, completion, failure, limitations, stale update rejection, and
-terminal immutability. Authorized start/read/cancel operations and stable
-Review-to-Job binding are the current priority.
+terminal immutability. The CBD Review Application adds authorized
+start/read/cancel operations, stable Review-to-Job binding, actual persistent
+CNCF Job submission/control, read-only `getReviewRun` MCP publication, and
+private execution commands. Exact provider-bundle admission is the current
+P5-12 priority.

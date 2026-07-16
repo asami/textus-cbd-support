@@ -50,10 +50,28 @@
           "output": "CbdStatusResponse"
         },
         {
+          "name": "getReviewRun",
+          "kind": "QUERY",
+          "input": "ReviewRunRequest",
+          "output": "ReviewRunResponse"
+        },
+        {
           "name": "refreshCatalog",
           "kind": "COMMAND",
           "input": "CatalogRefreshRequest",
           "output": "CatalogRefreshResponse"
+        },
+        {
+          "name": "startReview",
+          "kind": "COMMAND",
+          "input": "ReviewStartRequest",
+          "output": "ReviewRunResponse"
+        },
+        {
+          "name": "cancelReview",
+          "kind": "COMMAND",
+          "input": "ReviewCancelRequest",
+          "output": "ReviewRunResponse"
         }
       ],
       "entities": []

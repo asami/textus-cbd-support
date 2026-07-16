@@ -5,10 +5,11 @@
 `CbdSupport` reads external Cozy component catalogs and serves read-only CBD
 information. It owns no catalog publication and does not write into SIE.
 
-The component contains two services:
+The component contains three services:
 
 - `CbdRetrieval`: read-only, MCP-ready discovery and inspection.
 - `CbdCatalogAdmin`: explicit refresh administration, not MCP ready.
+- `CbdReviewAdmin`: authorized Review start and cancellation, not MCP ready.
 
 ## Configuration
 
@@ -115,11 +116,12 @@ CNCF MCP publication can be narrowed with:
 The repository's representative `textus-cbd-sie` SAR composes this CAR and the
 Textus Semantic Integration Engine CAR. Run `scripts/check-cbd-sie-sar.sh` from
 the repository checkout to build both CARs and verify four temporary live
-JSON-RPC `/mcp` profiles. Exact CBD/SIE counts must be `6/7` at baseline, `0/0`
-under global disable, `6/0` under SIE service disable, and `5/6` when both
+JSON-RPC `/mcp` profiles. Exact CBD/SIE counts must be `7/7` at baseline, `0/0`
+under global disable, `7/0` under SIE service disable, and `6/6` when both
 status operations are disabled. Disabled calls must return `-32602`. CBD
-catalog administration, SIE mutation/administration, the legacy SIE facade,
-and any other tool are rejected as unexpected publication.
+catalog administration, Review start/cancellation, SIE
+mutation/administration, the legacy SIE facade, and any other tool are
+rejected as unexpected publication.
 
 The baseline profile also runs repository-owned catalog,
 development-directory, and BoK fixtures through the live composed endpoint.
@@ -139,7 +141,7 @@ final live marker records the runtime source, revision, and worktree state
 rather than treating a mutable SNAPSHOT label as immutable evidence.
 
 The source-managed CAR ABI is `src/main/car/abi-manifest.json`. Run
-`scripts/check-car-abi.sh` to require its seven operation signatures to match
+`scripts/check-car-abi.sh` to require its ten operation signatures to match
 generated CML model metadata and the packaged CAR. The same check proves that a
 minor operation addition is compatible, a minor removal is rejected, and an
 intentional major transition retains the breaking finding as a permitted
@@ -246,6 +248,16 @@ Returns aggregate state and counts across catalog, BoK-site, SIE, development,
 local warehouse, and cache inputs. Local inspection is bounded, read-only, and
 non-cached.
 
+### getReviewRun
+
+Requires one CBD-owned `reviewId`. The `viewer`, `reviewer`, `operator`, and
+`admin` roles may read the bounded Run projection. It includes the exact CNCF
+Job ID binding, digest-bound target, profile, state, safe limitations,
+timestamps, and a report identity only after canonical completion. The query
+refreshes state from the bound CNCF Job and repeats authorization at that Job
+boundary. It does not expose arbitrary Job history, provider payloads, source
+content, credentials, or host paths.
+
 ## CbdCatalogAdmin Operation
 
 ### refreshCatalog
@@ -290,6 +302,27 @@ reported as `degraded`/`stale`, never current. Calls before the retry boundary
 perform no source request. Only a successful retry replaces evidence and
 observation time, clears the failure diagnostic, and returns the source to
 `ready`/`fresh` on its normal schedule.
+
+## CbdReviewAdmin Operations
+
+### startReview
+
+Requires `targetKind`, `name`, a `sha256:` target digest, and Review `profile`;
+organization and version are optional identity evidence. The `reviewer`,
+`operator`, and `admin` roles may start a Review. CBD Support creates the
+Review ID, admits the typed Run, submits one persistent asynchronous CNCF Job,
+and returns the stable Review-to-Job binding. This command is private to MCP;
+Web, CLI, `sbt-cozy`, and internal callers use the component command surface.
+A Job that settles without a canonical report is represented as failed with
+`review-report-missing`, never as an empty successful Review.
+
+### cancelReview
+
+Requires one Review ID. Only `operator` and `admin` may cancel. The application
+records `cancelling` only after the CNCF Job control boundary accepts the
+request; a later `getReviewRun` projects terminal `cancelled`. Terminal Runs
+remain immutable and a failed or cancelled Run never fabricates a report.
+This command is private to MCP.
 
 ## Catalog Contract
 

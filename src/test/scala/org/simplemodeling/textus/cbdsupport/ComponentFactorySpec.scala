@@ -16,7 +16,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -28,12 +28,14 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
 
       When("the generated service accessors are inspected")
       val retrieval = factory.CbdRetrieval
-      val admin = factory.CbdCatalogAdmin
+      val catalogadmin = factory.CbdCatalogAdmin
+      val reviewadmin = factory.CbdReviewAdmin
 
-      Then("both the retrieval and administrative boundaries are available")
+      Then("the retrieval, catalog administration, and private Review boundaries are available")
       factory.primaryFactory should not be null
       retrieval should not be null
-      admin should not be null
+      catalogadmin should not be null
+      reviewadmin should not be null
     }
 
     "publish only the retrieval service through MCP" in {
@@ -42,11 +44,17 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
 
       When("the service-level MCP publication policy is evaluated")
       val searchready = component.isMcpReady("CbdRetrieval", "searchComponents")
+      val reviewready = component.isMcpReady("CbdRetrieval", "getReviewRun")
       val refreshready = component.isMcpReady("CbdCatalogAdmin", "refreshCatalog")
+      val startready = component.isMcpReady("CbdReviewAdmin", "startReview")
+      val cancelready = component.isMcpReady("CbdReviewAdmin", "cancelReview")
 
-      Then("CBD read operations are ready and catalog mutation remains private")
+      Then("CBD read operations are ready while catalog and Review commands remain private")
       searchready shouldBe true
+      reviewready shouldBe true
       refreshready shouldBe false
+      startready shouldBe false
+      cancelready shouldBe false
     }
 
     "project the CBD detail operations as distinct CNCF MCP tools" in {
@@ -70,7 +78,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.getUsage",
         "CbdSupport.CbdRetrieval.resolveDependencies",
         "CbdSupport.CbdRetrieval.listCatalogs",
-        "CbdSupport.CbdRetrieval.status"
+        "CbdSupport.CbdRetrieval.status",
+        "CbdSupport.CbdRetrieval.getReviewRun"
       )
       tools.map(x => x.name -> x.description).toMap shouldBe Map(
         "CbdSupport.CbdRetrieval.searchComponents" -> "CbdSupport.CbdRetrieval.searchComponents",
@@ -78,7 +87,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.getUsage" -> "CbdSupport.CbdRetrieval.getUsage",
         "CbdSupport.CbdRetrieval.resolveDependencies" -> "CbdSupport.CbdRetrieval.resolveDependencies",
         "CbdSupport.CbdRetrieval.listCatalogs" -> "CbdSupport.CbdRetrieval.listCatalogs",
-        "CbdSupport.CbdRetrieval.status" -> "CbdSupport.CbdRetrieval.status"
+        "CbdSupport.CbdRetrieval.status" -> "CbdSupport.CbdRetrieval.status",
+        "CbdSupport.CbdRetrieval.getReviewRun" -> "CbdSupport.CbdRetrieval.getReviewRun"
       )
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
         "sourceId",

@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-11 — connect authorized start/read/cancel operations to the typed CNCF Job-backed Review Run lifecycle.
+- Current step: P5-12 — admit provider bundles only after exact schema, capability, target, digest, and compatibility validation.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -216,16 +216,23 @@ stable encode/decode, equivalent digest across volatile Run metadata and array
 arrival order, six distinct rejection classes, and validated digest
 recalculation. Review Run Job lifecycle begins at P5-11.
 
-P5-11 runtime foundation started on 2026-07-16 with `CarReviewRunModel`,
+P5-11 completed on 2026-07-16 with `CarReviewRunModel`,
 `CarReviewRunCodec`, `CarReviewRunLifecycle`, and
-`CarReviewRunLifecycleSpec`. Review Run v1 now retains distinct state, failure,
+`CarReviewRunLifecycleSpec`. Review Run v1 retains distinct state, failure,
 Review, report, digest, provider, target, profile, limitation, and timestamp
 types; rejects unknown fields and invalid terminal shapes; and projects CNCF
 `Submitted`, `Running`, `Suspended`, `Cancelled`, `Succeeded`, and `Failed`
 states without losing cancellation intent or limitations. Terminal projection
-is immutable and repeated identical CNCF readback is idempotent. P5-11 remains
-open until private authorized `startReview` and `cancelReview` commands plus
-the authorized `getReviewRun` query bind Review IDs to actual CNCF Job IDs.
+is immutable and repeated identical CNCF readback is idempotent.
+`CarReviewRunApplication` and `CncfCarReviewJobGateway` add role-specific
+admission, one stable Review-to-Job binding, persistent asynchronous CNCF Job
+submission, authorized Job read/control policies, and safe completion/failure
+projection. CML publishes only `getReviewRun` through MCP-ready
+`CbdRetrieval`; private `CbdReviewAdmin` owns `startReview` and `cancelReview`.
+`CarReviewRunApplicationSpec` proves the application contract with a controlled
+gateway and an actual held `InMemoryJobEngine`; `ComponentFactorySpec` proves
+the generated service/MCP boundary. Provider execution and evidence-bundle
+admission now begin at P5-12.
 
 ## Stage 5.3: Provider Framework and Cozy
 

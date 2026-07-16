@@ -1,6 +1,6 @@
 # P5-32 sbt-cozy Report Artifact Tasks
 
-status=in-progress
+status=complete
 phase=5
 checklist=P5-32
 updated_at=2026-07-16
@@ -37,10 +37,14 @@ Unknowns, Assessments, or any new quality result.
 - `SbtReviewReportArtifactsSpec` proves deterministic artifact generation,
   HTML escaping, location-bearing Finding projection, explicit omission, gate
   preservation, and response/report gate mismatch refusal.
+- `CNCF_RUNTIME_DEV_DIR=/Users/asami/src/dev2025/cloud-native-component-framework CBD_STANDALONE_SBT_COZY_REVIEW_PROBE=true scripts/check-cbd-standalone.sh`
+  runs `cozy/review-submit` with `CI=true` against the representative CBD HTTP
+  endpoint. Its verification task obtains `cozyReviewCanonicalJson`,
+  `cozyReviewAttestation`, `cozyReviewReportHtml`, and
+  `cozyReviewReportSarif`; the same probe then confirms that `cozyReviewGate`
+  rejects CBD's actual `fail` result.
 
 ## Remaining Work
 
-P5-32 remains open until a configured sbt task invokes the CBD gateway and
-materializes all selected artifacts from an actual canonical response. P5-33
-will add attestation binding; P5-43 will extend report renderers and the SARIF
-contract beyond this first stable task surface.
+P5-32 is complete. P5-33 validates the corresponding canonical attestation;
+P5-43 remains the broader cross-surface renderer and SARIF contract.

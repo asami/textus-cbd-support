@@ -36,6 +36,6 @@ the source project and gateway credentials are not copied into Review output.
 
 ## Consequence
 
-P5-34 is complete. P5-31 through P5-33 still require their configured,
-real-CBD-gateway materialization scenario; P5-34 does not convert that
-separate transport/release mismatch into an external CI exception.
+P5-34 is complete. P5-31 through P5-33 subsequently completed with their
+configured, real-CBD-gateway materialization scenario; P5-34 did not convert
+that transport/release boundary into an external CI exception.

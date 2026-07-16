@@ -38,7 +38,7 @@ if [[ -z "$PLUGIN_VERSION" ]]; then
 fi
 
 (cd "$SBT_COZY_ROOT" && sbt --batch publishLocal)
-(cd "$FIXTURE_ROOT" && sbt --batch \
+(cd "$FIXTURE_ROOT" && CI=true sbt --batch \
   "-Dplugin.version=$PLUGIN_VERSION" \
   cozyReviewSbtEvidence)
 python3 "$SCRIPT_DIR/probe-cbd-review-sbt-cozy-direct.py" \
@@ -47,19 +47,32 @@ python3 "$SCRIPT_DIR/probe-cbd-review-sbt-cozy-direct.py" \
   --project-root "$FIXTURE_ROOT" \
   --cozy-classpath "$(cat "$COZY_CLASSPATH_FILE")" \
   --save "$FIXTURE_ROOT/target/cbd-review/sbt-cozy/canonical-response-raw.json"
-(cd "$FIXTURE_ROOT" && sbt --batch \
+(cd "$FIXTURE_ROOT" && CI=true sbt --batch \
   "-Dplugin.version=$PLUGIN_VERSION" \
   "-Dcbd.review.endpoint=$BASE_URL/rest/v1/cbd-support/cbd-review-admin/post" \
   "-Dcozy.review.classpath=$(cat "$COZY_CLASSPATH_FILE")" \
-  cozyReviewSubmit \
   verifyReviewSubmission)
+set +e
+gate_output="$(cd "$FIXTURE_ROOT" && CI=true sbt --batch \
+  "-Dplugin.version=$PLUGIN_VERSION" \
+  "-Dcbd.review.endpoint=$BASE_URL/rest/v1/cbd-support/cbd-review-admin/post" \
+  "-Dcozy.review.classpath=$(cat "$COZY_CLASSPATH_FILE")" \
+  cozyReviewGate 2>&1)"
+gate_status=$?
+set -e
+printf '%s\n' "$gate_output"
+if [[ "$gate_status" -eq 0 ]] || [[ "$gate_output" != *"[sbt-cozy] CBD Review gate did not pass: fail"* ]]; then
+  echo "CBD Review gate probe did not reject the failing canonical gate as expected." >&2
+  exit 1
+fi
 
-python3 - "$FIXTURE_ROOT/target/cbd-review/sbt-cozy/canonical-response.json" <<'PY'
+python3 - "$FIXTURE_ROOT/target/cbd-review/sbt-cozy/canonical-response.json" "$FIXTURE_ROOT/target/cbd-review/sbt-cozy/canonical-attestation.json" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
+attestation_path = Path(sys.argv[2])
 payload = json.loads(path.read_text(encoding="utf-8"))
 if payload.get("documentType") != "canonical-review-response-artifact":
     raise SystemExit(f"unexpected canonical response document: {payload}")
@@ -74,5 +87,17 @@ if providers != {"cozy", "sbt-cozy"}:
     raise SystemExit(f"canonical report providers are not the actual pair: {providers}")
 if payload.get("gateResult") != report.get("gate", {}).get("result"):
     raise SystemExit(f"canonical gate is inconsistent: {payload}")
+attestation = json.loads(attestation_path.read_text(encoding="utf-8"))
+if attestation.get("documentType") != "review-attestation":
+    raise SystemExit(f"canonical attestation document is invalid: {attestation}")
+if attestation.get("reviewId") != report.get("reviewId") or attestation.get("reportId") != report.get("reportId"):
+    raise SystemExit(f"canonical attestation identity is inconsistent: {attestation}")
+if attestation.get("reportDigest") != report.get("reportDigest") or attestation.get("targetDigest") != report.get("target", {}).get("digest"):
+    raise SystemExit(f"canonical attestation binding is inconsistent: {attestation}")
+if attestation.get("gate") != report.get("gate") or not str(attestation.get("attestationDigest", "")).startswith("sha256:"):
+    raise SystemExit(f"canonical attestation gate or digest is invalid: {attestation}")
+attested_providers = {entry.get("provider", {}).get("id") for entry in attestation.get("providers", [])}
+if attested_providers != providers:
+    raise SystemExit(f"canonical attestation providers are inconsistent: {attested_providers}")
 print(f"CBD_SBT_COZY_REVIEW_SUBMISSION_OK review_id={report['reviewId']} gate={payload['gateResult']}")
 PY

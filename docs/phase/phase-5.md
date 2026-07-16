@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-32 — prove stable sbt-cozy canonical Review task and projection behavior against a configured CBD response.
+- Current step: P5-60 — record executable coverage for each completed Phase 5 behavior.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -440,24 +440,26 @@ The standalone CBD CLI and its loopback private HTTP
 exchange are completed in P5-40; the broader multi-provider local/CI
 equivalence workflow remains P5-63 work.
 
-P5-32 implementation has begun in `sbt-cozy`. `cozyReviewSubmit` now writes a
+P5-32 completed on 2026-07-16 in `sbt-cozy`. `cozyReviewSubmit` writes a
 deterministic canonical JSON artifact plus `cozyReviewCanonicalJson`,
 `cozyReviewReportHtml`, `cozyReviewReportSarif`, and `cozyReviewGate` task
 surfaces. The HTML view safely projects the CBD-owned report; SARIF projects
 only location-bearing Findings and records its lossy projection policy; the
 gate task rejects every non-`pass` CBD result. The artifact renderer refuses an
-outer response gate that disagrees with the report gate. Unit specifications
-prove these projection and refusal contracts. P5-32 remains open until the
-configured task route produces its selected artifacts against a real canonical
-CBD response.
+outer response gate that disagrees with the report gate. The CI-profile
+`cozy/review-submit` route invokes the selected task aliases against the
+running CBD endpoint, materializes the projections, and proves that the
+returned `fail` gate makes `cozyReviewGate` fail.
 
-P5-33 now has a CBD-owned canonical attestation path. CBD attaches the
+P5-33 completed on 2026-07-16 with a CBD-owned canonical attestation path. CBD attaches the
 attestation to the submission response and binds its digest to the canonical
 Report, target, profile, provider/rule-set/bundle identities, and Gate.
 `sbt-cozy` validates those bindings before writing
 `target/cbd-review/sbt-cozy/canonical-attestation.json`; it exposes the file as
-`cozyReviewAttestation` and never manufactures a local substitute. Live CI
-materialization remains required before checking P5-33.
+`cozyReviewAttestation` and never manufactures a local substitute. The
+CI-profile `cozy/review-submit` exchange materializes the four stable artifacts
+and verifies the actual attestation Report/Target/Gate/provider bindings and
+digest prefix against its canonical report.
 
 P5-34 completed on 2026-07-16 in `sbt-cozy`. `SbtReviewCiPolicy` selects
 standard CI from `CI=true` or an explicit `review.ci.profile: standard` and

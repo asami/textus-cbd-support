@@ -1,6 +1,6 @@
 # P5-33 Canonical CI Attestation
 
-status=in-progress
+status=complete
 phase=5
 checklist=P5-33
 updated_at=2026-07-16
@@ -25,9 +25,14 @@ does not manufacture an attestation when CBD omitted one or the binding drifts.
   attestation bound to its Report, target, profile, provider, and gate.
 - `SbtReviewReportArtifactsSpec` proves artifact retention of a bound
   attestation and refusal of a mismatched attestation.
+- `CNCF_RUNTIME_DEV_DIR=/Users/asami/src/dev2025/cloud-native-component-framework CBD_STANDALONE_SBT_COZY_REVIEW_PROBE=true scripts/check-cbd-standalone.sh`
+  runs `cozy/review-submit` with `CI=true` and materializes canonical JSON,
+  HTML, SARIF, and attestation artifacts under `target/cbd-review/sbt-cozy`.
+  The probe reads the emitted attestation and checks its Review/Report/Target/
+  Gate/provider bindings and SHA-256 digest prefix against the actual CBD
+  canonical report.
 
 ## Remaining Work
 
-P5-33 remains open until a real CBD gateway response produces all canonical
-CI artifacts on a configured sbt task path. Attestation release/publish use is
-separately opt-in P5-35 work.
+P5-33 is complete. Attestation release/publish use is separately opt-in P5-35
+work.

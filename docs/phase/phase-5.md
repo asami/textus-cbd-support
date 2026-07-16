@@ -1,8 +1,8 @@
 # Phase 5: CBD-Led CAR Review Platform
 
 Stage Status:
-- Current status: IN_PROGRESS
-- Current step: P5-66 — perform the final review, residual-debt audit, and phase closure check.
+- Current status: COMPLETE
+- Current step: Phase 5 closure recorded on 2026-07-16.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 

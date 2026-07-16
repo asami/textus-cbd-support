@@ -231,5 +231,14 @@ cancellation, completion, failure, limitations, stale update rejection, and
 terminal immutability. The CBD Review Application adds authorized
 start/read/cancel operations, stable Review-to-Job binding, actual persistent
 CNCF Job submission/control, read-only `getReviewRun` MCP publication, and
-private execution commands. Exact provider-bundle admission is the current
-P5-12 priority.
+private execution commands.
+
+Phase 5 completed on 2026-07-16 with executable coverage for P5-01 through
+P5-55, full CBD/Cozy/sbt-cozy/Textus AI verification, local/CI canonical
+response equivalence, generated CAR ABI surface validation, and a representative
+SAR runtime check. The remaining non-publication debt is explicitly relocated:
+`FUTURE-CBD-RUNTIME-BOUNDARY-01` tracks the CAR lint ambient
+clock/environment/filesystem/shell framework-boundary warnings, and
+`FUTURE-CBD-ABI-RELEASE-01` tracks comparison against the first released CAR
+ABI baseline. Neither item changes the completed Phase 5 Review contract or
+authorizes publication.

@@ -514,12 +514,14 @@ the omitted Finding count and `location-bearing-findings-only` projection
 policy. `CarReviewReportProjectionSpec` proves repeat rendering remains
 identical and does not project a location-free Unknown as SARIF.
 
-P5-44 implementation has begun with `CarReviewMcpReadApplication`. Authorized
-callers can request one retained Report ID's summary, redacted report, bounded
-Findings, or bounded Assurances. The model omits Evidence facts/rationale,
-sanitizes credential-shaped text, reduces paths to a basename, rejects an
-unknown Report ID, and rejects limits outside 1–100. Its MCP CML service and
-runtime storage integration remain required before checking P5-44.
+P5-44 completed on 2026-07-16 with `CarReviewMcpReadApplication` bound into
+the component's canonical submission retention path. Retrieval now publishes
+exact-Report-ID `getReviewSummary`, `getReviewReport`, `listReviewFindings`,
+and `listReviewAssurances` operations alongside `getReviewRun`; no history
+operation exists. The read model omits Evidence facts/rationale, sanitizes
+credential-shaped text, reduces paths to a basename, rejects an unknown Report
+ID, and rejects limits outside 1–100. `ComponentFactorySpec` proves the real
+CML/MCP tool surface and retained source use the same reader.
 
 P5-45 completed on 2026-07-16 with `CarReviewMcpExposurePolicy`. Its fixed
 MCP allowlist is read-only Review projection names; start/cancel, retention,

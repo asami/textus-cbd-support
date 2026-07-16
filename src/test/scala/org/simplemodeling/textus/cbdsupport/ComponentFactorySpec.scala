@@ -10,7 +10,7 @@ import org.goldenport.cncf.projection.OpenApiProjection
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
-import org.simplemodeling.textus.cbdsupport.runtime.{ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceDescriptor, InformationSourceFreshness, InformationSourceKind, InformationSourceState, SemanticRequirementEvidence}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewReportCodec, ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceDescriptor, InformationSourceFreshness, InformationSourceKind, InformationSourceState, ReviewReportId, SemanticRequirementEvidence}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -46,6 +46,10 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       When("the service-level MCP publication policy is evaluated")
       val searchready = component.isMcpReady("CbdRetrieval", "searchComponents")
       val reviewready = component.isMcpReady("CbdRetrieval", "getReviewRun")
+      val summaryready = component.isMcpReady("CbdRetrieval", "getReviewSummary")
+      val reportready = component.isMcpReady("CbdRetrieval", "getReviewReport")
+      val findingsready = component.isMcpReady("CbdRetrieval", "listReviewFindings")
+      val assurancesready = component.isMcpReady("CbdRetrieval", "listReviewAssurances")
       val refreshready = component.isMcpReady("CbdCatalogAdmin", "refreshCatalog")
       val startready = component.isMcpReady("CbdReviewAdmin", "startReview")
       val cancelready = component.isMcpReady("CbdReviewAdmin", "cancelReview")
@@ -55,6 +59,10 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       Then("CBD read operations are ready while catalog and Review commands remain private")
       searchready shouldBe true
       reviewready shouldBe true
+      summaryready shouldBe true
+      reportready shouldBe true
+      findingsready shouldBe true
+      assurancesready shouldBe true
       refreshready shouldBe false
       startready shouldBe false
       cancelready shouldBe false
@@ -84,7 +92,11 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.resolveDependencies",
         "CbdSupport.CbdRetrieval.listCatalogs",
         "CbdSupport.CbdRetrieval.status",
-        "CbdSupport.CbdRetrieval.getReviewRun"
+        "CbdSupport.CbdRetrieval.getReviewRun",
+        "CbdSupport.CbdRetrieval.getReviewSummary",
+        "CbdSupport.CbdRetrieval.getReviewReport",
+        "CbdSupport.CbdRetrieval.listReviewFindings",
+        "CbdSupport.CbdRetrieval.listReviewAssurances"
       )
       tools.map(x => x.name -> x.description).toMap shouldBe Map(
         "CbdSupport.CbdRetrieval.searchComponents" -> "CbdSupport.CbdRetrieval.searchComponents",
@@ -93,7 +105,11 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.resolveDependencies" -> "CbdSupport.CbdRetrieval.resolveDependencies",
         "CbdSupport.CbdRetrieval.listCatalogs" -> "CbdSupport.CbdRetrieval.listCatalogs",
         "CbdSupport.CbdRetrieval.status" -> "CbdSupport.CbdRetrieval.status",
-        "CbdSupport.CbdRetrieval.getReviewRun" -> "CbdSupport.CbdRetrieval.getReviewRun"
+        "CbdSupport.CbdRetrieval.getReviewRun" -> "CbdSupport.CbdRetrieval.getReviewRun",
+        "CbdSupport.CbdRetrieval.getReviewSummary" -> "CbdSupport.CbdRetrieval.getReviewSummary",
+        "CbdSupport.CbdRetrieval.getReviewReport" -> "CbdSupport.CbdRetrieval.getReviewReport",
+        "CbdSupport.CbdRetrieval.listReviewFindings" -> "CbdSupport.CbdRetrieval.listReviewFindings",
+        "CbdSupport.CbdRetrieval.listReviewAssurances" -> "CbdSupport.CbdRetrieval.listReviewAssurances"
       )
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
         "sourceId",
@@ -114,16 +130,40 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       When("the form operation identifiers are compared with the generated service contract")
       val retrievalsearch = "textus-cbd-support.cbd-retrieval.search-components"
       val reviewrun = "textus-cbd-support.cbd-retrieval.get-review-run"
+      val reviewsummary = "textus-cbd-support.cbd-retrieval.get-review-summary"
+      val reviewreport = "textus-cbd-support.cbd-retrieval.get-review-report"
       val adminrefresh = "textus-cbd-support.cbd-catalog-admin.refresh-catalog"
 
       Then("each form targets its owning service and Review progress remains in the form section")
       form should include(retrievalsearch)
       form should include(reviewrun)
+      form should include(reviewsummary)
+      form should include(reviewreport)
       form should include(adminrefresh)
       form.indexOf(reviewrun) should be < form.indexOf("admin:")
       form.substring(form.indexOf(reviewrun), form.indexOf("admin:")) should include("access: authenticated")
       form should not include "textus-cbd-support.cbd-retrieval.refresh-catalog"
       form should not include "${result.id}"
+    }
+
+    "retain canonical reports for bounded MCP projection without exposing history" in {
+      Given("one factory-local canonical Report")
+      val report = CarReviewReportCodec.decode(Files.readString(Path.of("docs", "spec", "examples", "car-review-report-v1.json"))).fold(error => fail(error.message), identity)
+      val factory = new impl.ComponentFactory()
+
+      When("the CBD submission retention boundary stores the canonical Report")
+      val retained = factory.retainReviewReport(report)
+      val summary = factory.reviewReads.summary(report.reportId, Set("viewer"))
+      val findings = factory.reviewReads.findings(report.reportId, Set("viewer"), 10)
+      val denied = factory.reviewReads.report(report.reportId, Set.empty)
+      val missing = factory.reviewReads.report(ReviewReportId("report-missing"), Set("viewer"))
+
+      Then("authorized queries expose only the exact retained Report and no caller can enumerate history")
+      retained.isSuccess shouldBe true
+      summary.toOption.map(_.reportId) shouldBe Some(report.reportId)
+      findings.toOption.map(_.map(_.`type`.value).toSet) shouldBe Some(Set("finding"))
+      denied.isSuccess shouldBe false
+      missing.isSuccess shouldBe false
     }
     }
 

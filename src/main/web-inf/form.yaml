@@ -16,6 +16,22 @@ form:
     enabled: true
     access: authenticated
     stayOnError: true
+  textus-cbd-support.cbd-retrieval.get-review-summary:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+  textus-cbd-support.cbd-retrieval.get-review-report:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+  textus-cbd-support.cbd-retrieval.list-review-findings:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+  textus-cbd-support.cbd-retrieval.list-review-assurances:
+    enabled: true
+    access: authenticated
+    stayOnError: true
 admin:
   entity.component-reference:
     totalCount: optional

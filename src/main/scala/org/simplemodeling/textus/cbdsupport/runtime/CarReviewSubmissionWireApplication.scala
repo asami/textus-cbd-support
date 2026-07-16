@@ -11,12 +11,14 @@ import org.goldenport.Consequence
  */
 /** JSON adapter for the transport-neutral P5-31 provider-document submission contract. */
 final class CarReviewSubmissionWireApplication(
-  submissionApplication: CarReviewProviderDocumentSubmissionApplication
+  submissionApplication: CarReviewProviderDocumentSubmissionApplication,
+  retainCanonicalResponse: CarReviewCanonicalResponse => Consequence[Unit] = _ => Consequence.unit
 ) {
   def submit(value: String, actorroles: Set[String]): Consequence[String] =
     for {
       request <- _decode(value)
       response <- submissionApplication.submit(request, actorroles)
+      _ <- retainCanonicalResponse(response)
       document <- _encode(response)
     } yield document
 

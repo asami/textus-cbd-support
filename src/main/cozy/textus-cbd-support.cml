@@ -174,6 +174,102 @@ ReviewRunResponse
 
 Return authorized, bounded, redacted progress for one CBD-owned Review Run and its bound CNCF Job.
 
+### OPERATION
+
+#### getReviewSummary
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetReviewSummaryRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewSummaryResponse
+
+##### DESCRIPTION
+
+Return one authorized, bounded, redacted canonical Review Report summary by exact Report ID. This operation never enumerates Review history.
+
+### OPERATION
+
+#### getReviewReport
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetReviewReportRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewReportResponse
+
+##### DESCRIPTION
+
+Return one authorized, bounded, redacted canonical Review Report by exact Report ID without Evidence facts or rationale.
+
+### OPERATION
+
+#### listReviewFindings
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListReviewFindingsRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewObservationResponse
+
+##### DESCRIPTION
+
+Return a bounded, redacted Finding projection for one exact Report ID. This operation never enumerates Review history.
+
+### OPERATION
+
+#### listReviewAssurances
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListReviewAssurancesRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewObservationResponse
+
+##### DESCRIPTION
+
+Return a bounded, redacted Assurance projection for one exact Report ID. This operation never enumerates Review history.
+
 ## CbdCatalogAdmin
 
 ### DESCRIPTION
@@ -458,6 +554,56 @@ Read-only request for one authorized Review Run.
 |------|------|--------------|
 | reviewId | ReviewId | 1 |
 
+## GetReviewSummaryRequest
+
+### DESCRIPTION
+
+Read-only request for one exact canonical Review Report. It never accepts a target selector or history filter.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+
+## GetReviewReportRequest
+
+### DESCRIPTION
+
+Read-only request for one exact canonical Review Report. It never accepts a target selector or history filter.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+
+## ListReviewFindingsRequest
+
+### DESCRIPTION
+
+Read-only bounded request for one exact Report's Finding projection.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+| limit | int | ? |
+
+## ListReviewAssurancesRequest
+
+### DESCRIPTION
+
+Read-only bounded request for one exact Report's Assurance projection.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+| limit | int | ? |
+
 # VALUE
 
 ## CatalogRefreshResponse
@@ -615,6 +761,78 @@ Bounded projection of one typed Review Run and its exact CNCF Job binding.
 | reportId | ReviewReportId | ? |
 | reportDigest | ReviewDigest | ? |
 | failureCode | ReviewFailureCode | ? |
+
+## ReviewSummaryResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | ReviewId | 1 |
+| reportId | ReviewReportId | 1 |
+| reportDigest | ReviewDigest | 1 |
+| target | CbdWarning | 1 |
+| profile | ReviewProfile | 1 |
+| gate | ReviewGateResult | 1 |
+| findingCount | int | 1 |
+| assuranceCount | int | 1 |
+| unknownCount | int | 1 |
+
+## ReviewReportResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| summary | ReviewSummaryResponse | 1 |
+| providers | ReviewMcpProvider | * |
+| observations | ReviewMcpObservation | * |
+| limitations | ReviewMcpLimitation | * |
+
+## ReviewObservationResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| observations | ReviewMcpObservation | * |
+
+## ReviewMcpProvider
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| providerId | ReviewProviderId | 1 |
+| version | ReviewVersion | 1 |
+| state | ReviewProviderState | 1 |
+| limitations | ReviewMcpLimitation | * |
+
+## ReviewMcpObservation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | ReviewObservationId | 1 |
+| observationType | ReviewObservationType | 1 |
+| ruleId | ReviewRuleId | 1 |
+| message | CbdWarning | 1 |
+| severity | ReviewSeverity | ? |
+| providerId | ReviewProviderId | 1 |
+| locations | CbdWarning | * |
+
+## ReviewMcpLimitation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| code | ReviewFailureCode | 1 |
+| scope | ReviewLimitationScope | 1 |
+| subjectId | ReviewSubjectId | ? |
+| message | CbdWarning | 1 |
+| retryable | boolean | 1 |
 
 ## ReviewSubmissionResponse
 
@@ -1382,6 +1600,70 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 | value | string | 1 |
 
 ## ReviewSubjectId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewGateResult
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewProviderId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewVersion
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewProviderState
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewObservationId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewObservationType
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewRuleId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewSeverity
 
 ### ATTRIBUTE
 

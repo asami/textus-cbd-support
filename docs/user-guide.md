@@ -46,6 +46,15 @@ empty successful Review. Provider bundle execution begins in P5-12, so P5-11
 establishes the operation and Job lifecycle rather than claiming provider
 coverage.
 
+For an authenticated completed-report view, enter that exact Report ID in the
+Web forms or use the MCP-ready `CbdRetrieval.getReviewSummary`,
+`CbdRetrieval.getReviewReport`, `CbdRetrieval.listReviewFindings`, or
+`CbdRetrieval.listReviewAssurances` queries. These queries require the same
+read role and never list Review history. Finding and Assurance results require
+an explicit limit from 1 to 100. The report projection excludes Evidence facts
+and rationale, redacts credential-shaped messages, and reduces local paths to
+a basename.
+
 ## Review Submission Gateway
 
 For an authorized local or CI integration, submit provider evidence to the
@@ -81,8 +90,9 @@ or response errors.
 
 ## Review Web Progress
 
-The CBD Support static Web app exposes the authenticated
-`CbdRetrieval.getReviewRun` form. Enter a Review ID to view the CBD-owned
+The CBD Support static Web app exposes authenticated
+`CbdRetrieval.getReviewRun`, `getReviewSummary`, `getReviewReport`,
+`listReviewFindings`, and `listReviewAssurances` forms. Enter a Review ID to view the CBD-owned
 Review/Job binding, digest-bound target, profile, lifecycle timestamps, current
 state, provider-attributed limitations, and—once completed—the Report ID and
 digest. The Web form renders these response fields as supplied; it does not

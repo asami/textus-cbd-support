@@ -9,7 +9,7 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewProviderDocumentSubmissionApplication, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 
 /*
  * @since   Jul. 14, 2026
@@ -19,6 +19,12 @@ import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, Car
 final class ComponentFactory extends CbdSupportComponent.Factory {
   private val _runtime = CbdRuntime.create()
   private val _review_application = new CarReviewRunApplication()
+  private val _review_repository = new CarReviewRepository()
+  private val _review_reads = new CarReviewMcpReadApplication(_review_repository)
+
+  private[cbdsupport] def reviewReads: CarReviewMcpReadApplication = _review_reads
+  private[cbdsupport] def retainReviewReport(report: org.simplemodeling.textus.cbdsupport.runtime.CarReviewReport): org.goldenport.Consequence[Unit] =
+    _review_repository.retain(report).fold(error => org.goldenport.Consequence.operationInvalid(error.code), _ => org.goldenport.Consequence.unit)
 
   override val CbdRetrieval: CbdSupportComponent.CbdRetrievalServiceFactory =
     new CbdRetrievalServiceFactoryImpl()
@@ -75,6 +81,26 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: ReviewRunRequest
     ): GetReviewRunActionCall = GetReviewRunActionCallImpl(core, action)
+
+    override def createGetReviewSummaryActionCall(
+      core: ActionCall.Core,
+      action: GetReviewSummaryRequest
+    ): GetReviewSummaryActionCall = GetReviewSummaryActionCallImpl(core, action)
+
+    override def createGetReviewReportActionCall(
+      core: ActionCall.Core,
+      action: GetReviewReportRequest
+    ): GetReviewReportActionCall = GetReviewReportActionCallImpl(core, action)
+
+    override def createListReviewFindingsActionCall(
+      core: ActionCall.Core,
+      action: ListReviewFindingsRequest
+    ): ListReviewFindingsActionCall = ListReviewFindingsActionCallImpl(core, action)
+
+    override def createListReviewAssurancesActionCall(
+      core: ActionCall.Core,
+      action: ListReviewAssurancesRequest
+    ): ListReviewAssurancesActionCall = ListReviewAssurancesActionCallImpl(core, action)
   }
 
   private final class CbdCatalogAdminServiceFactoryImpl
@@ -267,6 +293,56 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     }
   }
 
+  private final case class GetReviewSummaryActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.GetReviewSummaryRequest
+  ) extends CbdRetrievalService.GetReviewSummaryActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_reads.summary(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        CarReviewAuthorization.roles(core.executionContext)
+      ).map(summary => OperationResponse(_review_summary_record(summary)))
+    }
+  }
+
+  private final case class GetReviewReportActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.GetReviewReportRequest
+  ) extends CbdRetrievalService.GetReviewReportActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_reads.report(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        CarReviewAuthorization.roles(core.executionContext)
+      ).map(report => OperationResponse(_review_report_record(report)))
+    }
+  }
+
+  private final case class ListReviewFindingsActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.ListReviewFindingsRequest
+  ) extends CbdRetrievalService.ListReviewFindingsActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_reads.findings(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        CarReviewAuthorization.roles(core.executionContext),
+        _optional_int(action.record, "limit").getOrElse(CarReviewMcpReadApplication.MAX_OBSERVATIONS)
+      ).map(observations => OperationResponse(Record.dataAuto("observations" -> observations.map(_review_observation_record))))
+    }
+  }
+
+  private final case class ListReviewAssurancesActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.ListReviewAssurancesRequest
+  ) extends CbdRetrievalService.ListReviewAssurancesActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_reads.assurances(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        CarReviewAuthorization.roles(core.executionContext),
+        _optional_int(action.record, "limit").getOrElse(CarReviewMcpReadApplication.MAX_OBSERVATIONS)
+      ).map(observations => OperationResponse(Record.dataAuto("observations" -> observations.map(_review_observation_record))))
+    }
+  }
+
   private final case class RefreshCatalogActionCallImpl(
     core: ActionCall.Core,
     override val action: CbdCatalogAdminService.CatalogRefreshRequest
@@ -377,7 +453,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           now,
           () => ReviewReportId(s"report-${ctx.idGeneration.opaqueId("cbd.review.report")}")
         )
-      )
+      ),
+      response => retainReviewReport(response.report)
     ))
   }
 
@@ -668,6 +745,54 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "failureCode" -> run.failureCode.map(_.value)
     )
   }
+
+  private[cbdsupport] def _review_summary_record(summary: CarReviewMcpSummary): Record =
+    Record.dataAuto(
+      "reviewId" -> summary.reviewId.value,
+      "reportId" -> summary.reportId.value,
+      "reportDigest" -> summary.reportDigest.value,
+      "target" -> summary.target,
+      "profile" -> summary.profile.value,
+      "gate" -> summary.gate.value,
+      "findingCount" -> summary.findingCount,
+      "assuranceCount" -> summary.assuranceCount,
+      "unknownCount" -> summary.unknownCount
+    )
+
+  private[cbdsupport] def _review_report_record(report: CarReviewMcpReport): Record =
+    Record.dataAuto(
+      "summary" -> _review_summary_record(report.summary),
+      "providers" -> report.providers.map { provider =>
+        Record.dataAuto(
+          "providerId" -> provider.provider.id.value,
+          "version" -> provider.provider.version.value,
+          "state" -> provider.state.value,
+          "limitations" -> provider.limitations.map(_review_limitation_record)
+        )
+      },
+      "observations" -> report.observations.map(_review_observation_record),
+      "limitations" -> report.limitations.map(_review_limitation_record)
+    )
+
+  private[cbdsupport] def _review_observation_record(observation: CarReviewMcpObservation): Record =
+    Record.dataAuto(
+      "id" -> observation.id.value,
+      "observationType" -> observation.`type`.value,
+      "ruleId" -> observation.ruleId.value,
+      "message" -> observation.message,
+      "severity" -> observation.severity.map(_.value),
+      "providerId" -> observation.providerId.value,
+      "locations" -> observation.locations
+    )
+
+  private[cbdsupport] def _review_limitation_record(limitation: ReviewLimitation): Record =
+    Record.dataAuto(
+      "code" -> limitation.code,
+      "scope" -> limitation.scope.value,
+      "subjectId" -> limitation.subjectId,
+      "message" -> limitation.message,
+      "retryable" -> limitation.retryable
+    )
 
   private def _required_string(record: Record, key: String): String =
     _optional_string(record, key)

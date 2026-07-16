@@ -421,9 +421,9 @@ fixture proves the envelope round trip. For a loopback development server only,
 `review.cbd.role` may carry one of `reviewer`, `operator`, or `admin` as the
 fixed `role` header; arbitrary headers and URL credentials remain unsupported.
 Production uses the configured CBD authentication boundary rather than this
-development fallback. A standalone CBD CLI executable and a role-authenticated
-live server exchange remain P5-40/P5-63 work; the shared CLI adapter is
-intentionally not represented as a separate command yet.
+development fallback. The standalone CBD CLI and its loopback private HTTP
+exchange are completed in P5-40; the broader multi-provider local/CI
+equivalence workflow remains P5-63 work.
 
 P5-32 implementation has begun in `sbt-cozy`. `cozyReviewSubmit` now writes a
 deterministic canonical JSON artifact plus `cozyReviewCanonicalJson`,
@@ -478,17 +478,17 @@ Provide one Review Application through Web UI and CBD CLI. Render all views
 from one canonical report and expose only bounded, authorized, redacted report
 queries through MCP.
 
-P5-40 implementation has begun with `CarReviewCliMain review submit`. It
+P5-40 completed on 2026-07-16 with `CarReviewCliMain review submit`. It
 accepts the exact `textus.cbd.review-submission.v1` inner document from stdin.
 The local route calls `CarReviewSubmissionCliAdapter` and requires roles from
 the process boundary; the server route sends the generated private HTTP
 envelope with no role or credential forwarding and trusts server-side
 authentication. Both routes parse the CBD-owned canonical response into a
 stable `review-cli-result` containing Review ID, canonical response, gate, and
-documented exit behavior. `CarReviewCliSpec` proves the local and server
-adapter paths, canonical identity/gate retention, and malformed response
-refusal. A real authorized HTTP command scenario remains required before
-checking P5-40.
+documented exit behavior. `CarReviewCliSpec` proves local and server adapter
+paths, canonical identity/gate retention, malformed-response refusal, and an
+authorized loopback private HTTP exchange where server-side role resolution
+owns authorization.
 
 P5-41 implementation has begun with a protected static Web form for
 `CbdRetrieval.getReviewRun`. It projects the typed Review Run record directly:

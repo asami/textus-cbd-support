@@ -1,6 +1,6 @@
 # P5-40 CBD Review CLI Contract
 
-status=in-progress
+status=complete
 phase=5
 checklist=P5-40
 updated_at=2026-07-16
@@ -29,13 +29,11 @@ errors.
 
 - `CarReviewCliSpec` proves the local Review Application path, the
   server-transport path, same Review/gate identity, absence of workspace
-  authority, stable output, and response-identity refusal.
+  authority, stable output, response-identity refusal, and a real loopback
+  private HTTP `POST` exchange. The loopback server resolves `reviewer` at its
+  own boundary and receives only the bounded `submissionDocument` envelope.
 - `CarReviewCliHttpTransport` accepts only bounded HTTP(S) endpoints with no
   user info, query, fragment, redirect following, credential header, or
   non-JSON response.
 
-## Remaining Work
-
-Execute the main class against a real authorized loopback CBD server before
-checking P5-40. Web UI and report/MCP projections remain separate P5-41–45
-work.
+Web UI and report/MCP projections remain separate P5-41–45 work.

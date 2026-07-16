@@ -39,7 +39,7 @@ contract.
 
 ## Web, CLI, Report, and MCP Surfaces
 
-- [ ] `P5-40` The CBD Support CLI runs local and authorized server-backed Review through the same Review Application contract and returns stable run, report, gate, and exit behavior.
+- [x] `P5-40` The CBD Support CLI runs local and authorized server-backed Review through the same Review Application contract and returns stable run, report, gate, and exit behavior. Evidence: `CarReviewCliMain`, `CarReviewCli`, `CarReviewCliHttpTransport`, and `CarReviewCliSpec` prove local stdin/process-role submission and a real loopback private HTTP envelope exchange whose server-side adapter resolves authorization, with the same canonical run/report/gate result and stable pass/fail/unknown/error exit policy.
 - [ ] `P5-41` The Web UI displays Review Run progress, target/provider state, limitations, and completed report overview without deriving conclusions outside the canonical report.
 - [ ] `P5-42` CNCF, implementation, and quality views project shared Evidence and Observation identities and support cross-view navigation to provider and implementation locations.
 - [x] `P5-43` Text, canonical JSON, HTML, and SARIF projections are deterministic and consistent; SARIF remains an explicitly lossy location-bearing Finding projection. Evidence: `CarReviewReportProjection` and `CarReviewReportProjectionSpec` prove same-Report deterministic text/JSON/HTML/SARIF rendering, common Review/gate identity, HTML escaping boundary, and location-bearing-Finding-only SARIF with explicit omission count/policy.

@@ -551,6 +551,13 @@ canonical assessment/observation/evidence mappings and preserves the original
 IDs; `CarReviewCapabilityCatalogSpec` proves representative Domain,
 Documentation, and runtime Observability mappings do not cause provider work.
 
+P5-51 completed on 2026-07-16 with `CarReviewQualitySummary`. CBD exposes
+deterministically ordered per-capability applicability, maturity, coverage,
+confidence, provider/evidence/observation attribution, strengths, gaps, and
+Unknown observation references. It deliberately has no aggregate quality score:
+callers must interpret the attributable capability accounting rather than rely
+on an unexplained scalar.
+
 ## Stage 5.7: Verification and Closure
 
 Stage Status:

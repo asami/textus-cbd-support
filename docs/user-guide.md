@@ -42,9 +42,9 @@ must supply the authorized call.
 A completed Run always has a canonical report ID and digest. A Job that fails,
 is cancelled, or succeeds without a canonical report is projected as an
 explicit failed/cancelled Run with limitations; it is never presented as an
-empty successful Review. Provider bundle execution begins in P5-12, so P5-11
-establishes the operation and Job lifecycle rather than claiming provider
-coverage.
+empty successful Review. Provider bundles are admitted through the versioned
+Review Provider contract and retain explicit incompatible, unavailable,
+disabled, failed, timeout, and cancellation outcomes rather than a fallback.
 
 For an authenticated completed-report view, enter that exact Report ID in the
 Web forms or use the MCP-ready `CbdRetrieval.getReviewSummary`,
@@ -110,7 +110,7 @@ derive a quality score, a provider conclusion, or a replacement gate.
 From the CBD Support project root, run:
 
 ```bash
-scripts/check-cbd-sie-sar.sh
+scripts/check-cbd-standalone.sh
 ```
 
 The command builds the CBD Support and sibling SIE snapshot CARs, creates a

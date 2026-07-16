@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-65 — complete the implemented Review workflow documentation audit.
+- Current step: P5-66 — perform the final review, residual-debt audit, and phase closure check.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 

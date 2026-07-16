@@ -26,6 +26,20 @@ The CAR is generated at:
 target/textus-cbd-support-0.1.0-SNAPSHOT.car
 ```
 
+## CAR Review
+
+CBD Support owns the canonical CAR Review Report, gate, and attestation. Cozy,
+`sbt-cozy`, Textus AI, SIE, and other integrations contribute attributable
+evidence only; none may create a competing report or gate. The same bounded
+provider-document submission is available locally and through the private HTTP
+gateway, while the Web and MCP surfaces expose authorized, redacted report
+views.
+
+For the first successful local/CI submission, artifact paths, gate exit codes,
+and the provider/developer boundary, see the [user guide](docs/user-guide.md),
+[CAR manual](src/main/car/manual/index.md), and
+[developer guide](docs/developer-guide-car-review.md).
+
 ## Catalogs
 
 The default source is:

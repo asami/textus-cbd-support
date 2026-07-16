@@ -68,10 +68,11 @@ private HTTP gateway with `POST /rest/v1/cbd-support/cbd-review-admin/post`.
 Set `Content-Type: application/json` and send a generated outer object whose
 only field is `submissionDocument`; its value is the complete
 `textus.cbd.review-submission.v1` JSON document encoded as a JSON string. The
-response's `canonicalResponse` field is likewise a JSON string containing the
-CBD-owned canonical response. The gateway accepts only `reviewer`, `operator`,
-or `admin`; it never accepts a workspace path, process command, policy
-template, or caller-selected gate.
+response's `canonical_response` field is likewise a JSON string containing the
+CBD-owned canonical response. The executing principal must resolve to
+`reviewer`, `operator`, or `admin`; the client never sends a role header. The
+gateway never accepts a workspace path, process command, policy template, or
+caller-selected gate.
 
 `sbt-cozy` uses `review.cbd.endpoint` and the `cozyReviewSubmit` task to invoke
 Cozy locally, combine Cozy and sbt evidence, and exchange this envelope. CBD

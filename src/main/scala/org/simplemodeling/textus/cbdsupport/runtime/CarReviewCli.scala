@@ -72,7 +72,7 @@ final class CarReviewCliHttpTransport(endpoint: String, timeoutMillis: Int = 300
       uri <- _uri(endpoint)
       _ <- Either.cond(document.getBytes(StandardCharsets.UTF_8).length <= CarReviewSubmissionTransportAdapters.MAX_REQUEST_BYTES, (), "cbd-review-cli-request-too-large")
       response <- _post(uri, Printer.noSpaces.print(Json.obj("submissionDocument" -> Json.fromString(document))))
-      canonical <- parse(response).toOption.flatMap(_.hcursor.get[String]("canonicalResponse").toOption).filter(_.nonEmpty).toRight("cbd-review-cli-response-envelope-invalid")
+      canonical <- parse(response).toOption.flatMap(_.hcursor.get[String]("canonical_response").toOption).filter(_.nonEmpty).toRight("cbd-review-cli-response-envelope-invalid")
     } yield canonical
 
   private def _uri(value: String): Either[String, URI] =
@@ -94,11 +94,11 @@ final class CarReviewCliHttpTransport(endpoint: String, timeoutMillis: Int = 300
       val output = connection.getOutputStream
       try output.write(body.getBytes(StandardCharsets.UTF_8)) finally output.close()
       val status = connection.getResponseCode
-      val contentType = Option(connection.getContentType).getOrElse("").toLowerCase(java.util.Locale.ROOT)
+      val contenttype = Option(connection.getContentType).getOrElse("").toLowerCase(java.util.Locale.ROOT)
       val input = if (status >= 200 && status < 300) connection.getInputStream else connection.getErrorStream
       val response = _read(input)
       connection.disconnect()
-      Either.cond(status >= 200 && status < 300 && contentType.startsWith("application/json"), response, "cbd-review-cli-http-response-invalid")
+      Either.cond(status >= 200 && status < 300 && contenttype.startsWith("application/json"), response, "cbd-review-cli-http-response-invalid")
     } catch {
       case NonFatal(_) => Left("cbd-review-cli-http-request-failed")
     }

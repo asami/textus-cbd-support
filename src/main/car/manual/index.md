@@ -338,10 +338,11 @@ The generated outer request is
 `{"submissionDocument":"<provider-document-submission JSON>"}`. The inner
 string uses `textus.cbd.review-submission.v1` and must contain only the Review
 and Target-bound provider descriptors, provider requests, and evidence bundles.
-CBD returns `{"canonicalResponse":"<canonical-review-response JSON>"}`;
+CBD returns `{"canonical_response":"<canonical-review-response JSON>"}`;
 the inner response is CBD-owned and is the only report/gate result the caller
-may use. The role must be `reviewer`, `operator`, or `admin`. This operation is
-private to MCP. `CarReviewCliMain review submit` accepts that identical inner
+may use. The executing principal must resolve to `reviewer`, `operator`, or
+`admin`; clients never assert a role header. This operation is private to MCP.
+`CarReviewCliMain review submit` accepts that identical inner
 document from stdin. Without `--endpoint` it uses the local Review Application
 and roles resolved by its process boundary; with `--endpoint <private-post-url>`
 it sends the generated outer HTTP envelope and delegates authorization to the

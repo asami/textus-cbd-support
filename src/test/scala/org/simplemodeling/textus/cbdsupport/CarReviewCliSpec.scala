@@ -64,16 +64,16 @@ final class CarReviewCliSpec extends AnyWordSpec with Matchers with GivenWhenThe
 
     "post the server CLI route through the private HTTP envelope while server authorization owns the roles" in {
       Given("a loopback private Review endpoint with an authorized server adapter")
-      var requestMethod = ""
-      var receivedDocument = ""
+      var requestmethod = ""
+      var receiveddocument = ""
       val server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0)
       server.createContext("/cbd-support/cbd-review-admin/post", new HttpHandler {
         override def handle(exchange: HttpExchange): Unit = {
-          requestMethod = exchange.getRequestMethod
+          requestmethod = exchange.getRequestMethod
           val body = new String(exchange.getRequestBody.readAllBytes(), StandardCharsets.UTF_8)
-          receivedDocument = io.circe.parser.parse(body).toOption.flatMap(_.hcursor.get[String]("submissionDocument").toOption).getOrElse("")
-          val canonical = new CarReviewSubmissionHttpAdapter(_wire).postJson("application/json", receivedDocument, Set("reviewer")).fold(error => throw new IllegalArgumentException(error.toString), identity)
-          val response = Printer.noSpaces.print(Json.obj("canonicalResponse" -> Json.fromString(canonical)))
+          receiveddocument = io.circe.parser.parse(body).toOption.flatMap(_.hcursor.get[String]("submissionDocument").toOption).getOrElse("")
+          val canonical = new CarReviewSubmissionHttpAdapter(_wire).postJson("application/json", receiveddocument, Set("reviewer")).fold(error => throw new IllegalArgumentException(error.toString), identity)
+          val response = Printer.noSpaces.print(Json.obj("canonical_response" -> Json.fromString(canonical)))
           val bytes = response.getBytes(StandardCharsets.UTF_8)
           exchange.getResponseHeaders.set("Content-Type", "application/json")
           exchange.sendResponseHeaders(200, bytes.length)
@@ -89,8 +89,8 @@ final class CarReviewCliSpec extends AnyWordSpec with Matchers with GivenWhenThe
         val result = cli.submitServer(_submission_document).fold(error => fail(error), identity)
 
         Then("the server receives the bounded provider document and the CLI returns the canonical result")
-        requestMethod shouldBe "POST"
-        receivedDocument shouldBe _submission_document
+        requestmethod shouldBe "POST"
+        receiveddocument shouldBe _submission_document
         result.runId shouldBe "review-example-001"
         result.gate shouldBe "unknown"
         result.exitCode shouldBe 3

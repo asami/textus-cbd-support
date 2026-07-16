@@ -406,7 +406,7 @@ bounded JSON through stdin with process-resolved roles. The generated private
 `CbdReviewAdmin.post` operation exposes the HTTP form at
 `POST /rest/v1/cbd-support/cbd-review-admin/post`: its outer generated request
 is `{ "submissionDocument": "<provider-document-submission JSON>" }` and its
-outer response is `{ "canonicalResponse": "<canonical-review-response JSON>" }`.
+outer response is `{ "canonical_response": "<canonical-review-response JSON>" }`.
 The component operation and the `CarReviewSubmissionCliAdapter` invoke the same
 bounded admission and CBD-owned development template provider, returning only
 the canonical response. Neither transport or operation gains workspace,
@@ -417,17 +417,23 @@ process, credential, Report-template, or Gate authority.
 provider documents in the generated HTTP envelope, then unwraps only CBD's
 canonical response. The endpoint client rejects credential-bearing, non-HTTP,
 redirect, malformed, non-JSON, and oversized exchanges. Its executable HTTP
-fixture proves the envelope round trip. For a loopback development server only,
-`review.cbd.role` may carry one of `reviewer`, `operator`, or `admin` as the
-fixed `role` header; arbitrary headers and URL credentials remain unsupported.
+fixture proves the envelope round trip. The client never supplies a role,
+credential, or arbitrary header: a CBD deployment resolves Review authority
+through its configured authentication boundary. The standalone verifier uses a
+SAR-descriptor trusted local subject solely to exercise that deployment-owned
+authorization path.
 `review.cozy.provider_version` explicitly records the Cozy runtime version in
 the provider documents instead of incorrectly using the reviewed CAR version.
 Both outer-envelope and inner canonical-response JSON are structurally decoded
 and exact-shaped before artifacts are written. The installed Cozy launcher has
 not yet released its Review commands; the maintained Cozy development runtime
-provides them for the remaining live-exchange verification.
-Production uses the configured CBD authentication boundary rather than this
-development fallback. The standalone CBD CLI and its loopback private HTTP
+provides them for the remaining paired live-exchange verification. The
+representative standalone SAR already proves the generated private HTTP route
+against a running CBD server: `application/json` decodes to the generated
+`submissionDocument` argument and the response projects the generated
+`canonical_response` member. It uses a descriptor-owned trusted local reviewer
+subject, not a client role header.
+The standalone CBD CLI and its loopback private HTTP
 exchange are completed in P5-40; the broader multi-provider local/CI
 equivalence workflow remains P5-63 work.
 

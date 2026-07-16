@@ -233,6 +233,12 @@ if ! "$SCRIPT_DIR/probe-cbd-standalone.py" --base-url "$CNCF_HTTP_BASEURL"; then
   show_server_log
   exit 1
 fi
+if ! python3 "$SCRIPT_DIR/probe-cbd-review-submission.py" \
+  --base-url "$CNCF_HTTP_BASEURL" \
+  --examples-dir "$PROJECT_ROOT/docs/spec/examples"; then
+  show_server_log
+  exit 1
+fi
 if ! stop_server; then
   show_server_log
   exit 1

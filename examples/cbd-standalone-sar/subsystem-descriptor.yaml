@@ -3,3 +3,13 @@ version: 0.1.0-SNAPSHOT
 components:
   - component: textus-cbd-support
     coordinate: org.textus.car:textus-cbd-support:0.1.0-SNAPSHOT
+security:
+  authentication:
+    convention: disabled
+    fallback_privilege: disabled
+    local_subject:
+      id: cbd-standalone-review
+      roles: [reviewer]
+      security_level: user
+      attributes:
+        installation: cbd-standalone

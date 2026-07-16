@@ -268,6 +268,11 @@ Evidence/Observation identities, calculates integer coverage, keeps Unknown
 accounting explicit, and fails only from canonical Findings. Multi-capability
 policy configuration and report assembly remain P5-13 work.
 
+`CarReviewReportAssembler` joins reconciled records and the CBD-owned
+assessment/gate result into one immutable canonical report before invoking the
+existing deterministic report codec. Broader multi-capability policy remains
+open in P5-13.
+
 ## Stage 5.3: Provider Framework and Cozy
 
 Stage Status:

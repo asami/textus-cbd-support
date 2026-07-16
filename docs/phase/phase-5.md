@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-24 — complete the provider behavior matrix with executable specifications.
+- Current step: P5-30 — emit attributable sbt-cozy build evidence.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -343,6 +343,15 @@ calls no CBD Support code. The executable specifications cover registry
 selection, target refusal before execution, bounded command exchange, and the
 Cozy command's request-digest binding. The decision record is
 `docs/journal/2026/07/car-review-p5-23-cozy-provider-transport-2026-07-16.md`.
+
+P5-24 completed on 2026-07-16 with
+`CarReviewProviderBehaviorMatrixSpec`. The phase-level matrix exercises the
+same canonical v1 Cozy descriptor, request, and bundle used by the detailed
+contract specifications: compatible admission preserves the exact provider
+identity and provider-owned limitation; a target digest mismatch is refused
+without reattribution; and cancellation, timeout, and duplicate request-digest
+execution remain attributable and bounded. The decision record is
+`docs/journal/2026/07/car-review-p5-24-provider-behavior-matrix-2026-07-16.md`.
 
 ## Stage 5.4: sbt-cozy CI/CD Bridge
 

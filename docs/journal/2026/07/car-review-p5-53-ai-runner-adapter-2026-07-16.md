@@ -1,6 +1,6 @@
 # P5-53 AI Runner Adapter
 
-status=in-progress
+status=completed
 phase=5
 checklist=P5-53
 updated_at=2026-07-16
@@ -24,5 +24,24 @@ is discarded.
 `CarReviewAiRunnerAdapterSpec` uses a CNCF SPI test runner and proves the
 approved purpose, empty tool set, deterministic bounded prompt, safe metadata
 filtering, and pre-execution refusal for an unapproved purpose or too many
-Evidence records. Current Textus AI Phase 1 `AiRunner` executable tests pass
-independently; the runtime is not yet injected into a CBD provider bundle.
+Evidence records.
+
+`TextusAiCarReviewProviderRunner` now supplies the provider-side bridge. Its
+configured profile fixes provider/rule-set identity, one approved purpose, and
+bounded admitted Evidence. It emits a strict v1 descriptor for
+`ai.semantic-review`, calls the adapter, and converts only a schema-valid
+structured candidate into an admitted provider bundle. The bundle exposes a
+candidate digest and allowlisted execution facts, never raw model output,
+credentials, paths, provider endpoints, or provider-specific response bodies.
+Candidate Findings are low-confidence advisory observations with the
+`ai.advisory.*` rule namespace and an `ai-advisory-only` limitation; this
+runner can add no Assurance and does not alter deterministic findings.
+
+`TextusAiCarReviewProviderRunnerSpec` proves descriptor registration, registry
+and coordinator execution, v1 bundle admission, reconciliation, malformed
+structured-output refusal, cancellation refusal, and no provider fallback.
+The currently developing Textus AI fixture uses the unsupported `warning`
+severity token; the bridge refuses it as `ai-structured-output-invalid` rather
+than silently translating it. Aligning actual Textus AI output/provenance,
+timeouts, retries, and cancellation evidence is intentionally retained as
+P5-55.

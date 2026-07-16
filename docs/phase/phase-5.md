@@ -575,15 +575,19 @@ static evidence: it requires bounded, provider/bundle-attributable
 the assessed capability. This preserves both the runtime source and the
 specific claim it supports.
 
-P5-53 implementation has begun with `CarReviewAiRunnerAdapter`. CBD invokes
-only the CNCF `AiRunner.generateRecord` SPI with one approved CAR Review
-purpose, an empty tool set, a bounded collection of admitted Evidence
-summaries, and a CBD-owned structured-output schema. Provider/model resolution
-belongs to Textus AI purpose profiles; CBD filters returned metadata to safe
-execution/usage/limitation facts and contains no provider wire API or
-credential handling. The remaining integration work is to turn the structured
-candidate into an attributable admitted provider bundle and to exercise the
-actual Textus AI runtime as the injected SPI implementation.
+P5-53 completed on 2026-07-16 with `CarReviewAiRunnerAdapter` and
+`TextusAiCarReviewProviderRunner`. CBD invokes only the CNCF
+`AiRunner.generateRecord` SPI with one configured CAR Review purpose, an empty
+tool set, and a bounded collection of admitted Evidence summaries. The provider
+runner converts a schema-valid candidate into a `textus.cbd.review-provider.v1`
+bundle, retaining only its digest and allowlisted execution/usage/limitation
+facts. The bundle is registered and admitted through the normal CBD provider
+coordinator; its Finding is explicitly advisory and cannot mutate a
+deterministic Finding. Provider/model selection remains owned by the injected
+Textus AI purpose profile, and CBD contains no provider wire API, credentials,
+model aliases, or provider-specific response parser. Actual Textus AI Phase 1
+fixture and provenance compatibility, including unsupported output vocabulary,
+remains P5-55 work.
 
 ## Stage 5.7: Verification and Closure
 

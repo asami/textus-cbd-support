@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-22 — preserve Cozy CAR lint findings exactly through the provider adapter.
+- Current step: P5-23 — invoke Cozy through the provider protocol for an admitted CAR.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -321,6 +321,15 @@ limitation rather than another provider behavior. Its executable specification
 is `cozy.review.CozyCarReviewProviderSpec`. The
 decision record is
 `docs/journal/2026/07/car-review-p5-21-cozy-evidence-provider-2026-07-16.md`.
+
+P5-22 completed on 2026-07-16 with an executable exact-preservation check in
+`cozy.review.CozyCarReviewProviderSpec`. It compares every provider-adapted
+lint Evidence fact (category, code, level, project-relative path, line, and
+message) against `CozyCarLint.lint`, and compares the independent JSON command
+output and normal exit policy against the same result. P5-23 must now connect
+the CBD-owned provider protocol to this Cozy boundary without adding a Cozy
+dependency on CBD Support. The decision record is
+`docs/journal/2026/07/car-review-p5-22-cozy-lint-preservation-2026-07-16.md`.
 
 ## Stage 5.4: sbt-cozy CI/CD Bridge
 

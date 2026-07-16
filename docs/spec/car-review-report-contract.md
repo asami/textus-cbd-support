@@ -200,3 +200,14 @@ and controlled report vocabularies remain distinct Scala value types while
 their v1 JSON representation stays scalar. The codec performs strict unknown
 field and model-invariant admission, canonical array/key ordering, stable
 content digest calculation, and sanitized typed failure reporting.
+
+P5-11 implements the Review Run wire boundary in `CarReviewRunModel` and
+`CarReviewRunCodec`. `CarReviewRunLifecycle` projects CNCF Job status into the
+smaller Review vocabulary: Submitted is queued, Running is running, Suspended
+remains non-terminal running with an attributable limitation, Cancelled is
+cancelled, Succeeded requires exactly one canonical report identity, and Failed
+requires a stable failure code. A successful Job without a report fails the Run
+as `review-report-missing`. Cancellation intent is visible as `cancelling`,
+terminal Runs are immutable, and identical terminal Job readback is idempotent.
+Operation admission, Review-to-Job binding, and authorized command/query
+publication remain the next P5-11 runtime layer.

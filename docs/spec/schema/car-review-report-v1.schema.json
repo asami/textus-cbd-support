@@ -294,7 +294,20 @@
         },
         {
           "if": { "properties": { "state": { "const": "failed" } } },
-          "then": { "required": ["completedAt", "failureCode"] }
+          "then": { "required": ["completedAt", "failureCode"] },
+          "else": { "not": { "required": ["failureCode"] } }
+        },
+        {
+          "if": { "properties": { "state": { "const": "cancelled" } } },
+          "then": { "required": ["completedAt"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": { "enum": ["admitted", "queued", "running", "cancelling"] }
+            }
+          },
+          "then": { "not": { "required": ["completedAt"] } }
         }
       ]
     },

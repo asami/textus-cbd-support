@@ -225,6 +225,8 @@ excludes volatile execution identity, times, and array arrival order from the
 stable report digest while retaining them in the execution-specific
 attestation. Stage 5.1 is complete. P5-10 now implements distinct domain value
 types, strict wire and invariant admission, canonical JSON encoding, stable
-content digests, and typed sanitized codec failures. P5-11 authorized Review
-Run command/query lifecycle through CNCF Job execution is the current
-priority.
+content digests, and typed sanitized codec failures. P5-11 now has a typed
+Review Run codec and CNCF Job status projection covering progress,
+cancellation, completion, failure, limitations, stale update rejection, and
+terminal immutability. Authorized start/read/cancel operations and stable
+Review-to-Job binding are the current priority.

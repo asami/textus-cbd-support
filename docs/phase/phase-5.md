@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: P5-11 — implement authorized Review Run command/query lifecycle through CNCF Job execution.
+- Current step: P5-11 — connect authorized start/read/cancel operations to the typed CNCF Job-backed Review Run lifecycle.
 - Owner: Textus CBD development
 - Update rule: Update after a Phase 5 checklist item obtains reproducible evidence; closure is based only on `phase-5-checklist.md`.
 
@@ -215,6 +215,17 @@ ordering, and emits canonical JSON. Executable scenarios prove typed decode,
 stable encode/decode, equivalent digest across volatile Run metadata and array
 arrival order, six distinct rejection classes, and validated digest
 recalculation. Review Run Job lifecycle begins at P5-11.
+
+P5-11 runtime foundation started on 2026-07-16 with `CarReviewRunModel`,
+`CarReviewRunCodec`, `CarReviewRunLifecycle`, and
+`CarReviewRunLifecycleSpec`. Review Run v1 now retains distinct state, failure,
+Review, report, digest, provider, target, profile, limitation, and timestamp
+types; rejects unknown fields and invalid terminal shapes; and projects CNCF
+`Submitted`, `Running`, `Suspended`, `Cancelled`, `Succeeded`, and `Failed`
+states without losing cancellation intent or limitations. Terminal projection
+is immutable and repeated identical CNCF readback is idempotent. P5-11 remains
+open until private authorized `startReview` and `cancelReview` commands plus
+the authorized `getReviewRun` query bind Review IDs to actual CNCF Job IDs.
 
 ## Stage 5.3: Provider Framework and Cozy
 

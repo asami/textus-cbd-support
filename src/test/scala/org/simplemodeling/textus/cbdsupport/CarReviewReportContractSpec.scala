@@ -65,6 +65,21 @@ final class CarReviewReportContractSpec extends AnyWordSpec with Matchers with G
           "anyOf"
         ).flatMap(_string_array(_, "required")).toSet
         forbiddenrunfields shouldBe Set("reportId", "reportDigest")
+        val failedruncondition = _condition(definitions, "reviewRun", "state", "failed")
+        _string_array(_field(failedruncondition, "then"), "required").toSet shouldBe
+          Set("completedAt", "failureCode")
+        _string_array(_field(_field(failedruncondition, "else"), "not"), "required") should
+          contain("failureCode")
+        val cancelledruncondition = _condition(definitions, "reviewRun", "state", "cancelled")
+        _string_array(_field(cancelledruncondition, "then"), "required") should contain("completedAt")
+        val nonterminalcondition = _enum_condition(
+          definitions,
+          "reviewRun",
+          "state",
+          Set("admitted", "queued", "running", "cancelling")
+        )
+        _string_array(_field(_field(nonterminalcondition, "then"), "not"), "required") should
+          contain("completedAt")
       }
     }
 
@@ -237,6 +252,24 @@ final class CarReviewReportContractSpec extends AnyWordSpec with Matchers with G
         .toOption
         .contains(value)
     }.getOrElse(fail(s"Missing schema condition: $definitionname.$field=$value"))
+  }
+
+  private def _enum_condition(
+    definitions: JsonObject,
+    definitionname: String,
+    field: String,
+    values: Set[String]
+  ): Json = {
+    val definition = definitions(definitionname).getOrElse(fail(s"Missing schema definition: $definitionname"))
+    _json_array(definition, "allOf").find { condition =>
+      condition.hcursor
+        .downField("if")
+        .downField("properties")
+        .downField(field)
+        .get[Vector[String]]("enum")
+        .toOption
+        .exists(_.toSet == values)
+    }.getOrElse(fail(s"Missing schema enum condition: $definitionname.$field=${values.toVector.sorted.mkString(",")}"))
   }
 
   private def _field(json: Json, field: String): Json =

@@ -79,6 +79,15 @@ CBD Review ID (`runId`), canonical response, and gate. Exit code `0` is `pass`,
 `2` is `fail`, `3` is `unknown`, and `1` denotes usage, transport, admission,
 or response errors.
 
+## Review Web Progress
+
+The CBD Support static Web app exposes the authenticated
+`CbdRetrieval.getReviewRun` form. Enter a Review ID to view the CBD-owned
+Review/Job binding, digest-bound target, profile, lifecycle timestamps, current
+state, provider-attributed limitations, and—once completed—the Report ID and
+digest. The Web form renders these response fields as supplied; it does not
+derive a quality score, a provider conclusion, or a replacement gate.
+
 ## Representative SAR Check
 
 From the CBD Support project root, run:

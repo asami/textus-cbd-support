@@ -350,6 +350,12 @@ or gate. Its `review-cli-result` JSON retains only CBD's Review ID, canonical
 response, and gate; exit codes are `0` pass, `2` fail, `3` unknown, and `1`
 for a request, authorization, transport, or response failure.
 
+The authenticated static Web form for `CbdRetrieval.getReviewRun` provides the
+corresponding read-only progress view. It projects the CBD Review Run/Job
+binding, target/profile, state, timestamps, limitation records, and completed
+Report identity/digest exactly as returned by the Review Application. It does
+not start or cancel a Review and does not infer any report or gate conclusion.
+
 ## Catalog Contract
 
 CBD Support first attempts the Cozy repository contract for each kind:

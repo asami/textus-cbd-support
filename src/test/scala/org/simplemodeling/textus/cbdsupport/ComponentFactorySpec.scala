@@ -108,16 +108,20 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
     }
 
     "align static Web forms with generated service ownership" in {
-      Given("a Web form exposing retrieval search and administrative refresh")
+      Given("a Web form exposing retrieval search, protected Review progress, and administrative refresh")
       val form = Files.readString(Path.of("src/main/web-inf/form.yaml"))
 
       When("the form operation identifiers are compared with the generated service contract")
       val retrievalsearch = "textus-cbd-support.cbd-retrieval.search-components"
+      val reviewrun = "textus-cbd-support.cbd-retrieval.get-review-run"
       val adminrefresh = "textus-cbd-support.cbd-catalog-admin.refresh-catalog"
 
-      Then("each form targets its owning service without assuming an entity result")
+      Then("each form targets its owning service and Review progress remains in the form section")
       form should include(retrievalsearch)
+      form should include(reviewrun)
       form should include(adminrefresh)
+      form.indexOf(reviewrun) should be < form.indexOf("admin:")
+      form.substring(form.indexOf(reviewrun), form.indexOf("admin:")) should include("access: authenticated")
       form should not include "textus-cbd-support.cbd-retrieval.refresh-catalog"
       form should not include "${result.id}"
     }

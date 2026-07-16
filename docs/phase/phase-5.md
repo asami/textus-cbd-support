@@ -490,6 +490,15 @@ adapter paths, canonical identity/gate retention, and malformed response
 refusal. A real authorized HTTP command scenario remains required before
 checking P5-40.
 
+P5-41 implementation has begun with a protected static Web form for
+`CbdRetrieval.getReviewRun`. It projects the typed Review Run record directly:
+Review/Job identity, digest-bound target, profile, lifecycle state, timestamps,
+provider-attributed limitations, and completed report ID/digest remain source
+fields rather than Web-derived conclusions. `ComponentFactorySpec` verifies
+that the form belongs to the retrieval service and remains inside the `form:`
+descriptor section. A completed-report overview and live progress scenario are
+still required before checking P5-41.
+
 ## Stage 5.6: Quality, AI, and Runtime Assessment
 
 Stage Status:

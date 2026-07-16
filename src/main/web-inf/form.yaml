@@ -12,6 +12,10 @@ form:
     enabled: true
     successRedirect: /web/${component}/admin/entities/component-reference
     stayOnError: true
+  textus-cbd-support.cbd-retrieval.get-review-run:
+    enabled: true
+    access: authenticated
+    stayOnError: true
 admin:
   entity.component-reference:
     totalCount: optional

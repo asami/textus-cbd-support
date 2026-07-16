@@ -48,7 +48,7 @@ contract.
 
 ## Quality, AI, and Runtime Assessment
 
-- [ ] `P5-50` Reusable capability definitions map one Evidence or Observation into multiple CNCF, implementation, and quality views without rerunning analysis.
+- [x] `P5-50` Reusable capability definitions map one Evidence or Observation into multiple CNCF, implementation, and quality views without rerunning analysis. Evidence: `CarReviewCapabilityCatalog`, `CarReviewViewProjection`, and their executable specifications prove CBD-owned capability definitions reuse canonical Evidence/Observation IDs for CNCF, implementation, and quality projections without a provider invocation.
 - [ ] `P5-51` Applicability, maturity, coverage, confidence, provider attribution, strengths, gaps, and Unknown accounting are deterministic and do not collapse into an unexplained aggregate quality score.
 - [ ] `P5-52` Security, Domain, Documentation, AI Readiness, Resilience, Testability, and Observability views have specified capabilities and executable representative assessments.
 - [ ] `P5-53` CBD Support AI Review uses Textus AI's provider-neutral `AiRunner`, structured `generateRecord`, and Review purpose profiles for admitted Gemma/Ollama, OpenAI, or Google Gemini execution; it receives only bounded structured evidence, remains opt-in, and contains no provider wire API, credential, or provider-specific response parsing.

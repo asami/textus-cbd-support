@@ -544,6 +544,13 @@ after their executable evidence is available; unavailable or incompatible
 contracts remain explicit limitations or Unknown. Runtime evidence is required
 for `Operational`.
 
+P5-50 completed on 2026-07-16 with `CarReviewCapabilityCatalog`. Security,
+Domain, Documentation, AI Readiness, Resilience, Testability, and Observability
+definitions are CBD-owned reusable capabilities. Their projection consumes only
+canonical assessment/observation/evidence mappings and preserves the original
+IDs; `CarReviewCapabilityCatalogSpec` proves representative Domain,
+Documentation, and runtime Observability mappings do not cause provider work.
+
 ## Stage 5.7: Verification and Closure
 
 Stage Status:

@@ -110,14 +110,14 @@ derive a quality score, a provider conclusion, or a replacement gate.
 From the CBD Support project root, run:
 
 ```bash
-scripts/check-cbd-standalone.sh
+scripts/check-cbd-sie-sar.sh
 ```
 
 The command builds the CBD Support and sibling SIE snapshot CARs, creates a
 temporary `textus-cbd-sie` SAR for each policy profile, and checks each through
 a separately owned loopback CNCF server. Success requires exact CBD/SIE counts
-of baseline `7/7`, global disable `0/0`, SIE service disable `7/0`, and status-
-operation disable `6/6`. Representative disabled calls must return JSON-RPC
+of baseline `12/7`, global disable `0/0`, SIE service disable `12/0`, and
+status-operation disable `11/6`. Representative disabled calls must return JSON-RPC
 `-32602`. CBD catalog administration, SIE mutation/administration, the legacy
 SIE MCP facade, and all other unexpected tools must remain absent. Each server
 and temporary SAR is removed on exit. Set `TEXTUS_SIE_ROOT` only when the

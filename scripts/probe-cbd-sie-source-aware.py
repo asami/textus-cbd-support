@@ -50,6 +50,13 @@ def _require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def _is_descendant_uri(uri: str, base_uri: str) -> bool:
+    value = urllib.parse.urlparse(uri)
+    base = urllib.parse.urlparse(base_uri)
+    base_path = base.path.rstrip("/") + "/"
+    return value.scheme == base.scheme and value.path.startswith(base_path)
+
+
 def _call_tool(
     base_url: str,
     request_id: str,
@@ -108,12 +115,17 @@ def _search(base_url: str, request_id: str, limit: int, timeout: float) -> dict:
     )
 
 
-def _run(base_url: str, fixture_url: str, timeout: float) -> None:
+def _run(
+    base_url: str,
+    fixture_url: str,
+    sie_bok_base_uri: str,
+    timeout: float,
+) -> None:
     ingestion = _post_form(
         base_url,
         "/rest/v1/semantic-integration-engine/knowledge-store-admin/ingest-bok-knowledge-source",
         {
-            "baseUri": f"{fixture_url}/bok/",
+            "baseUri": sie_bok_base_uri,
             "registerKnowledgeSpace": "true",
             "includeKnowledgeFrame": "false",
         },
@@ -159,7 +171,10 @@ def _run(base_url: str, fixture_url: str, timeout: float) -> None:
         f"SIE semantic evidence is missing or misowned: {citation}",
     )
     _require(
-        str(citation.get("evidence_uri", "")).startswith(f"{fixture_url}/bok/"),
+        _is_descendant_uri(
+            str(citation.get("evidence_uri", "")),
+            sie_bok_base_uri,
+        ),
         f"SIE evidence does not cite the fixture source: {citation}",
     )
     _require(
@@ -238,6 +253,7 @@ def main() -> int:
     )
     parser.add_argument("--base-url", default="http://127.0.0.1:19535")
     parser.add_argument("--fixture-url", default="http://127.0.0.1:19537")
+    parser.add_argument("--sie-bok-base-uri", required=True)
     parser.add_argument("--timeout", type=float, default=30.0)
     arguments = parser.parse_args()
 
@@ -245,6 +261,7 @@ def main() -> int:
         _run(
             arguments.base_url.rstrip("/"),
             arguments.fixture_url.rstrip("/"),
+            arguments.sie_bok_base_uri.rstrip("/") + "/",
             arguments.timeout,
         )
         return 0

@@ -14,6 +14,11 @@ CBD_TOOLS = {
     "CbdSupport.CbdRetrieval.listCatalogs",
     "CbdSupport.CbdRetrieval.status",
     "CbdSupport.CbdRetrieval.getReviewRun",
+    "CbdSupport.CbdRetrieval.getReviewSummary",
+    "CbdSupport.CbdRetrieval.getReviewReport",
+    "CbdSupport.CbdRetrieval.listReviewFindings",
+    "CbdSupport.CbdRetrieval.listReviewAssurances",
+    "CbdSupport.CbdRetrieval.getReviewViews",
 }
 SIE_TOOLS = {
     "SemanticIntegrationEngine.SemanticRetrieval.query",

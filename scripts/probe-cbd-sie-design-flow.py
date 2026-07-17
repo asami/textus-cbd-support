@@ -3,6 +3,7 @@
 import argparse
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -49,6 +50,13 @@ def _require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def _is_descendant_uri(uri: str, base_uri: str) -> bool:
+    value = urllib.parse.urlparse(uri)
+    base = urllib.parse.urlparse(base_uri)
+    base_path = base.path.rstrip("/") + "/"
+    return value.scheme == base.scheme and value.path.startswith(base_path)
+
+
 def _call_tool(
     base_url: str,
     request_id: str,
@@ -80,7 +88,7 @@ def _matching_result(response: dict, identity: str) -> dict:
     return matches[0]
 
 
-def _run(base_url: str, fixture_url: str, timeout: float) -> None:
+def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
     term_search = _call_tool(
         base_url,
         "p5-23-term-search",
@@ -92,7 +100,10 @@ def _run(base_url: str, fixture_url: str, timeout: float) -> None:
     _require(term_search.get("status") == "matched", f"Term search did not match: {term_search}")
     _require(term.get("match_kind") == "exact", f"Term search was not exact: {term}")
     _require(
-        str(term.get("evidence_uri", "")).startswith(f"{fixture_url}/bok/"),
+        _is_descendant_uri(
+            str(term.get("evidence_uri", "")),
+            sie_bok_base_uri,
+        ),
         f"Term search lost BoK evidence: {term}",
     )
 
@@ -141,7 +152,10 @@ def _run(base_url: str, fixture_url: str, timeout: float) -> None:
         f"Reference search returned the wrong identity: {reference_search}",
     )
     _require(
-        str(reference.get("evidence_uri", "")).startswith(f"{fixture_url}/bok/"),
+        _is_descendant_uri(
+            str(reference.get("evidence_uri", "")),
+            sie_bok_base_uri,
+        ),
         f"Reference search lost BoK evidence: {reference}",
     )
     _require(
@@ -244,14 +258,14 @@ def main() -> int:
         description="Verify a live SIE-to-CBD component design handoff."
     )
     parser.add_argument("--base-url", default="http://127.0.0.1:19535")
-    parser.add_argument("--fixture-url", default="http://127.0.0.1:19537")
+    parser.add_argument("--sie-bok-base-uri", required=True)
     parser.add_argument("--timeout", type=float, default=30.0)
     arguments = parser.parse_args()
 
     try:
         _run(
             arguments.base_url.rstrip("/"),
-            arguments.fixture_url.rstrip("/"),
+            arguments.sie_bok_base_uri.rstrip("/") + "/",
             arguments.timeout,
         )
         return 0

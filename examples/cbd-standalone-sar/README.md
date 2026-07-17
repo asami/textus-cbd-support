@@ -14,7 +14,7 @@ with an authorized published-catalog fixture. It deliberately omits the SIE
 CAR, SIE BoK route, SIE provider configuration, and general BoK source
 configuration.
 
-The executable probe requires exactly the seven CBD retrieval tools, no SIE
+The executable probe requires exactly the twelve CBD retrieval tools, no SIE
 tools, and no `sie-bok` information source. It resolves exact detail for
 `org.textus:textus-runtime:car@1.0.0`, obtains observed usage evidence for
 `RuntimeInspection.inspectRuntime`, and verifies that a SIE tool call is

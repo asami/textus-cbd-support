@@ -271,6 +271,7 @@ run_profile() {
     JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dcncf.server.port=$CNCF_SERVER_PORT -Dcncf.http.baseurl=$CNCF_HTTP_BASEURL -Dtextus.sie.rdf-db=in-memory -Dtextus.sie.vector-db=in-memory" \
     "$CNCF_BIN" \
       "${CNCF_RUNTIME_ARGS[@]}" \
+      "--textus.resource.url.file.roots=$FIXTURE_ROOT" \
       server \
       --no-project-classpath \
       --component-dir "$component_dir" \
@@ -315,13 +316,14 @@ run_profile() {
   fi
   if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-source-aware.py" \
     --base-url "$CNCF_HTTP_BASEURL" \
-    --fixture-url "$FIXTURE_BASEURL"; then
+    --fixture-url "$FIXTURE_BASEURL" \
+    --sie-bok-base-uri "$(cd "$FIXTURE_ROOT/bok" && pwd -P | sed 's#^#file://#')/"; then
     show_server_log
     exit 1
   fi
   if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-design-flow.py" \
     --base-url "$CNCF_HTTP_BASEURL" \
-    --fixture-url "$FIXTURE_BASEURL"; then
+    --sie-bok-base-uri "$(cd "$FIXTURE_ROOT/bok" && pwd -P | sed 's#^#file://#')/"; then
     show_server_log
     exit 1
   fi

@@ -17,7 +17,7 @@ scripts/check-cbd-sie-sar.sh --profile baseline
 ```
 
 The focused command still builds both current CARs, assembles the SAR, starts
-the owned CNCF server and fixture server, verifies all 13 read-only tools, and
+the owned CNCF server and fixture server, verifies all 19 read-only tools, and
 proves stable `component.service.operation` identities, lexical discovery
 order, collision absence, and source ownership. It skips the three
 policy-narrowing profiles. Running without `--profile` remains the complete
@@ -26,7 +26,7 @@ four-profile matrix.
 The check uses CNCF `0.5.1-SNAPSHOT` by default and builds both CARs. For each
 profile it creates a temporary `component.d` containing the two CARs and the
 selected descriptor as a SAR, starts one owned loopback server, verifies the
-exact JSON-RPC `tools/list` set, probes profile-disabled and all 13 non-public
+exact JSON-RPC `tools/list` set, probes profile-disabled and all 15 non-public
 administration, ingestion, rebuild, import, and legacy-facade `tools/call`
 routes, and stops the server before the next profile.
 
@@ -38,10 +38,10 @@ also includes its Git revision and clean/dirty state.
 
 | profile | descriptor | CBD tools | SIE tools |
 |---|---|---:|---:|
-| baseline | `subsystem-descriptor.yaml` | 6 | 7 |
+| baseline | `subsystem-descriptor.yaml` | 12 | 7 |
 | global disabled | `profiles/global-disabled.yaml` | 0 | 0 |
-| SIE service disabled | `profiles/sie-service-disabled.yaml` | 6 | 0 |
-| status operations disabled | `profiles/operation-disabled.yaml` | 5 | 6 |
+| SIE service disabled | `profiles/sie-service-disabled.yaml` | 12 | 0 |
+| status operations disabled | `profiles/operation-disabled.yaml` | 11 | 6 |
 
 Every non-baseline catalog must be an exact subset of the component-declared
 baseline. Every profile-disabled call and every component operation outside the
@@ -54,8 +54,9 @@ The baseline profile also starts a loopback server for the repository-owned
 `fixtures/` tree. It configures CBD with the `fixture-catalog` catalog, the
 `working` development directory, empty temporary local/cache CAR roots, a
 deliberately missing catalog, and the composed SIE `/mcp` route. The probe
-ingests `fixtures/bok` through SIE's administration HTTP route before using only
-the public composed MCP retrieval surface for its assertions.
+ingests `fixtures/bok` through SIE's administration HTTP route using a `file:`
+resource reference under CNCF's configured read-only fixture root, then uses
+only the public composed MCP retrieval surface for its assertions.
 
 The source-aware assertions require the following independent evidence:
 

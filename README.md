@@ -197,6 +197,12 @@ merge an observation automatically.
 - `listCatalogs`: inspect source readiness, cache freshness, expiry, and refresh
   attempt state.
 - `status`: inspect aggregate readiness.
+- `getReviewRun`: return authorized, bounded progress for one CBD-owned Review
+  Run and its bound CNCF Job.
+- `getReviewSummary`, `getReviewReport`, `listReviewFindings`,
+  `listReviewAssurances`, and `getReviewViews`: return one exact, bounded,
+  redacted Review projection. They do not enumerate Review history or expose
+  Evidence facts, rationale, credentials, or full filesystem paths.
 
 The three exact operations never use catalog priority as a hidden winner. Zero
 candidates return status `no-match` with a `component-not-found` absence;
@@ -218,8 +224,8 @@ operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 Run `scripts/check-cbd-sie-sar.sh` to build both local snapshot CARs, assemble
 the representative `textus-cbd-sie` SAR profiles, and verify each through a
 separately owned loopback CNCF server. The policy matrix requires exact CBD/SIE
-tool counts of `7/7` at baseline, `0/0` under global disable, `7/0` when the SIE
-service is disabled, and `6/6` when both status operations are disabled.
+tool counts of `12/7` at baseline, `0/0` under global disable, `12/0` when the
+SIE service is disabled, and `11/6` when both status operations are disabled.
 Disabled calls must return JSON-RPC `-32602`; any administration, mutation,
 legacy facade, or other unexpected tool fails the check. Set
 `CNCF_RUNTIME_DEV_DIR` to validate a local CNCF checkout. The baseline profile
@@ -239,7 +245,7 @@ Run `scripts/check-cbd-standalone.sh` to verify CBD Support independently from
 SIE. This one-main-component SAR loads only the CBD CAR and an authorized
 catalog fixture, with no SIE CAR, BoK route, provider configuration, or copied
 SIE storage. It proves exact component detail and attributable usage guidance
-through the seven CBD MCP tools. See
+through the twelve CBD MCP tools. See
 [the standalone SAR example](examples/cbd-standalone-sar/README.md).
 
 The same command is the representative execution gate for the declared CNCF

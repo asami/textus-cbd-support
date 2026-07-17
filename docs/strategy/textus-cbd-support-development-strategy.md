@@ -149,12 +149,12 @@ quotas, preserves bounded attributable last-known-good evidence, and retains
 the pre-policy runtime construction signatures. P4-13 proves that
 authentication, transport, parse, and compatibility failures all preserve
 stale source-owned evidence until a successful bounded retry establishes a new
-current observation. P4-20 builds the two snapshot CARs into a representative
-`textus-cbd-sie` SAR and verifies one live CNCF `/mcp` endpoint whose exact
-surface is seven CBD retrieval tools and seven SIE semantic-retrieval tools with
-no administration or mutation tools. P4-21 verifies four live composed
-profiles: baseline `7/7`, global disable `0/0`, SIE service disable `7/0`, and
-per-component status-operation disable `6/6`. Exact tool-set assertions and
+current observation. P4-20 established the two snapshot CAR composition and
+live CNCF `/mcp` endpoint. The current surface is twelve CBD retrieval tools and
+seven SIE semantic-retrieval tools with no administration or mutation tools.
+P4-21's policy matrix now verifies baseline `12/7`, global disable `0/0`, SIE
+service disable `12/0`, and per-component status-operation disable `11/6`.
+Exact tool-set assertions and
 disabled `tools/call` rejection prove that runtime policy only narrows declared
 readiness. P4-22 now runs a repository-owned
 loopback fixture through that composed endpoint and proves that published

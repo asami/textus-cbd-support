@@ -272,10 +272,10 @@ run_profile() {
     "$CNCF_BIN" \
       "${CNCF_RUNTIME_ARGS[@]}" \
       "--textus.resource.url.file.roots=$FIXTURE_ROOT" \
+      "--textus.subsystem=textus-cbd-sie" \
       server \
       --no-project-classpath \
-      --component-dir "$component_dir" \
-      --textus.subsystem=textus-cbd-sie >"$server_log" 2>&1 &
+      --component-dir "$component_dir" >"$server_log" 2>&1 &
   server_pid=$!
 
   deadline=$((SECONDS + STARTUP_TIMEOUT_SECONDS))

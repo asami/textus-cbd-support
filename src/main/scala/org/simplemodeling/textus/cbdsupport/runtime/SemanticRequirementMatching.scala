@@ -5,7 +5,7 @@ import java.util.Locale
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class SemanticRequirementEvidence(
@@ -38,7 +38,7 @@ object SemanticRequirementMatcher {
     boksnapshots: Vector[BokSourceSnapshot],
     siesnapshots: Vector[SieBokSnapshot],
     limit: Int,
-    clock: Clock = Clock.systemUTC(),
+    clock: Clock,
     bokttl: Duration = BokInspectionPolicy.DEFAULT.refreshTtl,
     sourceid: Option[String] = None,
     sourcekind: Option[String] = None

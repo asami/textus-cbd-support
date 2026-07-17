@@ -15,7 +15,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InformationSourceSecuritySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -85,7 +85,7 @@ final class InformationSourceSecuritySpec extends AnyWordSpec with Matchers with
       val fetcher = new RecordingCatalogFetcher
 
       When("usage evidence is requested")
-      val usage = new CozyComponentCatalogProvider().readUsage(profile, fetcher).toOption.get
+      val usage = new CozyComponentCatalogProvider(clock = _clock).readUsage(profile, fetcher).toOption.get
 
       Then("same-origin comparison does not authorize credentials and the diagnostic URI is safe")
       CatalogUriPolicy.sameOrigin(profile.evidenceUri, unsafeuri) shouldBe true
@@ -112,36 +112,6 @@ final class InformationSourceSecuritySpec extends AnyWordSpec with Matchers with
       configuration.warnings.exists(_.contains("endpoint is invalid")) shouldBe true
       configuration.warnings.mkString(" ") should not include "password"
       configuration.warnings.mkString(" ") should not include "query-secret"
-    }
-  }
-
-  "LocalInformationSourceInventory" should {
-    "ignore a nested symbolic-link escape while retaining canonical authorized roots" in {
-      Given("an explicitly authorized CAR root containing a symlink to an artifact outside that root")
-      val work = _reset_work_area("nested-symlink")
-      val localroot = Files.createDirectories(work.resolve("local"))
-      val cacheroot = Files.createDirectories(work.resolve("cache"))
-      val storage = Files.createDirectories(localroot.resolve("repository/car"))
-      val outside = Files.createDirectories(work.resolve("outside"))
-      _write_car(outside.resolve("escaped/1.0.0/escaped-1.0.0.car"))
-      Files.createSymbolicLink(storage.resolve("escaped"), outside.resolve("escaped"))
-      val configuration = LocalInformationSourceConfig.parse(
-        None,
-        Some(localroot.resolve(".").toString),
-        Some(cacheroot.resolve(".").toString),
-        work
-      )
-
-      When("the authorized local and cache roots are inventoried without following links")
-      val inventory = LocalInformationSourceInventory.inspect(configuration)
-
-      Then("the roots are canonical and the escaped CAR never becomes an observation")
-      configuration.carStorageSources.map(_.root) shouldBe Vector(
-        localroot.toRealPath(),
-        cacheroot.toRealPath()
-      )
-      inventory.observations shouldBe empty
-      inventory.observations.exists(_.evidenceLocation.contains("outside")) shouldBe false
     }
   }
 

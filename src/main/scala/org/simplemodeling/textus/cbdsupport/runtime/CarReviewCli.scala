@@ -12,7 +12,7 @@ import io.circe.parser.parse
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Stable CLI result. `runId` is the CBD Review ID carried by the canonical Report. */
@@ -125,7 +125,7 @@ object CarReviewCliMain {
         val cli = new CarReviewCli(local, command.endpoint.map(new CarReviewCliHttpTransport(_)).getOrElse(CarReviewCliMain._no_server))
         val result = command.endpoint match {
           case Some(_) => cli.submitServer(document)
-          case None => cli.submitLocal(document, _roles())
+          case None => cli.submitLocal(document, command.processRoles)
         }
         result.map { value => println(value.render); value.exitCode }
       }
@@ -133,13 +133,16 @@ object CarReviewCliMain {
     if (code != 0) sys.exit(code)
   }
 
-  private final case class Command(endpoint: Option[String])
+  private final case class Command(endpoint: Option[String], processRoles: Set[String])
   private val _no_server = new CarReviewCliServerTransport { def submit(document: String) = Left("cbd-review-cli-server-not-configured") }
 
   private def _parse(args: List[String]): Either[String, Command] = args match {
-    case "review" :: "submit" :: Nil => Right(Command(None))
-    case "review" :: "submit" :: "--endpoint" :: endpoint :: Nil => Right(Command(Some(endpoint)))
-    case _ => Left("usage: review submit [--endpoint <private-cbd-post-url>] < provider-document-submission.json")
+    case "review" :: "submit" :: Nil => Right(Command(None, Set.empty))
+    case "review" :: "submit" :: "--roles" :: roles :: Nil => Right(Command(None, _roles(roles)))
+    case "review" :: "submit" :: "--endpoint" :: endpoint :: Nil => Right(Command(Some(endpoint), Set.empty))
+    case "review" :: "submit" :: "--endpoint" :: endpoint :: "--roles" :: roles :: Nil => Right(Command(Some(endpoint), _roles(roles)))
+    case "review" :: "submit" :: "--roles" :: roles :: "--endpoint" :: endpoint :: Nil => Right(Command(Some(endpoint), _roles(roles)))
+    case _ => Left("usage: review submit [--endpoint <private-cbd-post-url>] [--roles <comma-separated-roles>] < provider-document-submission.json")
   }
 
   private def _stdin(): Either[String, String] = {
@@ -156,8 +159,8 @@ object CarReviewCliMain {
     else Right(new String(bytes.toByteArray, StandardCharsets.UTF_8))
   }
 
-  private def _roles(): Set[String] =
-    sys.env.get("TEXTUS_CBD_REVIEW_PROCESS_ROLES").toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty).toSet
+  private def _roles(value: String): Set[String] =
+    Option(value).toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty).toSet
 
   private def _wire(document: String): CarReviewSubmissionWireApplication = {
     val digest = MessageDigest.getInstance("SHA-256").digest(document.getBytes(StandardCharsets.UTF_8)).map(byte => f"${byte & 0xff}%02x").mkString.take(16)

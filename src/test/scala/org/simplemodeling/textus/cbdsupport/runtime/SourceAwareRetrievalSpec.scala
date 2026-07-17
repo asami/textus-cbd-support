@@ -13,7 +13,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -36,12 +36,10 @@ final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with Give
       result.report.precedence.head.sourceKinds should contain(InformationSourceKind.PUBLISHED_CATALOG)
       result.report.selectedObservation shouldBe None
 
-      And("catalog, development-directory, local warehouse, and cache state are all projected read-only")
+      And("only explicitly admitted catalog and development-tree state is projected read-only")
       runtime.informationSourceStates(includeDisabled = false).map(_.descriptor.id) shouldBe Vector(
         "catalog",
-        "working",
-        "local-car",
-        "cache-car"
+        "working"
       )
     }
 
@@ -120,30 +118,25 @@ final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with Give
   private val _clock = Clock.fixed(Instant.parse("2026-07-14T00:00:00Z"), ZoneOffset.UTC)
 
   private def _runtime(name: String, profiles: Vector[ComponentProfile] = Vector(_profile)): CbdRuntime = {
-    val root = _reset_work_area(name)
-    val development = Files.createDirectories(root.resolve("development"))
-    val local = Files.createDirectories(root.resolve("local"))
-    val cache = Files.createDirectories(root.resolve("cache"))
-    Files.createDirectories(local.resolve("repository/car"))
-    Files.createDirectories(cache.resolve("car"))
-    Files.writeString(
-      development.resolve("project.yaml"),
-      """project:
-        |  name: textus-order
-        |  kind: car
-        |  organization: org.textus
-        |  component:
-        |    name: textus-order
-        |    version: 1.1.0-SNAPSHOT
-        |""".stripMargin,
-      StandardCharsets.UTF_8
+    val working = InformationSourceDescriptor(
+      "working",
+      InformationSourceKind.DEVELOPMENT_DIRECTORY,
+      "resource-tree:working",
+      300,
+      true,
+      InformationSourceAuthorization.EXPLICIT
     )
-    val localconfiguration = LocalInformationSourceConfig.parse(
-      Some(s"working=$development"),
-      Some(local.toString),
-      Some(cache.toString),
-      root,
-      reservedsourceids = Set("catalog")
+    val inventory = LocalInformationInventory(
+      Vector(working),
+      Vector(LocalComponentObservation(
+        "working", InformationSourceKind.DEVELOPMENT_DIRECTORY, Some("textus-order"),
+        Some("org.textus"), Some("car"), Some("1.1.0-SNAPSHOT"), "project-yaml",
+        VersionAvailabilityState.WORKING, "resource-tree:working/project.yaml",
+        None, None, None, Vector.empty
+      )),
+      Vector.empty,
+      _clock.instant(),
+      Map("working" -> Vector.empty)
     )
     val catalog = CatalogSource("catalog", URI.create("https://catalog.example/"), 100, true)
     CbdRuntime.createFederated(
@@ -153,7 +146,8 @@ final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with Give
       _clock,
       Vector.empty,
       new BokKnowledgeSourceProvider(_clock),
-      localconfiguration = localconfiguration
+      siebokprovider = new SieBokProvider(_clock),
+      admittedlocalinventory = Some(inventory)
     )
   }
 

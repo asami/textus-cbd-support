@@ -1,8 +1,13 @@
 package org.simplemodeling.textus.cbdsupport.impl
 
+import org.goldenport.Consequence
 import org.goldenport.cncf.action.ActionCall
 import org.goldenport.cncf.component.{Component, ComponentCreate}
+import org.goldenport.cncf.config.{ComponentConfigurationAccess, ComponentConfigurationKey, ComponentConfigurationSources}
+import org.goldenport.cncf.context.{GlobalRuntimeContext, ScopeContext}
+import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeReference}
 import org.goldenport.cncf.unitofwork.ExecUowM
+import org.goldenport.configuration.Configuration
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
@@ -10,14 +15,14 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdmin
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceAuthorization, InformationSourceDescriptor, InformationSourceKind, LocalInformationInventory, LocalInformationSourceInventory, LocalInspectionPolicy, VersionAvailabilityState}
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
-  private val _runtime = CbdRuntime.create()
   private val _review_application = new CarReviewRunApplication()
   private val _review_repository = new CarReviewRepository()
   private val _review_reads = new CarReviewMcpReadApplication(_review_repository)
@@ -42,6 +47,137 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     new CbdSupportComponent {
       override def mcpReadyServices: Set[String] = Set("CbdRetrieval")
     }
+
+  private def _runtime_for(core: ActionCall.Core): CbdRuntime = {
+    val access = ComponentConfigurationAccess(ComponentConfigurationSources(
+      core.component.flatMap(_.applicationConfig.config).getOrElse(Configuration.empty),
+      core.component.flatMap(_.subsystem).map(_.configuration.configuration).getOrElse(Configuration.empty),
+      _runtime_configuration(core.executionContext.runtime)
+    ))
+    val configuration = CbdRuntime.Configuration(
+      catalogs = _configuration(access, "textus.cbd.catalogs"),
+      catalogAllowedOrigins = _configuration(access, "textus.cbd.catalog.allowed-origins"),
+      bokSites = _configuration(access, "textus.cbd.bok.sites"),
+      bokAllowedOrigins = _configuration(access, "textus.cbd.bok.allowed-origins"),
+      sieBokRoutes = _configuration(access, "textus.cbd.sie-bok.routes"),
+      sieAllowedOrigins = _configuration(access, "textus.cbd.sie-bok.allowed-origins"),
+      sourceAuthentication = _configuration(access, "textus.cbd.source-authentication"),
+      admittedLocalInventory = Some(_admitted_local_inventory(access, core))
+    )
+    CbdRuntime.create(configuration, core.executionContext.clock)
+  }
+
+  private def _configuration(access: ComponentConfigurationAccess, name: String): Option[String] =
+    access.resolve(ComponentConfigurationKey.optionalString(name)).TAKE.value
+
+  private def _runtime_configuration(scope: ScopeContext): Configuration =
+    scope match {
+      case runtime: GlobalRuntimeContext => runtime.resolvedConfiguration.configuration
+      case _ => scope.parent.map(_runtime_configuration).getOrElse(Configuration.empty)
+    }
+
+  private final case class _LocalTreeSource(
+    descriptor: InformationSourceDescriptor,
+    reference: ResourceTreeReference,
+    versionState: String,
+    carStorage: Boolean
+  )
+
+  private def _admitted_local_inventory(
+    access: ComponentConfigurationAccess,
+    core: ActionCall.Core
+  ): LocalInformationInventory = {
+    val (development, developmentwarnings) = _development_tree_sources(
+      _configuration(access, "textus.cbd.development.trees")
+    )
+    val (storage, storagewarnings) = _storage_tree_sources(
+      _configuration(access, "textus.cbd.local-car.tree"),
+      _configuration(access, "textus.cbd.cache-car.tree")
+    )
+    val sources = development ++ storage
+    val inventories = sources.map { source =>
+      core.executionContext.resourceTrees.snapshot(source.reference, ResourceTreeLimits.default) match {
+        case Consequence.Success(snapshot) if source.carStorage =>
+          LocalInformationSourceInventory.inspectCarStorageSnapshot(
+            source.descriptor,
+            snapshot,
+            source.versionState,
+            LocalInspectionPolicy.DEFAULT,
+            core.executionContext.clock
+          )
+        case Consequence.Success(snapshot) =>
+          LocalInformationSourceInventory.inspectDevelopmentSnapshot(
+            source.descriptor,
+            snapshot,
+            source.versionState,
+            LocalInspectionPolicy.DEFAULT,
+            core.executionContext.clock
+          )
+        case Consequence.Failure(_) =>
+          LocalInformationInventory(
+            Vector(source.descriptor),
+            Vector.empty,
+            Vector(s"Resource tree ${source.reference.name} is unavailable."),
+            core.executionContext.clock.instant(),
+            Map(source.descriptor.id -> Vector(s"Resource tree ${source.reference.name} is unavailable."))
+          )
+      }
+    }
+    LocalInformationInventory(
+      sources.map(_.descriptor),
+      inventories.flatMap(_.observations),
+      (developmentwarnings ++ storagewarnings ++ inventories.flatMap(_.warnings)).distinct,
+      core.executionContext.clock.instant(),
+      inventories.flatMap(_.sourceDiagnostics).toMap
+    )
+  }
+
+  private def _development_tree_sources(
+    value: Option[String]
+  ): (Vector[_LocalTreeSource], Vector[String]) = {
+    val entries = value.toVector.flatMap(_.split(",")).map(_.trim).filter(_.nonEmpty)
+    val parsed = entries.zipWithIndex.map { case (entry, index) =>
+      val pair = entry.split("=", 2)
+      val rawid = if (pair.length == 2) pair(0).trim else s"development-${index + 1}"
+      val rawtree = if (pair.length == 2) pair(1).trim else pair(0).trim
+      if (!rawid.matches("[A-Za-z0-9._-]+")) Left(s"Development resource-tree entry ${index + 1} has an invalid source ID.")
+      else ResourceTreeReference.parseC(rawtree) match {
+        case Consequence.Success(reference) =>
+          Right(_LocalTreeSource(
+            InformationSourceDescriptor(rawid, InformationSourceKind.DEVELOPMENT_DIRECTORY, s"resource-tree:${reference.name}", 300 + index, true, InformationSourceAuthorization.EXPLICIT),
+            reference,
+            VersionAvailabilityState.WORKING,
+            carStorage = false
+          ))
+        case Consequence.Failure(_) => Left(s"Development resource-tree entry ${index + 1} has an invalid logical tree name.")
+      }
+    }
+    parsed.collect { case Right(source) => source } -> parsed.collect { case Left(warning) => warning }
+  }
+
+  private def _storage_tree_sources(
+    local: Option[String],
+    cache: Option[String]
+  ): (Vector[_LocalTreeSource], Vector[String]) = {
+    val entries = Vector(
+      ("local-car", local, VersionAvailabilityState.LOCAL_PUBLISHED, 400),
+      ("cache-car", cache, VersionAvailabilityState.CACHED, 500)
+    ).flatMap { case (id, value, versionstate, priority) =>
+      value.map { rawtree =>
+        ResourceTreeReference.parseC(rawtree) match {
+          case Consequence.Success(reference) =>
+            Right(_LocalTreeSource(
+              InformationSourceDescriptor(id, InformationSourceKind.CAR_STORAGE, s"resource-tree:${reference.name}", priority, true, InformationSourceAuthorization.EXPLICIT),
+              reference,
+              versionstate,
+              carStorage = true
+            ))
+          case Consequence.Failure(_) => Left(s"CAR storage resource-tree ${id} has an invalid logical tree name.")
+        }
+      }
+    }
+    entries.collect { case Right(source) => source } -> entries.collect { case Left(warning) => warning }
+  }
 
   private final class CbdRetrievalServiceFactoryImpl
     extends CbdSupportComponent.CbdRetrievalServiceFactory {
@@ -148,12 +284,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.ComponentSearchRequest
   ) extends CbdRetrievalService.SearchComponentsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      val runtime = _runtime_for(core)
       val fetcher = new CbdHttp(core)
-      _runtime.ensureInputsReady(fetcher).flatMap { _ =>
+      runtime.ensureInputsReady(fetcher).flatMap { _ =>
         val requirement = _required_string(action.record, "requirement")
         val limit = _optional_int(action.record, "limit").getOrElse(10)
-        _runtime.searchSieTerms(requirement, None, limit, fetcher).map { siesnapshots =>
-          val result = _runtime.searchSourceAware(SourceAwareComponentSearchQuery(
+        runtime.searchSieTerms(requirement, None, limit, fetcher).map { siesnapshots =>
+          val result = runtime.searchSourceAware(SourceAwareComponentSearchQuery(
             requirement,
             _optional_string(action.record, "organization"),
             _optional_string(action.record, "kind"),
@@ -169,13 +306,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           ), siesnapshots)
           OperationResponse(Record.dataAuto(
             "status" -> (if (result.report.observations.nonEmpty || result.semanticEvidence.nonEmpty) "matched" else "no-match"),
-            "results" -> result.matches.map(_match_record),
+            "results" -> result.matches.map(_match_record(runtime, _)),
             "observations" -> result.report.observations.map(_source_aware_observation_record),
             "semanticEvidence" -> result.semanticEvidence.map(_semantic_evidence_record),
             "issues" -> result.report.issues.map(_source_aware_issue_record),
             "precedence" -> result.report.precedence.map(_source_aware_precedence_record),
             "selectedObservation" -> result.report.selectedObservation.map(_source_aware_observation_record),
-            "warnings" -> (result.warnings ++ _source_warnings).distinct
+            "warnings" -> (result.warnings ++ _source_warnings(runtime)).distinct
           ))
         }
       }
@@ -187,18 +324,19 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.ComponentLookupRequest
   ) extends CbdRetrievalService.GetComponentActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      val runtime = _runtime_for(core)
       val fetcher = new CbdHttp(core)
-      _runtime.ensureInputsReady(fetcher).map { _ =>
-        val selection = _selection(action.record, _optional_string(action.record, "kind"))
+      runtime.ensureInputsReady(fetcher).map { _ =>
+        val selection = _selection(runtime, action.record, _optional_string(action.record, "kind"))
         val profile = selection.selectedProfile
         OperationResponse(Record.dataAuto(
           "status" -> selection.status,
           "reference" -> profile.map(_reference_record),
-          "component" -> profile.map(_profile_record),
+          "component" -> profile.map(_profile_record(runtime, _)),
           "alternatives" -> selection.alternatives.map(_reference_record),
           "candidateCount" -> selection.candidateCount,
           "absences" -> selection.absences.map(_absence_record),
-          "warnings" -> (selection.warnings ++ _source_warnings).distinct
+          "warnings" -> (selection.warnings ++ _source_warnings(runtime)).distinct
         ))
       }
     }
@@ -209,16 +347,17 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.ComponentUsageRequest
   ) extends CbdRetrievalService.GetUsageActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      val runtime = _runtime_for(core)
       val fetcher = new CbdHttp(core)
-      _runtime.ensureInputsReady(fetcher).flatMap { _ =>
-        val selection = _selection(action.record, _optional_string(action.record, "kind"))
+      runtime.ensureInputsReady(fetcher).flatMap { _ =>
+        val selection = _selection(runtime, action.record, _optional_string(action.record, "kind"))
         selection.selectedProfile match {
           case Some(profile) =>
-            _runtime.usage(profile, _optional_string(action.record, "intent"), fetcher).map { usage =>
-              OperationResponse(_usage_record(usage, selection))
+            runtime.usage(profile, _optional_string(action.record, "intent"), fetcher).map { usage =>
+              OperationResponse(_usage_record(runtime, usage, selection))
             }
           case None =>
-            org.goldenport.Consequence.success(OperationResponse(_unselected_usage_record(selection)))
+            org.goldenport.Consequence.success(OperationResponse(_unselected_usage_record(runtime, selection)))
         }
       }
     }
@@ -229,11 +368,12 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.DependencyResolutionRequest
   ) extends CbdRetrievalService.ResolveDependenciesActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      val runtime = _runtime_for(core)
       val fetcher = new CbdHttp(core)
-      _runtime.ensureInputsReady(fetcher).map { _ =>
-        val selection = _selection(action.record, _optional_string(action.record, "kind"))
+      runtime.ensureInputsReady(fetcher).map { _ =>
+        val selection = _selection(runtime, action.record, _optional_string(action.record, "kind"))
         val profile = selection.selectedProfile
-        val resolution = profile.map(_runtime.resolveDependencies(
+        val resolution = profile.map(runtime.resolveDependencies(
           _,
           _optional_string(action.record, "version"),
           _optional_int(action.record, "maxDepth").getOrElse(CbdRuntime.DEFAULT_DEPENDENCY_DEPTH)
@@ -241,14 +381,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         OperationResponse(Record.dataAuto(
           "status" -> selection.status,
           "reference" -> profile.map(_reference_record),
-          "component" -> profile.map(_profile_record),
+          "component" -> profile.map(_profile_record(runtime, _)),
           "dependencies" -> resolution.toVector.flatMap(_.directDependencies).map(_dependency_record),
           "resolutions" -> resolution.toVector.flatMap(_.resolutions).map(_resolved_dependency_record),
           "conflicts" -> resolution.toVector.flatMap(_.conflicts).map(_dependency_conflict_record),
           "alternatives" -> selection.alternatives.map(_reference_record),
           "candidateCount" -> selection.candidateCount,
           "absences" -> (selection.absences ++ resolution.toVector.flatMap(_.absences)).map(_absence_record),
-          "warnings" -> (profile.toVector.flatMap(_.warnings) ++ resolution.toVector.flatMap(_.warnings) ++ selection.warnings ++ _source_warnings).distinct
+          "warnings" -> (profile.toVector.flatMap(_.warnings) ++ resolution.toVector.flatMap(_.warnings) ++ selection.warnings ++ _source_warnings(runtime)).distinct
         ))
       }
     }
@@ -259,9 +399,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.CatalogListRequest
   ) extends CbdRetrievalService.ListCatalogsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      val runtime = _runtime_for(core)
       org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
-        "sources" -> _runtime.informationSourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
-        "warnings" -> _runtime.configurationWarnings
+        "sources" -> runtime.informationSourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
+        "warnings" -> runtime.configurationWarnings
       )))
     }
   }
@@ -271,12 +412,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.CbdStatusRequest
   ) extends CbdRetrievalService.StatusActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
-      val states = _runtime.informationSourceStates(includeDisabled = false)
+      val runtime = _runtime_for(core)
+      val states = runtime.informationSourceStates(includeDisabled = false)
       org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
-        "overall" -> _runtime.overallStatus,
+        "overall" -> runtime.overallStatus,
         "sourceCount" -> states.size,
         "readySourceCount" -> states.count(_.status == "ready"),
-        "componentCount" -> _runtime.componentCount,
+        "componentCount" -> runtime.componentCount,
         "detail" -> _optional_string(action.record, "detail").orElse(Some(states.map(x => s"${x.descriptor.id}=${x.status}").mkString(", ")))
       )))
     }
@@ -365,12 +507,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdCatalogAdminService.CatalogRefreshRequest
   ) extends CbdCatalogAdminService.RefreshCatalogActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      val runtime = _runtime_for(core)
       val fetcher = new CbdHttp(core)
-      _runtime.refresh(_optional_string(action.record, "sourceId"), fetcher).map { states =>
+      runtime.refresh(_optional_string(action.record, "sourceId"), fetcher).map { states =>
         OperationResponse(Record.dataAuto(
-          "status" -> _runtime.overallStatus,
+          "status" -> runtime.overallStatus,
           "sourceCount" -> states.count(_.source.enabled),
-          "componentCount" -> _runtime.componentCount,
+          "componentCount" -> runtime.componentCount,
           "warnings" -> states.flatMap(_.warning)
         ))
       }
@@ -475,8 +618,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     ))
   }
 
-  private def _selection(record: Record, kind: Option[String]): ExactComponentSelection =
-    _runtime.selectComponent(
+  private def _selection(runtime: CbdRuntime, record: Record, kind: Option[String]): ExactComponentSelection =
+    runtime.selectComponent(
       _required_string(record, "name"),
       _optional_string(record, "organization"),
       kind,
@@ -484,11 +627,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       _optional_string(record, "catalogId")
     )
 
-  private def _usage_record(usage: ComponentUsage, selection: ExactComponentSelection): Record =
+  private def _usage_record(runtime: CbdRuntime, usage: ComponentUsage, selection: ExactComponentSelection): Record =
     Record.dataAuto(
       "status" -> "matched",
       "reference" -> _reference_record(usage.profile),
-      "component" -> _profile_record(usage.profile),
+      "component" -> _profile_record(runtime, usage.profile),
       "intent" -> usage.intent,
       "selectedSourceId" -> usage.selectedSourceId,
       "selectedSourceKind" -> usage.selectedSourceKind,
@@ -508,7 +651,19 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "alternatives" -> selection.alternatives.map(_reference_record),
       "candidateCount" -> selection.candidateCount,
       "absences" -> usage.absences.map(_absence_record),
-      "warnings" -> (usage.warnings ++ selection.warnings ++ _source_warnings).distinct
+      "warnings" -> (usage.warnings ++ selection.warnings ++ _source_warnings(runtime)).distinct
+    )
+
+  private[cbdsupport] def _unselected_usage_record(runtime: CbdRuntime, selection: ExactComponentSelection): Record =
+    Record.dataAuto(
+      "status" -> selection.status,
+      "operations" -> Vector.empty[Record],
+      "references" -> Vector.empty[Record],
+      "guidance" -> Vector.empty[Record],
+      "alternatives" -> selection.alternatives.map(_reference_record),
+      "candidateCount" -> selection.candidateCount,
+      "absences" -> selection.absences.map(_absence_record),
+      "warnings" -> (selection.warnings ++ _source_warnings(runtime)).distinct
     )
 
   private[cbdsupport] def _unselected_usage_record(selection: ExactComponentSelection): Record =
@@ -520,7 +675,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "alternatives" -> selection.alternatives.map(_reference_record),
       "candidateCount" -> selection.candidateCount,
       "absences" -> selection.absences.map(_absence_record),
-      "warnings" -> (selection.warnings ++ _source_warnings).distinct
+      "warnings" -> selection.warnings
     )
 
   private[cbdsupport] def _absence_record(absence: ComponentEvidenceAbsence): Record =
@@ -548,9 +703,9 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "rationale" -> guidance.rationale
     )
 
-  private def _match_record(result: ComponentMatch): Record =
+  private def _match_record(runtime: CbdRuntime, result: ComponentMatch): Record =
     Record.dataAuto(
-      "component" -> _profile_record(result.profile),
+      "component" -> _profile_record(runtime, result.profile),
       "reference" -> _reference_record(result.profile),
       "matchKind" -> result.matchKind,
       "score" -> result.score,
@@ -578,7 +733,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "diagnostics" -> evidence.diagnostics
     )
 
-  private def _profile_record(profile: ComponentProfile): Record =
+  private def _profile_record(runtime: CbdRuntime, profile: ComponentProfile): Record =
     Record.dataAuto(
       "catalogId" -> profile.catalogId,
       "organization" -> profile.organization,
@@ -603,7 +758,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "artifactUri" -> profile.artifactUri.map(_.toString),
       "artifactChecksumSha256" -> profile.artifactChecksumSha256,
       "evidenceUri" -> profile.evidenceUri.toString,
-      "observation" -> _runtime.observation(profile).map(_observation_record),
+      "observation" -> runtime.observation(profile).map(_observation_record),
       "warnings" -> profile.warnings
     )
 
@@ -721,8 +876,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       )
     }
 
-  private def _source_warnings: Vector[String] =
-    _runtime.configurationWarnings ++ _runtime.informationSourceStates(includeDisabled = false).flatMap(_.diagnostics)
+  private def _source_warnings(runtime: CbdRuntime): Vector[String] =
+    runtime.configurationWarnings ++ runtime.informationSourceStates(includeDisabled = false).flatMap(_.diagnostics)
 
   private def _review_gateway(
     core: ActionCall.Core

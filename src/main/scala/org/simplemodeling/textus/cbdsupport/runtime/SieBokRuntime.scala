@@ -11,7 +11,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class SieBokPolicy(
@@ -121,17 +121,6 @@ trait SieBokTransport {
 object SieBokConfig {
   private val _fixed_reserved_source_ids = Set("simplemodeling", "local-car", "cache-car")
 
-  def loadConfiguration(
-    reservedsourceids: Set[String],
-    policy: SieBokPolicy = SieBokPolicy.DEFAULT
-  ): SieBokConfiguration =
-    parse(
-      sys.env.get("TEXTUS_CBD_SIE_BOK_ROUTES"),
-      sys.env.get("TEXTUS_CBD_SIE_ALLOWED_ORIGINS"),
-      reservedsourceids,
-      policy
-    )
-
   def parse(
     routes: Option[String],
     allowedorigins: Option[String],
@@ -205,7 +194,7 @@ object SieBokConfig {
   }
 }
 
-final class SieBokProvider(clock: Clock = Clock.systemUTC()) {
+final class SieBokProvider(clock: Clock) {
   def searchTerms(
     source: SieBokSource,
     query: String,

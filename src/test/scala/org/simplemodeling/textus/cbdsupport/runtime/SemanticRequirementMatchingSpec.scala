@@ -10,7 +10,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class SemanticRequirementMatchingSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -60,7 +60,7 @@ final class SemanticRequirementMatchingSpec extends AnyWordSpec with Matchers wi
       val retained = _sie_snapshot("old query")
 
       When("the current query is matched")
-      val evidence = SemanticRequirementMatcher.matchEvidence("new query", Vector.empty, Vector(retained), 10)
+      val evidence = SemanticRequirementMatcher.matchEvidence("new query", Vector.empty, Vector(retained), 10, _clock)
 
       Then("query-scoped evidence is absent rather than reused")
       evidence shouldBe empty

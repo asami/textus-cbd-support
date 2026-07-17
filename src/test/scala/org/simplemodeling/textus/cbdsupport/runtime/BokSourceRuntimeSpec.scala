@@ -12,7 +12,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -226,11 +226,12 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
       val fetcher = new MemoryBokFetcher(Map(manifesturi -> manifest, termsuri -> terms))
       val runtime = CbdRuntime.createFederated(
         Vector(catalog),
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock),
         CatalogCachePolicy.DEFAULT,
         _clock,
         Vector(source),
-        new BokKnowledgeSourceProvider(_clock)
+        new BokKnowledgeSourceProvider(_clock),
+        siebokprovider = new SieBokProvider(_clock)
       )
 
       When("the federated input boundary is initialized")
@@ -255,11 +256,12 @@ final class BokSourceRuntimeSpec extends AnyWordSpec with Matchers with GivenWhe
       val fetcher = new MemoryBokFetcher(Map(manifesturi -> manifest, termsuri -> terms))
       val runtime = CbdRuntime.createFederated(
         Vector.empty,
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock),
         CatalogCachePolicy.DEFAULT,
         _clock,
         Vector(source),
         new BokKnowledgeSourceProvider(_clock),
+        siebokprovider = new SieBokProvider(_clock),
         retentionpolicy = InformationSourceRetentionPolicy(maxBokObservations = 1)
       )
 

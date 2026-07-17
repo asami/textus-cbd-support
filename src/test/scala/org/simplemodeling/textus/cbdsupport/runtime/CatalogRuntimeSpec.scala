@@ -15,10 +15,12 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+  private val _clock = Clock.fixed(Instant.parse("2026-07-14T00:00:00Z"), ZoneOffset.UTC)
+
   "CatalogSourceConfig" should {
     "authorize configured catalogs only through an exact origin allowlist" in {
       Given("configured HTTPS, HTTP, credential-bearing, and duplicate sources with a mixed allowlist")
@@ -62,8 +64,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       configuration.warnings.exists(_.contains("base URI is invalid")) shouldBe true
       configuration.warnings.exists(_.contains("source ID is duplicated")) shouldBe true
       configuration.warnings.mkString(" ") should not include "password"
-      val compatiblesources: Vector[CatalogSource] = CatalogSourceConfig.load()
-      compatiblesources.map(_.id) should contain("simplemodeling")
+      val defaultsources: Vector[CatalogSource] = CatalogSourceConfig.parse(None, None).sources
+      defaultsources.map(_.id) should contain("simplemodeling")
     }
   }
 
@@ -87,7 +89,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source.baseUri.resolve("metadata/repository/car/index.json") -> carindex,
         source.baseUri.resolve("metadata/repository/sar/index.json") -> """{"entries": []}"""
       ))
-      val provider = new CozyComponentCatalogProvider()
+      val provider = new CozyComponentCatalogProvider(clock = _clock)
       val profile = provider.read(source, fetcher).toOption.get.profiles.head
 
       When("usage evidence is read")
@@ -125,7 +127,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source.baseUri.resolve("metadata/repository/sar/index.json") -> sarindex,
         source.baseUri.resolve("repository/catalog/car/textus-georesolver.model-metadata.json") -> modelmetadata
       ))
-      val provider = new CozyComponentCatalogProvider()
+      val provider = new CozyComponentCatalogProvider(clock = _clock)
 
       When("the catalog and selected component usage are read")
       val snapshot = provider.read(source, fetcher).toOption.get
@@ -178,8 +180,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source.baseUri.resolve("en/catalog/index.html") -> publication
       ))
       val provider = new CompatibleComponentCatalogProvider(
-        new CozyComponentCatalogProvider(),
-        new SimpleModelingPublicationCatalogProvider()
+        new CozyComponentCatalogProvider(clock = _clock),
+        new SimpleModelingPublicationCatalogProvider(clock = _clock)
       )
 
       When("the compatibility provider classifies the available rich contract")
@@ -237,8 +239,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source.baseUri.resolve("metadata/artifacts/repository/textus-order.json") -> artifact
       ))
       val provider = new CompatibleComponentCatalogProvider(
-        new CozyComponentCatalogProvider(),
-        new SimpleModelingPublicationCatalogProvider()
+        new CozyComponentCatalogProvider(clock = _clock),
+        new SimpleModelingPublicationCatalogProvider(clock = _clock)
       )
 
       When("the publication catalog is read")
@@ -299,7 +301,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source.baseUri.resolve("metadata/catalog/projects/textus-snapshot.json") -> catalogproject,
         source.baseUri.resolve("metadata/artifacts/repository/textus-snapshot.json") -> artifact
       ))
-      val provider = new SimpleModelingPublicationCatalogProvider()
+      val provider = new SimpleModelingPublicationCatalogProvider(clock = _clock)
 
       When("the partially available publication catalog is read")
       val snapshot = provider.read(source, fetcher).toOption.get
@@ -324,7 +326,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       ))
 
       When("the publication provider validates the declared contract")
-      val result = new SimpleModelingPublicationCatalogProvider().read(source, fetcher)
+      val result = new SimpleModelingPublicationCatalogProvider(clock = _clock).read(source, fetcher)
 
       Then("the entry is rejected before artifact metadata can be guessed")
       result.toOption shouldBe None
@@ -353,7 +355,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         source.baseUri.resolve("metadata/catalog/projects/textus-versioned.json") -> catalogproject,
         source.baseUri.resolve("metadata/artifacts/repository/textus-versioned.json") -> artifact
       ))
-      val provider = new SimpleModelingPublicationCatalogProvider()
+      val provider = new SimpleModelingPublicationCatalogProvider(clock = _clock)
 
       When("the selected release profile is read")
       val profile = provider.read(source, fetcher).toOption.get.profiles.head
@@ -373,7 +375,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Given("an in-memory catalog profile tagged with a Japanese CBD term")
       val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
       val profile = _component_profile(source.id).copy(terms = Vector("受注管理"))
-      val runtime = CbdRuntime.create(Vector(source), new InMemoryComponentCatalogProvider(Vector(profile)))
+      val runtime = CbdRuntime.create(Vector(source), new InMemoryComponentCatalogProvider(Vector(profile), clock = _clock), _clock)
 
       When("the catalog is loaded and searched by that term")
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
@@ -396,7 +398,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       )
       val runtime = CbdRuntime.create(
         Vector(source),
-        new InMemoryComponentCatalogProvider(Vector(supported, unknown))
+        new InMemoryComponentCatalogProvider(Vector(supported, unknown), clock = _clock),
+        _clock
       )
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
 
@@ -540,7 +543,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         CatalogCachePolicy.DEFAULT,
         Clock.systemUTC(),
         Vector.empty,
-        new BokKnowledgeSourceProvider(),
+        new BokKnowledgeSourceProvider(_clock),
+        siebokprovider = new SieBokProvider(_clock),
         retentionpolicy = InformationSourceRetentionPolicy(maxCatalogObservations = 3)
       )
 
@@ -572,7 +576,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       Given("four readiness callers blocked behind one source read")
       val source = CatalogSource("single-flight", URI.create("https://single-flight.example/"), 100, true)
       val provider = new CoordinatedCatalogProvider(_component_profile(source.id))
-      val runtime = CbdRuntime.create(Vector(source), provider)
+      val runtime = CbdRuntime.create(Vector(source), provider, _clock)
       val executor = Executors.newFixedThreadPool(4)
       given executioncontext: ExecutionContext = ExecutionContext.fromExecutorService(executor)
       val ready = new CountDownLatch(4)
@@ -665,7 +669,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val clock = new MutableClock(Instant.parse("2026-07-14T00:00:00Z"))
       val runtime = CbdRuntime.create(
         Vector(source),
-        new InMemoryComponentCatalogProvider(Vector(profile)),
+        new InMemoryComponentCatalogProvider(Vector(profile), clock = _clock),
         CatalogCachePolicy(Duration.ofMinutes(5)),
         clock
       )
@@ -722,7 +726,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
     "report explicit observation absence when a profile has no source context" in {
       Given("a profile that was not loaded through a runtime source snapshot")
       val source = CatalogSource("memory", URI.create("https://memory.example/"), 100, true)
-      val runtime = CbdRuntime.create(Vector(source), new InMemoryComponentCatalogProvider(Vector.empty))
+      val runtime = CbdRuntime.create(Vector(source), new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock), _clock)
       val unboundprofile = _component_profile("missing-source")
 
       When("the unbound profile is projected as an observation")
@@ -737,7 +741,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val source = CatalogSource("failed", URI.create("https://failed.example/"), 100, true)
       val provider = new SwitchableCatalogProvider(_component_profile(source.id))
       provider.fail = true
-      val runtime = CbdRuntime.create(Vector(source), provider)
+      val runtime = CbdRuntime.create(Vector(source), provider, _clock)
 
       When("initial readiness is requested")
       val consequence = runtime.ensureReady(EmptyCatalogFetcher)
@@ -846,7 +850,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
         new PerSourceCatalogProvider(Map(
           source.id -> Vector(root, branch, shared, selectedchild, legacychild, ambiguousone, ambiguoustwo),
           othersource.id -> Vector(othermissing)
-        ))
+        )),
+        _clock
       )
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
 
@@ -891,7 +896,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       val leaf = _component_profile(source.id).copy(name = "leaf", title = "Leaf", dependencies = Vector.empty)
       val runtime = CbdRuntime.create(
         Vector(source),
-        new InMemoryComponentCatalogProvider(Vector(root, branch, leaf))
+        new InMemoryComponentCatalogProvider(Vector(root, branch, leaf), clock = _clock),
+        _clock
       )
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
 
@@ -923,7 +929,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       )
       val runtime = CbdRuntime.create(
         Vector(source),
-        new InMemoryComponentCatalogProvider(Vector(root, latestonly))
+        new InMemoryComponentCatalogProvider(Vector(root, latestonly), clock = _clock),
+        _clock
       )
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
 
@@ -968,7 +975,8 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       )
       val runtime = CbdRuntime.create(
         Vector(source),
-        new InMemoryComponentCatalogProvider(Vector(profile))
+        new InMemoryComponentCatalogProvider(Vector(profile), clock = _clock),
+        _clock
       )
       runtime.ensureReady(EmptyCatalogFetcher).isSuccess shouldBe true
 

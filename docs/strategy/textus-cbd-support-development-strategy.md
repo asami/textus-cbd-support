@@ -70,14 +70,11 @@ gate ownership.
 
 Phases 1 through 3 are complete. Phase 4 automated work is complete, while
 Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
-unchecked. On 2026-07-16, the human reviewer authorized Phase 5 to proceed
-independently without treating that deferral as Phase 4 acceptance. Phase 5 is
-now active at P5-12 after completing the P5-01 stable ownership architecture,
-the P5-02 versioned Review Provider JSON contract, the P5-03 canonical Review
-Run, Report, assessment, gate, baseline, and attestation contract, and the
-P5-04 security/reproducibility policy contract, and the P5-10 typed canonical
-Report model/deterministic codec; current status is in
-`docs/phase/phase-5.md` and `docs/phase/phase-5-checklist.md`. Phase 2 provides bounded,
+unchecked. The human reviewer authorized Phase 5 to proceed independently
+without treating that deferral as Phase 4 acceptance. Phase 5 and Phase 6 are
+complete; the Phase 6 checkpoint removes the runtime-boundary debt from CBD
+Support while the first released CAR ABI baseline remains separately deferred.
+Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
 state. Additional catalog sources now require explicit exact-origin
@@ -242,3 +239,13 @@ clock/environment/filesystem/shell framework-boundary warnings, and
 `FUTURE-CBD-ABI-RELEASE-01` tracks comparison against the first released CAR
 ABI baseline. Neither item changes the completed Phase 5 Review contract or
 authorizes publication.
+
+Phase 6 completed on 2026-07-17 as the separately scoped resolution of
+`FUTURE-CBD-RUNTIME-BOUNDARY-01`. It adopts the closed CNCF Phase 36 runtime
+capabilities for execution time, declared configuration, opaque secret
+references, admitted resource trees, and Process Execution. The work remains
+CBD Support implementation: it preserves Review semantics and keeps CNCF free
+of CBD-, Cozy-, and CAR-specific types. The checkpoint verified the exact local
+CNCF development artifact, deterministic runtime-boundary specs, full CBD test
+suite, CAR lint, ABI governance, and standalone SAR build. Publication and the
+first released ABI baseline remain outside the completed phase.

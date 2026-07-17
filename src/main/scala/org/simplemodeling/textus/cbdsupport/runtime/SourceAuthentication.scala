@@ -8,7 +8,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 15, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class SourceAuthentication(
@@ -185,12 +185,6 @@ final case class SourceAuthenticationConfiguration(
 
 object SourceAuthenticationConfig {
   val ENVIRONMENT_KEY = "TEXTUS_CBD_SOURCE_AUTHENTICATION"
-
-  def loadConfiguration(
-    knownsourceids: Set[String],
-    policy: SourceAuthenticationPolicy = SourceAuthenticationPolicy.DEFAULT
-  ): SourceAuthenticationConfiguration =
-    parse(sys.env.get(ENVIRONMENT_KEY), knownsourceids, policy)
 
   def parse(
     value: Option[String],

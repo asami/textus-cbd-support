@@ -1,7 +1,10 @@
 package org.simplemodeling.textus.cbdsupport
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 
+import org.goldenport.cncf.context.{ExecutionContext, ScopeContext, ScopeKind}
+import org.goldenport.cncf.processexecution.{ProcessArtifactKind, ProcessExecutionAdmission, ProcessExecutionCapture, ProcessExecutionDriver, ProcessExecutionGrant, ProcessExecutionLimits, ProcessExecutionPolicy, ProcessExecutionResult, ProcessExecutionStream, ProcessExecutionTermination, ProcessProgramDefinition}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -9,17 +12,16 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "CBD Cozy CAR Review provider runner" should {
-    "invoke only the registered Cozy transport for its admitted CAR target" in {
-      Given("one registered Cozy descriptor, admitted target root, and neutral provider transport")
+    "invoke only the registered Cozy capability for its admitted CAR target" in {
+      Given("one registered Cozy descriptor, admitted target, and deterministic process result")
       val coordinator = new CarReviewProviderExecutionCoordinator()
       val registry = new CarReviewProviderRegistry()
-      val transport = new RecordingTransport(_provider, Right(CozyCarReviewProviderTransportResult(_bundle, 1000L)))
-      val runner = new CozyCarReviewProviderRunner(CozyCarReviewProviderTarget(_target, Path.of("/admitted/car")), transport)
+      val runner = _runner(_target, _provider, _result(_bundle))
       registry.register(_descriptor, runner).isRight shouldBe true
 
       When("CBD selects the descriptor-bound runner through the provider protocol")
@@ -29,78 +31,67 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       outcome should matchPattern {
         case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false) =>
       }
-      transport.requests shouldBe Vector(_providerrequest)
-      transport.timeouts shouldBe Vector(120000L)
-      transport.cancellations shouldBe 0
     }
 
     "refuse a non-admitted target before invoking Cozy" in {
       Given("one Cozy runner bound to a different admitted CAR target")
-      val transport = new RecordingTransport(_provider, Right(CozyCarReviewProviderTransportResult(_bundle, 1000L)))
-      val runner = new CozyCarReviewProviderRunner(
-        CozyCarReviewProviderTarget(_target.copy(name = "other-car"), Path.of("/admitted/other-car")),
-        transport
-      )
+      val runner = _runner(_target.copy(name = "other-car"), _provider, _result(_bundle))
 
       When("CBD tries to invoke it for the original target")
       val result = runner.execute(_request())
 
-      Then("the transport is never called and target authority remains explicit")
+      Then("the capability is never invoked and target authority remains explicit")
       result shouldBe ProviderBundleRunnerResult.Failed(
         "provider-target-not-admitted",
         "Configured Cozy target does not match the admitted Review target.",
         0L
       )
-      transport.requests shouldBe Vector.empty
     }
 
-    "refuse a configured Cozy transport whose version differs from the registered provider" in {
-      Given("one target-bound transport for a different Cozy implementation version")
-      val transport = new RecordingTransport(
+    "refuse a configured Cozy capability whose version differs from the registered provider" in {
+      Given("one target-bound capability for a different Cozy implementation version")
+      val runner = _runner(
+        _target,
         ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("0.1.15")),
-        Right(CozyCarReviewProviderTransportResult(_bundle, 1000L))
+        _result(_bundle)
       )
-      val runner = new CozyCarReviewProviderRunner(CozyCarReviewProviderTarget(_target, Path.of("/admitted/car")), transport)
 
       When("the registered provider identity requests execution")
       val result = runner.execute(_request())
 
-      Then("CBD refuses the mismatch before command transport work")
+      Then("CBD refuses the mismatch before process execution")
       result shouldBe ProviderBundleRunnerResult.Failed(
         "provider-identity-mismatch",
-        "Configured Cozy transport does not match the registered provider identity.",
+        "Configured Cozy capability does not match the registered provider identity.",
         0L
       )
-      transport.requests shouldBe Vector.empty
     }
 
-    "run a fixed local provider command with request stdin and an empty child environment" in {
-      Given("one admitted target and a command that rejects inherited HOME authority")
-      val root = Files.createTempDirectory("cbd-cozy-provider-transport")
-      val script = root.resolve("provider-command.sh")
-      Files.writeString(script, "#!/bin/sh\nif [ -n \"$HOME\" ]; then exit 21; fi\ncat\n")
-      script.toFile.setExecutable(true)
-      try {
-        val transport = new CozyCarReviewProviderProcessTransport(
-          CozyCarReviewProviderCommand(
-            Vector("/bin/sh", script.toString),
-            CozyCarReviewProviderTarget(_target, root),
-            ReviewVersion("0.1.14"),
-            root.resolve("output"),
-            maxRequestBytes = 1024,
-            maxResponseBytes = 1024
-          ),
-          () => 1000L
-        )
+    "map a bounded process output limit to the existing provider failure code" in {
+      Given("an admitted Cozy capability with an output-limit terminal result")
+      val runner = _runner(
+        _target,
+        _provider,
+        _result("", ProcessExecutionTermination.OutputLimitExceeded(ProcessExecutionStream.Stdout))
+      )
 
-        When("CBD invokes the fixed provider command with the neutral request on stdin")
-        val result = transport.execute("{\"request\":\"bounded\"}", 1000L)
+      When("CBD invokes the runner")
+      val result = runner.execute(_request())
 
-        Then("the private response is returned without ambient environment inheritance")
-        result shouldBe Right(CozyCarReviewProviderTransportResult("{\"request\":\"bounded\"}", 1000L))
-      } finally {
-        _delete(root)
-      }
+      Then("the Review provider protocol receives its stable failure result")
+      result shouldBe ProviderBundleRunnerResult.Failed(
+        "provider-response-byte-limit",
+        "Cozy provider response exceeded the admitted output limit.",
+        0L
+      )
+    }
+
+    "resolve the registered process capability only from the invocation scope" in {
+      Given("a scope with a runtime-owned Cozy admission and driver")
+      val result = _runner_from_scope(_target, _provider, _result(_bundle))
+
+      Then("CBD creates an adapter without executable or host-process configuration")
+      result.toOption shouldBe defined
     }
   }
 
@@ -131,30 +122,81 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
 
   private def _load(name: String): String = Files.readString(Path.of("docs", "spec", "examples", name))
 
-  private def _delete(root: Path): Unit = {
-    val stream = Files.walk(root)
-    try stream.sorted(java.util.Comparator.reverseOrder()).forEach(path => Files.deleteIfExists(path))
-    finally stream.close()
+  private def _runner(
+    target: ReviewTarget,
+    provider: ReviewProviderIdentity,
+    result: ProcessExecutionResult
+  ): CozyCarReviewProviderRunner = {
+    val limits = ProcessExecutionLimits(
+      Some(1000L), Some(120000L), Some(1000L), Some(4096L), Some(1024L),
+      Some(1024L), Some(1L), Some(1024L), Some(1L), Some(1024L), Some(4096L)
+    )
+    val definition = ProcessProgramDefinition.fromRuntimeC(
+      CozyCarReviewProviderProcess.capability,
+      "cozy-car-review",
+      "runtime-owned-cozy",
+      Vector.empty,
+      org.goldenport.cncf.processexecution.ProcessArgumentPolicy(Vector.empty),
+      limits,
+      Set.empty
+    ).TAKE
+    val policy = ProcessExecutionPolicy.createC(Vector(definition)).TAKE
+    val admission = ProcessExecutionAdmission.createC(
+      policy,
+      Vector(ProcessExecutionGrant(CozyCarReviewProviderProcess.capability))
+    ).TAKE
+    val driver = new org.goldenport.cncf.processexecution.ProcessExecutionTestProfile(
+      Map(CozyCarReviewProviderProcess.capability -> result)
+    ).driver
+    new CozyCarReviewProviderRunner(target, provider, admission, driver)
   }
 
-  private final class RecordingTransport(provideridentity: ReviewProviderIdentity, result: Either[String, CozyCarReviewProviderTransportResult]) extends CozyCarReviewProviderTransport {
-    private var _requests = Vector.empty[String]
-    private var _timeouts = Vector.empty[Long]
-    private var _cancellations = 0
-
-    def requests: Vector[String] = _requests
-    def timeouts: Vector[Long] = _timeouts
-    def cancellations: Int = _cancellations
-    def provider: ReviewProviderIdentity = provideridentity
-
-    def execute(providerRequest: String, timeoutMillis: Long): Either[String, CozyCarReviewProviderTransportResult] = {
-      _requests = _requests :+ providerRequest
-      _timeouts = _timeouts :+ timeoutMillis
-      result
-    }
-
-    def cancel(): Unit = {
-      _cancellations += 1
-    }
+  private def _runner_from_scope(
+    target: ReviewTarget,
+    provider: ReviewProviderIdentity,
+    result: ProcessExecutionResult
+  ) = {
+    val limits = ProcessExecutionLimits(
+      Some(1000L), Some(120000L), Some(1000L), Some(4096L), Some(1024L),
+      Some(1024L), Some(1L), Some(1024L), Some(1L), Some(1024L), Some(4096L)
+    )
+    val definition = ProcessProgramDefinition.fromRuntimeC(
+      CozyCarReviewProviderProcess.capability,
+      "cozy-car-review",
+      "runtime-owned-cozy",
+      Vector.empty,
+      org.goldenport.cncf.processexecution.ProcessArgumentPolicy(Vector.empty),
+      limits,
+      Set.empty
+    ).TAKE
+    val admission = ProcessExecutionAdmission.createC(
+      ProcessExecutionPolicy.createC(Vector(definition)).TAKE,
+      Vector(ProcessExecutionGrant(CozyCarReviewProviderProcess.capability))
+    ).TAKE
+    val driver = new org.goldenport.cncf.processexecution.ProcessExecutionTestProfile(
+      Map(CozyCarReviewProviderProcess.capability -> result)
+    ).driver
+    val scope = ScopeContext(
+      ScopeKind.Action,
+      "car-review",
+      None,
+      ExecutionContext.create().observability,
+      processExecutionDriverOption = Some(driver),
+      processExecutionAdmissionOption = Some(admission)
+    )
+    CozyCarReviewProviderRunner.fromScopeC(target, provider, scope)
   }
+
+  private def _result(
+    output: String,
+    termination: ProcessExecutionTermination = ProcessExecutionTermination.Exited(0)
+  ): ProcessExecutionResult =
+    ProcessExecutionResult(
+      termination,
+      ProcessExecutionCapture(output.getBytes(StandardCharsets.UTF_8).toVector, output.getBytes(StandardCharsets.UTF_8).length.toLong, truncated = false),
+      ProcessExecutionCapture(Vector.empty, 0L, truncated = false),
+      Vector.empty,
+      1000L,
+      "cozy-car-review"
+    )
 }

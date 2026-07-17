@@ -12,7 +12,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CatalogSource(
@@ -558,7 +558,7 @@ final class CompatibleComponentCatalogProvider(
 
 final class CozyComponentCatalogProvider(
   policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT,
-  clock: Clock = Clock.systemUTC()
+  clock: Clock
 ) extends ComponentCatalogProvider {
   private final case class ParsedIndex(
     profiles: Vector[ComponentProfile],
@@ -935,7 +935,7 @@ final class CozyComponentCatalogProvider(
 
 final class SimpleModelingPublicationCatalogProvider(
   policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT,
-  clock: Clock = Clock.systemUTC()
+  clock: Clock
 ) extends ComponentCatalogProvider {
   private val _supported_schema = "cozy.publish-project.v1"
   private val _metadata_link = """href=[\"']([^\"'/]+)/metadata\.html[\"']""".r
@@ -1130,7 +1130,7 @@ final class SimpleModelingPublicationCatalogProvider(
 final class InMemoryComponentCatalogProvider(
   profiles: Vector[ComponentProfile],
   operations: Map[String, Vector[ComponentOperation]] = Map.empty,
-  clock: Clock = Clock.systemUTC()
+  clock: Clock
 ) extends ComponentCatalogProvider {
   def read(source: CatalogSource, fetcher: CatalogFetcher): Consequence[CatalogSnapshot] =
     Consequence.success(CatalogSnapshot(source, profiles.map(_.copy(catalogId = source.id)), clock.instant(), None))
@@ -1158,7 +1158,8 @@ final class CbdRuntime(
   siebokpolicy: SieBokPolicy,
   localconfiguration: LocalInformationSourceConfiguration,
   localpolicy: LocalInspectionPolicy,
-  retentionpolicy: InformationSourceRetentionPolicy
+  retentionpolicy: InformationSourceRetentionPolicy,
+  admittedlocalinventory: Option[LocalInformationInventory] = None
 ) {
   def this(
     sources: Vector[CatalogSource],
@@ -1243,7 +1244,9 @@ final class CbdRuntime(
     }
     if (selected.nonEmpty) _refresh_bok_sources(selected, fetcher)
     val inventory = _bounded_local_inventory(
-      LocalInformationSourceInventory.inspect(localconfiguration, localpolicy, clock)
+      admittedlocalinventory.getOrElse(
+        LocalInformationInventory(Vector.empty, Vector.empty, localconfiguration.warnings, clock.instant(), Map.empty)
+      )
     )
     synchronized {
       _local_inventory = Some(inventory)
@@ -1539,7 +1542,8 @@ final class CbdRuntime(
       .sortBy(state => (state.descriptor.priority, state.descriptor.id))
 
   def localSourceStates(includedisabled: Boolean): Vector[InformationSourceState] = synchronized {
-    localconfiguration.sources.map(_.descriptor).filter(descriptor => includedisabled || descriptor.enabled)
+    admittedlocalinventory.map(_.sources).getOrElse(localconfiguration.sources)
+      .filter(descriptor => includedisabled || descriptor.enabled)
       .sortBy(descriptor => (descriptor.priority, descriptor.id)).map { descriptor =>
         val inventory = _local_inventory
         val observations = inventory.toVector.flatMap(_.observations).filter(_.sourceId == descriptor.id)
@@ -2023,37 +2027,50 @@ object CbdRuntime {
   val MAX_DEPENDENCY_DEPTH = 32
   private val _empty_local_configuration = LocalInformationSourceConfiguration(Vector.empty, Vector.empty, Vector.empty)
 
-  def create(): CbdRuntime = {
-    val clock = Clock.systemUTC()
+  /**
+   * Runtime-owned input assembled by the CNCF component boundary. Raw host
+   * environment access is deliberately outside this value object.
+   */
+  final case class Configuration(
+    catalogs: Option[String] = None,
+    catalogAllowedOrigins: Option[String] = None,
+    bokSites: Option[String] = None,
+    bokAllowedOrigins: Option[String] = None,
+    sieBokRoutes: Option[String] = None,
+    sieAllowedOrigins: Option[String] = None,
+    sourceAuthentication: Option[String] = None,
+    admittedLocalInventory: Option[LocalInformationInventory] = None
+  )
+
+  def create(
+    configuration: Configuration,
+    clock: Clock
+  ): CbdRuntime = {
     val cozy = new CozyComponentCatalogProvider(clock = clock)
     val publication = new SimpleModelingPublicationCatalogProvider(clock = clock)
-    val configuration = CatalogSourceConfig.loadConfiguration()
-    val bokconfiguration = BokSourceConfig.loadConfiguration(
-      configuration.sources.map(_.id).toSet ++ Set("local-car", "cache-car")
+    val catalogconfiguration = CatalogSourceConfig.parse(configuration.catalogs, configuration.catalogAllowedOrigins)
+    val bokconfiguration = BokSourceConfig.parse(
+      configuration.bokSites,
+      configuration.bokAllowedOrigins,
+      catalogconfiguration.sources.map(_.id).toSet ++ Set("local-car", "cache-car")
     )
-    val siebokconfiguration = SieBokConfig.loadConfiguration(
-      configuration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ Set("local-car", "cache-car")
+    val siebokconfiguration = SieBokConfig.parse(
+      configuration.sieBokRoutes,
+      configuration.sieAllowedOrigins,
+      catalogconfiguration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ Set("local-car", "cache-car")
     )
-    val localconfiguration = LocalInformationSourceConfig.loadConfiguration(
-      configuration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ siebokconfiguration.sources.map(_.id)
-    )
-    val remoteids = configuration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ siebokconfiguration.sources.map(_.id)
-    val authenticationconfiguration = SourceAuthenticationConfig.loadConfiguration(remoteids)
-    val catalogsources = configuration.sources.map { source =>
-      source.copy(authentication = authenticationconfiguration.authenticationFor(source.id))
-    }
-    val boksources = bokconfiguration.sources.map { source =>
-      source.copy(authentication = authenticationconfiguration.authenticationFor(source.id))
-    }
-    val sieboksources = siebokconfiguration.sources.map { source =>
-      source.copy(authentication = authenticationconfiguration.authenticationFor(source.id))
-    }
+    val localconfiguration = _empty_local_configuration
+    val remoteids = catalogconfiguration.sources.map(_.id).toSet ++ bokconfiguration.sources.map(_.id) ++ siebokconfiguration.sources.map(_.id)
+    val authenticationconfiguration = SourceAuthenticationConfig.parse(configuration.sourceAuthentication, remoteids)
+    val catalogsources = catalogconfiguration.sources.map(source => source.copy(authentication = authenticationconfiguration.authenticationFor(source.id)))
+    val boksources = bokconfiguration.sources.map(source => source.copy(authentication = authenticationconfiguration.authenticationFor(source.id)))
+    val sieboksources = siebokconfiguration.sources.map(source => source.copy(authentication = authenticationconfiguration.authenticationFor(source.id)))
     new CbdRuntime(
       catalogsources,
       new CompatibleComponentCatalogProvider(cozy, publication),
       CatalogCachePolicy.DEFAULT,
       clock,
-      configuration.warnings ++ bokconfiguration.warnings ++ siebokconfiguration.warnings ++ localconfiguration.warnings ++ authenticationconfiguration.warnings,
+      catalogconfiguration.warnings ++ bokconfiguration.warnings ++ siebokconfiguration.warnings ++ authenticationconfiguration.warnings,
       boksources,
       new BokKnowledgeSourceProvider(clock),
       BokInspectionPolicy.DEFAULT,
@@ -2062,32 +2079,16 @@ object CbdRuntime {
       SieBokPolicy.DEFAULT,
       localconfiguration,
       LocalInspectionPolicy.DEFAULT,
-      InformationSourceRetentionPolicy.DEFAULT
+      InformationSourceRetentionPolicy.DEFAULT,
+      configuration.admittedLocalInventory
     )
   }
 
   def create(
     sources: Vector[CatalogSource],
-    provider: ComponentCatalogProvider
-  ): CbdRuntime = {
-    val clock = Clock.systemUTC()
-    new CbdRuntime(
-      sources,
-      provider,
-      CatalogCachePolicy.DEFAULT,
-      clock,
-      Vector.empty,
-      Vector.empty,
-      new BokKnowledgeSourceProvider(clock),
-      BokInspectionPolicy.DEFAULT,
-      Vector.empty,
-      new SieBokProvider(clock),
-      SieBokPolicy.DEFAULT,
-      _empty_local_configuration,
-      LocalInspectionPolicy.DEFAULT,
-      InformationSourceRetentionPolicy.DEFAULT
-    )
-  }
+    provider: ComponentCatalogProvider,
+    clock: Clock
+  ): CbdRuntime = create(sources, provider, CatalogCachePolicy.DEFAULT, clock)
 
   def create(
     sources: Vector[CatalogSource],
@@ -2149,11 +2150,12 @@ object CbdRuntime {
     bokprovider: BokKnowledgeSourceProvider,
     bokpolicy: BokInspectionPolicy = BokInspectionPolicy.DEFAULT,
     sieboksources: Vector[SieBokSource] = Vector.empty,
-    siebokprovider: SieBokProvider = new SieBokProvider(),
+    siebokprovider: SieBokProvider,
     siebokpolicy: SieBokPolicy = SieBokPolicy.DEFAULT,
     localconfiguration: LocalInformationSourceConfiguration = _empty_local_configuration,
     localpolicy: LocalInspectionPolicy = LocalInspectionPolicy.DEFAULT,
-    retentionpolicy: InformationSourceRetentionPolicy = InformationSourceRetentionPolicy.DEFAULT
+    retentionpolicy: InformationSourceRetentionPolicy = InformationSourceRetentionPolicy.DEFAULT,
+    admittedlocalinventory: Option[LocalInformationInventory] = None
   ): CbdRuntime = new CbdRuntime(
     sources,
     provider,
@@ -2168,7 +2170,8 @@ object CbdRuntime {
     siebokpolicy,
     localconfiguration,
     localpolicy,
-    retentionpolicy
+    retentionpolicy,
+    admittedlocalinventory
   )
 }
 
@@ -2181,18 +2184,6 @@ object CatalogSourceConfig {
     InformationSourceKind.PUBLISHED_CATALOG,
     InformationSourceAuthorization.BUILT_IN
   )
-
-  def load(): Vector[CatalogSource] =
-    loadConfiguration().sources
-
-  def loadConfiguration(
-    policy: CatalogInspectionPolicy = CatalogInspectionPolicy.DEFAULT
-  ): CatalogSourceConfiguration =
-    parse(
-      sys.env.get("TEXTUS_CBD_CATALOGS"),
-      sys.env.get("TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS"),
-      policy
-    )
 
   def parse(
     catalogs: Option[String],

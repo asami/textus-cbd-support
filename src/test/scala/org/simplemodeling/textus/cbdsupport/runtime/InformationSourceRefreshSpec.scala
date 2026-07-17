@@ -12,10 +12,12 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+  private val _clock = Clock.fixed(Instant.parse("2026-07-14T00:00:00Z"), ZoneOffset.UTC)
+
   "Production refresh schedule" should {
     "admit only finite intervals from one minute through 24 hours and no later than source expiry" in {
       Given("the inclusive production interval bounds and source TTL constraints")
@@ -83,23 +85,6 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
   }
 
   "Runtime snapshot retention" should {
-    "preserve the runtime construction signatures published before retention policy" in {
-      Given("the compiled CbdRuntime class and companion object")
-      val constructorarities = classOf[CbdRuntime].getConstructors.map(_.getParameterCount).toSet
-      val federatedarities = CbdRuntime.getClass.getMethods
-        .filter(_.getName == "createFederated").map(_.getParameterCount).toSet
-
-      When("the public JVM construction surfaces are inspected")
-      val oldconstructoravailable = constructorarities.contains(13)
-      val oldfactoryavailable = federatedarities.contains(12)
-
-      Then("the old signatures remain available beside the retention-aware variants")
-      oldconstructoravailable shouldBe true
-      oldfactoryavailable shouldBe true
-      constructorarities should contain(14)
-      federatedarities should contain(13)
-    }
-
     "admit only positive retention limits at or below the production hard caps" in {
       Given("the inclusive source and observation retention maxima")
       val maximum = InformationSourceRetentionPolicy.DEFAULT
@@ -137,11 +122,12 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       When("the federated runtime is constructed")
       val construction = () => CbdRuntime.createFederated(
         sources,
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock),
         CatalogCachePolicy.DEFAULT,
-        Clock.systemUTC(),
+        _clock,
         Vector.empty,
-        new BokKnowledgeSourceProvider(),
+        new BokKnowledgeSourceProvider(_clock),
+        siebokprovider = new SieBokProvider(_clock),
         retentionpolicy = InformationSourceRetentionPolicy(maxSources = 1)
       )
 
@@ -172,7 +158,7 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       ))
 
       When("the configured boundary and catalog document are inspected")
-      val snapshot = new CozyComponentCatalogProvider(policy).read(source, fetcher).toOption.get
+      val snapshot = new CozyComponentCatalogProvider(policy, _clock).read(source, fetcher).toOption.get
 
       Then("only bounded work becomes source state and every truncation remains diagnostic")
       configuration.sources.map(_.id) shouldBe Vector("simplemodeling", "first")
@@ -202,12 +188,13 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       )
       val runtime = CbdRuntime.createFederated(
         Vector(catalog),
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = clock),
         CatalogCachePolicy.DEFAULT,
         clock,
         Vector(source),
         new BokKnowledgeSourceProvider(clock),
-        policy
+        bokpolicy = policy,
+        siebokprovider = new SieBokProvider(clock),
       )
 
       When("readiness is checked before expiry and again at expiry after the BoK source fails")
@@ -263,12 +250,13 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
         )
         val runtime = CbdRuntime.createFederated(
           Vector.empty,
-          new InMemoryComponentCatalogProvider(Vector.empty),
+          new InMemoryComponentCatalogProvider(Vector.empty, clock = clock),
           CatalogCachePolicy.DEFAULT,
           clock,
           Vector(source),
           new BokKnowledgeSourceProvider(clock),
-          policy
+          bokpolicy = policy,
+          siebokprovider = new SieBokProvider(clock),
         )
         runtime.ensureInputsReady(fetcher).isSuccess shouldBe true
 
@@ -336,82 +324,6 @@ final class InformationSourceRefreshSpec extends AnyWordSpec with Matchers with 
       transport.callCount shouldBe 0
     }
   }
-
-  "Local development and CAR storage input" should {
-    "record each bounded inspection time and read current evidence without a retained cache" in {
-      Given("one explicitly authorized development project and a controllable inspection clock")
-      val root = _reset_work_area("local-observation")
-      val development = Files.createDirectories(root.resolve("development"))
-      val local = Files.createDirectories(root.resolve("local"))
-      val cache = Files.createDirectories(root.resolve("cache"))
-      Files.writeString(development.resolve("project.yaml"), _project_yaml("1.0.0"))
-      val configuration = LocalInformationSourceConfig.parse(
-        Some(s"working=$development"),
-        Some(local.toString),
-        Some(cache.toString),
-        root
-      )
-      val clock = new MutableClock(Instant.parse("2026-07-14T01:00:00Z"))
-
-      When("the project changes between two independent bounded inspections")
-      val first = LocalInformationSourceInventory.inspect(configuration, LocalInspectionPolicy.DEFAULT, clock)
-      Files.writeString(development.resolve("project.yaml"), _project_yaml("1.1.0-SNAPSHOT"))
-      clock.advance(Duration.ofMinutes(1))
-      val second = LocalInformationSourceInventory.inspect(configuration, LocalInspectionPolicy.DEFAULT, clock)
-
-      Then("each inventory exposes its own observation time and no last-known snapshot masks the change")
-      first.observedAt shouldBe Instant.parse("2026-07-14T01:00:00Z")
-      first.observations.flatMap(_.version) should contain("1.0.0")
-      second.observedAt shouldBe Instant.parse("2026-07-14T01:01:00Z")
-      second.observations.flatMap(_.version) should contain("1.1.0-SNAPSHOT")
-    }
-
-    "bound the latest local inventory across configured source roots" in {
-      Given("two development directories and a runtime retention limit of one local observation")
-      val root = _reset_work_area("bounded-local-observations")
-      val first = Files.createDirectories(root.resolve("first"))
-      val second = Files.createDirectories(root.resolve("second"))
-      Files.writeString(first.resolve("project.yaml"), _project_yaml("1.0.0"))
-      Files.writeString(second.resolve("project.yaml"), _project_yaml("2.0.0-SNAPSHOT"))
-      val configuration = LocalInformationSourceConfig.parse(
-        Some(s"first=$first,second=$second"),
-        None,
-        None,
-        root
-      )
-      val clock = Clock.fixed(Instant.parse("2026-07-14T02:00:00Z"), ZoneOffset.UTC)
-      val runtime = CbdRuntime.createFederated(
-        Vector.empty,
-        new InMemoryComponentCatalogProvider(Vector.empty),
-        CatalogCachePolicy.DEFAULT,
-        clock,
-        Vector.empty,
-        new BokKnowledgeSourceProvider(clock),
-        localconfiguration = configuration,
-        retentionpolicy = InformationSourceRetentionPolicy(maxLocalObservations = 1)
-      )
-
-      When("the runtime replaces its no-cache local inventory")
-      runtime.ensureInputsReady(new SwitchableBokFetcher(Map.empty)).isSuccess shouldBe true
-      val states = runtime.localSourceStates(includedisabled = false)
-
-      Then("one deterministic observation is retained and the affected source reports truncation")
-      runtime.localInventory.toVector.flatMap(_.observations).flatMap(_.version) shouldBe Vector("1.0.0")
-      states.map(_.observationCount).sum shouldBe 1
-      states.find(_.descriptor.id == "second").toVector.flatMap(_.diagnostics).mkString(" ") should include(
-        "runtime total policy limit of 1"
-      )
-    }
-  }
-
-  private def _project_yaml(version: String): String =
-    s"""project:
-       |  name: textus-order
-       |  kind: car
-       |  component:
-       |    name: textus-order
-       |    version: $version
-       |""".stripMargin
 
   private def _reset_work_area(name: String): Path = {
     val root = Path.of("target", "test-work", "information-source-refresh", name).toAbsolutePath.normalize()

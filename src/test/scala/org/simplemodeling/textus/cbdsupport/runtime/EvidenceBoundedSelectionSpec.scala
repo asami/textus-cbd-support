@@ -1,7 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
-import java.time.Instant
+import java.time.{Clock, Instant, ZoneOffset}
 
 import org.goldenport.Consequence
 import org.scalatest.GivenWhenThen
@@ -10,10 +10,12 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 14, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class EvidenceBoundedSelectionSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+  private val _clock = Clock.fixed(Instant.parse("2026-07-14T00:00:00Z"), ZoneOffset.UTC)
+
   "Exact component selection" should {
     "preserve conflicting catalog candidates" which {
       "returns bounded alternatives instead of a priority winner" in {
@@ -24,7 +26,7 @@ final class EvidenceBoundedSelectionSpec extends AnyWordSpec with Matchers with 
           primary.id -> Vector(_profile(primary.id)),
           secondary.id -> Vector(_profile(secondary.id))
         ))
-        val runtime = CbdRuntime.create(Vector(primary, secondary), provider)
+        val runtime = CbdRuntime.create(Vector(primary, secondary), provider, _clock)
         runtime.ensureReady(EmptyFetcher).isSuccess shouldBe true
 
         When("the exact identity is requested without a catalog selector")
@@ -48,7 +50,7 @@ final class EvidenceBoundedSelectionSpec extends AnyWordSpec with Matchers with 
           primary.id -> Vector(_profile(primary.id)),
           secondary.id -> Vector(_profile(secondary.id))
         ))
-        val runtime = CbdRuntime.create(Vector(primary, secondary), provider)
+        val runtime = CbdRuntime.create(Vector(primary, secondary), provider, _clock)
         runtime.ensureReady(EmptyFetcher).isSuccess shouldBe true
 
         When("the caller explicitly selects one catalog")
@@ -99,7 +101,8 @@ final class EvidenceBoundedSelectionSpec extends AnyWordSpec with Matchers with 
         val profile = _profile("catalog").copy(dependencyMetadataVersion = None, dependencies = Vector.empty)
         val runtime = CbdRuntime.create(
           Vector(CatalogSource("catalog", URI.create("https://catalog.example/"), 100, true)),
-          new PerSourceProvider(Map("catalog" -> Vector(profile)))
+          new PerSourceProvider(Map("catalog" -> Vector(profile))),
+          _clock
         )
 
         When("dependencies are resolved for the selected version")

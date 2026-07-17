@@ -11,7 +11,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class BokInspectionPolicy(
@@ -143,29 +143,6 @@ trait BokFetcher {
 object BokSourceConfig {
   private val _fixed_reserved_source_ids = Set("simplemodeling", "local-car", "cache-car")
 
-  def loadConfiguration(
-    policy: BokInspectionPolicy = BokInspectionPolicy.DEFAULT
-  ): BokSourceConfiguration = {
-    val catalogids = CatalogSourceConfig.loadConfiguration().sources.map(_.id).toSet
-    loadConfiguration(catalogids ++ _fixed_reserved_source_ids, policy)
-  }
-
-  def loadConfiguration(
-    reservedsourceids: Set[String]
-  ): BokSourceConfiguration =
-    loadConfiguration(reservedsourceids, BokInspectionPolicy.DEFAULT)
-
-  def loadConfiguration(
-    reservedsourceids: Set[String],
-    policy: BokInspectionPolicy
-  ): BokSourceConfiguration =
-    parse(
-      sys.env.get("TEXTUS_CBD_BOK_SITES"),
-      sys.env.get("TEXTUS_CBD_BOK_ALLOWED_ORIGINS"),
-      reservedsourceids,
-      policy
-    )
-
   def parse(
     sites: Option[String],
     allowedorigins: Option[String],
@@ -238,7 +215,7 @@ object BokSourceConfig {
   }
 }
 
-final class BokKnowledgeSourceProvider(clock: Clock = Clock.systemUTC()) {
+final class BokKnowledgeSourceProvider(clock: Clock) {
   private final case class ParsedManifest(
     manifestid: String,
     label: Option[String],

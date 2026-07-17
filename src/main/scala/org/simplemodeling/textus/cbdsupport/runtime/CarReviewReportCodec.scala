@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.nio.file.Path
 import java.security.MessageDigest
 import java.time.Instant
 
@@ -12,7 +11,7 @@ import io.circe.parser.parse
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 object CarReviewReportCodec {
@@ -637,16 +636,12 @@ object CarReviewReportCodec {
       }
     )
 
-  private def _safe_relative_path(value: String): Boolean =
-    try {
-      val path = Path.of(value)
-      val normalized = path.normalize()
-      value.nonEmpty && !value.contains('\\') && !path.isAbsolute && normalized == path &&
-        !normalized.startsWith("..") &&
-        !value.exists(character => Character.isISOControl(character))
-    } catch {
-      case _: RuntimeException => false
-    }
+  private def _safe_relative_path(value: String): Boolean = {
+    val segments = value.split("/", -1)
+    value.nonEmpty && !value.startsWith("/") && !value.contains('\\') &&
+      segments.forall(segment => segment.nonEmpty && segment != "." && segment != "..") &&
+      !value.exists(character => Character.isISOControl(character))
+  }
 
   private def _safe_evidence_uri(value: String): Boolean =
     try {

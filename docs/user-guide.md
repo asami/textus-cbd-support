@@ -79,8 +79,7 @@ Cozy locally, combine Cozy and sbt evidence, and exchange this envelope. CBD
 Support also provides the same submission contract as a CLI main class:
 
 ```bash
-TEXTUS_CBD_REVIEW_PROCESS_ROLES=reviewer \
-  sbt --batch 'runMain org.simplemodeling.textus.cbdsupport.runtime.CarReviewCliMain review submit' \
+sbt --batch 'runMain org.simplemodeling.textus.cbdsupport.runtime.CarReviewCliMain review submit --roles reviewer' \
   < provider-document-submission.json
 
 sbt --batch 'runMain org.simplemodeling.textus.cbdsupport.runtime.CarReviewCliMain review submit --endpoint http://127.0.0.1:19538/rest/v1/cbd-support/cbd-review-admin/post' \

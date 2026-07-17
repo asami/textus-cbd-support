@@ -11,7 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 15, 2026
+ * @version Jul. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -137,7 +137,7 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
       ))
       val runtime = CbdRuntime.createFederated(
         Vector.empty,
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock),
         CatalogCachePolicy.DEFAULT,
         _clock,
         Vector.empty,
@@ -166,7 +166,7 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
       ))
       val runtime = CbdRuntime.createFederated(
         Vector.empty,
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock),
         CatalogCachePolicy.DEFAULT,
         _clock,
         Vector.empty,
@@ -196,7 +196,7 @@ final class SieBokRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenTh
       ))
       val runtime = CbdRuntime.createFederated(
         Vector.empty,
-        new InMemoryComponentCatalogProvider(Vector.empty),
+        new InMemoryComponentCatalogProvider(Vector.empty, clock = _clock),
         CatalogCachePolicy.DEFAULT,
         _clock,
         Vector.empty,

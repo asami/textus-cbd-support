@@ -187,18 +187,19 @@ env \
   -u TEXTUS_CBD_BOK_ALLOWED_ORIGINS \
   CNCF_SERVER_PORT="$CNCF_SERVER_PORT" \
   CNCF_HTTP_BASEURL="$CNCF_HTTP_BASEURL" \
-  TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS="$FIXTURE_BASEURL" \
-  TEXTUS_CBD_CATALOGS="fixture-catalog=$FIXTURE_BASEURL/catalog/" \
-  TEXTUS_CBD_DEVELOPMENT_DIRECTORIES="empty=$empty_development_root" \
-  TEXTUS_CBD_LOCAL_CAR_ROOT="$local_car_root" \
-  TEXTUS_CBD_CACHE_CAR_ROOT="$cache_car_root" \
   JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dcncf.server.port=$CNCF_SERVER_PORT -Dcncf.http.baseurl=$CNCF_HTTP_BASEURL" \
   "$CNCF_BIN" \
     "${CNCF_RUNTIME_ARGS[@]}" \
+    "--textus.resource.tree.file-roots=empty=$empty_development_root,local-car=$local_car_root,cache-car=$cache_car_root" \
+    "--textus.cbd.catalog.allowed-origins=$FIXTURE_BASEURL" \
+    "--textus.cbd.catalogs=fixture-catalog=$FIXTURE_BASEURL/catalog/" \
+    "--textus.cbd.development.trees=empty=empty" \
+    "--textus.cbd.local-car.tree=local-car" \
+    "--textus.cbd.cache-car.tree=cache-car" \
+    "--textus.subsystem=textus-cbd-standalone" \
     server \
     --no-project-classpath \
-    --component-dir "$component_dir" \
-    --textus.subsystem=textus-cbd-standalone >"$server_log" 2>&1 &
+    --component-dir "$component_dir" >"$server_log" 2>&1 &
 server_pid=$!
 
 deadline=$((SECONDS + STARTUP_TIMEOUT_SECONDS))

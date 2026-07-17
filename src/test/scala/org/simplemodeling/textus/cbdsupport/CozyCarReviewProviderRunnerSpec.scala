@@ -12,7 +12,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 17, 2026
+ * @version Jul. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -67,23 +67,28 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       )
     }
 
-    "map a bounded process output limit to the existing provider failure code" in {
-      Given("an admitted Cozy capability with an output-limit terminal result")
-      val runner = _runner(
-        _target,
-        _provider,
-        _result("", ProcessExecutionTermination.OutputLimitExceeded(ProcessExecutionStream.Stdout))
+    "map every neutral process terminal failure to the stable provider vocabulary" in {
+      Given("the complete set of non-success Process Execution terminal outcomes")
+      val cases = Vector(
+        ProcessExecutionTermination.Exited(7) -> ("provider-command-failed", "Cozy provider process returned a non-zero status."),
+        ProcessExecutionTermination.TimedOut -> ("provider-timeout", "Cozy provider process timed out."),
+        ProcessExecutionTermination.Cancelled -> ("provider-cancelled", "Cozy provider process was cancelled."),
+        ProcessExecutionTermination.OutputLimitExceeded(ProcessExecutionStream.Stdout) ->
+          ("provider-response-byte-limit", "Cozy provider response exceeded the admitted output limit."),
+        ProcessExecutionTermination.ArtifactLimitExceeded ->
+          ("provider-response-byte-limit", "Cozy provider artifacts exceeded the admitted output limit."),
+        ProcessExecutionTermination.LaunchFailed ->
+          ("provider-transport-failed", "Cozy provider process could not be launched.")
       )
 
-      When("CBD invokes the runner")
-      val result = runner.execute(_request())
+      When("CBD receives each terminal result through the deterministic Process Execution driver")
+      val results = cases.map { case (termination, (code, message)) =>
+        _runner(_target, _provider, _result("", termination)).execute(_request()) ->
+          ProviderBundleRunnerResult.Failed(code, message, 0L)
+      }
 
-      Then("the Review provider protocol receives its stable failure result")
-      result shouldBe ProviderBundleRunnerResult.Failed(
-        "provider-response-byte-limit",
-        "Cozy provider response exceeded the admitted output limit.",
-        0L
-      )
+      Then("each neutral terminal state has one explicit CBD provider interpretation")
+      results.foreach { case (actual, expected) => actual shouldBe expected }
     }
 
     "resolve the registered process capability only from the invocation scope" in {
@@ -131,7 +136,7 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       Some(1000L), Some(120000L), Some(1000L), Some(4096L), Some(1024L),
       Some(1024L), Some(1L), Some(1024L), Some(1L), Some(1024L), Some(4096L)
     )
-    val definition = ProcessProgramDefinition.fromRuntimeC(
+    val definition = _value(ProcessProgramDefinition.fromRuntimeC(
       CozyCarReviewProviderProcess.capability,
       "cozy-car-review",
       "runtime-owned-cozy",
@@ -139,12 +144,12 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       org.goldenport.cncf.processexecution.ProcessArgumentPolicy(Vector.empty),
       limits,
       Set.empty
-    ).TAKE
-    val policy = ProcessExecutionPolicy.createC(Vector(definition)).TAKE
-    val admission = ProcessExecutionAdmission.createC(
+    ))
+    val policy = _value(ProcessExecutionPolicy.createC(Vector(definition)))
+    val admission = _value(ProcessExecutionAdmission.createC(
       policy,
       Vector(ProcessExecutionGrant(CozyCarReviewProviderProcess.capability))
-    ).TAKE
+    ))
     val driver = new org.goldenport.cncf.processexecution.ProcessExecutionTestProfile(
       Map(CozyCarReviewProviderProcess.capability -> result)
     ).driver
@@ -160,7 +165,7 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       Some(1000L), Some(120000L), Some(1000L), Some(4096L), Some(1024L),
       Some(1024L), Some(1L), Some(1024L), Some(1L), Some(1024L), Some(4096L)
     )
-    val definition = ProcessProgramDefinition.fromRuntimeC(
+    val definition = _value(ProcessProgramDefinition.fromRuntimeC(
       CozyCarReviewProviderProcess.capability,
       "cozy-car-review",
       "runtime-owned-cozy",
@@ -168,11 +173,11 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       org.goldenport.cncf.processexecution.ProcessArgumentPolicy(Vector.empty),
       limits,
       Set.empty
-    ).TAKE
-    val admission = ProcessExecutionAdmission.createC(
-      ProcessExecutionPolicy.createC(Vector(definition)).TAKE,
+    ))
+    val admission = _value(ProcessExecutionAdmission.createC(
+      _value(ProcessExecutionPolicy.createC(Vector(definition))),
       Vector(ProcessExecutionGrant(CozyCarReviewProviderProcess.capability))
-    ).TAKE
+    ))
     val driver = new org.goldenport.cncf.processexecution.ProcessExecutionTestProfile(
       Map(CozyCarReviewProviderProcess.capability -> result)
     ).driver
@@ -199,4 +204,9 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       1000L,
       "cozy-car-review"
     )
+
+  private def _value[A](consequence: org.goldenport.Consequence[A]): A = consequence match {
+    case org.goldenport.Consequence.Success(value) => value
+    case org.goldenport.Consequence.Failure(conclusion) => fail(conclusion.display)
+  }
 }

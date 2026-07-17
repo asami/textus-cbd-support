@@ -17,7 +17,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -41,7 +41,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
 
     "publish only the retrieval service through MCP" in {
       Given("the component instance constructed by the handwritten factory")
-      val component = new impl.ComponentFactory().createUninitializedComponent()
+      val component = new impl.ComponentFactory()._create_uninitialized_component()
 
       When("the service-level MCP publication policy is evaluated")
       val searchready = component.isMcpReady("CbdRetrieval", "searchComponents")
@@ -158,12 +158,12 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val factory = new impl.ComponentFactory()
 
       When("the CBD submission retention boundary stores the canonical Report")
-      val retained = factory.retainReviewReport(report)
-      val summary = factory.reviewReads.summary(report.reportId, Set("viewer"))
-      val findings = factory.reviewReads.findings(report.reportId, Set("viewer"), 10)
-      val views = factory.reviewReads.views(report.reportId, Set("viewer"))
-      val denied = factory.reviewReads.report(report.reportId, Set.empty)
-      val missing = factory.reviewReads.report(ReviewReportId("report-missing"), Set("viewer"))
+      val retained = factory._retain_review_report(report)
+      val summary = factory._review_read_application.summary(report.reportId, Set("viewer"))
+      val findings = factory._review_read_application.findings(report.reportId, Set("viewer"), 10)
+      val views = factory._review_read_application.views(report.reportId, Set("viewer"))
+      val denied = factory._review_read_application.report(report.reportId, Set.empty)
+      val missing = factory._review_read_application.report(ReviewReportId("report-missing"), Set("viewer"))
 
       Then("authorized queries expose only the exact retained Report and no caller can enumerate history")
       retained.isSuccess shouldBe true
@@ -309,8 +309,8 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
           Property("kind", "car", None)
         )
       )
-      val action = CbdSupportComponent.CbdRetrievalService.SearchComponentsOperation
-        .createOperationRequest(request).toOption.get
+      val action = _value(CbdSupportComponent.CbdRetrievalService.SearchComponentsOperation
+        .createOperationRequest(request))
       val factory = new impl.ComponentFactory()
 
       When("the handwritten runtime reads the generated request record")
@@ -332,13 +332,13 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       )
 
       When("the generated private operation normalizes its request")
-      val action = CbdSupportComponent.CbdReviewAdminService.SubmitReviewDocumentsOperation
-        .createOperationRequest(request).toOption.get
+      val action = _value(CbdSupportComponent.CbdReviewAdminService.SubmitReviewDocumentsOperation
+        .createOperationRequest(request))
       val document = new impl.ComponentFactory()._optional_string(action.record, "submissionDocument")
 
       Then("the operation retains the wire document without becoming an MCP tool")
       document shouldBe Some("{\"documentType\":\"provider-document-submission\"}")
-      new impl.ComponentFactory().createUninitializedComponent()
+      new impl.ComponentFactory()._create_uninitialized_component()
         .isMcpReady("CbdReviewAdmin", "submitReviewDocuments") shouldBe false
     }
 
@@ -378,10 +378,10 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
           Property("kind", "sar", None)
         )
       )
-      val usageaction = CbdSupportComponent.CbdRetrievalService.GetUsageOperation
-        .createOperationRequest(usagerequest).toOption.get
-      val dependencyaction = CbdSupportComponent.CbdRetrievalService.ResolveDependenciesOperation
-        .createOperationRequest(dependencyrequest).toOption.get
+      val usageaction = _value(CbdSupportComponent.CbdRetrievalService.GetUsageOperation
+        .createOperationRequest(usagerequest))
+      val dependencyaction = _value(CbdSupportComponent.CbdRetrievalService.ResolveDependenciesOperation
+        .createOperationRequest(dependencyrequest))
       val factory = new impl.ComponentFactory()
 
       When("the generated request records are read by the handwritten runtime")
@@ -395,5 +395,10 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       dependencykind shouldBe Some("sar")
     }
     }
+  }
+
+  private def _value[A](consequence: org.goldenport.Consequence[A]): A = consequence match {
+    case org.goldenport.Consequence.Success(value) => value
+    case org.goldenport.Consequence.Failure(conclusion) => fail(conclusion.display)
   }
 }

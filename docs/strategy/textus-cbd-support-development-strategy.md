@@ -66,6 +66,14 @@ confidentiality, deterministic-provider, and lifecycle contracts while CBD
 Support retains Review policy, Evidence admission, canonical reporting, and
 gate ownership.
 
+### Phase 7: Action-Local Runtime Isolation
+
+Ensure that a cached CBD runtime retains no ActionCall-local state and that
+each action retains its own admitted local resource-tree inventory. Complete
+the explicit configuration handoff in standalone and composed CBD/SIE SAR
+harnesses, then prove isolation with deterministic interleaving and concurrent
+ActionCall specifications.
+
 ## Current Priority
 
 Phases 1 through 3 are complete. Phase 4 automated work is complete, while
@@ -249,3 +257,8 @@ of CBD-, Cozy-, and CAR-specific types. The checkpoint verified the exact local
 CNCF development artifact, deterministic runtime-boundary specs, full CBD test
 suite, CAR lint, ABI governance, and standalone SAR build. Publication and the
 first released ABI baseline remain outside the completed phase.
+
+Phase 7 is complete as the post-Phase-6 cache-lifetime follow-up. Its runtime
+cache and invocation boundary, explicit-configuration harnesses, full test
+suite, CAR ABI governance, and normal CAR lint are verified. It has no new
+human-confirmation stage; P4-45 remains the independent ON_HOLD human gate.

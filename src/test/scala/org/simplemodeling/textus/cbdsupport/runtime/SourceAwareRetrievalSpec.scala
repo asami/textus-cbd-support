@@ -13,7 +13,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 17, 2026
+ * @version Jul. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -117,7 +117,7 @@ final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with Give
 
   private val _clock = Clock.fixed(Instant.parse("2026-07-14T00:00:00Z"), ZoneOffset.UTC)
 
-  private def _runtime(name: String, profiles: Vector[ComponentProfile] = Vector(_profile)): CbdRuntime = {
+  private def _runtime(name: String, profiles: Vector[ComponentProfile] = Vector(_profile)): CbdRuntimeInvocation = {
     val working = InformationSourceDescriptor(
       "working",
       InformationSourceKind.DEVELOPMENT_DIRECTORY,
@@ -146,9 +146,8 @@ final class SourceAwareRetrievalSpec extends AnyWordSpec with Matchers with Give
       _clock,
       Vector.empty,
       new BokKnowledgeSourceProvider(_clock),
-      siebokprovider = new SieBokProvider(_clock),
-      admittedlocalinventory = Some(inventory)
-    )
+      siebokprovider = new SieBokProvider(_clock)
+    ).invocation(inventory)
   }
 
   private def _query(

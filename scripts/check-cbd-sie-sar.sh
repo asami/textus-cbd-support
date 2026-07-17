@@ -261,17 +261,18 @@ run_profile() {
     CNCF_HTTP_BASEURL="$CNCF_HTTP_BASEURL" \
     TEXTUS_SIE_RDF_DB="in-memory" \
     TEXTUS_SIE_VECTOR_DB="in-memory" \
-    TEXTUS_CBD_CATALOG_ALLOWED_ORIGINS="$FIXTURE_BASEURL" \
-    TEXTUS_CBD_CATALOGS="fixture-catalog=$FIXTURE_BASEURL/catalog/,missing-catalog=$FIXTURE_BASEURL/missing/" \
-    TEXTUS_CBD_DEVELOPMENT_DIRECTORIES="working=$FIXTURE_ROOT/development" \
-    TEXTUS_CBD_LOCAL_CAR_ROOT="$local_car_root" \
-    TEXTUS_CBD_CACHE_CAR_ROOT="$cache_car_root" \
-    TEXTUS_CBD_SIE_ALLOWED_ORIGINS="$CNCF_HTTP_BASEURL" \
-    TEXTUS_CBD_SIE_BOK_ROUTES="semantic=$CNCF_HTTP_BASEURL/mcp" \
     JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dcncf.server.port=$CNCF_SERVER_PORT -Dcncf.http.baseurl=$CNCF_HTTP_BASEURL -Dtextus.sie.rdf-db=in-memory -Dtextus.sie.vector-db=in-memory" \
     "$CNCF_BIN" \
       "${CNCF_RUNTIME_ARGS[@]}" \
       "--textus.resource.url.file.roots=$FIXTURE_ROOT" \
+      "--textus.resource.tree.file-roots=working=$FIXTURE_ROOT/development,local-car=$local_car_root,cache-car=$cache_car_root" \
+      "--textus.cbd.catalog.allowed-origins=$FIXTURE_BASEURL" \
+      "--textus.cbd.catalogs=fixture-catalog=$FIXTURE_BASEURL/catalog/,missing-catalog=$FIXTURE_BASEURL/missing/" \
+      "--textus.cbd.development.trees=working=working" \
+      "--textus.cbd.local-car.tree=local-car" \
+      "--textus.cbd.cache-car.tree=cache-car" \
+      "--textus.cbd.sie-bok.allowed-origins=$CNCF_HTTP_BASEURL" \
+      "--textus.cbd.sie-bok.routes=semantic=$CNCF_HTTP_BASEURL/mcp" \
       "--textus.subsystem=textus-cbd-sie" \
       server \
       --no-project-classpath \

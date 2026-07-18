@@ -1,7 +1,7 @@
 import org.goldenport.cozy.CozyProjectConfig
 import sbt._
 
-object ProjectYamlBuild {
+object CbdSupportProjectYamlBuild {
   def load(file: File): CozyProjectConfig =
     CozyProjectConfig.load(file)
 
@@ -11,6 +11,13 @@ object ProjectYamlBuild {
   def dependencies(config: CozyProjectConfig): Seq[ModuleID] =
     _dependencies(config, "compile", None) ++
       _dependencies(config, "test", Some(Test))
+
+  def dependencyVersion(config: CozyProjectConfig, organization: String, artifact: String): String =
+    config.list("build.dependencies.compile")
+      .map(_module)
+      .find(x => x.organization == organization && x.name == artifact)
+      .map(_.revision)
+      .getOrElse(sys.error(s"Compile dependency is required in project.yaml: $organization:$artifact"))
 
   private def _dependencies(
     config: CozyProjectConfig,

@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SIE_ROOT="${TEXTUS_SIE_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-semantic-integration-engine}"
+SCRAPER_ROOT="${TEXTUS_SCRAPER_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-scraper}"
 CNCF_BIN="${CNCF_BIN:-$(command -v cncf || true)}"
 CNCF_VERSION_FILE="${CNCF_VERSION_FILE:-/Users/asami/src/dev2026/cncf-samples/versions/cncf-version.conf}"
 CNCF_VERSION="${CNCF_VERSION:-$(tr -d '[:space:]' < "$CNCF_VERSION_FILE")}"
@@ -37,6 +38,7 @@ STARTUP_TIMEOUT_SECONDS="${CBD_SIE_SAR_STARTUP_TIMEOUT_SECONDS:-120}"
 SHUTDOWN_TIMEOUT_SECONDS="${CBD_SIE_SAR_SHUTDOWN_TIMEOUT_SECONDS:-30}"
 CBD_CAR="$PROJECT_ROOT/target/textus-cbd-support-0.1.0-SNAPSHOT.car"
 SIE_CAR="$SIE_ROOT/target/textus-semantic-integration-engine-0.2.0-SNAPSHOT.car"
+SCRAPER_CAR="$SCRAPER_ROOT/target/textus-scraper-0.1.1-SNAPSHOT.car"
 SAR_DESCRIPTOR="$PROJECT_ROOT/examples/cbd-sie-sar/subsystem-descriptor.yaml"
 PROFILE_DIR="$PROJECT_ROOT/examples/cbd-sie-sar/profiles"
 FIXTURE_ROOT="$PROJECT_ROOT/examples/cbd-sie-sar/fixtures"
@@ -131,14 +133,15 @@ if lsof -nP -iTCP:"$FIXTURE_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
 fi
 
 (cd "$PROJECT_ROOT" && sbt --batch cozyBuildCAR)
+(cd "$SCRAPER_ROOT" && sbt --batch cozyBuildCAR)
 (cd "$SIE_ROOT" && sbt --batch cozyBuildCAR)
 
-if ! sie_dependency_manifest="$(unzip -p "$SIE_CAR" component-dependencies.yaml 2>/dev/null)"; then
-  echo "The SIE CAR is missing component-dependencies.yaml." >&2
+if ! sie_api_descriptor="$(unzip -p "$SIE_CAR" component-api-descriptor.json 2>/dev/null)"; then
+  echo "The SIE CAR is missing component-api-descriptor.json." >&2
   exit 1
 fi
-if [[ "$sie_dependency_manifest" != *$'  local:\n    - "org.jsoup:jsoup:1.18.1"'* ]]; then
-  echo "The SIE CAR does not declare its component-local jsoup dependency." >&2
+if [[ "$sie_api_descriptor" != *'org.simplemodeling.textus.scraper.api.TextusScraperApi'* ]]; then
+  echo "The SIE CAR does not require TextusScraperApi." >&2
   exit 1
 fi
 if ! sie_archive_entries="$(jar tf "$SIE_CAR")"; then
@@ -155,7 +158,15 @@ if [[ -n "$sie_bundled_jsoup" ]]; then
   echo "The SIE CAR bundles jsoup instead of resolving its declared local dependency." >&2
   exit 1
 fi
-echo "SIE_CAR_LOCAL_DEPENDENCY_OK coordinate=org.jsoup:jsoup:1.18.1 bundled=false"
+if ! scraper_dependency_manifest="$(unzip -p "$SCRAPER_CAR" component-dependencies.yaml 2>/dev/null)"; then
+  echo "The Textus Scraper CAR is missing component-dependencies.yaml." >&2
+  exit 1
+fi
+if [[ "$scraper_dependency_manifest" != *'org.jsoup:jsoup:1.18.1'* ]]; then
+  echo "The Textus Scraper CAR does not own the jsoup dependency." >&2
+  exit 1
+fi
+echo "SIE_SCRAPER_COMPONENT_API_OK api=org.simplemodeling.textus.scraper.api.TextusScraperApi jsoup_owner=textus-scraper"
 
 runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/textus-cbd-sie-sar.XXXXXX")"
 runtime_dir="$(cd "$runtime_dir" && pwd -P)"

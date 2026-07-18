@@ -9,6 +9,8 @@ project:
     className: "CbdSupport"
     displayName: "Textus CBD Support"
     version: "0.1.0-SNAPSHOT"
+    config:
+      textus.server.default-port: "18012"
   summary: "Provides catalog-backed component discovery and usage guidance for Component-Based Development."
   description: "Aggregates the simplemodeling.org component catalog and configured catalogs, then exposes evidence-bearing CAR/SAR discovery and usage information through MCP-ready operations."
 
@@ -18,7 +20,7 @@ build:
     compile:
       - "org.goldenport::goldenport-cncf:0.5.1-SNAPSHOT"
     test:
-      - "org.scalatest::scalatest:3.2.10"
+      - "org.scalatest::scalatest:3.2.19"
 
 publication:
   source_manifest:

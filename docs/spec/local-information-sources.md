@@ -8,9 +8,11 @@ user's home directory or sibling repositories implicitly.
 Development directories are admitted only from an explicit configuration list.
 Each entry becomes a `development-directory` source authorized by
 `explicit-path-allowlist`. The configured root must exist, be a directory, and
-have no symbolic-link root or canonical-path redirection. The adapter reads only
-a bounded `project.yaml` in this slice and records its component identity and
-version as `working` evidence. Development-source IDs must be unique and cannot
+have no symbolic-link root or canonical-path redirection. The adapter issues a
+bounded exact-leaf `project.yaml` query and records every returned descriptor's
+component identity and version as `working` evidence. The query returns only
+logical relative paths and bytes, never the configured physical root; it does
+not follow symbolic links. Development-source IDs must be unique and cannot
 reuse the stable `local-car` or `cache-car` IDs.
 
 CAR storage uses two distinct sources:
@@ -86,6 +88,8 @@ working `project.yaml` evidence, local/cache state separation, descriptor/path
 version separation, the supported missing-descriptor-version transition,
 malformed/conflicting CAR rejection, artifact checksums, and bounded discovery
 diagnostics.
+`LocalSourceRuntimeQuerySpec` proves that every bounded nested `project.yaml`
+query result becomes an independent logical working observation.
 `VersionStateReconciliationSpec` covers the independent availability and
 maturity projection of these local observations.
 `SourceAwareRetrievalSpec` covers runtime configuration integration, source

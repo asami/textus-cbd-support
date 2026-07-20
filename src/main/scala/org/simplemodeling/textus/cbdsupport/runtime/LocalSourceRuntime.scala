@@ -9,11 +9,11 @@ import scala.util.control.NonFatal
 
 import io.circe.Json
 import io.circe.parser.parse
-import org.goldenport.cncf.resource.ResourceTreeSnapshot
+import org.goldenport.cncf.resource.{ResourceTreeQueryResult, ResourceTreeSnapshot}
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 17, 2026
+ * @version Jul. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class LocalInspectionPolicy(
@@ -65,6 +65,21 @@ final case class LocalInformationInventory(
 )
 
 object LocalInformationSourceInventory {
+  def inspectDevelopmentQuery(
+    source: InformationSourceDescriptor,
+    result: ResourceTreeQueryResult,
+    versionstate: String,
+    policy: LocalInspectionPolicy,
+    clock: Clock
+  ): LocalInformationInventory = {
+    val inspected = result.entries.map(_inspect_development(source, _, versionstate, policy, result.query.reference.name))
+    val observations = inspected.flatMap(_._1)
+    val warnings = inspected.flatMap(_._2) ++ Option.when(result.entries.isEmpty)(
+      "Development source " + source.id + " has no project.yaml entry."
+    ).toVector
+    _inventory(source, observations, warnings, clock)
+  }
+
   def inspectDevelopmentSnapshot(
     source: InformationSourceDescriptor,
     snapshot: ResourceTreeSnapshot,
@@ -72,23 +87,9 @@ object LocalInformationSourceInventory {
     policy: LocalInspectionPolicy,
     clock: Clock
   ): LocalInformationInventory = {
-    val project = snapshot.entries.find(_.relativePath == "project.yaml")
-    val result = project match {
+    val result = snapshot.entries.find(_.relativePath == "project.yaml") match {
+      case Some(entry) => _inspect_development(source, entry, versionstate, policy, snapshot.reference.name)
       case None => Vector.empty[LocalComponentObservation] -> Vector("Development source " + source.id + " has no project.yaml entry.")
-      case Some(entry) if entry.byteSize > policy.maxMetadataBytes =>
-        Vector.empty[LocalComponentObservation] -> Vector("Development source " + source.id + ": project.yaml exceeds " + policy.maxMetadataBytes + " bytes.")
-      case Some(entry) =>
-        val values = _project_yaml_values(new String(entry.bytes.toArray, StandardCharsets.UTF_8))
-        val name = values.get("project.component.name").orElse(values.get("project.name"))
-        val version = values.get("project.component.version")
-        val diagnostics = Option.when(name.isEmpty)("project.yaml has no component name.").toVector ++
-          Option.when(version.isEmpty)("project.yaml has no component version.").toVector
-        Vector(LocalComponentObservation(
-          source.id, source.sourceKind, name, values.get("project.organization"),
-          values.get("project.kind"), version, "project-yaml", versionstate,
-          "resource-tree:" + snapshot.reference.name + "/" + entry.relativePath,
-          None, None, None, diagnostics
-        )) -> Vector.empty[String]
     }
     _inventory(source, result._1, result._2, clock)
   }
@@ -118,6 +119,31 @@ object LocalInformationSourceInventory {
       Vector(source), observations, warnings.distinct, clock.instant(),
       Map(source.id -> (warnings ++ observations.flatMap(_.diagnostics)).distinct)
     )
+
+  private def _inspect_development(
+    source: InformationSourceDescriptor,
+    entry: org.goldenport.cncf.resource.ResourceTreeEntry,
+    versionstate: String,
+    policy: LocalInspectionPolicy,
+    treename: String
+  ): (Vector[LocalComponentObservation], Vector[String]) =
+    if (entry.byteSize > policy.maxMetadataBytes)
+      Vector.empty[LocalComponentObservation] -> Vector(
+        "Development source " + source.id + ": " + entry.relativePath + " exceeds " + policy.maxMetadataBytes + " bytes."
+      )
+    else {
+      val values = _project_yaml_values(new String(entry.bytes.toArray, StandardCharsets.UTF_8))
+      val name = values.get("project.component.name").orElse(values.get("project.name"))
+      val version = values.get("project.component.version")
+      val diagnostics = Option.when(name.isEmpty)("project.yaml has no component name.").toVector ++
+        Option.when(version.isEmpty)("project.yaml has no component version.").toVector
+      Vector(LocalComponentObservation(
+        source.id, source.sourceKind, name, values.get("project.organization"),
+        values.get("project.kind"), version, "project-yaml", versionstate,
+        "resource-tree:" + treename + "/" + entry.relativePath,
+        None, None, None, diagnostics
+      )) -> Vector.empty[String]
+    }
 
   private def _inspect_car(
     source: InformationSourceDescriptor,

@@ -43,6 +43,12 @@ diagnostic before local source/provider work begins. Upstream ResourceTree
 admission remains responsible for traversal, symbolic-link, and tree-limit
 rejection before CBD receives a snapshot.
 
+> **Jul. 20, 2026 correction:** this historical Phase 6 description predates
+> the separate bounded resource-tree query capability. Development sources now
+> request exact `project.yaml` entries through `ResourceTreeQuery`; CAR storage
+> retains the strict snapshot behavior described here. Both paths preserve only
+> logical `resource-tree:` provenance in CBD.
+
 ## Cozy Process Execution boundary
 
 The old CBD-owned `ProcessBuilder` transport was replaced by

@@ -5,7 +5,7 @@ import org.goldenport.cncf.action.ActionCall
 import org.goldenport.cncf.component.{Component, ComponentCreate}
 import org.goldenport.cncf.config.{ComponentConfigurationAccess, ComponentConfigurationKey, ComponentConfigurationSources}
 import org.goldenport.cncf.context.{GlobalRuntimeContext, ScopeContext}
-import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeReference}
+import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeQuery, ResourceTreeReference}
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.configuration.Configuration
 import org.goldenport.protocol.operation.OperationResponse
@@ -19,7 +19,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceAuthorizat
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 18, 2026
+ * @version Jul. 20, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -160,32 +160,34 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     )
     val sources = development ++ storage
     val inventories = sources.map { source =>
-      core.executionContext.resourceTrees.snapshot(source.reference, ResourceTreeLimits.default) match {
-        case Consequence.Success(snapshot) if source.carstorage =>
-          LocalInformationSourceInventory.inspectCarStorageSnapshot(
-            source.descriptor,
-            snapshot,
-            source.versionstate,
-            LocalInspectionPolicy.DEFAULT,
-            core.executionContext.clock
-          )
-        case Consequence.Success(snapshot) =>
-          LocalInformationSourceInventory.inspectDevelopmentSnapshot(
-            source.descriptor,
-            snapshot,
-            source.versionstate,
-            LocalInspectionPolicy.DEFAULT,
-            core.executionContext.clock
-          )
-        case Consequence.Failure(_) =>
-          LocalInformationInventory(
-            Vector(source.descriptor),
-            Vector.empty,
-            Vector(s"Resource tree ${source.reference.name} is unavailable."),
-            core.executionContext.clock.instant(),
-            Map(source.descriptor.id -> Vector(s"Resource tree ${source.reference.name} is unavailable."))
-          )
-      }
+      if (source.carstorage)
+        core.executionContext.resourceTrees.snapshot(source.reference, ResourceTreeLimits.default) match {
+          case Consequence.Success(snapshot) =>
+            LocalInformationSourceInventory.inspectCarStorageSnapshot(
+              source.descriptor,
+              snapshot,
+              source.versionstate,
+              LocalInspectionPolicy.DEFAULT,
+              core.executionContext.clock
+            )
+          case Consequence.Failure(_) => _unavailable_local_inventory(source, core)
+        }
+      else
+        ResourceTreeQuery.exactLeafNameC(source.reference, "project.yaml") match {
+          case Consequence.Success(query) =>
+            core.executionContext.resourceTrees.query(query) match {
+              case Consequence.Success(result) =>
+                LocalInformationSourceInventory.inspectDevelopmentQuery(
+                  source.descriptor,
+                  result,
+                  source.versionstate,
+                  LocalInspectionPolicy.DEFAULT,
+                  core.executionContext.clock
+                )
+              case Consequence.Failure(_) => _unavailable_local_inventory(source, core)
+            }
+          case Consequence.Failure(_) => _unavailable_local_inventory(source, core)
+        }
     }
     LocalInformationInventory(
       sources.map(_.descriptor),
@@ -193,6 +195,20 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       (developmentwarnings ++ storagewarnings ++ inventories.flatMap(_.warnings)).distinct,
       core.executionContext.clock.instant(),
       inventories.flatMap(_.sourceDiagnostics).toMap
+    )
+  }
+
+  private def _unavailable_local_inventory(
+    source: LocalTreeSource,
+    core: ActionCall.Core
+  ): LocalInformationInventory = {
+    val warning = s"Resource tree ${source.reference.name} is unavailable."
+    LocalInformationInventory(
+      Vector(source.descriptor),
+      Vector.empty,
+      Vector(warning),
+      core.executionContext.clock.instant(),
+      Map(source.descriptor.id -> Vector(warning))
     )
   }
 
@@ -467,11 +483,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.CatalogListRequest
   ) extends CbdRetrievalService.ListCatalogsActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
-      _runtime_for(core).map { runtime =>
-        OperationResponse(Record.dataAuto(
-          "sources" -> runtime.informationSourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
-          "warnings" -> runtime.configurationWarnings
-        ))
+      _runtime_for(core).flatMap { runtime =>
+        runtime.ensureInputsReady(new CbdHttp(core)).map { _ =>
+          OperationResponse(Record.dataAuto(
+            "sources" -> runtime.informationSourceStates(_optional_boolean(action.record, "includeDisabled").getOrElse(false)).map(_source_record),
+            "warnings" -> runtime.configurationWarnings
+          ))
+        }
       }
     }
   }
@@ -481,15 +499,17 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     override val action: CbdRetrievalService.CbdStatusRequest
   ) extends CbdRetrievalService.StatusActionCall {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
-      _runtime_for(core).map { runtime =>
-        val states = runtime.informationSourceStates(includeDisabled = false)
-        OperationResponse(Record.dataAuto(
-          "overall" -> runtime.overallStatus,
-          "sourceCount" -> states.size,
-          "readySourceCount" -> states.count(_.status == "ready"),
-          "componentCount" -> runtime.componentCount,
-          "detail" -> _optional_string(action.record, "detail").orElse(Some(states.map(x => s"${x.descriptor.id}=${x.status}").mkString(", ")))
-        ))
+      _runtime_for(core).flatMap { runtime =>
+        runtime.ensureInputsReady(new CbdHttp(core)).map { _ =>
+          val states = runtime.informationSourceStates(includeDisabled = false)
+          OperationResponse(Record.dataAuto(
+            "overall" -> runtime.overallStatus,
+            "sourceCount" -> states.size,
+            "readySourceCount" -> states.count(_.status == "ready"),
+            "componentCount" -> runtime.componentCount,
+            "detail" -> _optional_string(action.record, "detail").orElse(Some(states.map(x => s"${x.descriptor.id}=${x.status}").mkString(", ")))
+          ))
+        }
       }
     }
   }

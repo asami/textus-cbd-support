@@ -67,6 +67,13 @@ name through the bound `ExecutionContext.resourceTrees`; unavailable or
 invalid trees become source diagnostics before source/provider work begins.
 The previous CBD-owned path and home-root configuration keys are not accepted.
 
+> **Jul. 20, 2026 correction:** development-directory inspection no longer
+> uses a complete `ResourceTreeAccess.snapshot`. It uses CNCF's bounded exact
+> leaf-name `ResourceTreeQuery` for `project.yaml`, so a declared workspace can
+> report every admitted project descriptor without materializing its complete
+> tree. Local and cache CAR storage continue to use the strict snapshot
+> capability described above.
+
 ## Cozy Review Process Contract
 
 CBD Support identifies the provider invocation only as the logical

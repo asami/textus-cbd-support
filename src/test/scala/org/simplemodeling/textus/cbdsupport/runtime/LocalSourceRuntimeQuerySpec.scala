@@ -45,6 +45,28 @@ final class LocalSourceRuntimeQuerySpec extends AnyWordSpec with Matchers with G
       )
       inventory.observations.map(_.versionState).distinct shouldBe Vector(VersionAvailabilityState.WORKING)
     }
+
+    "keep descriptor-quality diagnostics separate from source availability" in {
+      Given("a successfully queried project descriptor without a component version")
+      val reference = _value(ResourceTreeReference.parseC("development"))
+      val access = ResourceTreeAccess.inMemory(Map(reference -> Vector(
+        _versionless_entry("samples/project.yaml", "sample-collection")
+      )))
+      val query = _value(ResourceTreeQuery.exactLeafNameC(reference, "project.yaml"))
+
+      When("CBD inspects the descriptor as working evidence")
+      val inventory = LocalInformationSourceInventory.inspectDevelopmentQuery(
+        _source("working"),
+        _value(access.query(query)),
+        VersionAvailabilityState.WORKING,
+        LocalInspectionPolicy.DEFAULT,
+        _clock
+      )
+
+      Then("the source remains available while the observation retains its quality diagnostic")
+      inventory.sourceDiagnostics("working") shouldBe Vector.empty
+      inventory.observations.flatMap(_.diagnostics) should contain("project.yaml has no component version.")
+    }
   }
 
   private val _clock = Clock.fixed(Instant.parse("2026-07-20T00:00:00Z"), ZoneOffset.UTC)
@@ -56,6 +78,15 @@ final class LocalSourceRuntimeQuerySpec extends AnyWordSpec with Matchers with G
          |  component:
          |    name: $name
          |    version: 1.0.0-SNAPSHOT
+         |""".stripMargin.getBytes(StandardCharsets.UTF_8).toVector
+    ))
+
+  private def _versionless_entry(path: String, name: String): org.goldenport.cncf.resource.ResourceTreeEntry =
+    _value(ResourceTreeEntry.createC(
+      path,
+      s"""project:
+         |  name: $name
+         |  kind: sample-multi
          |""".stripMargin.getBytes(StandardCharsets.UTF_8).toVector
     ))
 

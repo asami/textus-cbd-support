@@ -97,7 +97,8 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
       initialized.isSuccess shouldBe true
       state.status shouldBe "degraded"
       state.observationCount shouldBe 0
-      state.diagnostics should contain("Resource tree missing-tree is unavailable.")
+      state.diagnostics.mkString("\n") should include("Resource tree missing-tree is unavailable.")
+      state.diagnostics.mkString("\n") should include("configured logical resource tree is not available")
     }
 
     "discover every bounded project descriptor for a configured working source" in {

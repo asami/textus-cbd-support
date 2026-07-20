@@ -117,7 +117,7 @@ object LocalInformationSourceInventory {
   ): LocalInformationInventory =
     LocalInformationInventory(
       Vector(source), observations, warnings.distinct, clock.instant(),
-      Map(source.id -> (warnings ++ observations.flatMap(_.diagnostics)).distinct)
+      Map(source.id -> warnings.distinct)
     )
 
   private def _inspect_development(

@@ -170,7 +170,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
               LocalInspectionPolicy.DEFAULT,
               core.executionContext.clock
             )
-          case Consequence.Failure(_) => _unavailable_local_inventory(source, core)
+          case Consequence.Failure(conclusion) =>
+            _unavailable_local_inventory(source, core, Some(conclusion.display))
         }
       else
         ResourceTreeQuery.exactLeafNameC(source.reference, "project.yaml") match {
@@ -184,9 +185,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
                   LocalInspectionPolicy.DEFAULT,
                   core.executionContext.clock
                 )
-              case Consequence.Failure(_) => _unavailable_local_inventory(source, core)
+              case Consequence.Failure(conclusion) =>
+                _unavailable_local_inventory(source, core, Some(conclusion.display))
             }
-          case Consequence.Failure(_) => _unavailable_local_inventory(source, core)
+          case Consequence.Failure(conclusion) =>
+            _unavailable_local_inventory(source, core, Some(conclusion.display))
         }
     }
     LocalInformationInventory(
@@ -200,9 +203,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
 
   private def _unavailable_local_inventory(
     source: LocalTreeSource,
-    core: ActionCall.Core
+    core: ActionCall.Core,
+    diagnostic: Option[String]
   ): LocalInformationInventory = {
-    val warning = s"Resource tree ${source.reference.name} is unavailable."
+    val warning = s"Resource tree ${source.reference.name} is unavailable." +
+      diagnostic.filter(_.nonEmpty).fold("")(x => s" ${x}")
     LocalInformationInventory(
       Vector(source.descriptor),
       Vector.empty,

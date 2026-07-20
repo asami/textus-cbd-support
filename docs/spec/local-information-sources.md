@@ -81,6 +81,14 @@ projects local observations separately from catalog profiles, while
 freshness, and source-specific diagnostics. The runtime does not retain a
 last-known-good local inventory.
 
+Source readiness represents whether the declared logical tree was admitted,
+queried, and inspected successfully. A successfully returned descriptor with
+missing component metadata remains an observation with bounded quality
+diagnostics; that observation-level incompleteness does not make the source
+itself unavailable or degraded. Traversal, admission, read, descriptor-size,
+and aggregate inspection failures remain source diagnostics and degrade the
+source.
+
 ## Executable Evidence
 
 `LocalSourceRuntimeSpec` covers canonical path authorization, symlink rejection,
@@ -89,7 +97,8 @@ version separation, the supported missing-descriptor-version transition,
 malformed/conflicting CAR rejection, artifact checksums, and bounded discovery
 diagnostics.
 `LocalSourceRuntimeQuerySpec` proves that every bounded nested `project.yaml`
-query result becomes an independent logical working observation.
+query result becomes an independent logical working observation and that
+descriptor-quality diagnostics remain separate from source readiness.
 `VersionStateReconciliationSpec` covers the independent availability and
 maturity projection of these local observations.
 `SourceAwareRetrievalSpec` covers runtime configuration integration, source

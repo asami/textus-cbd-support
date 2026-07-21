@@ -146,7 +146,7 @@
         {
           "kind": "script-gate",
           "path": "scripts/probe-cbd-sie-sar.py",
-          "anchor": "CBD_SIE_SAR_MCP_OK"
+          "anchor": "CBD_BOK_SIE_SAR_MCP_OK"
         }
       ]
     },
@@ -178,7 +178,7 @@
         {
           "kind": "script-gate",
           "path": "scripts/probe-cbd-sie-source-aware.py",
-          "anchor": "CBD_SIE_SOURCE_AWARE_OK"
+          "anchor": "CBD_BOK_SIE_SOURCE_OWNERSHIP_OK"
         }
       ]
     },

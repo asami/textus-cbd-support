@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 
 
+MCP_PROTOCOL_VERSION = "2025-11-25"
 CBD_TOOLS = {
     "CbdSupport.CbdRetrieval.searchComponents",
     "CbdSupport.CbdRetrieval.getComponent",
@@ -24,12 +25,14 @@ SIE_TOOLS = {
     "SemanticIntegrationEngine.SemanticRetrieval.query",
     "SemanticIntegrationEngine.SemanticRetrieval.explain",
     "SemanticIntegrationEngine.SemanticRetrieval.status",
-    "SemanticIntegrationEngine.SemanticRetrieval.searchTerms",
-    "SemanticIntegrationEngine.SemanticRetrieval.explainTerm",
-    "SemanticIntegrationEngine.SemanticRetrieval.searchComponentReferences",
-    "SemanticIntegrationEngine.SemanticRetrieval.getComponentReference",
 }
-EXPECTED_TOOLS = CBD_TOOLS | SIE_TOOLS
+BOK_TOOLS = {
+    "Bok.BokRetrieval.searchTerms",
+    "Bok.BokRetrieval.explainTerm",
+    "Bok.BokRetrieval.searchComponentReferences",
+    "Bok.BokRetrieval.getComponentReference",
+}
+EXPECTED_TOOLS = CBD_TOOLS | SIE_TOOLS | BOK_TOOLS
 DENIED_TOOLS = {
     "CbdSupport.CbdCatalogAdmin.refreshCatalog",
     "CbdSupport.CbdReviewAdmin.startReview",
@@ -46,15 +49,17 @@ DENIED_TOOLS = {
     "SemanticIntegrationEngine.KnowledgeStoreAdmin.indexHtmlSite",
     "SemanticIntegrationEngine.KnowledgeStoreAdmin.ingestBokKnowledgeSource",
     "SemanticIntegrationEngine.InformationImport.runPaperFlow",
+    "Bok.BokRetrieval.replaceKnowledgeSource",
 }
 EXPECTED_TOOLS_BY_PROFILE = {
     "baseline": EXPECTED_TOOLS,
     "global-disabled": set(),
-    "sie-service-disabled": CBD_TOOLS,
+    "sie-service-disabled": CBD_TOOLS | BOK_TOOLS,
     "operation-disabled": EXPECTED_TOOLS
     - {
         "CbdSupport.CbdRetrieval.status",
         "SemanticIntegrationEngine.SemanticRetrieval.status",
+        "Bok.BokRetrieval.explainTerm",
     },
 }
 REJECTED_TOOLS_BY_PROFILE = {
@@ -62,11 +67,13 @@ REJECTED_TOOLS_BY_PROFILE = {
     "global-disabled": {
         "CbdSupport.CbdRetrieval.status",
         "SemanticIntegrationEngine.SemanticRetrieval.status",
+        "Bok.BokRetrieval.explainTerm",
     },
     "sie-service-disabled": {"SemanticIntegrationEngine.SemanticRetrieval.status"},
     "operation-disabled": {
         "CbdSupport.CbdRetrieval.status",
         "SemanticIntegrationEngine.SemanticRetrieval.status",
+        "Bok.BokRetrieval.explainTerm",
     },
 }
 
@@ -75,7 +82,10 @@ def _request(base_url: str, payload: dict, timeout: float) -> dict:
     request = urllib.request.Request(
         f"{base_url}/mcp",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+        },
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -129,7 +139,11 @@ def _run(base_url: str, profile: str, timeout: float) -> None:
     )
     _require("error" not in listed, f"MCP tools/list failed: {listed}")
     tools = listed.get("result", {}).get("tools", [])
-    ordered_tool_names = [tool.get("name") for tool in tools]
+    ordered_tool_names = [
+        tool.get("name")
+        for tool in tools
+        if tool.get("name") and not tool.get("name").startswith("tool.")
+    ]
     tool_names = set(ordered_tool_names)
     expected_tools = EXPECTED_TOOLS_BY_PROFILE[profile]
     _require(
@@ -152,21 +166,25 @@ def _run(base_url: str, profile: str, timeout: float) -> None:
 
     cbd_count = len(tool_names & CBD_TOOLS)
     sie_count = len(tool_names & SIE_TOOLS)
+    bok_count = len(tool_names & BOK_TOOLS)
     print(f"profile={profile} endpoint={base_url}/mcp protocol=json-rpc")
-    print(f"cbd_read_tools={cbd_count} sie_read_tools={sie_count}")
+    print(
+        f"cbd_read_tools={cbd_count} bok_read_tools={bok_count} "
+        f"sie_read_tools={sie_count}"
+    )
     print("tool_identity_order=stable collisions=none")
     print(
         f"denied_non_public_tools={len(DENIED_TOOLS)} "
         "administration_tools=0 unexpected_tools=0"
     )
-    print("CBD_SIE_SAR_MCP_OK")
+    print("CBD_BOK_SIE_SAR_MCP_OK")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Verify the representative CBD Support and SIE SAR MCP surface."
+        description="Verify the representative CBD Support, BoK, and SIE SAR MCP surface."
     )
-    parser.add_argument("--base-url", default="http://127.0.0.1:19535")
+    parser.add_argument("--base-url", default="http://127.0.0.1:18005")
     parser.add_argument(
         "--profile",
         choices=sorted(EXPECTED_TOOLS_BY_PROFILE),
@@ -179,7 +197,7 @@ def main() -> int:
         _run(arguments.base_url.rstrip("/"), arguments.profile, arguments.timeout)
         return 0
     except (AssertionError, json.JSONDecodeError, OSError, RuntimeError) as error:
-        print(f"CBD_SIE_SAR_MCP_FAILED: {error}")
+        print(f"CBD_BOK_SIE_SAR_MCP_FAILED: {error}")
         return 1
 
 

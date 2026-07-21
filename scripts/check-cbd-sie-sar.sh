@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SIE_ROOT="${TEXTUS_SIE_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-semantic-integration-engine}"
+BOK_ROOT="${TEXTUS_BOK_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-bok}"
 SCRAPER_ROOT="${TEXTUS_SCRAPER_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-scraper}"
 CNCF_BIN="${CNCF_BIN:-$(command -v cncf || true)}"
 CNCF_VERSION_FILE="${CNCF_VERSION_FILE:-/Users/asami/src/dev2026/cncf-samples/versions/cncf-version.conf}"
@@ -30,7 +31,7 @@ if [[ -n "${CNCF_RUNTIME_DEV_DIR:-}" ]]; then
     RUNTIME_WORKTREE_STATE="unversioned"
   fi
 fi
-CNCF_SERVER_PORT="${CNCF_SERVER_PORT:-19535}"
+CNCF_SERVER_PORT="${CNCF_SERVER_PORT:-18005}"
 CNCF_HTTP_BASEURL="${CNCF_HTTP_BASEURL:-http://127.0.0.1:$CNCF_SERVER_PORT}"
 FIXTURE_PORT="${CBD_SIE_SAR_FIXTURE_PORT:-19537}"
 FIXTURE_BASEURL="${CBD_SIE_SAR_FIXTURE_BASEURL:-http://127.0.0.1:$FIXTURE_PORT}"
@@ -38,6 +39,7 @@ STARTUP_TIMEOUT_SECONDS="${CBD_SIE_SAR_STARTUP_TIMEOUT_SECONDS:-120}"
 SHUTDOWN_TIMEOUT_SECONDS="${CBD_SIE_SAR_SHUTDOWN_TIMEOUT_SECONDS:-30}"
 CBD_CAR="$PROJECT_ROOT/target/textus-cbd-support-0.1.0-SNAPSHOT.car"
 SIE_CAR="$SIE_ROOT/target/textus-semantic-integration-engine-0.2.0-SNAPSHOT.car"
+BOK_CAR="$BOK_ROOT/target/textus-bok-0.1.0-SNAPSHOT.car"
 SCRAPER_CAR="$SCRAPER_ROOT/target/textus-scraper-0.1.1-SNAPSHOT.car"
 SAR_DESCRIPTOR="$PROJECT_ROOT/examples/cbd-sie-sar/subsystem-descriptor.yaml"
 PROFILE_DIR="$PROJECT_ROOT/examples/cbd-sie-sar/profiles"
@@ -105,6 +107,10 @@ if [[ ! -f "$SIE_ROOT/project.yaml" ]]; then
   echo "SIE project is missing: $SIE_ROOT" >&2
   exit 1
 fi
+if [[ ! -f "$BOK_ROOT/project.yaml" ]]; then
+  echo "Textus BoK project is missing: $BOK_ROOT" >&2
+  exit 1
+fi
 for descriptor in "${SELECTED_PROFILE_DESCRIPTORS[@]}"; do
   if [[ ! -f "$descriptor" ]]; then
     echo "Representative SAR descriptor is missing: $descriptor" >&2
@@ -135,6 +141,7 @@ fi
 (cd "$PROJECT_ROOT" && sbt --batch cozyBuildCAR)
 (cd "$SCRAPER_ROOT" && sbt --batch cozyBuildCAR)
 (cd "$SIE_ROOT" && sbt --batch cozyBuildCAR)
+(cd "$BOK_ROOT" && sbt --batch cozyBuildCAR)
 
 if ! sie_api_descriptor="$(unzip -p "$SIE_CAR" component-api-descriptor.json 2>/dev/null)"; then
   echo "The SIE CAR is missing component-api-descriptor.json." >&2
@@ -255,12 +262,14 @@ run_profile() {
   server_log="$profile_root/server.log"
   mkdir -p \
     "$component_dir" \
+    "$sar_root/component" \
     "$sar_root" \
     "$local_car_root/repository/car" \
     "$cache_car_root/car"
-  cp "$CBD_CAR" "$SIE_CAR" "$component_dir/"
+  cp "$CBD_CAR" "$SIE_CAR" "$BOK_CAR" "$SCRAPER_CAR" "$component_dir/"
+  cp "$CBD_CAR" "$SIE_CAR" "$BOK_CAR" "$SCRAPER_CAR" "$sar_root/component/"
   cp "$descriptor" "$sar_root/subsystem-descriptor.yaml"
-  (cd "$sar_root" && zip -qr "$sar_file" subsystem-descriptor.yaml)
+  (cd "$sar_root" && zip -qr "$sar_file" subsystem-descriptor.yaml component)
 
   if curl -fsS "$CNCF_HTTP_BASEURL/openapi.json" >/dev/null 2>&1; then
     echo "A server responds before the $profile profile starts; refusing to reuse it." >&2
@@ -282,8 +291,6 @@ run_profile() {
       "--textus.cbd.development.trees=working=working" \
       "--textus.cbd.local-car.tree=local-car" \
       "--textus.cbd.cache-car.tree=cache-car" \
-      "--textus.cbd.sie-bok.allowed-origins=$CNCF_HTTP_BASEURL" \
-      "--textus.cbd.sie-bok.routes=semantic=$CNCF_HTTP_BASEURL/mcp" \
       "--textus.subsystem=textus-cbd-sie" \
       server \
       --no-project-classpath \
@@ -328,14 +335,13 @@ run_profile() {
   fi
   if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-source-aware.py" \
     --base-url "$CNCF_HTTP_BASEURL" \
-    --fixture-url "$FIXTURE_BASEURL" \
-    --sie-bok-base-uri "$(cd "$FIXTURE_ROOT/bok" && pwd -P | sed 's#^#file://#')/"; then
+    --bok-base-uri "$(cd "$FIXTURE_ROOT/bok" && pwd -P | sed 's#^#file://#')/"; then
     show_server_log
     exit 1
   fi
   if [[ "$profile" == "baseline" ]] && ! "$SCRIPT_DIR/probe-cbd-sie-design-flow.py" \
     --base-url "$CNCF_HTTP_BASEURL" \
-    --sie-bok-base-uri "$(cd "$FIXTURE_ROOT/bok" && pwd -P | sed 's#^#file://#')/"; then
+    --bok-base-uri "$(cd "$FIXTURE_ROOT/bok" && pwd -P | sed 's#^#file://#')/"; then
     show_server_log
     exit 1
   fi

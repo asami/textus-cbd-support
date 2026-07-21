@@ -7,12 +7,12 @@ import urllib.parse
 import urllib.request
 
 
+MCP_PROTOCOL_VERSION = "2025-11-25"
 TERM_ID = "architecture:runtime"
 COMPONENT_NAME = "textus-runtime"
 COMPONENT_KIND = "car"
 COMPONENT_VERSION = "1.0.0"
-COMPONENT_ORGANIZATION = "org.textus"
-SIE_REFERENCE_FIELDS = {
+BOK_REFERENCE_FIELDS = {
     "source_id",
     "catalog_id",
     "organization",
@@ -20,7 +20,7 @@ SIE_REFERENCE_FIELDS = {
     "title",
     "kind",
     "version",
-    "evidence_uri",
+    "evidence",
 }
 
 
@@ -28,7 +28,10 @@ def _request(base_url: str, payload: dict, timeout: float) -> dict:
     request = urllib.request.Request(
         f"{base_url}/mcp",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+        },
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -82,27 +85,35 @@ def _call_tool(
     return json.loads(text)
 
 
-def _matching_result(response: dict, identity: str) -> dict:
-    matches = [item for item in response.get("results", []) if item.get("id") == identity]
+def _matching_term_result(response: dict, identity: str) -> dict:
+    candidates = list(response.get("results", []))
+    if isinstance(response.get("result"), dict):
+        candidates.append(response["result"])
+    matches = [
+        item
+        for item in candidates
+        if item.get("term", {}).get("term_id") == identity
+    ]
     _require(len(matches) == 1, f"Expected one {identity} result: {response}")
     return matches[0]
 
 
-def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
+def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     term_search = _call_tool(
         base_url,
         "p5-23-term-search",
-        "SemanticIntegrationEngine.SemanticRetrieval.searchTerms",
-        {"query": "Execution Runtime", "limit": 10},
+        "Bok.BokRetrieval.searchTerms",
+        {"query": "Runtime", "limit": 10},
         timeout,
     )
-    term = _matching_result(term_search, TERM_ID)
+    term_match = _matching_term_result(term_search, TERM_ID)
+    term = term_match.get("term", {})
     _require(term_search.get("status") == "matched", f"Term search did not match: {term_search}")
-    _require(term.get("match_kind") == "exact", f"Term search was not exact: {term}")
+    _require(term_match.get("match_kind") == "exact", f"Term search was not exact: {term_match}")
     _require(
         _is_descendant_uri(
-            str(term.get("evidence_uri", "")),
-            sie_bok_base_uri,
+            str(term.get("evidence", {}).get("uri", "")),
+            bok_base_uri,
         ),
         f"Term search lost BoK evidence: {term}",
     )
@@ -110,11 +121,12 @@ def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
     term_explanation = _call_tool(
         base_url,
         "p5-23-term-explain",
-        "SemanticIntegrationEngine.SemanticRetrieval.explainTerm",
-        {"term": "Execution Runtime"},
+        "Bok.BokRetrieval.explainTerm",
+        {"term": "Runtime"},
         timeout,
     )
-    explained_term = _matching_result(term_explanation, TERM_ID)
+    explained_match = _matching_term_result(term_explanation, TERM_ID)
+    explained_term = explained_match.get("term", {})
     _require(
         term_explanation.get("status") == "matched"
         and bool(explained_term.get("definition")),
@@ -129,7 +141,7 @@ def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
     reference_search = _call_tool(
         base_url,
         "p5-23-reference-search",
-        "SemanticIntegrationEngine.SemanticRetrieval.searchComponentReferences",
+        "Bok.BokRetrieval.searchComponentReferences",
         {"query": reference_query, "kind": COMPONENT_KIND, "limit": 10},
         timeout,
     )
@@ -148,19 +160,19 @@ def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
         reference.get("name") == COMPONENT_NAME
         and reference.get("kind") == COMPONENT_KIND
         and reference.get("version") == COMPONENT_VERSION
-        and reference.get("organization") == COMPONENT_ORGANIZATION,
+        and reference.get("title") == "Textus Runtime",
         f"Reference search returned the wrong identity: {reference_search}",
     )
     _require(
         _is_descendant_uri(
-            str(reference.get("evidence_uri", "")),
-            sie_bok_base_uri,
+            str(reference.get("evidence", {}).get("uri", "")),
+            bok_base_uri,
         ),
         f"Reference search lost BoK evidence: {reference}",
     )
     _require(
-        set(reference).issubset(SIE_REFERENCE_FIELDS),
-        f"SIE reference leaked fields outside the handoff contract: {reference}",
+        set(reference).issubset(BOK_REFERENCE_FIELDS),
+        f"BoK reference leaked fields outside the handoff contract: {reference}",
     )
 
     lookup_arguments = {
@@ -171,7 +183,7 @@ def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
     exact_reference = _call_tool(
         base_url,
         "p5-23-reference-lookup",
-        "SemanticIntegrationEngine.SemanticRetrieval.getComponentReference",
+        "Bok.BokRetrieval.getComponentReference",
         lookup_arguments,
         timeout,
     )
@@ -181,17 +193,16 @@ def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
         and looked_up.get("name") == reference.get("name")
         and looked_up.get("kind") == reference.get("kind")
         and looked_up.get("version") == reference.get("version"),
-        f"Exact SIE reference lookup did not preserve the handoff: {exact_reference}",
+        f"Exact BoK reference lookup did not preserve the handoff: {exact_reference}",
     )
     _require(
-        set(looked_up).issubset(SIE_REFERENCE_FIELDS),
-        f"Exact SIE lookup leaked fields outside the handoff contract: {looked_up}",
+        set(looked_up).issubset(BOK_REFERENCE_FIELDS),
+        f"Exact BoK lookup leaked fields outside the handoff contract: {looked_up}",
     )
 
-    cbd_arguments = {
-        **lookup_arguments,
-        "organization": reference["organization"],
-    }
+    cbd_arguments = dict(lookup_arguments)
+    if reference.get("organization"):
+        cbd_arguments["organization"] = reference["organization"]
     detail = _call_tool(
         base_url,
         "p5-23-component-detail",
@@ -243,34 +254,34 @@ def _run(base_url: str, sie_bok_base_uri: str, timeout: float) -> None:
         f"reference_query={reference_query}"
     )
     print(
-        f"component_handoff={COMPONENT_ORGANIZATION}:{COMPONENT_NAME}:"
-        f"{COMPONENT_KIND}@{COMPONENT_VERSION} sie_detail=excluded"
+        f"component_handoff={reference.get('organization', '(unspecified)')}:{COMPONENT_NAME}:"
+        f"{COMPONENT_KIND}@{COMPONENT_VERSION} bok_detail=existence-only"
     )
     print(
         "cbd_detail=fixture-catalog "
         "usage=RuntimeInspection.inspectRuntime guidance=attributable"
     )
-    print("CBD_SIE_DESIGN_FLOW_OK")
+    print("BOK_CBD_DESIGN_FLOW_OK")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Verify a live SIE-to-CBD component design handoff."
+        description="Verify a live BoK-to-CBD component design handoff."
     )
-    parser.add_argument("--base-url", default="http://127.0.0.1:19535")
-    parser.add_argument("--sie-bok-base-uri", required=True)
+    parser.add_argument("--base-url", default="http://127.0.0.1:18005")
+    parser.add_argument("--bok-base-uri", required=True)
     parser.add_argument("--timeout", type=float, default=30.0)
     arguments = parser.parse_args()
 
     try:
         _run(
             arguments.base_url.rstrip("/"),
-            arguments.sie_bok_base_uri.rstrip("/") + "/",
+            arguments.bok_base_uri.rstrip("/") + "/",
             arguments.timeout,
         )
         return 0
     except (AssertionError, json.JSONDecodeError, OSError, RuntimeError) as error:
-        print(f"CBD_SIE_DESIGN_FLOW_FAILED: {error}")
+        print(f"BOK_CBD_DESIGN_FLOW_FAILED: {error}")
         return 1
 
 

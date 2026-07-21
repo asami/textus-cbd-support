@@ -3,8 +3,10 @@
 import argparse
 import json
 import urllib.error
-import urllib.parse
 import urllib.request
+
+
+MCP_PROTOCOL_VERSION = "2025-11-25"
 
 
 def _request(request: urllib.request.Request, timeout: float) -> dict:
@@ -28,18 +30,10 @@ def _post_json(base_url: str, path: str, body: dict, timeout: float) -> dict:
         urllib.request.Request(
             f"{base_url}{path}",
             data=json.dumps(body).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-        ),
-        timeout,
-    )
-
-
-def _post_form(base_url: str, path: str, body: dict, timeout: float) -> dict:
-    return _request(
-        urllib.request.Request(
-            f"{base_url}{path}",
-            data=urllib.parse.urlencode(body).encode("utf-8"),
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Content-Type": "application/json",
+                "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+            },
         ),
         timeout,
     )
@@ -48,13 +42,6 @@ def _post_form(base_url: str, path: str, body: dict, timeout: float) -> dict:
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
-
-
-def _is_descendant_uri(uri: str, base_uri: str) -> bool:
-    value = urllib.parse.urlparse(uri)
-    base = urllib.parse.urlparse(base_uri)
-    base_path = base.path.rstrip("/") + "/"
-    return value.scheme == base.scheme and value.path.startswith(base_path)
 
 
 def _call_tool(
@@ -117,25 +104,27 @@ def _search(base_url: str, request_id: str, limit: int, timeout: float) -> dict:
 
 def _run(
     base_url: str,
-    fixture_url: str,
-    sie_bok_base_uri: str,
+    bok_base_uri: str,
     timeout: float,
 ) -> None:
-    ingestion = _post_form(
+    ingestion = _post_json(
         base_url,
-        "/rest/v1/semantic-integration-engine/knowledge-store-admin/ingest-bok-knowledge-source",
+        "/rest/v1/bok/bok-retrieval/replace-knowledge-source",
         {
-            "baseUri": sie_bok_base_uri,
-            "registerKnowledgeSpace": "true",
-            "includeKnowledgeFrame": "false",
+            "source": {
+                "sourceId": "representative-bok",
+                "datasetId": "representative-bok",
+                "generation": "representative-v1",
+                "resource": bok_base_uri,
+            }
         },
         timeout,
     )
     _require(
-        ingestion.get("knowledge_space_state") == "ready",
-        f"SIE fixture ingestion is not ready: {ingestion}",
+        ingestion.get("status") == "complete",
+        f"BoK fixture replacement is not complete: {ingestion}",
     )
-    _require(ingestion.get("term_count") == 1, f"Unexpected SIE term count: {ingestion}")
+    _require(ingestion.get("term_count") == 1, f"Unexpected BoK term count: {ingestion}")
 
     full = _search(base_url, "p4-22-full", 10, timeout)
     _require(full.get("status") == "matched", f"Composed retrieval did not match: {full}")
@@ -161,25 +150,9 @@ def _run(
         f"Development version evidence is missing: {full}",
     )
 
-    semantic = full.get("semantic_evidence", [])
-    _require(len(semantic) == 1, f"Expected one semantic citation: {full}")
-    citation = semantic[0]
     _require(
-        citation.get("source_id") == "semantic"
-        and citation.get("source_kind") == "sie-bok"
-        and citation.get("term_id") == "architecture:runtime",
-        f"SIE semantic evidence is missing or misowned: {citation}",
-    )
-    _require(
-        _is_descendant_uri(
-            str(citation.get("evidence_uri", "")),
-            sie_bok_base_uri,
-        ),
-        f"SIE evidence does not cite the fixture source: {citation}",
-    )
-    _require(
-        "semantic" not in observation_sources,
-        f"Semantic evidence was merged into component observations: {full}",
+        not full.get("semantic_evidence", []),
+        f"CBD copied BoK terminology instead of resolving catalog detail independently: {full}",
     )
     _require(
         full.get("selected_observation") is None,
@@ -211,7 +184,7 @@ def _run(
 
     limited = _search(base_url, "p4-22-limited", 1, timeout)
     _require(len(limited.get("observations", [])) <= 1, f"Observation limit failed: {limited}")
-    _require(len(limited.get("semantic_evidence", [])) <= 1, f"Semantic limit failed: {limited}")
+    _require(not limited.get("semantic_evidence", []), f"CBD semantic state was not isolated: {limited}")
     _require(limited.get("selected_observation") is None, f"Limited search selected a winner: {limited}")
     limited_conflict = _version_conflict(limited)
     _require(
@@ -241,32 +214,30 @@ def _run(
         "source_owned_observations="
         f"catalog:{observation_sources['fixture-catalog']['version']},"
         f"working:{observation_sources['working']['version']} "
-        f"semantic={citation['source_id']}:{citation['term_id']}"
+        "bok_state_owner=textus-bok cbd_detail_owner=textus-cbd-support"
     )
     print("bounded_observations=1 conflict_participants=fixture-catalog,working")
-    print("CBD_SIE_SOURCE_AWARE_OK")
+    print("CBD_BOK_SIE_SOURCE_OWNERSHIP_OK")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Verify live source ownership through the composed CBD and SIE SAR."
+        description="Verify live source ownership through the composed CBD, BoK, and SIE SAR."
     )
-    parser.add_argument("--base-url", default="http://127.0.0.1:19535")
-    parser.add_argument("--fixture-url", default="http://127.0.0.1:19537")
-    parser.add_argument("--sie-bok-base-uri", required=True)
+    parser.add_argument("--base-url", default="http://127.0.0.1:18005")
+    parser.add_argument("--bok-base-uri", required=True)
     parser.add_argument("--timeout", type=float, default=30.0)
     arguments = parser.parse_args()
 
     try:
         _run(
             arguments.base_url.rstrip("/"),
-            arguments.fixture_url.rstrip("/"),
-            arguments.sie_bok_base_uri.rstrip("/") + "/",
+            arguments.bok_base_uri.rstrip("/") + "/",
             arguments.timeout,
         )
         return 0
     except (AssertionError, json.JSONDecodeError, OSError, RuntimeError) as error:
-        print(f"CBD_SIE_SOURCE_AWARE_FAILED: {error}")
+        print(f"CBD_BOK_SIE_SOURCE_OWNERSHIP_FAILED: {error}")
         return 1
 
 

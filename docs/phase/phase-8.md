@@ -2,9 +2,8 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 and 8.2 are complete; next, implement
-  deterministic Markdown and accessible PDF report artifacts from the common
-  report-document projection.
+- Current step: Stages 8.1 through 8.3 are complete; next, define and
+  implement authorized CI/CD artifact and gate integration.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -142,6 +141,38 @@ same 19-operation surface.
 Implement deterministic Markdown and accessible PDF output from the common
 report-document model. Prove content, redaction, order, identity, and omission
 policy agree with canonical JSON and Web views.
+
+Completed on 2026-07-23. `CarReviewDeliveryArtifactRenderer` renders only the
+already-projected `CarReviewDeliveryDocument`; it has no repository, provider,
+clock, filesystem, browser, host-font, or network dependency. It produces
+fixed-order Markdown and deterministic self-contained tagged PDF bytes.
+`CarReviewDeliveryArtifactRendererSpec` proves stable bytes, common identities
+and order, Markdown table output, PDF title/language/searchable text/heading
+and table structure, explicit unsupported-character omission, and no conclusion
+change. The PDF was inspected with `pdfinfo`, pypdf text extraction, and
+Poppler rasterization. The implementation follows this completed plan:
+
+- add one in-memory `CarReviewDeliveryArtifactRenderer` over
+  `CarReviewDeliveryDocument`; it accepts no filesystem path, clock, provider,
+  or report repository and returns Markdown, PDF bytes, and explicit renderer
+  limitations only;
+- render Markdown in the common contract order: Report identity, gate, counts,
+  baseline, capabilities, Observations, limitations, and redaction/omission.
+  Use fixed headings and tables/lists, canonical IDs, and no generated advice
+  or timestamp;
+- render a self-contained, deterministic tagged PDF from the same intermediate
+  sections. It has fixed object ordering, no creation-time metadata, document
+  title/language, searchable text, heading/table structure, text labels, and
+  a non-colour-only gate/severity presentation. It must not rely on an ambient
+  browser, host font, external tool, or network service;
+- represent an unsupported printable character, page/layout limit, or tagging
+  limitation as an explicit PDF omission marker and renderer limitation. It is
+  never silently removed or changed into a conclusion;
+- add `CarReviewDeliveryArtifactRendererSpec` for byte-identical repeated
+  Markdown/PDF output, exact Web/JSON identity/order/redaction equivalence,
+  readable PDF text/structure metadata, and explicit renderer limitations.
+  The PDF skill's Poppler render and text/metadata inspection will be used for
+  final visual verification.
 
 ### Stage 8.4: CI/CD artifact and gate integration
 

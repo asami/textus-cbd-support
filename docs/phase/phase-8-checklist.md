@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.2 complete)
+Status: in progress (Stages 8.1–8.3 complete)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -53,14 +53,26 @@ phase=[Phase 8](phase-8.md)
 
 ## P8-20 to P8-29: Markdown and PDF artifacts
 
-- [ ] `P8-20` Generate deterministic Markdown from the common report-document
-  projection.
-- [ ] `P8-21` Generate accessible PDF from the same projection without
-  modifying canonical report state.
-- [ ] `P8-22` Prove Markdown/PDF/Web/JSON identity, ordering, redaction, and
-  omission consistency for representative reports.
-- [ ] `P8-23` Prove PDF generation is reproducible and reports renderer
-  limitations explicitly.
+- [x] `P8-20` Generate deterministic Markdown from the common report-document
+  projection. Evidence: `CarReviewDeliveryArtifactRenderer` renders fixed
+  common-document headings, tables, lists, IDs, and redaction/omission text
+  without any provider, repository, clock, or filesystem work.
+- [x] `P8-21` Generate accessible PDF from the same projection without
+  modifying canonical report state. Evidence: the renderer produces a
+  self-contained tagged PDF with title, language, searchable text, headings,
+  and `Table → TR → TH/TD` structure; no external converter or host font is
+  used.
+- [x] `P8-22` Prove Markdown/PDF/Web/JSON identity, ordering, redaction, and
+  omission consistency for representative reports. Evidence:
+  `CarReviewDeliveryArtifactRendererSpec` retains the canonical Report ID,
+  digest, gate, Unknown identity, common section order, and delivery-safe
+  text; P8-10/12 Web and delivery-projection specs prove the same source model
+  and redaction boundary.
+- [x] `P8-23` Prove PDF generation is reproducible and reports renderer
+  limitations explicitly. Evidence: repeated rendering asserts byte identity;
+  unsupported printable characters become visible omission markers and the
+  stable `pdf.unsupported-character` renderer limitation. `pdfinfo`, pypdf,
+  and Poppler inspection confirm the representative tagged two-page PDF.
 
 ## P8-30 to P8-39: CI/CD
 

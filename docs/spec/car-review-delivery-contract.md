@@ -105,3 +105,36 @@ accessibility features as a limitation rather than silently omitting them.
 `CarReviewDeliveryProjectionSpec` proves deterministic same-Report projection,
 identity preservation for dashboard and diagnoses, baseline retention,
 redaction, exact missing-item behavior, and no report mutation.
+
+## Markdown and PDF Artifact Plan
+
+P8-20 through P8-23 introduce an in-memory renderer over exactly one
+`CarReviewDeliveryDocument`. The renderer receives neither a repository,
+provider, clock, filesystem path, browser, host font, nor network client. Its
+only outputs are one Markdown string, one PDF byte sequence, and an explicit
+ordered renderer-limitation list. The renderer never alters, re-encodes, or
+calculates the canonical Report/digest.
+
+Markdown uses the common document order as fixed headings: `Report identity`,
+`Gate`, `Dashboard`, `Baseline`, `Capabilities`, `Observations`, `Limitations`,
+and `Redaction and omissions`. Identity and counts use tables; capability,
+Observation, and limitation collections use canonical-ID order. A diagnostic
+message is already delivery-safe when it reaches this renderer, but Markdown
+still treats all text as literal text rather than renderer-local advice.
+
+PDF has the same text and reading order as Markdown. It is a deterministic,
+self-contained tagged PDF: fixed object/section ordering; no wall-clock
+creation metadata; document `/Title` and `/Lang`; a marked structure tree for
+headings, tables, table headers, and paragraphs; searchable text; and explicit
+text for gate and severity in addition to any visual treatment. The initial
+renderer must not depend on a browser, external converter, host-installed font,
+or network service. Repeated rendering of the same document produces identical
+bytes.
+
+If the PDF renderer cannot represent a printable character, fit an admitted
+layout/page bound, or emit one required accessibility feature, it writes a
+visible `[omitted: <reason>]` marker in the relevant section and includes a
+stable renderer limitation. It does not silently drop text, weaken a gate,
+change an Observation type, or modify the Report. The accompanying executable
+spec renders and extracts the PDF; final Phase verification also rasterizes it
+with Poppler for visual inspection.

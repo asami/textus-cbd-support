@@ -2,8 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 through 8.3 are complete; next, define and
-  implement authorized CI/CD artifact and gate integration.
+- Current step: Stages 8.1 through 8.4 are complete; next, connect the
+  authorized CI artifact contract to `sbt-cozy` materialization and gate
+  integration.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -179,6 +180,16 @@ Poppler rasterization. The implementation follows this completed plan:
 Extend authorized `sbt-cozy`/CI integration to materialize report artifacts,
 attestation, exit behavior, and explicit profile gate handling without
 redefining publish/deploy tasks.
+
+P8-30 completed on 2026-07-23. The CBD-owned CI artifact contract fixes one
+attestation-digest attempt directory, the canonical JSON/Report/attestation/
+Markdown/PDF/HTML/SARIF file names, per-artifact byte digests, exact report and
+profile binding, offline CI posture, pass/fail/unknown exit semantics, and
+CI-workspace retention without implicit publication, distribution, or
+deployment. Its JSON Schema constrains every artifact member to its fixed name,
+and `CarReviewCiArtifactContractSpec` proves the representative unknown-gate
+attempt, retention, and schema constraints. P8-31 through P8-33 remain the
+separate `sbt-cozy` materialization, gate-behavior, and non-interference work.
 
 ### Stage 8.5: Diagnosis persistence, reuse, and CAR evolution
 

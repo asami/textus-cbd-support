@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "textus.cbd.review-ci-artifact.v1",
+  "documentType": "review-ci-artifact-manifest",
+  "reviewId": "review-example-001",
+  "reportId": "report-example-001",
+  "reportDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "targetDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "attestationDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "profile": "ci",
+  "gate": {
+    "policyId": "standard-ci",
+    "policyVersion": "1.0.0",
+    "result": "unknown"
+  },
+  "exitCode": 3,
+  "artifactDirectory": "target/cbd-review/sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "retention": {
+    "mode": "ci-workspace",
+    "preserveOn": ["pass", "fail", "unknown"],
+    "publication": "not-triggered",
+    "distribution": "not-triggered",
+    "deployment": "not-triggered"
+  },
+  "artifacts": {
+    "canonicalResponse": { "path": "canonical-response.json", "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111" },
+    "report": { "path": "report.json", "sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222" },
+    "attestation": { "path": "attestation.json", "sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333" },
+    "markdown": { "path": "report.md", "sha256": "sha256:4444444444444444444444444444444444444444444444444444444444444444" },
+    "pdf": { "path": "report.pdf", "sha256": "sha256:5555555555555555555555555555555555555555555555555555555555555555" },
+    "html": { "path": "report.html", "sha256": "sha256:6666666666666666666666666666666666666666666666666666666666666666" },
+    "sarif": { "path": "report.sarif", "sha256": "sha256:7777777777777777777777777777777777777777777777777777777777777777" }
+  }
+}

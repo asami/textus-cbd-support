@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://simplemodeling.org/schema/textus/cbd/car-review-ci-artifact-manifest-v1.schema.json",
+  "title": "Textus CBD CAR Review CI Artifact Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "reviewId",
+    "reportId",
+    "reportDigest",
+    "targetDigest",
+    "attestationDigest",
+    "profile",
+    "gate",
+    "exitCode",
+    "artifactDirectory",
+    "retention",
+    "artifacts"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "textus.cbd.review-ci-artifact.v1" },
+    "documentType": { "const": "review-ci-artifact-manifest" },
+    "reviewId": { "$ref": "#/$defs/identifier" },
+    "reportId": { "$ref": "#/$defs/identifier" },
+    "reportDigest": { "$ref": "#/$defs/digest" },
+    "targetDigest": { "$ref": "#/$defs/digest" },
+    "attestationDigest": { "$ref": "#/$defs/digest" },
+    "profile": { "$ref": "#/$defs/identifier" },
+    "gate": { "$ref": "#/$defs/gate" },
+    "exitCode": { "type": "integer", "enum": [0, 2, 3] },
+    "artifactDirectory": {
+      "type": "string",
+      "pattern": "^target/cbd-review/sha256-[a-f0-9]{64}$"
+    },
+    "retention": { "$ref": "#/$defs/retention" },
+    "artifacts": { "$ref": "#/$defs/artifacts" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "gate": { "properties": { "result": { "const": "pass" } } } } },
+      "then": { "properties": { "exitCode": { "const": 0 } } }
+    },
+    {
+      "if": { "properties": { "gate": { "properties": { "result": { "const": "fail" } } } } },
+      "then": { "properties": { "exitCode": { "const": 2 } } }
+    },
+    {
+      "if": { "properties": { "gate": { "properties": { "result": { "const": "unknown" } } } } },
+      "then": { "properties": { "exitCode": { "const": 3 } } }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policyId", "policyVersion", "result"],
+      "properties": {
+        "policyId": { "$ref": "#/$defs/identifier" },
+        "policyVersion": { "$ref": "#/$defs/identifier" },
+        "result": { "enum": ["pass", "fail", "unknown"] }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "preserveOn", "publication", "distribution", "deployment"],
+      "properties": {
+        "mode": { "const": "ci-workspace" },
+        "preserveOn": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "enum": ["pass", "fail", "unknown"] }
+        },
+        "publication": { "const": "not-triggered" },
+        "distribution": { "const": "not-triggered" },
+        "deployment": { "const": "not-triggered" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+        "sha256": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalResponse", "report", "attestation", "markdown", "pdf", "html", "sarif"],
+      "properties": {
+        "canonicalResponse": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "canonical-response.json" } } }
+          ]
+        },
+        "report": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "report.json" } } }
+          ]
+        },
+        "attestation": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "attestation.json" } } }
+          ]
+        },
+        "markdown": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "report.md" } } }
+          ]
+        },
+        "pdf": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "report.pdf" } } }
+          ]
+        },
+        "html": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "report.html" } } }
+          ]
+        },
+        "sarif": {
+          "allOf": [
+            { "$ref": "#/$defs/artifact" },
+            { "properties": { "path": { "const": "report.sarif" } } }
+          ]
+        }
+      }
+    }
+  }
+}

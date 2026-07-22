@@ -76,8 +76,14 @@ phase=[Phase 8](phase-8.md)
 
 ## P8-30 to P8-39: CI/CD
 
-- [ ] `P8-30` Define CI artifact paths, retention, report/attestation digest
-  binding, and profile/exit-code contract.
+- [x] `P8-30` Define CI artifact paths, retention, report/attestation digest
+  binding, and profile/exit-code contract. Evidence:
+  `car-review-ci-artifact-contract.md` plus its manifest schema/example fix the
+  attestation-digest attempt directory, seven artifact paths, byte digests,
+  exact profile/gate identity, workspace retention, `pass=0`/`fail=2`/
+  `unknown=3`, and no implicit publish/distribute/deploy behavior;
+  `CarReviewCiArtifactContractSpec` proves the executable contract and schema
+  path constraints.
 - [ ] `P8-31` Materialize JSON, Markdown, PDF, HTML, SARIF, and attestation
   artifacts through authorized sbt-cozy/CI integration.
 - [ ] `P8-32` Prove pass/fail/unknown behavior, offline determinism, and

@@ -424,6 +424,54 @@ ReviewSubmissionResponse
 
 Private HTTP POST gateway operation. It accepts the Review submission document in the generated request envelope and returns the CBD-owned canonical response envelope.
 
+### OPERATION
+
+#### getReviewDashboard
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ReviewDashboardRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewDashboardResponse
+
+##### DESCRIPTION
+
+Return one authorized, redacted dashboard for one exact canonical Review Report. This private Web query never enumerates history, invokes a provider, or changes a Review conclusion.
+
+### OPERATION
+
+#### getReviewDiagnosis
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ReviewDiagnosisRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ReviewDiagnosisResponse
+
+##### DESCRIPTION
+
+Return one authorized, redacted Observation or capability diagnosis for one exact canonical Review Report. Missing or unsupported items remain explicit and no fallback Report is selected.
+
 # COMMAND
 
 ## CatalogRefreshRequest
@@ -640,6 +688,32 @@ Read-only request for the canonical cross-view projection of one exact Review Re
 |------|------|--------------|
 | reportId | ReviewReportId | 1 |
 
+## ReviewDashboardRequest
+
+### DESCRIPTION
+
+Private Web request for one exact canonical Review Report dashboard. It never accepts a target selector or history filter.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+
+## ReviewDiagnosisRequest
+
+### DESCRIPTION
+
+Private Web request for one exact Observation or capability diagnosis from one exact canonical Review Report.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+| itemKind | CbdWarning | 1 |
+| itemId | CbdWarning | 1 |
+
 # VALUE
 
 ## CatalogRefreshResponse
@@ -834,6 +908,62 @@ Bounded projection of one typed Review Run and its exact CNCF Job binding.
 | cncf | ReviewViewItem | * |
 | implementation | ReviewViewItem | * |
 | quality | ReviewViewItem | * |
+
+## ReviewDashboardResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | ReviewId | 1 |
+| reportId | ReviewReportId | 1 |
+| reportDigest | ReviewDigest | 1 |
+| targetKind | ReviewTargetKind | 1 |
+| organization | ComponentOrganization | ? |
+| name | ComponentName | 1 |
+| version | ComponentVersion | ? |
+| targetDigest | ReviewDigest | 1 |
+| profile | ReviewProfile | 1 |
+| gate | ReviewGateResult | 1 |
+| gateReasons | CbdWarning | * |
+| findingCount | int | 1 |
+| assuranceCount | int | 1 |
+| unknownCount | int | 1 |
+| baseline | ReviewDeliveryBaseline | ? |
+| limitations | ReviewMcpLimitation | * |
+
+## ReviewDeliveryBaseline
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reportId | ReviewReportId | 1 |
+| reportDigest | ReviewDigest | 1 |
+| addedObservationIds | ReviewObservationId | * |
+| removedObservationIds | ReviewObservationId | * |
+| unchangedObservationIds | ReviewObservationId | * |
+
+## ReviewDiagnosisResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| itemKind | CbdWarning | 1 |
+| itemId | CbdWarning | 1 |
+| reportId | ReviewReportId | 1 |
+| reportDigest | ReviewDigest | 1 |
+| ruleId | ReviewRuleId | ? |
+| ruleVersion | ReviewVersion | ? |
+| observationIds | ReviewObservationId | * |
+| evidenceIds | ReviewEvidenceId | * |
+| capabilityIds | ReviewCapabilityId | * |
+| providerIds | ReviewProviderId | * |
+| locations | CbdWarning | * |
+| disposition | CbdWarning | ? |
+| limitations | ReviewMcpLimitation | * |
+| nextActions | CbdWarning | * |
 
 ## ReviewViewItem
 
@@ -1718,6 +1848,14 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 | value | string | 1 |
 
 ## ReviewEvidenceId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewCapabilityId
 
 ### ATTRIBUTE
 

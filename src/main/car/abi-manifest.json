@@ -114,6 +114,18 @@
           "kind": "COMMAND",
           "input": "ReviewHttpSubmissionRequest",
           "output": "ReviewSubmissionResponse"
+        },
+        {
+          "name": "getReviewDashboard",
+          "kind": "QUERY",
+          "input": "ReviewDashboardRequest",
+          "output": "ReviewDashboardResponse"
+        },
+        {
+          "name": "getReviewDiagnosis",
+          "kind": "QUERY",
+          "input": "ReviewDiagnosisRequest",
+          "output": "ReviewDiagnosisResponse"
         }
       ],
       "entities": []

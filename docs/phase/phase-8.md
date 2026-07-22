@@ -2,8 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stage 8.1 delivery and diagnosis contract is complete; next,
-  implement the authorized Web dashboard and item-diagnosis surface.
+- Current step: Stages 8.1 and 8.2 are complete; next, implement
+  deterministic Markdown and accessible PDF report artifacts from the common
+  report-document projection.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -123,6 +124,18 @@ baseline handling, redaction, and exact missing-item behavior.
 Implement authorized dashboard and drill-down views with executable Web and
 projection specifications. Prove all displayed conclusions retain canonical
 Evidence/Observation/capability/provider IDs.
+
+Completed on 2026-07-23. `CarReviewWebDeliveryApplication` serves one exact,
+authorized retained Report through private `CbdReviewAdmin` dashboard and
+diagnosis queries. Its static forms remain authenticated and non-MCP-ready;
+the diagnosis form admits only `observation` or `capability`. The Web boundary
+uses the common delivery document only: it does not invoke providers, enumerate
+history, or alter conclusions. `CarReviewWebDeliveryApplicationSpec` proves
+Finding, Assurance, Unknown, and capability diagnosis; canonical gate,
+baseline, limitations, and disposition retention; authorization/missing-item
+failure; and descriptor-supported bounded choices. `scripts/check-car-abi.sh`
+proves the generated CML, source ABI manifest, and packaged CAR expose the
+same 19-operation surface.
 
 ### Stage 8.3: Markdown and PDF report artifacts
 

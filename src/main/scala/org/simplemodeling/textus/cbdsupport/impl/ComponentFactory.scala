@@ -14,7 +14,7 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDevelopmentTemplateProvider, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceAuthorization, InformationSourceDescriptor, InformationSourceKind, LocalInformationInventory, LocalInformationSourceInventory, LocalInspectionPolicy, VersionAvailabilityState}
 
 /*
@@ -33,6 +33,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   private val _review_application = new CarReviewRunApplication()
   private val _review_repository = new CarReviewRepository()
   private val _review_reads = new CarReviewMcpReadApplication(_review_repository)
+  private val _review_web = new CarReviewWebDeliveryApplication(_review_repository)
 
   private[cbdsupport] def _review_read_application: CarReviewMcpReadApplication = _review_reads
   private[cbdsupport] def _retain_review_report(report: org.simplemodeling.textus.cbdsupport.runtime.CarReviewReport): org.goldenport.Consequence[Unit] =
@@ -362,6 +363,16 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: ReviewHttpSubmissionRequest
     ): PostActionCall = PostActionCallImpl(core, action)
+
+    override def createGetReviewDashboardActionCall(
+      core: ActionCall.Core,
+      action: ReviewDashboardRequest
+    ): GetReviewDashboardActionCall = GetReviewDashboardActionCallImpl(core, action)
+
+    override def createGetReviewDiagnosisActionCall(
+      core: ActionCall.Core,
+      action: ReviewDiagnosisRequest
+    ): GetReviewDiagnosisActionCall = GetReviewDiagnosisActionCallImpl(core, action)
   }
 
   private final case class SearchComponentsActionCallImpl(
@@ -662,6 +673,32 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           gateway
         ).map(admission => OperationResponse(_review_run_record(admission)))
       }
+    }
+  }
+
+  private final case class GetReviewDashboardActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdReviewAdminService.ReviewDashboardRequest
+  ) extends CbdReviewAdminService.GetReviewDashboardActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_web.dashboard(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        CarReviewAuthorization.roles(core.executionContext)
+      ).map(document => OperationResponse(_review_dashboard_record(document)))
+    }
+  }
+
+  private final case class GetReviewDiagnosisActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdReviewAdminService.ReviewDiagnosisRequest
+  ) extends CbdReviewAdminService.GetReviewDiagnosisActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _review_web.diagnosis(
+        ReviewReportId(_required_string(action.record, "reportId")),
+        _required_string(action.record, "itemKind"),
+        _required_string(action.record, "itemId"),
+        CarReviewAuthorization.roles(core.executionContext)
+      ).map(diagnosis => OperationResponse(_review_diagnosis_record(diagnosis)))
     }
   }
 
@@ -1025,6 +1062,65 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "findingCount" -> summary.findingCount,
       "assuranceCount" -> summary.assuranceCount,
       "unknownCount" -> summary.unknownCount
+    )
+
+  private[cbdsupport] def _review_dashboard_record(document: CarReviewDeliveryDocument): Record = {
+    val dashboard = document.dashboard
+    Record.dataAuto(
+      "reviewId" -> dashboard.reviewId.value,
+      "reportId" -> dashboard.reportId.value,
+      "reportDigest" -> dashboard.reportDigest.value,
+      "targetKind" -> dashboard.target.kind.value,
+      "organization" -> dashboard.target.organization,
+      "name" -> dashboard.target.name,
+      "version" -> dashboard.target.version.map(_.value),
+      "targetDigest" -> dashboard.target.digest.value,
+      "profile" -> dashboard.profile.value,
+      "gate" -> dashboard.gate.result.value,
+      "gateReasons" -> dashboard.gate.reasons,
+      "findingCount" -> dashboard.findingCount,
+      "assuranceCount" -> dashboard.assuranceCount,
+      "unknownCount" -> dashboard.unknownCount,
+      "baseline" -> dashboard.baseline.map { baseline =>
+        Record.dataAuto(
+          "reportId" -> baseline.reportId.value,
+          "reportDigest" -> baseline.reportDigest.value,
+          "addedObservationIds" -> baseline.addedObservationIds.map(_.value),
+          "removedObservationIds" -> baseline.removedObservationIds.map(_.value),
+          "unchangedObservationIds" -> baseline.unchangedObservationIds.map(_.value)
+        )
+      },
+      "limitations" -> document.limitations.map(_delivery_limitation_record)
+    )
+  }
+
+  private[cbdsupport] def _review_diagnosis_record(value: CarReviewWebDiagnosis): Record = {
+    val diagnosis = value.diagnosis
+    Record.dataAuto(
+      "itemKind" -> diagnosis.kind,
+      "itemId" -> diagnosis.itemId,
+      "reportId" -> diagnosis.reportId.value,
+      "reportDigest" -> diagnosis.reportDigest.value,
+      "ruleId" -> diagnosis.rule.map(_.id.value),
+      "ruleVersion" -> diagnosis.rule.map(_.version.value),
+      "observationIds" -> diagnosis.observationIds.map(_.value),
+      "evidenceIds" -> diagnosis.evidenceIds.map(_.value),
+      "capabilityIds" -> diagnosis.capabilityIds.map(_.value),
+      "providerIds" -> diagnosis.providerIds.map(_.value),
+      "locations" -> diagnosis.locations,
+      "disposition" -> diagnosis.disposition.map(_.state.value),
+      "limitations" -> diagnosis.limitations.map(_delivery_limitation_record),
+      "nextActions" -> value.nextActions
+    )
+  }
+
+  private def _delivery_limitation_record(limitation: org.simplemodeling.textus.cbdsupport.runtime.CarReviewDeliveryLimitation): Record =
+    Record.dataAuto(
+      "code" -> limitation.code,
+      "scope" -> limitation.scope.value,
+      "subjectId" -> limitation.subjectId,
+      "message" -> limitation.message,
+      "retryable" -> limitation.retryable
     )
 
   private[cbdsupport] def _review_report_record(report: CarReviewMcpReport): Record =

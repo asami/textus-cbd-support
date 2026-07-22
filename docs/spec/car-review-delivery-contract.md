@@ -67,6 +67,20 @@ cursor to the report digest and collection order. Pagination cannot span
 Reports, discover history, or change an item diagnosis. P8-10 implements those
 transport rules; no endpoint is introduced by this contract.
 
+## Private Web Surface
+
+`CbdReviewAdmin.getReviewDashboard` and
+`CbdReviewAdmin.getReviewDiagnosis` are authenticated private Web queries. They
+admit only the existing `review.read-run` role, address one exact Report ID,
+and use the common delivery model. Diagnosis accepts only `observation` or
+`capability` plus one exact item ID; an absent or unsupported item is a missing
+operation result, never a fallback Report or synthetic diagnosis. The response
+keeps the Report/gate/baseline/Unknown identities and exposes only redacted
+locations, limitations, and deterministic navigation guidance. The queries do
+not invoke providers, execute a rule, choose a disposition, or enumerate
+history. They are in the `CbdReviewAdmin` service and therefore remain private
+to MCP even though their static Web forms are authenticated.
+
 ## Renderer Boundary
 
 Markdown and PDF are later deterministic renderers over this same document

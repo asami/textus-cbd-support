@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: planned
+Status: in progress (Stages 8.1–8.2 complete)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -30,13 +30,26 @@ phase=[Phase 8](phase-8.md)
 
 ## P8-10 to P8-19: Web dashboard and item diagnosis
 
-- [ ] `P8-10` Implement authorized Review dashboard projection and Web surface.
-- [ ] `P8-11` Implement authorized Finding/Assurance/Unknown/capability item
+- [x] `P8-10` Implement authorized Review dashboard projection and Web surface.
+  Evidence: `CarReviewWebDeliveryApplication`, private
+  `CbdReviewAdmin.getReviewDashboard`, authenticated `form.yaml`, and the
+  generated/packaged ABI surface expose one exact retained Report dashboard.
+- [x] `P8-11` Implement authorized Finding/Assurance/Unknown/capability item
   diagnosis with bounded next-action guidance and cross-view navigation.
-- [ ] `P8-12` Prove Web presents Unknowns, limitations, dispositions, and
-  baseline deltas without hiding or reclassifying them.
-- [ ] `P8-13` Prove Web authorization and redaction match canonical report-read
-  policy.
+  Evidence: `CarReviewWebDeliveryApplication.diagnosis` admits only exact
+  `observation` or `capability` IDs, and its spec proves Finding, Assurance,
+  Unknown, and capability diagnoses with deterministic guidance.
+- [x] `P8-12` Prove Web presents Unknowns, limitations, dispositions, and
+  baseline deltas without hiding or reclassifying them. Evidence:
+  `CarReviewWebDeliveryApplicationSpec` retains canonical Unknown count,
+  baseline identity, report limitations, and the Unknown deferred disposition;
+  `CarReviewDeliveryProjectionSpec` proves the shared projection redacts only
+  sensitive text without inventing conclusions.
+- [x] `P8-13` Prove Web authorization and redaction match canonical report-read
+  policy. Evidence: `CarReviewWebDeliveryApplicationSpec` proves denied,
+  missing, unsupported, and absent requests fail without fallback, and the
+  private service is not MCP-ready; `CarReviewDeliveryProjectionSpec` proves
+  redaction and Report identity retention.
 
 ## P8-20 to P8-29: Markdown and PDF artifacts
 

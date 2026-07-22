@@ -2,9 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 through 8.4 are complete; next, connect the
-  authorized CI artifact contract to `sbt-cozy` materialization and gate
-  integration.
+- Current step: Stages 8.1 through 8.3 are complete; Stage 8.4 is in
+  progress with P8-30 complete. Next, connect the authorized CI artifact
+  contract to `sbt-cozy` materialization and gate integration.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it

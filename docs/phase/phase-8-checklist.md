@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.3 complete)
+Status: in progress (Stages 8.1–8.3 complete; P8-30 complete in Stage 8.4)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract

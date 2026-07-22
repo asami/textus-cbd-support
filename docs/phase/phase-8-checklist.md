@@ -5,14 +5,28 @@ phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
 
-- [ ] `P8-01` Define canonical dashboard, diagnosis, baseline/trend, and
-  report-document identities without renderer-local conclusion logic.
-- [ ] `P8-02` Define authorization, redaction, pagination, retention, and
-  missing-record behavior for dashboard and item diagnosis.
-- [ ] `P8-03` Define deterministic Markdown/PDF document structure, ordering,
-  accessible PDF requirements, and omission/redaction representation.
-- [ ] `P8-04` Prove one report-document projection retains canonical
-  Evidence/Observation/capability/provider/rule/location identities.
+- [x] `P8-01` Define canonical dashboard, diagnosis, baseline/trend, and
+  report-document identities without renderer-local conclusion logic. Evidence:
+  `CarReviewDeliveryProjection` and
+  `docs/spec/car-review-delivery-contract.md` define a deterministic,
+  canonical-Report-only dashboard/document/diagnosis model.
+- [x] `P8-02` Define authorization, redaction, pagination, retention, and
+  missing-record behavior for dashboard and item diagnosis. Evidence:
+  `car-review-delivery-contract.md` preserves exact-report authorization and
+  history bounds, defines 1–100 cursor-bound pagination for future endpoints,
+  and makes absent items explicit; `CarReviewDeliveryProjectionSpec` proves
+  redaction and no synthetic fallback.
+- [x] `P8-03` Define deterministic Markdown/PDF document structure, ordering,
+  accessible PDF requirements, and omission/redaction representation. Evidence:
+  `car-review-delivery-contract.md` defines the common ordered document model,
+  Markdown/PDF renderer boundary, redaction-or-omission section, searchable
+  PDF text, semantic headings/table headers, title/language, text labels, and
+  non-colour-only severity/gate presentation.
+- [x] `P8-04` Prove one report-document projection retains canonical
+  Evidence/Observation/capability/provider/rule/location identities. Evidence:
+  `CarReviewDeliveryProjectionSpec` proves deterministic dashboard and item
+  diagnoses retain Report, Observation, Evidence, capability, provider, gate,
+  baseline, and capability-derived location identities without report mutation.
 
 ## P8-10 to P8-19: Web dashboard and item diagnosis
 

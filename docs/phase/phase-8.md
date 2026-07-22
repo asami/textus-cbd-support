@@ -1,9 +1,9 @@
 # Phase 8: Review Delivery, CI/CD, and Quality Rule Execution
 
 Stage Status:
-- Current status: PLANNED
-- Current step: Define the canonical delivery, artifact, CI/CD, and
-  quality-rule contracts before implementation.
+- Current status: IN_PROGRESS
+- Current step: Stage 8.1 delivery and diagnosis contract is complete; next,
+  implement the authorized Web dashboard and item-diagnosis surface.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -109,6 +109,14 @@ summaries.
 
 Define dashboard cards, item-diagnosis identities, baseline/trend semantics,
 redaction, pagination, authorization, and the common report-document model.
+
+Completed on 2026-07-23. `CarReviewDeliveryProjection` now projects the
+immutable canonical Report into one deterministic dashboard/document/diagnosis
+model without provider invocation, repository history access, or conclusion
+derivation. `docs/spec/car-review-delivery-contract.md` defines exact-report
+authorization, redaction, pagination, Markdown/PDF structure, and accessible
+PDF requirements; `CarReviewDeliveryProjectionSpec` proves identity retention,
+baseline handling, redaction, and exact missing-item behavior.
 
 ### Stage 8.2: Web dashboard and item diagnosis
 

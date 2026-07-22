@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "textus-cbd-support.phase-8-executable-coverage.v1",
+  "items": [
+    {"id":"P8-01","area":"delivery-contract","evidence":[{"kind":"scala-spec","path":"src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewDeliveryProjectionSpec.scala","anchor":"retain one canonical Report identity across dashboard, document, and item diagnosis without rerunning a provider"}]},
+    {"id":"P8-02","area":"delivery-contract","evidence":[{"kind":"scala-spec","path":"src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewDeliveryProjectionSpec.scala","anchor":"return no diagnosis for a canonical item that is absent from the exact Report"}]},
+    {"id":"P8-03","area":"delivery-contract","evidence":[{"kind":"scala-spec","path":"src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewDeliveryProjectionSpec.scala","anchor":"retain one canonical Report identity across dashboard, document, and item diagnosis without rerunning a provider"}]},
+    {"id":"P8-04","area":"delivery-contract","evidence":[{"kind":"scala-spec","path":"src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewDeliveryProjectionSpec.scala","anchor":"retain one canonical Report identity across dashboard, document, and item diagnosis without rerunning a provider"}]}
+  ]
+}

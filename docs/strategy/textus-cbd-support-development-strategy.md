@@ -74,6 +74,19 @@ the explicit configuration handoff in standalone and composed CBD/SIE SAR
 harnesses, then prove isolation with deterministic interleaving and concurrent
 ActionCall specifications.
 
+### Phase 8: Review Delivery, CI/CD, and Quality Rule Execution
+
+Operationalize the completed CAR Review foundation as a decision-support
+product. Add a canonical-report-driven Web dashboard and item diagnosis,
+Markdown and PDF report generation, CI/CD artifacts and gate integration, and
+concrete attributable checks for each quality attribute. Persist diagnosis
+results by CAR identity and content/configuration fingerprint so equivalent
+work is reused rather than rerun, and visualize the CAR's evolution from its
+retained diagnostic history. Keep all renderers, diagnoses, CI results, and
+quality conclusions tied to the same canonical Evidence, Observation,
+capability, and limitation identities; no surface may rerun a rule or invent a
+conclusion.
+
 ## Current Priority
 
 Phases 1 through 3 are complete. Phase 4 automated work is complete, while
@@ -262,3 +275,8 @@ Phase 7 is complete as the post-Phase-6 cache-lifetime follow-up. Its runtime
 cache and invocation boundary, explicit-configuration harnesses, full test
 suite, CAR ABI governance, and normal CAR lint are verified. It has no new
 human-confirmation stage; P4-45 remains the independent ON_HOLD human gate.
+
+Phase 8 is planned as the next CBD Support phase. It extends the completed
+Review foundation with product-grade delivery, CI/CD, and executable
+quality-attribute checks. It does not close P4-45 or alter the independently
+deferred first released CAR ABI baseline.

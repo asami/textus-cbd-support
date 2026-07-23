@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 and P8-40 complete; P8-41 is next in Stage 8.5)
+Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 and P8-40 through P8-41 complete; P8-42 is next in Stage 8.5)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -130,9 +130,16 @@ phase=[Phase 8](phase-8.md)
   key/relation integrity and retention coverage for every retained entity.
   Focused validation and 249 CBD Support tests passed; independent re-review
   was clean.
-- [ ] `P8-41` Define the exact diagnosis reuse key and invalidation inputs,
+- [x] `P8-41` Define the exact diagnosis reuse key and invalidation inputs,
   including CAR digest, profile, rules, providers, runtime evidence, and
-  policy.
+  policy. Evidence: `car-review-reuse-key-contract.md` fixes the v1 canonical
+  input document, admissions, exclusions, and invalidation boundary;
+  `CarReviewReuseKey` calculates the sorted-key JSON SHA-256 identity without
+  provider work. `CarReviewReuseKeySpec` proves order independence, invalidates
+  every conclusion-affecting input class, rejects unsupported schemas and
+  incomplete identities, and preserves colon-qualified Evidence identity.
+  Focused validation, the executable-coverage check, and 253 CBD Support tests
+  passed; independent review and re-review were clean.
 - [ ] `P8-42` Reuse compatible completed Reports and coalesce concurrent
   identical diagnosis requests without rerunning providers.
 - [ ] `P8-43` Preserve failed, cancelled, expired, incompatible, and

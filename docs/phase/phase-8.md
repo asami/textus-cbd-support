@@ -2,9 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 through 8.4 are complete. P8-40 is complete in
-  Stage 8.5; next, P8-41 defines the exact diagnosis reuse key and its
-  invalidation inputs before persistence behavior is implemented.
+- Current step: Stages 8.1 through 8.4 are complete. P8-41 is complete in
+  Stage 8.5; next, P8-42 persists and reuses a compatible completed diagnosis
+  without rerunning provider work.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -230,8 +230,19 @@ and append-only retention-event records. They preserve immutable payloads and
 safe tombstones without choosing a database product or reuse algorithm.
 `CarReviewPersistenceContractSpec` verifies unique entity/table/key mappings,
 valid relations, complete retention-event attribution, and the P8-41 boundary.
-The independent re-review was clean; 249 CBD Support tests passed. P8-41 is
-the next slice.
+The independent re-review was clean; 249 CBD Support tests passed.
+
+P8-41 completed on 2026-07-23. `CarReviewReuseKey` calculates the fixed v1
+SHA-256 identity from a sorted canonical input document before provider work.
+The identity binds target/digest, profile, baseline, rule sets, provider and
+availability policy selections, accepted Evidence snapshots including runtime,
+and required profile/gate/reconciliation/suppression policy bindings. It
+rejects unsupported Review schemas and incomplete/ambiguous identity rather
+than inventing a reusable result. `CarReviewReuseKeySpec` proves canonical
+order independence, every conclusion-affecting invalidation class, and safe
+schema/Evidence admission. Both independent reviews were clean; the focused
+and executable-coverage specs and 253 CBD Support tests passed. P8-42 is the
+next slice.
 
 ### Stage 8.6: Quality-attribute rule matrix
 

@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 complete; P8-40 is next in Stage 8.5)
+Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 and P8-40 complete; P8-41 is next in Stage 8.5)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -121,8 +121,15 @@ phase=[Phase 8](phase-8.md)
 
 ## P8-40 to P8-49: Diagnosis persistence, reuse, and CAR evolution
 
-- [ ] `P8-40` Define database entities and immutable retention for CAR lineage,
+- [x] `P8-40` Define database entities and immutable retention for CAR lineage,
   target digest, Review Run, Report, attestation, reuse key, and comparison.
+  Evidence: `car-review-persistence-contract.md` and its machine-readable
+  model define vendor-neutral entity keys, relationships, immutable snapshots,
+  opaque reuse identity, comparison references, and append-only digest-safe
+  retention events. `CarReviewPersistenceContractSpec` verifies entity/table/
+  key/relation integrity and retention coverage for every retained entity.
+  Focused validation and 249 CBD Support tests passed; independent re-review
+  was clean.
 - [ ] `P8-41` Define the exact diagnosis reuse key and invalidation inputs,
   including CAR digest, profile, rules, providers, runtime evidence, and
   policy.

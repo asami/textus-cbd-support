@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "textus.cbd.car-review-persistence-model.v1",
+  "documentType": "car-review-persistence-model",
+  "entities": [
+    {
+      "name": "car-lineage",
+      "table": "car_review_lineage",
+      "primaryKey": "lineageId",
+      "immutability": "append-only",
+      "fields": ["lineageId", "targetKind", "organization", "componentName", "lineageDigest", "createdAt"],
+      "relationships": ["review-target"]
+    },
+    {
+      "name": "review-target",
+      "table": "car_review_target",
+      "primaryKey": "targetId",
+      "immutability": "append-only",
+      "fields": ["targetId", "lineageId", "componentVersion", "artifactIdentity", "targetKind", "targetDigest", "createdAt"],
+      "relationships": ["car-lineage", "review-run"]
+    },
+    {
+      "name": "review-run",
+      "table": "car_review_run",
+      "primaryKey": "reviewId",
+      "immutability": "terminal-snapshot",
+      "fields": ["reviewId", "targetId", "profileId", "state", "startedAt", "completedAt", "reportId", "reportDigest", "attestationId", "reuseIdentityId"],
+      "relationships": ["review-target", "review-report", "review-attestation", "diagnosis-reuse-identity"]
+    },
+    {
+      "name": "review-report",
+      "table": "car_review_report",
+      "primaryKey": "reportId",
+      "immutability": "append-only",
+      "fields": ["reportId", "reviewId", "targetId", "reportDigest", "canonicalPayload", "createdAt"],
+      "relationships": ["review-run", "review-target"]
+    },
+    {
+      "name": "review-attestation",
+      "table": "car_review_attestation",
+      "primaryKey": "attestationId",
+      "immutability": "append-only",
+      "fields": ["attestationId", "reviewId", "reportId", "targetId", "reportDigest", "attestationDigest", "canonicalPayload", "createdAt"],
+      "relationships": ["review-run", "review-report", "review-target"]
+    },
+    {
+      "name": "diagnosis-reuse-identity",
+      "table": "car_review_reuse_identity",
+      "primaryKey": "reuseIdentityId",
+      "immutability": "append-only",
+      "fields": ["reuseIdentityId", "keyDefinitionId", "reuseKeyDigest", "createdAt"],
+      "relationships": ["review-run"]
+    },
+    {
+      "name": "review-comparison",
+      "table": "car_review_comparison",
+      "primaryKey": "comparisonId",
+      "immutability": "append-only",
+      "fields": ["comparisonId", "lineageId", "baselineReportId", "currentReportId", "configurationCompatibilityId", "createdAt"],
+      "relationships": ["car-lineage", "review-report"]
+    },
+    {
+      "name": "review-retention-event",
+      "table": "car_review_retention_event",
+      "primaryKey": "retentionEventId",
+      "immutability": "append-only",
+      "fields": ["retentionEventId", "action", "recordType", "recordId", "recordDigest", "reportDigest", "targetDigest", "effectiveAt"],
+      "relationships": ["car-lineage", "review-target", "review-run", "review-report", "review-attestation", "diagnosis-reuse-identity", "review-comparison"]
+    }
+  ],
+  "invariants": [
+    "immutable-snapshot",
+    "atomic-completed-binding",
+    "lineage-compatible-comparison",
+    "opaque-reuse-key",
+    "append-only-retention-event",
+    "no-sensitive-persistence"
+  ]
+}

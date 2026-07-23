@@ -2,9 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 through 8.4 are complete. Next, Stage 8.5 begins
-  with P8-40, defining the retained diagnosis lineage and Run entities before
-  persistence behavior is implemented.
+- Current step: Stages 8.1 through 8.4 are complete. P8-40 is complete in
+  Stage 8.5; next, P8-41 defines the exact diagnosis reuse key and its
+  invalidation inputs before persistence behavior is implemented.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -222,6 +222,16 @@ Implement database persistence and the exact reuse key. Prove duplicate
 request coalescing, immutable historical snapshots, safe expiry, and comparison
 only across compatible CAR lineage/configuration. Add dashboard history and
 baseline/trend projections from persisted canonical data.
+
+P8-40 completed on 2026-07-23. The CBD-owned persistence contract and its
+machine-readable model define database-mappable CAR lineage, target snapshots,
+terminal Run, canonical Report, attestation, opaque reuse identity, comparison,
+and append-only retention-event records. They preserve immutable payloads and
+safe tombstones without choosing a database product or reuse algorithm.
+`CarReviewPersistenceContractSpec` verifies unique entity/table/key mappings,
+valid relations, complete retention-event attribution, and the P8-41 boundary.
+The independent re-review was clean; 249 CBD Support tests passed. P8-41 is
+the next slice.
 
 ### Stage 8.6: Quality-attribute rule matrix
 

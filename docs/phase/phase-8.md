@@ -2,10 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 through 8.3 are complete; Stage 8.4 is in
-  progress with P8-30 through P8-32 complete. Next, P8-33 must prove that
-  Review artifacts do not silently alter ordinary publish, distribution, or
-  deployment tasks.
+- Current step: Stages 8.1 through 8.4 are complete. Next, Stage 8.5 begins
+  with P8-40, defining the retained diagnosis lineage and Run entities before
+  persistence behavior is implemented.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -208,6 +207,14 @@ temporary materialization, reject oversized PDF Base64 before decoding, retain
 bounded renderer/provider limitations in the manifest, and reject multiline
 credential-shaped output across every retained artifact. The final clean
 re-review, 103 sbt-cozy tests, and 246 CBD Support tests passed.
+
+P8-33 completed on 2026-07-23. `SbtReviewPublicationBoundarySpec` keeps the
+Review task surface explicitly limited to publish and distribution, and rejects
+deployment. The `project-yaml-car` scripted fixture sets `cozyReviewGate` to
+fail, then proves that ordinary release `publish`, ordinary `cozyDistribute`,
+and SNAPSHOT `publishLocal` still execute their normal CAR task paths. The
+independent re-review found no new issues; the focused specification, scripted
+fixture, and 108 sbt-cozy tests passed.
 
 ### Stage 8.5: Diagnosis persistence, reuse, and CAR evolution
 

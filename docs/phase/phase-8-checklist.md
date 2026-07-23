@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.3 complete; P8-30 through P8-32 complete; P8-33 is next in Stage 8.4)
+Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 complete; P8-40 is next in Stage 8.5)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -110,8 +110,14 @@ phase=[Phase 8](phase-8.md)
   2)` gate failure. Final validation passed: 105 sbt-cozy tests and 247 CBD
   Support tests; the independent re-review was clean after manifest-shape
   validation was added.
-- [ ] `P8-33` Prove review artifacts do not silently alter publish,
-  distribution, or deployment tasks.
+- [x] `P8-33` Prove review artifacts do not silently alter publish,
+  distribution, or deployment tasks. Evidence:
+  `SbtReviewPublicationBoundarySpec` limits the Review task surface to its
+  explicit publish/distribution aliases and refuses deployment. The
+  `project-yaml-car` scripted fixture makes `cozyReviewGate` fail, then proves
+  ordinary release `publish`, ordinary `cozyDistribute`, and SNAPSHOT
+  `publishLocal` keep their normal CAR paths. The focused specification,
+  fixture, and 108 sbt-cozy tests passed; the independent re-review was clean.
 
 ## P8-40 to P8-49: Diagnosis persistence, reuse, and CAR evolution
 

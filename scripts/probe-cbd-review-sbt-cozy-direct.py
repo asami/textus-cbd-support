@@ -86,9 +86,10 @@ def _run(arguments: argparse.Namespace) -> None:
         ],
     })
     canonical = response.get("canonical_response")
-    if set(response) != {"canonical_response"} or not isinstance(canonical, str):
+    bundle = response.get("artifact_bundle")
+    if set(response) != {"canonical_response", "artifact_bundle"} or not isinstance(canonical, str) or not isinstance(bundle, str):
         raise ValueError(f"Unexpected Review response envelope: {response}")
-    Path(arguments.save).write_text(canonical + "\n", encoding="utf-8")
+    Path(arguments.save).write_text(json.dumps({"canonicalResponse": canonical, "artifactBundle": bundle}, separators=(",", ":")) + "\n", encoding="utf-8")
     payload = json.loads(canonical)
     print(f"CBD_SBT_COZY_DIRECT_SUBMISSION_OK review_id={payload['report']['reviewId']} gate={payload['gateResult']}")
 

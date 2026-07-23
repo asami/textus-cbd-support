@@ -38,6 +38,10 @@ therefore prevents a later attestation from overwriting a prior attempt whose
 Report content happens to be identical. The directory is created atomically
 only after every listed artifact has passed bounded output and redaction checks.
 
+One artifact must not exceed 16 MiB and the complete attempt, including its
+manifest, must not exceed 64 MiB. A size, redaction, canonical-binding, or
+manifest failure leaves no final attempt directory or successful manifest.
+
 ## Required files
 
 Each manifest lists byte digests and these fixed relative file names:
@@ -63,7 +67,7 @@ different projection or locally derived conclusion.
 ## Binding, profile, and retention
 
 The manifest copies the exact Report/attestation identities and digests,
-profile, and gate policy identity. Its artifact byte digests detect changes to
+profile, CBD-owned renderer/provider limitations, and gate policy identity. Its artifact byte digests detect changes to
 the stored projections, while `reportDigest` and `attestationDigest` retain the
 semantic and execution bindings defined by the canonical Review contract.
 

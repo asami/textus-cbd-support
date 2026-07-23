@@ -30,7 +30,7 @@ final class CarReviewCiArtifactContractSpec extends AnyWordSpec with Matchers wi
         "https://simplemodeling.org/schema/textus/cbd/car-review-ci-artifact-manifest-v1.schema.json"
       required should contain allOf (
         "reviewId", "reportId", "reportDigest", "targetDigest", "attestationDigest",
-        "profile", "gate", "exitCode", "artifactDirectory", "retention", "artifacts"
+        "profile", "limitations", "gate", "exitCode", "artifactDirectory", "retention", "artifacts"
       )
       _string(manifest, "artifactDirectory") shouldBe s"target/cbd-review/${attestationdigest.replace(':', '-')}"
       _string(manifest, "reportDigest") should startWith("sha256:")
@@ -65,6 +65,7 @@ final class CarReviewCiArtifactContractSpec extends AnyWordSpec with Matchers wi
       exitcode shouldBe 3
       Map("pass" -> 0, "fail" -> 2, "unknown" -> 3)(_string(gate, "result")) shouldBe exitcode
       _string(retention, "mode") shouldBe "ci-workspace"
+      _string_array(manifest, "limitations") shouldBe Vector("provider:sbt-cozy unavailable in offline profile")
       _string_array(retention, "preserveOn").toSet shouldBe Set("pass", "fail", "unknown")
       Vector("publication", "distribution", "deployment").foreach { field =>
         _string(retention, field) shouldBe "not-triggered"

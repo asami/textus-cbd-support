@@ -14,12 +14,12 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewArtifactBundle, CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceAuthorization, InformationSourceDescriptor, InformationSourceKind, LocalInformationInventory, LocalInformationSourceInventory, LocalInspectionPolicy, VersionAvailabilityState}
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 20, 2026
+ * @version Jul. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -713,8 +713,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       application.submit(
         _required_string(action.record, "submissionDocument"),
         CarReviewAuthorization.roles(ctx)
-      ).map { response =>
-        OperationResponse(Record.dataAuto("canonicalResponse" -> response))
+      ).flatMap { response =>
+        CarReviewArtifactBundle.render(response).fold(
+          Consequence.operationInvalid,
+          bundle => Consequence.success(OperationResponse(Record.dataAuto("canonicalResponse" -> response, "artifactBundle" -> bundle)))
+        )
       }
     }
   }
@@ -730,8 +733,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       application.submit(
         _required_string(action.record, "submissionDocument"),
         CarReviewAuthorization.roles(ctx)
-      ).map { response =>
-        OperationResponse(Record.dataAuto("canonicalResponse" -> response))
+      ).flatMap { response =>
+        CarReviewArtifactBundle.render(response).fold(
+          Consequence.operationInvalid,
+          bundle => Consequence.success(OperationResponse(Record.dataAuto("canonicalResponse" -> response, "artifactBundle" -> bundle)))
+        )
       }
     }
   }

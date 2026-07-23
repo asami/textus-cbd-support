@@ -1045,6 +1045,7 @@ CBD-owned canonical response document for one authorized provider-document submi
 | name | type | multiplicity |
 |------|------|--------------|
 | canonicalResponse | ReviewSubmissionDocument | 1 |
+| artifactBundle | ReviewSubmissionDocument | 1 |
 
 ## ReviewRunLimitation
 

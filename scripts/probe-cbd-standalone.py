@@ -20,6 +20,15 @@ CBD_TOOLS = {
     "CbdSupport.CbdRetrieval.listReviewAssurances",
     "CbdSupport.CbdRetrieval.getReviewViews",
 }
+RUNTIME_TOOLS = {
+    "tool.decimal.calculate",
+    "tool.resource.read",
+    "tool.time.now",
+    "tool.web.fetch",
+    "tool.web.head",
+    "tool.web.search",
+}
+MCP_PROTOCOL_VERSION = "2025-11-25"
 SIE_REFERENCE_TOOL = (
     "SemanticIntegrationEngine.SemanticRetrieval.searchComponentReferences"
 )
@@ -36,7 +45,10 @@ def _request(base_url: str, payload: dict, timeout: float) -> dict:
     request = urllib.request.Request(
         f"{base_url}/mcp",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+        },
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -102,8 +114,8 @@ def _run(base_url: str, timeout: float) -> None:
         tool.get("name") for tool in listed.get("result", {}).get("tools", [])
     ]
     _require(
-        tool_names == sorted(CBD_TOOLS),
-        f"Standalone MCP surface is not exactly CBD retrieval: {tool_names}",
+        tool_names == sorted(CBD_TOOLS | RUNTIME_TOOLS),
+        f"Standalone MCP surface is not CBD retrieval plus the fixed runtime tools: {tool_names}",
     )
 
     catalogs = _call_tool(

@@ -66,15 +66,26 @@ if [[ "$gate_status" -eq 0 ]] || [[ "$gate_output" != *"[sbt-cozy] CBD Review ga
   exit 1
 fi
 
-python3 - "$FIXTURE_ROOT/target/cbd-review/sbt-cozy/canonical-response.json" "$FIXTURE_ROOT/target/cbd-review/sbt-cozy/canonical-attestation.json" <<'PY'
+python3 - "$FIXTURE_ROOT/target/cbd-review" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-path = Path(sys.argv[1])
-attestation_path = Path(sys.argv[2])
+artifact_root = Path(sys.argv[1])
+attempts = [path for path in artifact_root.iterdir() if (path / "review-artifacts.json").is_file()]
+if not attempts:
+    raise SystemExit(f"expected a digest-keyed CBD Review attempt under {artifact_root}, found none")
+attempt = max(attempts, key=lambda path: (path / "review-artifacts.json").stat().st_mtime_ns)
+manifest = json.loads((attempt / "review-artifacts.json").read_text(encoding="utf-8"))
+if manifest.get("documentType") != "review-ci-artifact-manifest":
+    raise SystemExit(f"unexpected CI artifact manifest: {manifest}")
+expected_files = {"canonical-response.json", "report.json", "attestation.json", "report.md", "report.pdf", "report.html", "report.sarif", "review-artifacts.json"}
+if {path.name for path in attempt.iterdir()} != expected_files:
+    raise SystemExit(f"incomplete CBD Review artifact attempt: {attempt}")
+path = attempt / "canonical-response.json"
+attestation_path = attempt / "attestation.json"
 payload = json.loads(path.read_text(encoding="utf-8"))
-if payload.get("documentType") != "canonical-review-response-artifact":
+if payload.get("documentType") != "canonical-review-response":
     raise SystemExit(f"unexpected canonical response document: {payload}")
 report = payload.get("report")
 if not isinstance(report, dict) or not report.get("reviewId"):

@@ -7,6 +7,7 @@
   "targetDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "attestationDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "profile": "ci",
+  "limitations": ["provider:sbt-cozy unavailable in offline profile"],
   "gate": {
     "policyId": "standard-ci",
     "policyVersion": "1.0.0",

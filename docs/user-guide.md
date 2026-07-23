@@ -68,8 +68,9 @@ private HTTP gateway with `POST /rest/v1/cbd-support/cbd-review-admin/post`.
 Set `Content-Type: application/json` and send a generated outer object whose
 only field is `submissionDocument`; its value is the complete
 `textus.cbd.review-submission.v1` JSON document encoded as a JSON string. The
-response's `canonical_response` field is likewise a JSON string containing the
-CBD-owned canonical response. The executing principal must resolve to
+response contains two JSON strings: `canonical_response`, the CBD-owned
+canonical response, and `artifact_bundle`, its CBD-rendered Markdown/PDF
+bundle bound to the same Report digest. The executing principal must resolve to
 `reviewer`, `operator`, or `admin`; the client never sends a role header. The
 gateway never accepts a workspace path, process command, policy template, or
 caller-selected gate.

@@ -3,8 +3,9 @@
 Stage Status:
 - Current status: IN_PROGRESS
 - Current step: Stages 8.1 through 8.3 are complete; Stage 8.4 is in
-  progress with P8-30 complete. Next, connect the authorized CI artifact
-  contract to `sbt-cozy` materialization and gate integration.
+  progress with P8-30 and P8-31 complete. Next, P8-32 must prove CI
+  pass/fail/unknown semantics, offline determinism, and attributable provider
+  limitations.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -188,8 +189,25 @@ profile binding, offline CI posture, pass/fail/unknown exit semantics, and
 CI-workspace retention without implicit publication, distribution, or
 deployment. Its JSON Schema constrains every artifact member to its fixed name,
 and `CarReviewCiArtifactContractSpec` proves the representative unknown-gate
-attempt, retention, and schema constraints. P8-31 through P8-33 remain the
-separate `sbt-cozy` materialization, gate-behavior, and non-interference work.
+attempt, retention, and schema constraints. P8-31 is the separate
+`sbt-cozy` materialization work; P8-32 and P8-33 cover gate behavior and
+non-interference.
+
+P8-31 completed on 2026-07-23. The private CBD submission boundary returns
+one exact canonical response plus a CBD-rendered Markdown/PDF artifact bundle;
+it validates the Report and outer-gate binding before rendering and does no
+provider work. `sbt-cozy` admits that bundle with the canonical Report and
+attestation, then atomically writes the seven contract artifacts and
+`review-artifacts.json` into the attestation-digest attempt directory. Its
+existing HTML/SARIF projections remain authorized local projections of the
+same admitted response. `CarReviewArtifactBundleSpec`,
+`SbtReviewReportArtifactsSpec`, and the loopback standalone SAR probe prove
+the bound response, artifact directory, and expected failing-gate behavior.
+Post-implementation review corrections enforce per-artifact bounds before
+temporary materialization, reject oversized PDF Base64 before decoding, retain
+bounded renderer/provider limitations in the manifest, and reject multiline
+credential-shaped output across every retained artifact. The final clean
+re-review, 103 sbt-cozy tests, and 246 CBD Support tests passed.
 
 ### Stage 8.5: Diagnosis persistence, reuse, and CAR evolution
 

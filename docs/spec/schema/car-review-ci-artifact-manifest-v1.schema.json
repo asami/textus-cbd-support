@@ -13,6 +13,7 @@
     "targetDigest",
     "attestationDigest",
     "profile",
+    "limitations",
     "gate",
     "exitCode",
     "artifactDirectory",
@@ -28,6 +29,11 @@
     "targetDigest": { "$ref": "#/$defs/digest" },
     "attestationDigest": { "$ref": "#/$defs/digest" },
     "profile": { "$ref": "#/$defs/identifier" },
+    "limitations": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
     "gate": { "$ref": "#/$defs/gate" },
     "exitCode": { "type": "integer", "enum": [0, 2, 3] },
     "artifactDirectory": {

@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.3 complete; P8-30 complete in Stage 8.4)
+Status: in progress (Stages 8.1–8.3 complete; P8-30 complete and P8-31 in review fix in Stage 8.4)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -84,8 +84,21 @@ phase=[Phase 8](phase-8.md)
   `unknown=3`, and no implicit publish/distribute/deploy behavior;
   `CarReviewCiArtifactContractSpec` proves the executable contract and schema
   path constraints.
-- [ ] `P8-31` Materialize JSON, Markdown, PDF, HTML, SARIF, and attestation
-  artifacts through authorized sbt-cozy/CI integration.
+- [x] `P8-31` Materialize JSON, Markdown, PDF, HTML, SARIF, and attestation
+  artifacts through authorized sbt-cozy/CI integration. Implementation evidence:
+  `CarReviewArtifactBundle` makes the private CBD response carry a
+  Report-bound Markdown/PDF bundle without provider work, and
+  `SbtReviewCiArtifactMaterializer` atomically writes canonical response,
+  Report, attestation, Markdown, PDF, HTML, SARIF, and manifest under the
+  attestation digest. `CarReviewArtifactBundleSpec` and
+  `SbtReviewReportArtifactsSpec` verify the bound content and fixed attempt
+  directory; `CBD_STANDALONE_SBT_COZY_REVIEW_PROBE=true
+  scripts/check-cbd-standalone.sh` verifies a real loopback CBD HTTP exchange,
+  `sbt-cozy` task materialization, and a failing CBD gate. Post-implementation
+  clean re-review verified bounded output before temporary materialization,
+  pre-decode PDF Base64 limits, multiline credential redaction, manifest
+  limitations, and the generated CI task surface. Full validation passed:
+  103 sbt-cozy tests and 246 CBD Support tests.
 - [ ] `P8-32` Prove pass/fail/unknown behavior, offline determinism, and
   attributable provider limitations in CI.
 - [ ] `P8-33` Prove review artifacts do not silently alter publish,

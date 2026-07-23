@@ -1,7 +1,7 @@
 # CAR Review CI Artifact Contract v1
 
 phase=Phase 8
-checklist=P8-30
+checklist=P8-30,P8-32
 updated_at=2026-07-23
 
 ## Purpose
@@ -98,10 +98,21 @@ CI gate command maps the accepted manifest result to these codes. An sbt task
 may surface a non-zero result as task failure, but it must retain the
 manifest's explicit CBD gate and exit code instead of deriving a local policy.
 
+The CI gate reads only `review-artifacts.json` after artifact materialization.
+It accepts the declared schema and document type only when the nested
+`gate.result` and top-level `exitCode` are the exact contract pair. Therefore
+`fail` and `unknown` remain distinct in task output even though sbt reports
+both as a failed task. A changed or malformed manifest is a validation failure,
+not a reason for a client to choose another result.
+
 Standard `ci` uses the existing offline deterministic policy. Any network,
 external-provider, or AI provider use requires a different explicit profile;
 its profile and limitations remain present in the manifest and it cannot satisfy
-the standard CI gate.
+the standard CI gate. The current sbt-cozy submission selects the fixed
+`cozy` and `sbt-cozy` provider kinds through that policy before it creates
+provider evidence or contacts CBD. A future external or AI selection must pass
+the same policy boundary; an unapproved kind fails rather than being silently
+omitted or reclassified.
 
 ## Integration boundary
 

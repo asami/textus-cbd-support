@@ -3,9 +3,9 @@
 Stage Status:
 - Current status: IN_PROGRESS
 - Current step: Stages 8.1 through 8.3 are complete; Stage 8.4 is in
-  progress with P8-30 and P8-31 complete. Next, P8-32 must prove CI
-  pass/fail/unknown semantics, offline determinism, and attributable provider
-  limitations.
+  progress with P8-30 through P8-32 complete. Next, P8-33 must prove that
+  Review artifacts do not silently alter ordinary publish, distribution, or
+  deployment tasks.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it

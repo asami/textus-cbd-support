@@ -61,7 +61,7 @@ gate_output="$(cd "$FIXTURE_ROOT" && CI=true sbt --batch \
 gate_status=$?
 set -e
 printf '%s\n' "$gate_output"
-if [[ "$gate_status" -eq 0 ]] || [[ "$gate_output" != *"[sbt-cozy] CBD Review gate did not pass: fail"* ]]; then
+if [[ "$gate_status" -eq 0 ]] || [[ "$gate_output" != *"[sbt-cozy] CBD Review gate did not pass: fail (exit code 2)"* ]]; then
   echo "CBD Review gate probe did not reject the failing canonical gate as expected." >&2
   exit 1
 fi
@@ -79,6 +79,8 @@ attempt = max(attempts, key=lambda path: (path / "review-artifacts.json").stat()
 manifest = json.loads((attempt / "review-artifacts.json").read_text(encoding="utf-8"))
 if manifest.get("documentType") != "review-ci-artifact-manifest":
     raise SystemExit(f"unexpected CI artifact manifest: {manifest}")
+if manifest.get("gate", {}).get("result") != "fail" or manifest.get("exitCode") != 2:
+    raise SystemExit(f"unexpected CBD Review gate/exit-code pair: {manifest}")
 expected_files = {"canonical-response.json", "report.json", "attestation.json", "report.md", "report.pdf", "report.html", "report.sarif", "review-artifacts.json"}
 if {path.name for path in attempt.iterdir()} != expected_files:
     raise SystemExit(f"incomplete CBD Review artifact attempt: {attempt}")

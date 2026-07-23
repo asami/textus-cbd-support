@@ -26,10 +26,12 @@ object CarReviewArtifactBundle {
       gate <- fields.get("gateResult").flatMap(_.asString).filter(CarReviewVocabulary.GATE_RESULTS).toRight("cbd-review-artifact-gate-invalid")
       _ <- Either.cond(gate == report.gate.result.value, (), "cbd-review-artifact-gate-mismatch")
       _ <- fields.get("attestation").filter(_.isObject).toRight("cbd-review-artifact-attestation-missing")
-      rendered = CarReviewDeliveryArtifactRenderer.render(CarReviewDeliveryProjection.project(report))
+      document = CarReviewDeliveryProjection.project(report)
+      rendered = CarReviewDeliveryArtifactRenderer.render(document)
+      limitations = (document.limitations.map(_limitation) ++ rendered.limitations).distinct.sorted
     } yield _printer.print(Json.obj(
       "documentType" -> Json.fromString("review-artifact-bundle"),
-      "limitations" -> Json.fromValues(rendered.limitations.map(Json.fromString)),
+      "limitations" -> Json.fromValues(limitations.map(Json.fromString)),
       "markdown" -> Json.fromString(rendered.markdown),
       "pdfBase64" -> Json.fromString(Base64.getEncoder.encodeToString(rendered.pdf)),
       "reportDigest" -> Json.fromString(report.reportDigest.value),
@@ -39,4 +41,7 @@ object CarReviewArtifactBundle {
   private def _fields(value: Json): Either[String, Map[String, Json]] =
     value.asObject.map(_.toMap).filter(_.keySet == Set("schemaVersion", "documentType", "report", "attestation", "gateResult"))
       .toRight("cbd-review-artifact-response-shape-invalid")
+
+  private def _limitation(value: CarReviewDeliveryLimitation): String =
+    s"${value.scope.value}:${value.code} [${value.subjectId.getOrElse("report")}] ${value.message}"
 }

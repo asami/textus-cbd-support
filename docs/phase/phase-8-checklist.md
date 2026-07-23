@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.3 complete; P8-30 complete and P8-31 in review fix in Stage 8.4)
+Status: in progress (Stages 8.1–8.3 complete; P8-30 through P8-32 complete; P8-33 is next in Stage 8.4)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -99,8 +99,17 @@ phase=[Phase 8](phase-8.md)
   pre-decode PDF Base64 limits, multiline credential redaction, manifest
   limitations, and the generated CI task surface. Full validation passed:
   103 sbt-cozy tests and 246 CBD Support tests.
-- [ ] `P8-32` Prove pass/fail/unknown behavior, offline determinism, and
-  attributable provider limitations in CI.
+- [x] `P8-32` Prove pass/fail/unknown behavior, offline determinism, and
+  attributable provider limitations in CI. Evidence:
+  `SbtReviewCiGateSpec` admits only a complete manifest with exact
+  pass=0/fail=2/unknown=3 pairs, fixed artifact paths, retention, identity,
+  digest, and limitation shape; `SbtReviewCiPolicySpec` proves the standard-CI
+  local provider boundary; `CarReviewArtifactBundleSpec` proves delivery-safe,
+  attributable provider limitation propagation. The isolated loopback probe
+  verifies real CBD/sbt-cozy materialization and an expected `fail (exit code
+  2)` gate failure. Final validation passed: 105 sbt-cozy tests and 247 CBD
+  Support tests; the independent re-review was clean after manifest-shape
+  validation was added.
 - [ ] `P8-33` Prove review artifacts do not silently alter publish,
   distribution, or deployment tasks.
 

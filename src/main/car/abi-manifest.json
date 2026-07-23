@@ -128,7 +128,28 @@
           "output": "ReviewDiagnosisResponse"
         }
       ],
-      "entities": []
+      "entities": [
+        {
+          "name": "ReviewDiagnosis",
+          "fields": []
+        },
+        {
+          "name": "ReviewTargetSnapshot",
+          "fields": []
+        },
+        {
+          "name": "ReviewRunSnapshot",
+          "fields": []
+        },
+        {
+          "name": "ReviewReportSnapshot",
+          "fields": []
+        },
+        {
+          "name": "ReviewAttestationSnapshot",
+          "fields": []
+        }
+      ]
     },
     "dependencies": []
   }

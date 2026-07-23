@@ -1,6 +1,6 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 and P8-40 through P8-41 complete; P8-42 is next in Stage 8.5)
+Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 and P8-40 through P8-42 complete; P8-43 remains in progress in Stage 8.5)
 phase=[Phase 8](phase-8.md)
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
@@ -140,11 +140,21 @@ phase=[Phase 8](phase-8.md)
   incomplete identities, and preserves colon-qualified Evidence identity.
   Focused validation, the executable-coverage check, and 253 CBD Support tests
   passed; independent review and re-review were clean.
-- [ ] `P8-42` Reuse compatible completed Reports and coalesce concurrent
-  identical diagnosis requests without rerunning providers.
+- [x] `P8-42` Reuse compatible completed Reports and coalesce concurrent
+  identical diagnosis requests without rerunning providers. Evidence:
+  `ReviewDiagnosisPersistenceSpec` proves Owner/Joined exact-key admission,
+  immutable Target/Run/Report/attestation snapshot retention, and a later
+  `Reused` response through separate UnitOfWork boundaries. The root transition
+  uses the generated update model and the server-derived stable Entity ID with
+  `ServiceInternal` authorization; no private codec or raw datastore route is
+  present.
 - [ ] `P8-43` Preserve failed, cancelled, expired, incompatible, and
   policy-different Runs as attributable history without reusing them as
-  successful diagnosis.
+  successful diagnosis. Partial evidence:
+  `ReviewDiagnosisPersistenceSpec` retains all four terminal state snapshots
+  and rejects successful reuse. Closure still requires CNCF's conditional
+  Entity transition for one safe same-key successor after terminal retention;
+  see `car-review-terminal-history-contract.md` and the CNCF handoff journal.
 - [ ] `P8-44` Implement CAR evolution/baseline history projections for
   comparable version/digest/report/gate/capability/finding changes.
 - [ ] `P8-45` Prove database authorization, retention, expiry, comparison, and

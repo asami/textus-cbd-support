@@ -17,7 +17,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 18, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -85,6 +85,10 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val searchschema = tools.find(_.name.endsWith(".searchComponents")).map(_.inputSchema).get
       val usageschema = tools.find(_.name.endsWith(".getUsage")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
+      val descriptions = component.operationDefinitions.flatMap { operation =>
+        val toolname = s"CbdSupport.CbdRetrieval.${operation.name}"
+        operation.summary.filter(_ => names.contains(toolname)).map(toolname -> _)
+      }.toMap
 
       Then("all retrieval tools are visible and administrative refresh is absent")
       names shouldBe Set(
@@ -101,20 +105,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         "CbdSupport.CbdRetrieval.listReviewAssurances",
         "CbdSupport.CbdRetrieval.getReviewViews"
       )
-      tools.map(x => x.name -> x.description).toMap shouldBe Map(
-        "CbdSupport.CbdRetrieval.searchComponents" -> "CbdSupport.CbdRetrieval.searchComponents",
-        "CbdSupport.CbdRetrieval.getComponent" -> "CbdSupport.CbdRetrieval.getComponent",
-        "CbdSupport.CbdRetrieval.getUsage" -> "CbdSupport.CbdRetrieval.getUsage",
-        "CbdSupport.CbdRetrieval.resolveDependencies" -> "CbdSupport.CbdRetrieval.resolveDependencies",
-        "CbdSupport.CbdRetrieval.listCatalogs" -> "CbdSupport.CbdRetrieval.listCatalogs",
-        "CbdSupport.CbdRetrieval.status" -> "CbdSupport.CbdRetrieval.status",
-        "CbdSupport.CbdRetrieval.getReviewRun" -> "CbdSupport.CbdRetrieval.getReviewRun",
-        "CbdSupport.CbdRetrieval.getReviewSummary" -> "CbdSupport.CbdRetrieval.getReviewSummary",
-        "CbdSupport.CbdRetrieval.getReviewReport" -> "CbdSupport.CbdRetrieval.getReviewReport",
-        "CbdSupport.CbdRetrieval.listReviewFindings" -> "CbdSupport.CbdRetrieval.listReviewFindings",
-        "CbdSupport.CbdRetrieval.listReviewAssurances" -> "CbdSupport.CbdRetrieval.listReviewAssurances",
-        "CbdSupport.CbdRetrieval.getReviewViews" -> "CbdSupport.CbdRetrieval.getReviewViews"
-      )
+      tools.map(x => x.name -> x.description).toMap shouldBe descriptions
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
         "sourceId",
         "sourceKind",

@@ -7,7 +7,7 @@ import io.circe.{Json, Printer}
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CarReviewReuseProviderSelection(
@@ -82,6 +82,8 @@ object CarReviewReuseKey {
       Left(CarReviewReuseKeyFailure("duplicate-reuse-rule-set", "Reuse-key rule-set IDs must be unique."))
     else if (_duplicate(input.providerSelections.map(_.provider.id.value)))
       Left(CarReviewReuseKeyFailure("duplicate-reuse-provider", "Reuse-key provider IDs must be unique."))
+    else if (!input.providerSelections.forall(selection => input.ruleSets.contains(selection.ruleSet)))
+      Left(CarReviewReuseKeyFailure("unbound-reuse-provider-rule", "Every selected provider rule-set must be present in the frozen rule-set selection."))
     else if (_duplicate(input.evidenceSnapshots.map(snapshot => (snapshot.evidenceClass, snapshot.snapshotId, snapshot.provider.id.value, snapshot.provider.version.value))))
       Left(CarReviewReuseKeyFailure("duplicate-reuse-evidence", "Reuse-key evidence snapshot identities must be unique."))
     else if (_duplicate(input.policyBindings.map(_.scope)) || input.policyBindings.map(_.scope).toSet != _policy_scopes)

@@ -87,3 +87,50 @@ facts merely to satisfy an entity relationship.
 This definition intentionally does not choose a database product, migration
 framework, table DDL syntax, reuse-key formula, concurrency algorithm,
 comparison projection, or history API. Those are P8-41 through P8-45 work.
+
+## P8-42 Datastore Binding
+
+P8-42 implements this logical model as CBD Support Entity records invoked from
+the protected internal DSL. Review ActionCall logic uses Entity create/load/
+update/identity operations and their UnitOfWork authorization, lifecycle, and
+CallTree behavior; it does not obtain a datastore handle. The `ReviewDiagnosis`
+Aggregate owns one reuse identity and its Run/Report/attestation completion
+transition. Its rebuildable View is the exact-key read model; it is not a
+history-enumeration surface.
+
+CBD Support MUST NOT import or use JDBC, SQL, SQLite driver APIs, database
+connections, SQL table names, DDL, vendor-specific transaction syntax, or raw
+`DataStore` access from Review behavior. SQLite can be selected only by
+launcher/infrastructure configuration as the Entity layer's datastore backend.
+
+The implementation first loads the trusted, server-derived P8-41 identity
+through the internal Entity route. When no root exists, it uses
+`entity_claim_or_load_internal` so concurrent first requests still resolve to
+one owner. This is not a public CRUD capability: both routes retain
+`ServiceInternal` authorization and CNCF UnitOfWork/CallTree handling.
+Completion and terminal transitions use the generated `ReviewDiagnosis` patch
+model against the same server-derived stable ID. Generated Review scalar values
+are restored as their typed values by the shared generated persistence
+contract; CBD Support does not maintain a private persistence codec.
+
+The successful claim issues a non-transport `Owner` lease. Only that lease may
+complete the claimed Aggregate or retain its terminal Run; a plan, Report, or
+Review ID supplied by itself is insufficient. This prevents an independent
+internal caller from reconstructing ownership and changing a root it did not
+claim. A later persistent compare-and-transition remains the required CNCF
+primitive for successor ownership after a terminal state.
+
+`ReviewDiagnosis` is the persisted Aggregate root. Its Target, Run, Report,
+and attestation records are composition members; they are written only through
+the Aggregate's internal Entity workflow and are never independently exposed
+as storage operations. The generated rebuildable `ReviewDiagnosis` View is
+the exact-key read model for admission/reuse. It may be reconstructed from the
+Aggregate and must not become a second persistence path, a history-enumeration
+API, or an opportunity to bypass Entity authorization.
+
+The P8-40 logical entity names map to CBD-owned Entity collections and
+versioned record models. A shared `DataStoreSpace` may host other components,
+but Entity/UnitOfWork routing confines CBD Support to its own component
+collections. This contract therefore permits a future shared database without
+giving CBD Support cross-component storage access or vendor-specific migration
+responsibility.

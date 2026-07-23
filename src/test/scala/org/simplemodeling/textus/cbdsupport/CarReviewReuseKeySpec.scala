@@ -7,7 +7,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewReuseKeySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -38,7 +38,10 @@ final class CarReviewReuseKeySpec extends AnyWordSpec with Matchers with GivenWh
       val changed = Vector(
         input.copy(target = input.target.copy(digest = _digest('b'))),
         input.copy(profile = ReviewProfile("release")),
-        input.copy(ruleSets = Vector(ReviewRuleIdentity(ReviewRuleId("rule-security"), ReviewVersion("2.0")))),
+        input.copy(
+          ruleSets = Vector(ReviewRuleIdentity(ReviewRuleId("rule-security"), ReviewVersion("2.0"))),
+          providerSelections = Vector(_provider.copy(ruleSet = ReviewRuleIdentity(ReviewRuleId("rule-security"), ReviewVersion("2.0"))))
+        ),
         input.copy(providerSelections = Vector(_provider.copy(provider = ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("2.0"))))),
         input.copy(evidenceSnapshots = Vector(_runtime.copy(digest = _digest('c')))),
         input.copy(baselineDigest = Some(_digest('d'))),

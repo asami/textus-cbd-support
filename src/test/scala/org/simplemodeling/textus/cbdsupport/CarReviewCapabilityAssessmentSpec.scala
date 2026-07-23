@@ -8,21 +8,21 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewCapabilityAssessmentSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "CAR Review named capability assessments" should {
     "specify and assess every required quality view from mapped attributable evidence" in {
       Given("the complete CBD quality capability catalog")
-      val expected = Set(
-        "quality.security.boundary",
-        "quality.domain.identity-consistency",
-        "quality.documentation.rationale",
-        "quality.ai-readiness",
-        "quality.resilience",
-        "quality.testability",
-        "quality.observability.runtime-evidence"
+      val expected = CarReviewCapabilityCatalog.definitions.map(_.id.value).toSet
+      expected should contain allElementsOf Set(
+        "quality.performance.latency",
+        "quality.security.authentication",
+        "quality.observability.structured-logging",
+        "quality.maintainability.modifiability",
+        "quality.portability.environment-dependency",
+        "quality.ai.operability.mcp"
       )
 
       When("one representative assurance is mapped to each named capability")
@@ -52,7 +52,19 @@ final class CarReviewCapabilityAssessmentSpec extends AnyWordSpec with Matchers 
     }
 
     "refuse an assessment for an unspecified capability" in {
-      CarReviewCapabilityAssessment.build(ReviewCapabilityId("quality.unspecified"), Vector.empty, Vector.empty, "cbd.default", ReviewVersion("1.0.0")) shouldBe Left("Unknown Review capability 'quality.unspecified'.")
+      Given("an unknown capability identity with no attributable observations or evidence")
+
+      When("CBD attempts to construct its capability assessment")
+      val result = CarReviewCapabilityAssessment.build(
+        ReviewCapabilityId("quality.unspecified"),
+        Vector.empty,
+        Vector.empty,
+        "cbd.default",
+        ReviewVersion("1.0.0")
+      )
+
+      Then("the catalog boundary rejects the unspecified capability")
+      result shouldBe Left("Unknown Review capability 'quality.unspecified'.")
     }
   }
 

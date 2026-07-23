@@ -1,13 +1,18 @@
 package org.simplemodeling.textus.cbdsupport.impl
 
+import java.nio.charset.StandardCharsets
+import java.util.UUID
+
+import cats.syntax.all.*
 import org.goldenport.Consequence
-import org.goldenport.cncf.action.ActionCall
+import org.goldenport.cncf.action.{ActionCall, ActionCallEntityStorePart}
 import org.goldenport.cncf.component.{Component, ComponentCreate}
 import org.goldenport.cncf.config.{ComponentConfigurationAccess, ComponentConfigurationKey, ComponentConfigurationSources}
 import org.goldenport.cncf.context.{GlobalRuntimeContext, ScopeContext}
 import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeQuery, ResourceTreeReference}
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.configuration.Configuration
+import org.goldenport.id.UniversalId
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
@@ -15,11 +20,18 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdmin
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewArtifactBundle, CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAttestationCodec, CarReviewReportCodec, CarReviewRun, CarReviewRunCodec, CarReviewRunVocabulary, CarReviewVocabulary, ReviewDocumentType, ReviewRunState, ReviewSchemaVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewDiagnosisAdmission, CarReviewDiagnosisTerminalState, CarReviewExecutionPlan}
+import org.simplemodeling.textus.cbdsupport.entity.{ReviewDiagnosis as ReviewDiagnosisEntity}
+import org.simplemodeling.textus.cbdsupport.entity.create.{ReviewDiagnosis as ReviewDiagnosisCreate, ReviewTargetSnapshot as ReviewTargetSnapshotCreate, ReviewRunSnapshot as ReviewRunSnapshotCreate, ReviewReportSnapshot as ReviewReportSnapshotCreate, ReviewAttestationSnapshot as ReviewAttestationSnapshotCreate}
+import org.simplemodeling.textus.cbdsupport.entity.update.{ReviewDiagnosis as ReviewDiagnosisUpdate}
+import org.simplemodeling.textus.cbdsupport.value.{ComponentName as EntityComponentName, ComponentOrganization as EntityComponentOrganization, ReviewDigest as EntityReviewDigest, ReviewId as EntityReviewId, ReviewInstant as EntityReviewInstant, ReviewProfile as EntityReviewProfile, ReviewReuseKeyDefinition as EntityReviewReuseKeyDefinition, ReviewRunState as EntityReviewRunState, ReviewSubmissionDocument as EntityReviewSubmissionDocument}
 import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceAuthorization, InformationSourceDescriptor, InformationSourceKind, LocalInformationInventory, LocalInformationSourceInventory, LocalInspectionPolicy, VersionAvailabilityState}
+import org.simplemodeling.model.directive.Update
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 23, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -39,6 +51,35 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   private[cbdsupport] def _retain_review_report(report: org.simplemodeling.textus.cbdsupport.runtime.CarReviewReport): org.goldenport.Consequence[Unit] =
     _review_repository.retain(report).fold(error => org.goldenport.Consequence.operationInvalid(error.code), _ => org.goldenport.Consequence.unit)
 
+  /**
+   * Internal P8-42 entry point. The caller supplies only a server-built plan;
+   * this method owns Entity/UnitOfWork claim-or-load rather than exposing a
+   * datastore or a generic Review persistence operation.
+   */
+  private[cbdsupport] def _admit_review_execution(
+    core: ActionCall.Core,
+    plan: CarReviewExecutionPlan
+  ): ExecUowM[CarReviewDiagnosisAdmission] =
+    new ReviewDiagnosisAdmissionProgram(core).admit(plan)
+
+  private[cbdsupport] def _complete_review_execution(
+    core: ActionCall.Core,
+    owner: CarReviewDiagnosisAdmission.Owner,
+    plan: CarReviewExecutionPlan,
+    response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
+  ): ExecUowM[CarReviewDiagnosisAdmission] =
+    new ReviewDiagnosisAdmissionProgram(core).complete(owner, plan, response)
+
+  private[cbdsupport] def _record_terminal_review_execution(
+    core: ActionCall.Core,
+    owner: CarReviewDiagnosisAdmission.Owner,
+    plan: CarReviewExecutionPlan,
+    state: CarReviewDiagnosisTerminalState,
+    runDocument: String,
+    completedAt: ReviewInstant
+  ): ExecUowM[Unit] =
+    new ReviewDiagnosisAdmissionProgram(core).recordTerminal(owner, plan, state, runDocument, completedAt)
+
   override val CbdRetrieval: CbdSupportComponent.CbdRetrievalServiceFactory =
     new CbdRetrievalServiceFactoryImpl()
 
@@ -55,6 +96,314 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     new CbdSupportComponent {
       override def mcpReadyServices: Set[String] = Set("CbdRetrieval")
     }
+
+  private final class ReviewDiagnosisAdmissionProgram(
+    val core: ActionCall.Core
+  ) extends ActionCall.Core.Holder with ActionCallEntityStorePart {
+    def admit(plan: CarReviewExecutionPlan): ExecUowM[CarReviewDiagnosisAdmission] =
+      for {
+        existing <- entity_load_option_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
+        admission <- existing match {
+          case Some(diagnosis) =>
+            exec_from(_admission_from_loaded(diagnosis, plan))
+          case None =>
+            for {
+              candidate <- exec_from(_diagnosis_candidate(plan))
+              claimed <- entity_claim_or_load_internal[ReviewDiagnosisCreate, ReviewDiagnosisEntity](candidate)
+              result <- exec_from(_admission_from(claimed, plan))
+            } yield result
+        }
+      } yield admission
+
+    def complete(
+      owner: CarReviewDiagnosisAdmission.Owner,
+      plan: CarReviewExecutionPlan,
+      response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
+    ): ExecUowM[CarReviewDiagnosisAdmission] = {
+      val encoded = _completion_documents(plan, response)
+      for {
+        documents <- exec_from(encoded)
+        diagnosis <- _existing_diagnosis(plan)
+        _ <- exec_from(_validate_owner(owner, diagnosis, plan, response))
+        diagnosisid = _diagnosis_id(plan)
+        target <- exec_from(_target_snapshot(diagnosisid, plan))
+        run <- exec_from(_run_snapshot(diagnosisid, plan, response, documents.runDocument))
+        report <- exec_from(_report_snapshot(diagnosisid, response, documents.reportDocument))
+        attestation <- exec_from(_attestation_snapshot(diagnosisid, response, documents.attestationDocument))
+        _ <- entity_create_internal(target)
+        _ <- entity_create_internal(run)
+        _ <- entity_create_internal(report)
+        _ <- entity_create_internal(attestation)
+        _ <- _update_diagnosis(diagnosisid, _completion_update(response))
+      } yield CarReviewDiagnosisAdmission.Reused(
+        diagnosisid.print,
+        response.report.reviewId,
+        response.report.reportId,
+        response.report.reportDigest
+      )
+    }
+
+    def recordTerminal(
+      owner: CarReviewDiagnosisAdmission.Owner,
+      plan: CarReviewExecutionPlan,
+      state: CarReviewDiagnosisTerminalState,
+      runDocument: String,
+      completedAt: ReviewInstant
+    ): ExecUowM[Unit] = {
+      for {
+        current <- _existing_diagnosis(plan)
+        _ <- exec_from(_validate_terminal_owner(owner, current, plan))
+        diagnosisid = _diagnosis_id(plan)
+        run <- exec_from(ReviewRunSnapshotCreate.createC(
+          diagnosisid,
+          EntityReviewId(plan.request.reviewId.value),
+          EntityReviewRunState(state.value),
+          EntityReviewProfile(plan.request.profile.value),
+          EntityReviewSubmissionDocument(runDocument),
+          EntityReviewInstant(plan.request.startedAt.value)
+        ).map(_.copy(
+          id = Some(_snapshot_id(s"terminal-${state.value}", diagnosisid, plan.request.reviewId.value, ReviewRunSnapshotCreate.collectionId)),
+          completed_at = Some(EntityReviewInstant(completedAt.value))
+        )))
+        _ <- entity_create_internal(run)
+        _ <- _update_diagnosis(diagnosisid, _terminal_update(state, completedAt))
+      } yield ()
+    }
+
+    private def _update_diagnosis(
+      id: org.simplemodeling.model.datatype.EntityId,
+      patch: ReviewDiagnosisUpdate
+    ): ExecUowM[Unit] =
+      entity_update_internal(id, patch)
+
+    private def _completion_update(
+      response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
+    ): ReviewDiagnosisUpdate =
+      ReviewDiagnosisUpdate(
+        Update.noop,
+        Update.noop,
+        Update.set(EntityReviewRunState("completed")),
+        Update.noop,
+        Update.noop,
+        Update.noop,
+        Update.noop,
+        Update.set(EntityReviewInstant(response.report.execution.completedAt.value)),
+        Update.set(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(response.report.reportId.value)),
+        Update.set(EntityReviewDigest(response.report.reportDigest.value))
+      )
+
+    private def _terminal_update(
+      state: CarReviewDiagnosisTerminalState,
+      completedAt: ReviewInstant
+    ): ReviewDiagnosisUpdate =
+      ReviewDiagnosisUpdate(
+        Update.noop,
+        Update.noop,
+        Update.set(EntityReviewRunState(state.value)),
+        Update.noop,
+        Update.noop,
+        Update.noop,
+        Update.noop,
+        Update.set(EntityReviewInstant(completedAt.value)),
+        Update.noop,
+        Update.noop
+      )
+
+    private def _diagnosis_candidate(
+      plan: CarReviewExecutionPlan
+    ): Consequence[ReviewDiagnosisCreate] =
+      ReviewDiagnosisCreate.createC(
+        EntityReviewReuseKeyDefinition(plan.reuseKey.definitionId),
+        EntityReviewDigest(plan.reuseKey.digest.value),
+        EntityReviewRunState("claimed"),
+        EntityReviewDigest(plan.request.target.digest.value),
+        EntityReviewProfile(plan.request.profile.value),
+        EntityReviewInstant(plan.request.startedAt.value)
+      ).map(
+        _.copy(
+          id = Some(_diagnosis_id(plan)),
+          active_review_id = Some(EntityReviewId(plan.request.reviewId.value))
+        )
+      )
+
+    private final case class CompletionDocuments(
+      runDocument: String,
+      reportDocument: String,
+      attestationDocument: String
+    )
+
+    private def _completion_documents(
+      plan: CarReviewExecutionPlan,
+      response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
+    ): Consequence[CompletionDocuments] =
+      _validate_response(plan, response).flatMap { _ =>
+        val run = CarReviewRun(
+          ReviewSchemaVersion(CarReviewVocabulary.SCHEMA_VERSION),
+          ReviewDocumentType(CarReviewRunVocabulary.DOCUMENT_TYPE),
+          response.report.reviewId,
+          response.report.target,
+          response.report.profile,
+          ReviewRunState("completed"),
+          response.report.execution.providers,
+          response.report.limitations,
+          response.report.execution.startedAt,
+          response.report.execution.completedAt,
+          Some(response.report.execution.completedAt),
+          Some(response.report.reportId),
+          Some(response.report.reportDigest),
+          None
+        )
+        (for {
+          rundocument <- CarReviewRunCodec.encode(run).left.map(_.code)
+          reportdocument <- CarReviewReportCodec.encode(response.report).left.map(_.code)
+          attestationdocument <- CarReviewAttestationCodec.encode(response.attestation).left.map(_.code)
+        } yield CompletionDocuments(rundocument, reportdocument, attestationdocument)) match {
+          case Right(value) => Consequence.success(value)
+          case Left(code) => Consequence.operationInvalid(code)
+        }
+      }
+
+    private def _validate_response(
+      plan: CarReviewExecutionPlan,
+      response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
+    ): Consequence[Unit] =
+      if response.report.reviewId != plan.request.reviewId ||
+          response.report.target != plan.request.target ||
+          response.report.profile != plan.request.profile ||
+          response.gate != response.report.gate ||
+          response.attestation.reviewId != response.report.reviewId ||
+          response.attestation.reportId != response.report.reportId ||
+          response.attestation.reportDigest != response.report.reportDigest then
+        Consequence.operationInvalid("review-diagnosis-completion-binding-invalid")
+      else Consequence.unit
+
+    /**
+     * A completion/terminal call must read the persisted Aggregate root
+     * directly through the internal Entity DSL.  A claim-or-load lookup may
+     * legitimately return a resident Entity-space value, which is unsuitable
+     * for validating a state transition after a save.  Direct internal load is
+     * still inside the UnitOfWork/Entity boundary, but makes the datastore's
+     * persisted state authoritative for this transition.
+     */
+    private def _existing_diagnosis(
+      plan: CarReviewExecutionPlan
+    ): ExecUowM[ReviewDiagnosisEntity] =
+      entity_load_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
+
+    private def _validate_owner(
+      owner: CarReviewDiagnosisAdmission.Owner,
+      diagnosis: ReviewDiagnosisEntity,
+      plan: CarReviewExecutionPlan,
+      response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
+    ): Consequence[Unit] =
+      if diagnosis.key_definition_id.value != plan.reuseKey.definitionId ||
+          diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value ||
+          diagnosis.state.value != "claimed" ||
+          !diagnosis.active_review_id.exists(_.value == response.report.reviewId.value) ||
+          !owner.isOwnerFor(diagnosis.id.print, plan) then
+        Consequence.operationInvalid("review-diagnosis-completion-not-owner")
+      else Consequence.unit
+
+    private def _validate_terminal_owner(
+      owner: CarReviewDiagnosisAdmission.Owner,
+      diagnosis: ReviewDiagnosisEntity,
+      plan: CarReviewExecutionPlan
+    ): Consequence[Unit] =
+      if diagnosis.key_definition_id.value != plan.reuseKey.definitionId ||
+          diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value ||
+          !diagnosis.active_review_id.exists(_.value == plan.request.reviewId.value) ||
+          diagnosis.state.value != "claimed" ||
+          !owner.isOwnerFor(diagnosis.id.print, plan) then
+        Consequence.operationInvalid("review-diagnosis-terminal-not-owner")
+      else Consequence.unit
+
+    private def _target_snapshot(id: org.simplemodeling.model.datatype.EntityId, plan: CarReviewExecutionPlan): Consequence[ReviewTargetSnapshotCreate] =
+      ReviewTargetSnapshotCreate.createC(
+        id,
+        org.simplemodeling.textus.cbdsupport.value.ReviewTargetKind(plan.request.target.kind.value),
+        EntityComponentName(plan.request.target.name),
+        EntityReviewDigest(plan.request.target.digest.value),
+        EntityReviewInstant(plan.request.startedAt.value)
+      ).map(_.copy(
+        id = Some(_snapshot_id("target", id, plan.request.target.digest.value, ReviewTargetSnapshotCreate.collectionId)),
+        organization = plan.request.target.organization.map(EntityComponentOrganization.apply),
+        component_version = plan.request.target.version.map(value => org.simplemodeling.textus.cbdsupport.value.ReviewVersion(value.value))
+      ))
+
+    private def _run_snapshot(id: org.simplemodeling.model.datatype.EntityId, plan: CarReviewExecutionPlan, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewRunSnapshotCreate] =
+      ReviewRunSnapshotCreate.createC(id, EntityReviewId(response.report.reviewId.value), EntityReviewRunState("completed"), EntityReviewProfile(response.report.profile.value), EntityReviewSubmissionDocument(document), EntityReviewInstant(response.report.execution.startedAt.value)).map(_.copy(
+        id = Some(_snapshot_id("run", id, response.report.reviewId.value, ReviewRunSnapshotCreate.collectionId)),
+        completed_at = Some(EntityReviewInstant(response.report.execution.completedAt.value))
+      ))
+
+    private def _report_snapshot(id: org.simplemodeling.model.datatype.EntityId, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewReportSnapshotCreate] =
+      ReviewReportSnapshotCreate.createC(id, EntityReviewId(response.report.reviewId.value), org.simplemodeling.textus.cbdsupport.value.ReviewReportId(response.report.reportId.value), EntityReviewDigest(response.report.reportDigest.value), EntityReviewSubmissionDocument(document), EntityReviewInstant(response.report.createdAt.value)).map(_.copy(
+        id = Some(_snapshot_id("report", id, response.report.reportId.value, ReviewReportSnapshotCreate.collectionId))
+      ))
+
+    private def _attestation_snapshot(id: org.simplemodeling.model.datatype.EntityId, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewAttestationSnapshotCreate] =
+      ReviewAttestationSnapshotCreate.createC(id, EntityReviewId(response.report.reviewId.value), org.simplemodeling.textus.cbdsupport.value.ReviewReportId(response.report.reportId.value), EntityReviewDigest(response.report.reportDigest.value), EntityReviewSubmissionDocument(document), EntityReviewInstant(response.attestation.createdAt.value)).map(_.copy(
+        id = Some(_snapshot_id("attestation", id, response.attestation.attestationId.value, ReviewAttestationSnapshotCreate.collectionId))
+      ))
+
+    private def _diagnosis_id(plan: CarReviewExecutionPlan): org.simplemodeling.model.datatype.EntityId = {
+      val seed = s"${plan.reuseKey.definitionId}:${plan.reuseKey.digest.value}"
+      val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
+      org.simplemodeling.model.datatype.EntityId(
+        "CbdReviewDiagnosis",
+        key,
+        ReviewDiagnosisEntity.collectionId,
+        timestamp = Some(UniversalId.StableTimestamp),
+        entropy = Some(UniversalId.StableEntropy)
+      )
+    }
+
+    private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): org.simplemodeling.model.datatype.EntityId = {
+      val seed = s"${diagnosis.value}:$kind:$identity"
+      val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
+      org.simplemodeling.model.datatype.EntityId("CbdReviewSnapshot", key, collection, Some(UniversalId.StableTimestamp), Some(UniversalId.StableEntropy))
+    }
+
+    private def _admission_from(
+      result: org.goldenport.cncf.entity.EntityStore.EntityClaimResult[ReviewDiagnosisCreate, ReviewDiagnosisEntity],
+      plan: CarReviewExecutionPlan
+    ): org.goldenport.Consequence[CarReviewDiagnosisAdmission] = result match {
+      case claimed: org.goldenport.cncf.entity.EntityStore.EntityClaimResult.Claimed[ReviewDiagnosisCreate] @unchecked =>
+        org.goldenport.Consequence.success(CarReviewDiagnosisAdmission.Owner.issue(
+          claimed.id.print,
+          plan.request.reviewId,
+          plan.reuseKey.digest
+        ))
+      case loaded: org.goldenport.cncf.entity.EntityStore.EntityClaimResult.Loaded[ReviewDiagnosisEntity] @unchecked =>
+        _admission_from_loaded(loaded.entity, plan)
+    }
+
+    private def _admission_from_loaded(
+      diagnosis: ReviewDiagnosisEntity,
+      plan: CarReviewExecutionPlan
+    ): org.goldenport.Consequence[CarReviewDiagnosisAdmission] =
+      if (diagnosis.key_definition_id.value != plan.reuseKey.definitionId || diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value)
+        org.goldenport.Consequence.operationInvalid("review-diagnosis-identity-conflict")
+      else diagnosis.state.value match {
+        case "completed" =>
+          (diagnosis.active_review_id, diagnosis.report_id, diagnosis.report_digest) match {
+            case (Some(reviewid), Some(reportid), Some(reportdigest)) =>
+              org.goldenport.Consequence.success(CarReviewDiagnosisAdmission.Reused(
+                _diagnosis_id(plan).print,
+                ReviewId(reviewid.value),
+                ReviewReportId(reportid.value),
+                ReviewDigest(reportdigest.value)
+              ))
+            case _ => org.goldenport.Consequence.operationInvalid("review-diagnosis-completed-binding-missing")
+          }
+        case "claimed" | "queued" | "running" | "cancelling" =>
+          diagnosis.active_review_id match {
+            case Some(reviewid) => org.goldenport.Consequence.success(CarReviewDiagnosisAdmission.Joined(_diagnosis_id(plan).print, ReviewId(reviewid.value)))
+            case None => org.goldenport.Consequence.operationInvalid("review-diagnosis-active-run-missing")
+          }
+        case _ => org.goldenport.Consequence.operationInvalid("review-diagnosis-not-reusable")
+      }
+  }
 
   private final case class RuntimeConfigurationInput(
     configuration: CbdRuntime.Configuration,
@@ -1159,7 +1508,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     Record.dataAuto(
       "cncf" -> views.cncf.map(_review_view_record),
       "implementation" -> views.implementation.map(_review_view_record),
-      "quality" -> views.quality.map(_review_view_record)
+      "quality" -> views.quality.map(_review_view_record),
+      "namedViews" -> views.namedViews.map { view =>
+        Record.dataAuto(
+          "name" -> view.name,
+          "items" -> view.items.map(_review_view_record)
+        )
+      }
     )
 
   private[cbdsupport] def _review_view_record(view: CarReviewViewItem): Record =

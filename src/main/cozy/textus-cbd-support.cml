@@ -1760,6 +1760,18 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 |------|------|--------------|
 | value | string | 1 |
 
+## ReviewReuseKeyDefinition
+
+### DESCRIPTION
+
+Versioned server-defined identity algorithm for one reusable Review diagnosis.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
 ## ReviewProfile
 
 ### ATTRIBUTE
@@ -1887,3 +1899,152 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 | name | type | multiplicity |
 |------|------|--------------|
 | value | string | 1 |
+
+# ENTITY
+
+## ReviewDiagnosis
+
+### FEATURES
+
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| key_definition_id | ReviewReuseKeyDefinition | 1 |
+| reuse_key_digest | ReviewDigest | 1 |
+| state | ReviewRunState | 1 |
+| active_review_id | ReviewId | ? |
+| target_digest | ReviewDigest | 1 |
+| profile | ReviewProfile | 1 |
+| created_at | ReviewInstant | 1 |
+| completed_at | ReviewInstant | ? |
+| report_id | ReviewReportId | ? |
+| report_digest | ReviewDigest | ? |
+
+### AGGREGATE
+
+#### MEMBER
+
+| name | entity | kind | multiplicity | join_field |
+|------|--------|------|--------------|------------|
+| targets | ReviewTargetSnapshot | composition | * | diagnosis_id |
+| runs | ReviewRunSnapshot | composition | * | diagnosis_id |
+| reports | ReviewReportSnapshot | composition | * | diagnosis_id |
+| attestations | ReviewAttestationSnapshot | composition | * | diagnosis_id |
+
+#### STATE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| key_definition_id | ReviewReuseKeyDefinition | 1 |
+| reuse_key_digest | ReviewDigest | 1 |
+| state | ReviewRunState | 1 |
+| active_review_id | ReviewId | ? |
+| report_id | ReviewReportId | ? |
+| report_digest | ReviewDigest | ? |
+
+### VIEW
+
+- REBUILDABLE :: true
+
+#### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| key_definition_id | ReviewReuseKeyDefinition | 1 |
+| reuse_key_digest | ReviewDigest | 1 |
+| state | ReviewRunState | 1 |
+| active_review_id | ReviewId | ? |
+| target_digest | ReviewDigest | 1 |
+| profile | ReviewProfile | 1 |
+| report_id | ReviewReportId | ? |
+| report_digest | ReviewDigest | ? |
+
+## ReviewTargetSnapshot
+
+### FEATURES
+
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| diagnosis_id | entityid | 1 |
+| target_kind | ReviewTargetKind | 1 |
+| organization | ComponentOrganization | ? |
+| component_name | ComponentName | 1 |
+| component_version | ReviewVersion | ? |
+| target_digest | ReviewDigest | 1 |
+| created_at | ReviewInstant | 1 |
+
+## ReviewRunSnapshot
+
+### FEATURES
+
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| diagnosis_id | entityid | 1 |
+| review_id | ReviewId | 1 |
+| state | ReviewRunState | 1 |
+| profile | ReviewProfile | 1 |
+| run_document | ReviewSubmissionDocument | 1 |
+| started_at | ReviewInstant | 1 |
+| completed_at | ReviewInstant | ? |
+
+## ReviewReportSnapshot
+
+### FEATURES
+
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| diagnosis_id | entityid | 1 |
+| review_id | ReviewId | 1 |
+| report_id | ReviewReportId | 1 |
+| report_digest | ReviewDigest | 1 |
+| report_document | ReviewSubmissionDocument | 1 |
+| created_at | ReviewInstant | 1 |
+
+## ReviewAttestationSnapshot
+
+### FEATURES
+
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| diagnosis_id | entityid | 1 |
+| review_id | ReviewId | 1 |
+| report_id | ReviewReportId | 1 |
+| report_digest | ReviewDigest | 1 |
+| attestation_document | ReviewSubmissionDocument | 1 |
+| created_at | ReviewInstant | 1 |

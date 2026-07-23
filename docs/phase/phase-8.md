@@ -2,9 +2,9 @@
 
 Stage Status:
 - Current status: IN_PROGRESS
-- Current step: Stages 8.1 through 8.4 are complete. P8-41 is complete in
-  Stage 8.5; next, P8-42 persists and reuses a compatible completed diagnosis
-  without rerunning provider work.
+- Current step: Stages 8.1 through 8.4 and P8-42 are complete. P8-43 is in
+  progress in Stage 8.5: a terminal diagnosis still requires the conditional
+  successor transition before terminal-history handling is complete.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Stop at the human-confirmation stage when it
@@ -241,8 +241,29 @@ rejects unsupported Review schemas and incomplete/ambiguous identity rather
 than inventing a reusable result. `CarReviewReuseKeySpec` proves canonical
 order independence, every conclusion-affecting invalidation class, and safe
 schema/Evidence admission. Both independent reviews were clean; the focused
-and executable-coverage specs and 253 CBD Support tests passed. P8-42 is the
-next slice.
+and executable-coverage specs and 253 CBD Support tests passed.
+
+P8-42 completed on 2026-07-24. `ReviewDiagnosis` uses the protected CNCF
+Entity boundary to load or atomically claim one deterministic exact-key root.
+The owner persists
+immutable Target, completed Run, canonical Report, and attestation composition
+snapshots, then marks the root completed; a later exact-key request receives
+the retained Report identity as `Reused`, while an in-progress request is
+`Joined`. `ReviewDiagnosisPersistenceSpec` proves Owner/Joined coalescing and
+completion/reuse through fresh UnitOfWork reads. Completion and terminal
+transitions use the generated `ReviewDiagnosis` update model with the
+server-derived stable root ID and `ServiceInternal` UnitOfWork authorization.
+The generated scalar Review datatype decoder is shared infrastructure; CBD
+Support no longer owns a private persistence codec or raw datastore path.
+
+P8-43 is in progress. `ReviewDiagnosis` retains failed, cancelled, expired,
+and incompatible outcomes as immutable Run composition snapshots, and
+`ReviewDiagnosisPersistenceSpec` proves none can be returned as a reusable
+successful Report. A same-key successor must atomically retain the former
+terminal history and replace only the Aggregate's active-run pointer. That
+conditional transition is an explicit CNCF Entity-internal-DSL prerequisite;
+CBD Support does not substitute a process-local lock, SQL, or a raw datastore
+operation for it.
 
 ### Stage 8.6: Quality-attribute rule matrix
 

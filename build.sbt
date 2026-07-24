@@ -19,7 +19,11 @@ lazy val root = project
 
     cozyGeneratorBackend := "cozy",
     cozyDelegateProjectDir := None,
-    cozyDelegateCommand := Seq("cozy"),
+    cozyDelegateCommand := Seq(
+      "cozy",
+      "--runtime",
+      CbdSupportProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "build.cozyRuntimeVersion")
+    ),
     cozyManifestMetadata ++=
       cozyProjectMetadata.value.mapUnder("packaging.car.manifest_metadata") ++
         Map("component" -> CbdSupportProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "project.component.name"))

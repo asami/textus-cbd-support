@@ -16,11 +16,13 @@ project:
 
 build:
   scalaVersion: "3.3.8"
+  cozyRuntimeVersion: "0.3.0-SNAPSHOT"
   dependencies:
     compile:
       - "org.goldenport::goldenport-cncf:0.5.1-SNAPSHOT"
     test:
       - "org.scalatest::scalatest:3.2.19"
+      - "org.scalatestplus::scalacheck-1-18:3.2.19.0"
 
 publication:
   source_manifest:

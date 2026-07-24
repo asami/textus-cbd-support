@@ -3,27 +3,68 @@ package org.simplemodeling.textus.cbdsupport.impl
 import java.nio.file.{Files, Path}
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import java.util.concurrent.{
+  Callable,
+  CountDownLatch,
+  Executors,
+  TimeUnit
+}
+import java.util.concurrent.atomic.AtomicInteger
 
-import cats.~>
+import cats.{Id, ~>}
+import cats.data.State
+import cats.effect.Ref
 import org.goldenport.Consequence
+import org.goldenport.ConsequenceT
+import org.goldenport.cncf.Program
 import org.goldenport.cncf.action.{Action, ActionCall}
+import org.goldenport.cncf.component.{
+  Component,
+  ComponentId,
+  ComponentInstanceId
+}
 import org.goldenport.cncf.config.ResolvedParameters
 import org.goldenport.cncf.context.{DataStoreContext, EntityStoreContext, ExecutionContext, RuntimeContext, ScopeContext, ScopeKind}
 import org.goldenport.cncf.datastore.{DataStore, DataStoreSpace}
-import org.goldenport.cncf.entity.{EntityStore, EntityStoreSpace}
+import org.goldenport.cncf.entity.{
+  EntityPersistent,
+  EntityStore,
+  EntityStoreSpace
+}
+import org.goldenport.cncf.entity.runtime.{
+  EntityCollection,
+  EntityDescriptor,
+  EntityLoader,
+  EntityMemoryPolicy,
+  EntityRealm,
+  EntityRealmState,
+  EntityRuntimePlan,
+  EntityStorage,
+  PartitionStrategy
+}
 import org.goldenport.cncf.unitofwork.{UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
-import org.goldenport.protocol.Request
+import org.goldenport.protocol.{Protocol, Request}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalacheck.Gen
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import org.simplemodeling.textus.cbdsupport.runtime.*
+import org.simplemodeling.textus.cbdsupport.entity.{
+  ReviewDiagnosis as ReviewDiagnosisEntity,
+  ReviewRunSnapshot as ReviewRunSnapshotEntity
+}
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 24, 2026
+ * @version Jul. 25, 2026
  * @author  ASAMI, Tomoharu
  */
-final class ReviewDiagnosisPersistenceSpec extends AnyWordSpec with Matchers with GivenWhenThen {
+final class ReviewDiagnosisPersistenceSpec
+    extends AnyWordSpec
+    with Matchers
+    with GivenWhenThen
+    with ScalaCheckDrivenPropertyChecks {
   "CAR Review diagnosis persistence" should {
     "claim one stable Entity diagnosis and join a duplicate reusable execution" in {
       Given("two executions with the same server-derived reuse identity")
@@ -77,7 +118,7 @@ final class ReviewDiagnosisPersistenceSpec extends AnyWordSpec with Matchers wit
       }
     }
 
-    "retain every non-success terminal Run without presenting it as a reusable Report" in {
+    "retain every non-success terminal Run while admitting a fresh successor" in {
       Given("independent owned diagnoses for every non-success terminal state")
       val factory = new ComponentFactory()
       val context = _context()
@@ -95,16 +136,76 @@ final class ReviewDiagnosisPersistenceSpec extends AnyWordSpec with Matchers wit
         _value(new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
           factory._record_terminal_review_execution(_core(context), owner, plan, state, s"{\"state\":\"${state.value}\"}", ReviewInstant("2026-07-23T01:00:00Z"))
         )) shouldBe ()
-        state -> new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
-          factory._admit_review_execution(_core(context), _plan(s"review-after-${state.value}", targetdigest))
-        )
+        val successorid = ReviewId(s"review-after-${state.value}")
+        state -> (successorid -> new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
+          factory._admit_review_execution(_core(context), _plan(successorid.value, targetdigest))
+        ))
       }
 
-      Then("no terminal diagnosis is exposed as a reusable successful Report")
-      results.foreach { case (state, result) =>
-        withClue(s"${state.value} must never be reused as a successful Report") {
-          result shouldBe a[Consequence.Failure[_]]
+      Then("no terminal diagnosis is reused and every request owns a fresh successor")
+      results.foreach { case (state, (successorid, result)) =>
+        withClue(s"${state.value} must admit the requested successor") {
+          _owner(_value(result)).reviewId shouldBe successorid
         }
+      }
+    }
+
+    "install one authoritative successor and start its work once" in {
+      Given(
+        "a retained terminal Run and two through eight simultaneous same-key successor requests"
+      )
+
+      forAll(Gen.choose(2, 8)) { generatedcallercount =>
+        val callercount = generatedcallercount.max(2)
+        val factory = new ComponentFactory()
+        val context = _context()
+        val terminalplan = _plan("review-terminal-predecessor", '9')
+        val terminalowner = _owner(_run(factory, context, terminalplan))
+        _value(
+          new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
+            factory._record_terminal_review_execution(
+              _core(context),
+              terminalowner,
+              terminalplan,
+              CarReviewDiagnosisTerminalState.Failed,
+              """{"state":"failed","failure":"provider"}""",
+              ReviewInstant("2026-07-23T01:00:00Z")
+            )
+          )
+        ) shouldBe ()
+        val plans =
+          Vector.tabulate(callercount)(index =>
+            _plan(s"review-successor-$index", '9')
+          )
+        val continuationcount = new AtomicInteger(0)
+
+        When("independent UnitOfWork callers attempt the terminal successor transition")
+        val admissions =
+          _run_concurrently(
+            factory,
+            context,
+            plans,
+            continuationcount
+          )
+
+        Then("one caller owns the authoritative successor and every loser joins it")
+        val owners = admissions.collect {
+          case owner: CarReviewDiagnosisAdmission.Owner => owner
+        }
+        val joined = admissions.collect {
+          case value: CarReviewDiagnosisAdmission.Joined => value
+        }
+        owners should have size 1
+        joined should have size callercount - 1
+        joined.map(_.reviewId).distinct shouldBe Vector(owners.head.reviewId)
+        continuationcount.get shouldBe 1
+
+        And("the immutable terminal predecessor and one admitted successor both remain")
+        val snapshots =
+          _run_snapshots(context, terminalplan, owners.head.reviewId)
+        snapshots.map(_.state.value).sorted shouldBe Vector("admitted", "failed")
+        snapshots.map(_.review_id.value).toSet shouldBe
+          Set(terminalplan.request.reviewId.value, owners.head.reviewId.value)
       }
     }
 
@@ -187,6 +288,86 @@ final class ReviewDiagnosisPersistenceSpec extends AnyWordSpec with Matchers wit
       factory._complete_review_execution(_core(context), owner, plan, response)
     ))
 
+  private def _run_concurrently(
+    factory: ComponentFactory,
+    context: ExecutionContext,
+    plans: Vector[CarReviewExecutionPlan],
+    continuationcount: AtomicInteger
+  ): Vector[CarReviewDiagnosisAdmission] = {
+    val ready = new CountDownLatch(plans.size)
+    val start = new CountDownLatch(1)
+    val executor = Executors.newFixedThreadPool(plans.size)
+    try {
+      val calls = plans.map { plan =>
+        executor.submit(new Callable[CarReviewDiagnosisAdmission] {
+          def call(): CarReviewDiagnosisAdmission = {
+            ready.countDown()
+            if (!start.await(10, TimeUnit.SECONDS))
+              throw new IllegalStateException(
+                "successor callers did not receive the start signal"
+              )
+            _value(
+              new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
+                factory._admit_and_start_review_execution(
+                  _core(context),
+                  plan
+                ) { _ =>
+                  continuationcount.incrementAndGet()
+                  ConsequenceT.pure[
+                    [X] =>> Program[UnitOfWorkOp, X],
+                    Unit
+                  ](())
+                }
+              )
+            )
+          }
+        })
+      }
+      if (!ready.await(10, TimeUnit.SECONDS))
+        throw new IllegalStateException(
+          "successor callers did not reach the concurrency barrier"
+        )
+      start.countDown()
+      calls.map(_.get(30, TimeUnit.SECONDS))
+    } finally {
+      start.countDown()
+      executor.shutdownNow()
+      executor.awaitTermination(10, TimeUnit.SECONDS)
+    }
+  }
+
+  private def _run_snapshots(
+    context: ExecutionContext,
+    plan: CarReviewExecutionPlan,
+    successorid: ReviewId
+  ): Vector[ReviewRunSnapshotEntity] = {
+    val diagnosisid = _diagnosis_id(plan)
+    Vector(
+      _snapshot_id(
+        "terminal-failed",
+        diagnosisid,
+        plan.request.reviewId.value,
+        ReviewRunSnapshotEntity.collectionId
+      ),
+      _snapshot_id(
+        "successor",
+        diagnosisid,
+        successorid.value,
+        ReviewRunSnapshotEntity.collectionId
+      )
+    ).flatMap { id =>
+      val operation =
+        UnitOfWorkOp.EntityStoreLoadDirect[ReviewRunSnapshotEntity](
+          id,
+          summon[EntityPersistent[ReviewRunSnapshotEntity]]
+        )
+      _value(
+        new UnitOfWorkInterpreter(new UnitOfWork(context))
+          .interpret(operation)
+      )
+    }
+  }
+
   private def _owner(admission: CarReviewDiagnosisAdmission): CarReviewDiagnosisAdmission.Owner =
     admission match {
       case owner: CarReviewDiagnosisAdmission.Owner => owner
@@ -255,7 +436,87 @@ final class ReviewDiagnosisPersistenceSpec extends AnyWordSpec with Matchers wit
   }
 
   private def _core(context: ExecutionContext): ActionCall.Core =
-    ActionCall.Core(TestAction(Request.ofOperation("cbd-review-diagnosis-persistence")), context, None, None)
+    ActionCall.Core(
+      TestAction(Request.ofOperation("cbd-review-diagnosis-persistence")),
+      context,
+      Some(_component()),
+      None
+    )
+
+  private def _component(): Component = {
+    val component = new Component {
+      override val core: Component.Core = Component.Core.create(
+        "CbdSupport",
+        ComponentId("CbdSupport"),
+        ComponentInstanceId.default(ComponentId("CbdSupport")),
+        Protocol.empty
+      )
+
+      override def coreOption: Option[Component.Core] =
+        Some(core)
+    }
+    component.entitySpace.registerEntity(
+      ReviewDiagnosisEntity.collectionId.name,
+      _empty_collection(
+        ReviewDiagnosisEntity.collectionId,
+        summon[EntityPersistent[ReviewDiagnosisEntity]]
+      )
+    )
+    component.entitySpace.registerEntity(
+      ReviewRunSnapshotEntity.collectionId.name,
+      _empty_collection(
+        ReviewRunSnapshotEntity.collectionId,
+        summon[EntityPersistent[ReviewRunSnapshotEntity]]
+      )
+    )
+    component
+  }
+
+  private def _empty_collection[E](
+    collectionid: org.simplemodeling.model.datatype.EntityCollectionId,
+    persistent: EntityPersistent[E]
+  ): EntityCollection[E] = {
+    given EntityPersistent[E] = persistent
+    val storerealm = new EntityRealm[E](
+      entityName = collectionid.name,
+      loader = EntityLoader[E](_ => None),
+      state = new IdRef(EntityRealmState(Map.empty))
+    )
+    val descriptor = EntityDescriptor(
+      collectionId = collectionid,
+      plan = EntityRuntimePlan(
+        entityName = collectionid.name,
+        memoryPolicy = EntityMemoryPolicy.StoreOnly,
+        workingSet = None,
+        partitionStrategy = PartitionStrategy.byEntityId,
+        maxPartitions = 1,
+        maxEntitiesPerPartition = 1
+      ),
+      persistent = persistent
+    )
+    new EntityCollection(
+      descriptor,
+      EntityStorage(storerealm)
+    )
+  }
+
+  private def _viewer_context(context: ExecutionContext): ExecutionContext =
+    ExecutionContext.withSecurityContext(
+      context,
+      context.security.copy(
+        capabilities = context.security.capabilities + org.goldenport.cncf.context.Capability("viewer"),
+        level = org.goldenport.cncf.context.SecurityLevel("viewer")
+      )
+    )
+
+  private def _operator_context(context: ExecutionContext): ExecutionContext =
+    ExecutionContext.withSecurityContext(
+      context,
+      context.security.copy(
+        capabilities = context.security.capabilities + org.goldenport.cncf.context.Capability("operator"),
+        level = org.goldenport.cncf.context.SecurityLevel("operator")
+      )
+    )
 
   private def _plan(reviewid: String, targetdigest: Char = 'a'): CarReviewExecutionPlan = {
     val target = ReviewTarget(
@@ -303,18 +564,114 @@ final class ReviewDiagnosisPersistenceSpec extends AnyWordSpec with Matchers wit
   private def _diagnosis_id(plan: CarReviewExecutionPlan): org.simplemodeling.model.datatype.EntityId = {
     val seed = s"${plan.reuseKey.definitionId}:${plan.reuseKey.digest.value}"
     val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
+    val collection =
+      org.simplemodeling.textus.cbdsupport.entity.ReviewDiagnosis.collectionId
     org.simplemodeling.model.datatype.EntityId(
-      "CbdReviewDiagnosis",
-      key,
-      org.simplemodeling.textus.cbdsupport.entity.ReviewDiagnosis.collectionId,
+      collection.major,
+      collection.minor,
+      collection,
       timestamp = Some(org.goldenport.id.UniversalId.StableTimestamp),
-      entropy = Some(org.goldenport.id.UniversalId.StableEntropy)
+      entropy = Some(key)
+    )
+  }
+
+  private def _snapshot_id(
+    kind: String,
+    diagnosis: org.simplemodeling.model.datatype.EntityId,
+    identity: String,
+    collection: org.simplemodeling.model.datatype.EntityCollectionId
+  ): org.simplemodeling.model.datatype.EntityId = {
+    val seed = s"${diagnosis.value}:$kind:$identity"
+    val key =
+      "d" + UUID
+        .nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8))
+        .toString
+        .replace("-", "")
+    org.simplemodeling.model.datatype.EntityId(
+      collection.major,
+      collection.minor,
+      collection,
+      timestamp = Some(org.goldenport.id.UniversalId.StableTimestamp),
+      entropy = Some(key)
     )
   }
 
   private def _value[A](consequence: Consequence[A]): A = consequence match {
     case Consequence.Success(value) => value
     case Consequence.Failure(conclusion) => fail(s"${conclusion.display} / ${conclusion.show} / $conclusion")
+  }
+
+  private final class IdRef[A](initial: A) extends Ref[Id, A] {
+    private var _value: A = initial
+
+    def get: A =
+      synchronized(_value)
+
+    def set(value: A): Unit =
+      synchronized {
+        _value = value
+      }
+
+    override def getAndSet(value: A): A =
+      synchronized {
+        val previous = _value
+        _value = value
+        previous
+      }
+
+    def access: (A, A => Boolean) =
+      synchronized {
+        val snapshot = _value
+        val setter: A => Boolean = next =>
+          synchronized {
+            if (_value == snapshot) {
+              _value = next
+              true
+            } else {
+              false
+            }
+          }
+        snapshot -> setter
+      }
+
+    override def tryUpdate(f: A => A): Boolean =
+      synchronized {
+        _value = f(_value)
+        true
+      }
+
+    override def tryModify[B](f: A => (A, B)): Option[B] =
+      synchronized {
+        val (next, result) = f(_value)
+        _value = next
+        Some(result)
+      }
+
+    def update(f: A => A): Unit =
+      synchronized {
+        _value = f(_value)
+      }
+
+    def modify[B](f: A => (A, B)): B =
+      synchronized {
+        val (next, result) = f(_value)
+        _value = next
+        result
+      }
+
+    override def modifyState[B](state: State[A, B]): B =
+      synchronized {
+        val (next, result) = state.run(_value).value
+        _value = next
+        result
+      }
+
+    override def tryModifyState[B](state: State[A, B]): Option[B] =
+      synchronized {
+        val (next, result) = state.run(_value).value
+        _value = next
+        Some(result)
+      }
   }
 
   private final case class TestAction(request: Request) extends Action {

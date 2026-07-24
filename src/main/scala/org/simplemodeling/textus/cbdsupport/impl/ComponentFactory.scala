@@ -9,6 +9,16 @@ import org.goldenport.cncf.action.{ActionCall, ActionCallEntityStorePart}
 import org.goldenport.cncf.component.{Component, ComponentCreate}
 import org.goldenport.cncf.config.{ComponentConfigurationAccess, ComponentConfigurationKey, ComponentConfigurationSources}
 import org.goldenport.cncf.context.{GlobalRuntimeContext, ScopeContext}
+import org.goldenport.cncf.entity.{
+  EntityConditionalTransition,
+  EntityConditionalTransitionResult,
+  EntityMutationExpectation,
+  EntityPersistent,
+  EntitySnapshot,
+  EntitySuccessorIntent,
+  EntityTransitionDefinition,
+  EntityTransitionField
+}
 import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeQuery, ResourceTreeReference}
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.configuration.Configuration
@@ -20,9 +30,9 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdmin
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewArtifactBundle, CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAttestationCodec, CarReviewReportCodec, CarReviewRun, CarReviewRunCodec, CarReviewRunVocabulary, CarReviewVocabulary, ReviewDocumentType, ReviewRunState, ReviewSchemaVersion}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAttestationCodec, CarReviewReportCodec, CarReviewRun, CarReviewRunCodec, CarReviewRunLifecycle, CarReviewRunVocabulary, CarReviewVocabulary, ReviewDocumentType, ReviewRunState, ReviewSchemaVersion}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewDiagnosisAdmission, CarReviewDiagnosisTerminalState, CarReviewExecutionPlan}
-import org.simplemodeling.textus.cbdsupport.entity.{ReviewDiagnosis as ReviewDiagnosisEntity}
+import org.simplemodeling.textus.cbdsupport.entity.{ReviewDiagnosis as ReviewDiagnosisEntity, ReviewRunSnapshot as ReviewRunSnapshotEntity}
 import org.simplemodeling.textus.cbdsupport.entity.create.{ReviewDiagnosis as ReviewDiagnosisCreate, ReviewTargetSnapshot as ReviewTargetSnapshotCreate, ReviewRunSnapshot as ReviewRunSnapshotCreate, ReviewReportSnapshot as ReviewReportSnapshotCreate, ReviewAttestationSnapshot as ReviewAttestationSnapshotCreate}
 import org.simplemodeling.textus.cbdsupport.entity.update.{ReviewDiagnosis as ReviewDiagnosisUpdate}
 import org.simplemodeling.textus.cbdsupport.value.{ComponentName as EntityComponentName, ComponentOrganization as EntityComponentOrganization, ReviewDigest as EntityReviewDigest, ReviewId as EntityReviewId, ReviewInstant as EntityReviewInstant, ReviewProfile as EntityReviewProfile, ReviewReuseKeyDefinition as EntityReviewReuseKeyDefinition, ReviewRunState as EntityReviewRunState, ReviewSubmissionDocument as EntityReviewSubmissionDocument}
@@ -31,7 +41,7 @@ import org.simplemodeling.model.directive.Update
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 24, 2026
+ * @version Jul. 25, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -61,6 +71,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     plan: CarReviewExecutionPlan
   ): ExecUowM[CarReviewDiagnosisAdmission] =
     new ReviewDiagnosisAdmissionProgram(core).admit(plan)
+  private[cbdsupport] def _admit_and_start_review_execution(
+    core: ActionCall.Core,
+    plan: CarReviewExecutionPlan
+  )(
+    start: CarReviewDiagnosisAdmission.Owner => ExecUowM[Unit]
+  ): ExecUowM[CarReviewDiagnosisAdmission] =
+    new ReviewDiagnosisAdmissionProgram(core).admitAndStart(plan)(start)
+
 
   private[cbdsupport] def _complete_review_execution(
     core: ActionCall.Core,
@@ -104,8 +122,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       for {
         existing <- entity_load_option_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
         admission <- existing match {
-          case Some(diagnosis) =>
-            exec_from(_admission_from_loaded(diagnosis, plan))
+          case Some(_) =>
+            for {
+              snapshot <- entity_load_snapshot_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
+              result <- _admission_from_snapshot(snapshot, plan)
+            } yield result
           case None =>
             for {
               candidate <- exec_from(_diagnosis_candidate(plan))
@@ -114,6 +135,165 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             } yield result
         }
       } yield admission
+    def admitAndStart(
+      plan: CarReviewExecutionPlan
+    )(
+      start: CarReviewDiagnosisAdmission.Owner => ExecUowM[Unit]
+    ): ExecUowM[CarReviewDiagnosisAdmission] =
+      admit(plan).flatMap {
+        case owner: CarReviewDiagnosisAdmission.Owner =>
+          start(owner).map(_ => owner)
+        case existing =>
+          exec_from(Consequence.success(existing))
+      }
+
+    private def _admission_from_snapshot(
+      snapshot: EntitySnapshot[ReviewDiagnosisEntity],
+      plan: CarReviewExecutionPlan
+    ): ExecUowM[CarReviewDiagnosisAdmission] =
+      snapshot.entity.state.value match {
+        case "failed" | "cancelled" | "expired" | "incompatible" =>
+          for {
+            transition <- exec_from(_successor_transition(snapshot, plan))
+            result <- entity_conditional_transition_internal(transition)
+            admission <- exec_from(_admission_from_transition(result, plan))
+          } yield admission
+        case _ =>
+          exec_from(_admission_from_loaded(snapshot.entity, plan))
+      }
+
+    private def _successor_transition(
+      snapshot: EntitySnapshot[ReviewDiagnosisEntity],
+      plan: CarReviewExecutionPlan
+    ): Consequence[
+      EntityConditionalTransition[
+        ReviewDiagnosisEntity,
+        ReviewDiagnosisUpdate,
+        ReviewRunSnapshotEntity
+      ]
+    ] = {
+      val rootpersistent = summon[EntityPersistent[ReviewDiagnosisEntity]]
+      for {
+        _ <- _validate_identity(snapshot.entity, plan)
+        activeid <- snapshot.entity.active_review_id match {
+          case Some(value) => Consequence.success(value)
+          case None =>
+            Consequence.operationInvalid(
+              "review-diagnosis-terminal-run-missing"
+            )
+        }
+        statefield <-
+          EntityTransitionField.encoded[
+            ReviewDiagnosisEntity,
+            EntityReviewRunState
+          ]("state", rootpersistent)(_.value)
+        activefield <-
+          EntityTransitionField.encoded[
+            ReviewDiagnosisEntity,
+            EntityReviewId
+          ]("active_review_id", rootpersistent)(_.value)
+        definition <- EntityTransitionDefinition.create(
+          rootpersistent,
+          Vector(statefield, activefield)
+        )
+        expectedstate <- statefield.expected(snapshot.entity.state)
+        expectedactive <- activefield.expected(activeid)
+        expectation <- definition.expectation(
+          snapshot.token,
+          expectedstate,
+          expectedactive
+        )
+        successor <- _successor_snapshot(snapshot.entity.id, plan)
+        intent <- EntitySuccessorIntent.create[
+          ReviewRunSnapshotCreate,
+          ReviewRunSnapshotEntity
+        ](successor)
+        transition <- EntityConditionalTransition.create(
+          snapshot.entity.id,
+          expectation,
+          _successor_root_update(plan),
+          intent
+        )
+      } yield transition
+    }
+
+    private def _successor_root_update(
+      plan: CarReviewExecutionPlan
+    ): ReviewDiagnosisUpdate =
+      ReviewDiagnosisUpdate(
+        Update.noop,
+        Update.noop,
+        Update.set(EntityReviewRunState("claimed")),
+        Update.set(EntityReviewId(plan.request.reviewId.value)),
+        Update.noop,
+        Update.noop,
+        Update.noop,
+        Update.setNull,
+        Update.setNull,
+        Update.setNull
+      )
+
+    private def _successor_snapshot(
+      diagnosisid: org.simplemodeling.model.datatype.EntityId,
+      plan: CarReviewExecutionPlan
+    ): Consequence[ReviewRunSnapshotCreate] =
+      CarReviewRunLifecycle
+        .admitted(
+          plan.request.reviewId,
+          plan.request.target,
+          plan.request.profile,
+          plan.request.startedAt
+        )
+        .left
+        .map(_.code) match {
+        case Left(code) =>
+          Consequence.operationInvalid(code)
+        case Right(run) =>
+          CarReviewRunCodec.encode(run).left.map(_.code) match {
+            case Left(code) =>
+              Consequence.operationInvalid(code)
+            case Right(document) =>
+              ReviewRunSnapshotCreate
+                .createC(
+                  diagnosisid,
+                  EntityReviewId(plan.request.reviewId.value),
+                  EntityReviewRunState("admitted"),
+                  EntityReviewProfile(plan.request.profile.value),
+                  EntityReviewSubmissionDocument(document),
+                  EntityReviewInstant(plan.request.startedAt.value)
+                )
+                .map(_.copy(
+                  id = Some(_snapshot_id(
+                    "successor",
+                    diagnosisid,
+                    plan.request.reviewId.value,
+                    ReviewRunSnapshotCreate.collectionId
+                  ))
+                ))
+          }
+      }
+
+    private def _admission_from_transition(
+      result:
+        EntityConditionalTransitionResult[
+          ReviewDiagnosisEntity,
+          ReviewRunSnapshotEntity
+        ],
+      plan: CarReviewExecutionPlan
+    ): Consequence[CarReviewDiagnosisAdmission] =
+      result match {
+        case EntityConditionalTransitionResult.Transitioned(root, _) =>
+          Consequence.success(
+            CarReviewDiagnosisAdmission.Owner.issue(
+              root.entity.id.print,
+              plan.request.reviewId,
+              plan.reuseKey.digest
+            )
+          )
+        case EntityConditionalTransitionResult.NotMatched(existing) =>
+          _admission_from_loaded(existing.entity, plan)
+      }
+
 
     def complete(
       owner: CarReviewDiagnosisAdmission.Owner,
@@ -174,7 +354,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       id: org.simplemodeling.model.datatype.EntityId,
       patch: ReviewDiagnosisUpdate
     ): ExecUowM[Unit] =
-      entity_update_internal(id, patch)
+      for {
+        snapshot <- entity_load_snapshot_internal[ReviewDiagnosisEntity](id)
+        _ <- entity_update_internal(id, patch, EntityMutationExpectation(snapshot.token))
+      } yield ()
 
     private def _completion_update(
       response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
@@ -194,7 +377,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
 
     private def _terminal_update(
       state: CarReviewDiagnosisTerminalState,
-      completedAt: ReviewInstant
+      completedat: ReviewInstant
     ): ReviewDiagnosisUpdate =
       ReviewDiagnosisUpdate(
         Update.noop,
@@ -204,7 +387,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         Update.noop,
         Update.noop,
         Update.noop,
-        Update.set(EntityReviewInstant(completedAt.value)),
+        Update.set(EntityReviewInstant(completedat.value)),
         Update.noop,
         Update.noop
       )
@@ -348,20 +531,27 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
 
     private def _diagnosis_id(plan: CarReviewExecutionPlan): org.simplemodeling.model.datatype.EntityId = {
       val seed = s"${plan.reuseKey.definitionId}:${plan.reuseKey.digest.value}"
+      val collection = ReviewDiagnosisEntity.collectionId
       val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
       org.simplemodeling.model.datatype.EntityId(
-        "CbdReviewDiagnosis",
-        key,
-        ReviewDiagnosisEntity.collectionId,
+        collection.major,
+        collection.minor,
+        collection,
         timestamp = Some(UniversalId.StableTimestamp),
-        entropy = Some(UniversalId.StableEntropy)
+        entropy = Some(key)
       )
     }
 
     private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): org.simplemodeling.model.datatype.EntityId = {
       val seed = s"${diagnosis.value}:$kind:$identity"
       val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      org.simplemodeling.model.datatype.EntityId("CbdReviewSnapshot", key, collection, Some(UniversalId.StableTimestamp), Some(UniversalId.StableEntropy))
+      org.simplemodeling.model.datatype.EntityId(
+        collection.major,
+        collection.minor,
+        collection,
+        timestamp = Some(UniversalId.StableTimestamp),
+        entropy = Some(key)
+      )
     }
 
     private def _admission_from(
@@ -382,9 +572,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       diagnosis: ReviewDiagnosisEntity,
       plan: CarReviewExecutionPlan
     ): org.goldenport.Consequence[CarReviewDiagnosisAdmission] =
-      if (diagnosis.key_definition_id.value != plan.reuseKey.definitionId || diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value)
-        org.goldenport.Consequence.operationInvalid("review-diagnosis-identity-conflict")
-      else diagnosis.state.value match {
+      _validate_identity(diagnosis, plan).flatMap { _ =>
+        diagnosis.state.value match {
         case "completed" =>
           (diagnosis.active_review_id, diagnosis.report_id, diagnosis.report_digest) match {
             case (Some(reviewid), Some(reportid), Some(reportdigest)) =>
@@ -402,7 +591,20 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             case None => org.goldenport.Consequence.operationInvalid("review-diagnosis-active-run-missing")
           }
         case _ => org.goldenport.Consequence.operationInvalid("review-diagnosis-not-reusable")
+        }
       }
+
+    private def _validate_identity(
+      diagnosis: ReviewDiagnosisEntity,
+      plan: CarReviewExecutionPlan
+    ): Consequence[Unit] =
+      if (
+        diagnosis.key_definition_id.value != plan.reuseKey.definitionId ||
+        diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value
+      )
+        Consequence.operationInvalid("review-diagnosis-identity-conflict")
+      else
+        Consequence.unit
   }
 
   private final case class RuntimeConfigurationInput(

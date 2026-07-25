@@ -13,7 +13,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewProviderBundleAdmissionSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -108,6 +108,45 @@ final class CarReviewProviderBundleAdmissionSpec extends AnyWordSpec with Matche
         case ProviderBundleAdmissionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("failed"), _, true)) =>
       }
     }
+
+    "admit an explicitly declared canonical quality mapping and reject an undeclared one" in {
+      Given("a provider that declares the MCP AI-operability capability")
+      val capability = "quality.ai.operability.mcp"
+      val descriptor = _descriptor.replace("cozy.car-analysis", capability)
+      val request = _request.replace("cozy.car-analysis", capability)
+      val mapped = _with_bundle_digest(_replace(_replace(
+        _bundle,
+        _request_digest,
+        _digest(request)
+      ),
+        "\"type\": \"assurance\"",
+        s"\"mappings\": {\"cncfFeatures\": [], \"implementationSubjects\": [\"component:textus-user-account\"], \"qualityCapabilities\": [\"$capability\"]}, \"type\": \"assurance\""
+      ))
+      val undeclared = _with_bundle_digest(_replace(mapped, capability, "quality.ai.operability.skill"))
+
+      When("CBD admits the provider-owned named-view mapping")
+      val admitted = CarReviewProviderBundleAdmission.admit(_context(ProviderBundleAvailability.Enabled, bundle = mapped, request = request).copy(descriptor = descriptor))
+      val refused = CarReviewProviderBundleAdmission.admit(_context(ProviderBundleAvailability.Enabled, bundle = undeclared, request = request).copy(descriptor = descriptor))
+
+      Then("only a catalog capability also declared by the descriptor can enter canonical reconciliation")
+      admitted shouldBe a[ProviderBundleAdmissionOutcome.Admitted]
+      refused should matchPattern {
+        case ProviderBundleAdmissionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("incompatible"), ReviewLimitation("observation-mapping-quality-capability-unsupported", _, _, _, _), false)) =>
+      }
+    }
+
+    "refuse Evidence whose kind was not declared by the provider descriptor" in {
+      Given("an otherwise digest-bound bundle that relabels static Evidence as runtime Evidence")
+      val unsupported = _with_bundle_digest(_replace(_bundle, "\"kind\": \"car-project\"", "\"kind\": \"runtime-observation\""))
+
+      When("CBD admits the provider bundle")
+      val outcome = CarReviewProviderBundleAdmission.admit(_context(ProviderBundleAvailability.Enabled, bundle = unsupported))
+
+      Then("the provider cannot smuggle an Evidence kind outside its descriptor declaration")
+      outcome should matchPattern {
+        case ProviderBundleAdmissionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("incompatible"), ReviewLimitation("unsupported-evidence-kind", _, _, _, _), false)) =>
+      }
+    }
   }
 
   private val _descriptor = _load("car-review-provider-descriptor-v1.json")
@@ -134,4 +173,19 @@ final class CarReviewProviderBundleAdmissionSpec extends AnyWordSpec with Matche
 
   private def _load(name: String): String = Files.readString(Path.of("docs", "spec", "examples", name))
   private def _replace(value: String, from: String, to: String): String = value.replace(from, to)
+
+  private def _with_bundle_digest(value: String): String = {
+    val printer = Printer.noSpaces.copy(sortKeys = true)
+    val json = parse(value).toOption.get
+    val rendered = _digest_json(json.mapObject(_.remove("bundleDigest")))
+    printer.print(json.mapObject(_.add("bundleDigest", Json.fromString(rendered))))
+  }
+
+  private def _digest(value: String): String = _digest_json(parse(value).toOption.get)
+
+  private def _digest_json(value: Json): String = {
+    val printer = Printer.noSpaces.copy(sortKeys = true)
+    val digest = MessageDigest.getInstance("SHA-256").digest(printer.print(value).getBytes(StandardCharsets.UTF_8))
+    "sha256:" + digest.map(byte => f"${byte & 0xff}%02x").mkString
+  }
 }

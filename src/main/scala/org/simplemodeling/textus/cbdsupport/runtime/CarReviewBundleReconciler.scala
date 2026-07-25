@@ -5,7 +5,7 @@ import io.circe.parser.parse
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class AdmittedProviderBundleInput(
@@ -113,6 +113,7 @@ object CarReviewBundleReconciler {
           message <- _string(value, "message")
           confidence <- _string(value, "confidence")
           evidenceids <- _string_array(value, "evidenceIds")
+          mappings <- _mappings(value)
           _ <- Either.cond(evidenceids.forall(id => evidence.exists(_.providerEvidenceId == id)), (), _failure("observation-evidence-mismatch", "Observation references Evidence outside its admitted bundle."))
           severity = value.hcursor.get[String]("severity").toOption.map(ReviewSeverity.apply)
           canonicaltype = if observationtype == "assurance" && evidenceids.isEmpty then "unknown" else observationtype
@@ -139,7 +140,7 @@ object CarReviewBundleReconciler {
             Vector.empty,
             ReviewProviderAttribution(admitted.provider, admitted.ruleSet, admitted.bundleDigest),
             ReviewDisposition(ReviewDispositionState("active"), None, None, None),
-            ReviewMappings(Vector.empty, Vector.empty, Vector.empty)
+            mappings
           )
         } yield (xs._1 :+ observation, xs._2 ++ limitation.toVector)
       }
@@ -192,6 +193,17 @@ object CarReviewBundleReconciler {
 
   private def _string_array(json: Json, name: String): Either[CarReviewReconciliationFailure, Vector[String]] =
     json.hcursor.get[Vector[String]](name).toOption.toRight(_failure(s"$name-invalid", s"Bundle $name array is missing."))
+
+  private def _mappings(json: Json): Either[CarReviewReconciliationFailure, ReviewMappings] =
+    json.hcursor.downField("mappings").focus match {
+      case None => Right(ReviewMappings(Vector.empty, Vector.empty, Vector.empty))
+      case Some(value) =>
+        for {
+          features <- _string_array(value, "cncfFeatures")
+          subjects <- _string_array(value, "implementationSubjects")
+          capabilities <- _string_array(value, "qualityCapabilities")
+        } yield ReviewMappings(features, subjects, capabilities.map(ReviewCapabilityId.apply))
+    }
 
   private def _canonical_id(provider: ReviewProviderIdentity, localid: String): String =
     s"${provider.id.value}:$localid"

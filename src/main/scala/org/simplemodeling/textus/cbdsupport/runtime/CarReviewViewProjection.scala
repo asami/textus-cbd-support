@@ -2,14 +2,22 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 23, 2026
  * @author  ASAMI, Tomoharu
  */
 /** A read-only cross-view projection. It never changes canonical review data. */
 final case class CarReviewViewProjection(
   cncf: Vector[CarReviewViewItem],
   implementation: Vector[CarReviewViewItem],
-  quality: Vector[CarReviewViewItem]
+  quality: Vector[CarReviewViewItem],
+  namedViews: Vector[CarReviewNamedView]
+) {
+  def namedView(name: String): Option[CarReviewNamedView] = namedViews.find(_.name == name)
+}
+
+final case class CarReviewNamedView(
+  name: String,
+  items: Vector[CarReviewViewItem]
 )
 
 final case class CarReviewViewItem(
@@ -29,10 +37,14 @@ final case class CarReviewProviderLink(
 object CarReviewViewProjection {
   def project(report: CarReviewReport): CarReviewViewProjection = {
     val evidence = report.evidence.map(value => value.id -> value).toMap
+    val namedviews = CarReviewCapabilityCatalog.viewNames.map { name =>
+      CarReviewNamedView(name, _view(report, evidence, _capability_keys(name)))
+    }
     CarReviewViewProjection(
       _view(report, evidence, _.mappings.cncfFeatures),
       _view(report, evidence, _.mappings.implementationSubjects),
-      _view(report, evidence, _.mappings.qualityCapabilities.map(_.value))
+      _view(report, evidence, _.mappings.qualityCapabilities.map(_.value)),
+      namedviews
     )
   }
 
@@ -56,6 +68,11 @@ object CarReviewViewProjection {
       val locations = (observations.flatMap(_.locations) ++ evidenceids.flatMap(evidence.get).flatMap(_.location)).distinct.sortBy(_location_key)
       CarReviewViewItem(key, observationids, evidenceids, providers, locations)
     }
+
+  private def _capability_keys(view: String)(observation: ReviewObservation): Vector[String] = {
+    val capabilities = CarReviewCapabilityCatalog.capabilityIdsForView(view)
+    observation.mappings.qualityCapabilities.filter(capabilities.contains).map(_.value)
+  }
 
   private def _location_key(value: ReviewLocation): (String, String, Int, Int, Int, Int) =
     (

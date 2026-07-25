@@ -17,7 +17,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 24, 2026
+ * @version Jul. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -153,6 +153,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val summary = factory._review_read_application.summary(report.reportId, Set("viewer"))
       val findings = factory._review_read_application.findings(report.reportId, Set("viewer"), 10)
       val views = factory._review_read_application.views(report.reportId, Set("viewer"))
+      val viewrecord = views.toOption.map(factory._review_views_record)
       val denied = factory._review_read_application.report(report.reportId, Set.empty)
       val missing = factory._review_read_application.report(ReviewReportId("report-missing"), Set("viewer"))
 
@@ -161,6 +162,10 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       summary.toOption.map(_.reportId) shouldBe Some(report.reportId)
       findings.toOption.map(_.map(_.`type`.value).toSet) shouldBe Some(Set("finding"))
       views.toOption.map(_.implementation.flatMap(_.locations).flatMap(_.path).toSet) shouldBe Some(Set("project.yaml", "src/main/cozy/textus-user-account.cml"))
+      viewrecord.flatMap(_.getAny("namedViews")) should not be empty
+      viewrecord.flatMap(_.getAny("security")) shouldBe empty
+      viewrecord.flatMap(_.getAny("observability")) shouldBe empty
+      viewrecord.flatMap(_.getAny("ux")) shouldBe empty
       denied.isSuccess shouldBe false
       missing.isSuccess shouldBe false
     }

@@ -77,8 +77,12 @@ must never construct it from report text.
 ## Security and Access Boundary
 
 This storage contract does not grant history access. Commands that write,
-delete, or expire records remain private to MCP. Authorized bounded history and
-MCP enumeration policy are P8-45 work. The database must not retain raw
+delete, or expire records remain private to MCP. P8-45 admits only authorized,
+exact Report-ID reads and bounded Finding/Assurance/View projections for that
+Report; it never accepts a lineage, target, or history selector and exposes no
+history-enumeration operation. Expiry requires the dedicated retention role,
+removes payload only after policy age, appends an attributable tombstone, and
+leaves a new same-key admission non-reusable. The database must not retain raw
 credentials, filesystem roots, provider request bodies, or unredacted Evidence
 facts merely to satisfy an entity relationship.
 
@@ -117,8 +121,9 @@ The successful claim issues a non-transport `Owner` lease. Only that lease may
 complete the claimed Aggregate or retain its terminal Run; a plan, Report, or
 Review ID supplied by itself is insufficient. This prevents an independent
 internal caller from reconstructing ownership and changing a root it did not
-claim. A later persistent compare-and-transition remains the required CNCF
-primitive for successor ownership after a terminal state.
+claim. The Entity conditional transition is the CNCF primitive for successor
+ownership after a terminal state; it compares the persisted revision/state,
+retains the predecessor, and installs exactly one successor.
 
 `ReviewDiagnosis` is the persisted Aggregate root. Its Target, Run, Report,
 and attestation records are composition members; they are written only through

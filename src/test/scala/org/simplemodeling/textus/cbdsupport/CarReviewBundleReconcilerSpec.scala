@@ -9,7 +9,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewBundleReconcilerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -84,6 +84,22 @@ final class CarReviewBundleReconcilerSpec extends AnyWordSpec with Matchers with
 
       Then("the report retains the limitation content with provider attribution")
       result.toOption.flatMap(_.limitations.find(_.code == "runtime-evidence-not-supported")).map(_.scope.value) shouldBe Some("provider")
+    }
+
+    "retain an admitted Observation quality mapping for named AI views" in {
+      Given("an admitted provider bundle whose assurance maps to MCP operability")
+      val mapped = _bundle.replace(
+        "\"type\": \"assurance\"",
+        "\"mappings\": {\"cncfFeatures\": [], \"implementationSubjects\": [\"component:textus-user-account\"], \"qualityCapabilities\": [\"quality.ai.operability.mcp\"]}, \"type\": \"assurance\""
+      )
+
+      When("CBD reconciles the already-admitted immutable bundle")
+      val result = CarReviewBundleReconciler.reconcile(Vector(AdmittedProviderBundleInput(_admitted, mapped)))
+
+      Then("the canonical Observation remains addressable from the AI-operability MCP view")
+      result.toOption.flatMap(_.observations.find(_.id.value == "cozy:observation-component-identity")).map(_.mappings) shouldBe Some(
+        ReviewMappings(Vector.empty, Vector("component:textus-user-account"), Vector(ReviewCapabilityId("quality.ai.operability.mcp")))
+      )
     }
   }
 

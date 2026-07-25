@@ -8,7 +8,7 @@ import io.circe.parser.parse
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait ProviderBundleAvailability {
@@ -178,7 +178,7 @@ object CarReviewProviderBundleAdmission {
       requestdigest = ReviewDigest(_sha256(request))
       _ <- Either.cond(_string(bundle, "requestDigest").contains(requestdigest.value), (), "request-digest-mismatch")
       bundledigest <- _bundle_digest(bundle)
-      _ <- _bundle_members(bundle)
+      _ <- _bundle_members(bundle, capabilities.keySet, capabilities.values.flatten.toSet)
       _ <- _limits(request, bundle)
       limitations <- _limitations(bundle)
       evidenceids <- _jsons(bundle, "evidence").flatMap(_ids(_, "evidence"))
@@ -278,17 +278,56 @@ object CarReviewProviderBundleAdmission {
       _ <- Either.cond(supplied == calculated.value, (), "bundle-digest-mismatch")
     } yield calculated
 
-  private def _bundle_members(bundle: Json): Either[String, Unit] =
+  private def _bundle_members(
+    bundle: Json,
+    supportedcapabilities: Set[String],
+    supportedevidencekinds: Set[String]
+  ): Either[String, Unit] =
     for {
       evidence <- _jsons(bundle, "evidence")
       observations <- _jsons(bundle, "observations")
       evidenceids <- _ids(evidence, "evidence")
+      evidencekinds <- evidence.foldLeft[Either[String, Vector[String]]](Right(Vector.empty)) { (z, value) =>
+        for { xs <- z; kind <- _string(value, "kind").filter(_valid_identifier).toRight("evidence-kind-invalid") } yield xs :+ kind
+      }
       observationids <- _ids(observations, "observations")
       references = observations.flatMap(value => _strings(value, "evidenceIds").getOrElse(Vector("__invalid__")))
       _ <- Either.cond(evidenceids.distinct.size == evidenceids.size, (), "duplicate-evidence-id")
+      _ <- Either.cond(evidencekinds.forall(supportedevidencekinds.contains), (), "unsupported-evidence-kind")
       _ <- Either.cond(observationids.distinct.size == observationids.size, (), "duplicate-observation-id")
       _ <- Either.cond(references.forall(evidenceids.contains), (), "unresolved-evidence-reference")
+      _ <- observations.foldLeft[Either[String, Unit]](Right(())) { (z, value) =>
+        z.flatMap(_ => _mappings(value, supportedcapabilities))
+      }
     } yield ()
+
+  /**
+   * Mappings are optional so that v1 providers which predate named views remain
+   * admissible.  When supplied they are part of the provider's signed bundle
+   * content: CBD validates the exact shape and accepts a quality mapping only
+   * when that capability was declared by the provider descriptor.
+   */
+  private def _mappings(observation: Json, supportedcapabilities: Set[String]): Either[String, Unit] =
+    observation.hcursor.downField("mappings").focus match {
+      case None => Right(())
+      case Some(value) =>
+        value.asObject match {
+          case Some(fields) if fields.keys.toSet == Set("cncfFeatures", "implementationSubjects", "qualityCapabilities") =>
+            for {
+              features <- fields("cncfFeatures").toRight("observation-mapping-cncf-features-invalid").flatMap(_mapping_strings(_, "observation-mapping-cncf-features-invalid"))
+              subjects <- fields("implementationSubjects").toRight("observation-mapping-implementation-subjects-invalid").flatMap(_mapping_strings(_, "observation-mapping-implementation-subjects-invalid"))
+              capabilities <- fields("qualityCapabilities").toRight("observation-mapping-quality-capabilities-invalid").flatMap(_mapping_strings(_, "observation-mapping-quality-capabilities-invalid"))
+              _ <- Either.cond(features.distinct.size == features.size, (), "observation-mapping-cncf-features-invalid")
+              _ <- Either.cond(subjects.distinct.size == subjects.size, (), "observation-mapping-implementation-subjects-invalid")
+              _ <- Either.cond(capabilities.distinct.size == capabilities.size, (), "observation-mapping-quality-capabilities-invalid")
+              _ <- Either.cond(capabilities.forall(id => supportedcapabilities.contains(id) && CarReviewCapabilityCatalog.definition(ReviewCapabilityId(id)).nonEmpty), (), "observation-mapping-quality-capability-unsupported")
+            } yield ()
+          case _ => Left("observation-mappings-invalid")
+        }
+    }
+
+  private def _mapping_strings(value: Json, error: String): Either[String, Vector[String]] =
+    value.asArray.map(_.toVector.flatMap(_.asString)).filter(_.size == value.asArray.fold(0)(_.size)).filter(_.forall(_valid_identifier)).toRight(error)
 
   private def _limits(request: Json, bundle: Json): Either[String, Unit] =
     request.hcursor.downField("limits").focus.flatMap(_.asObject) match {

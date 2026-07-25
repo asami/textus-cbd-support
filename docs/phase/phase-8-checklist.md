@@ -1,7 +1,12 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: in progress (Stages 8.1–8.4 complete; P8-30 through P8-33 and P8-40 through P8-42 complete; P8-43 remains in progress in Stage 8.5)
+Status: ON HOLD — P8-60 human confirmation is deferred (Stages 8.1–8.6 complete; P8-30 through P8-33, P8-40 through P8-45, and P8-50 through P8-55 complete)
 phase=[Phase 8](phase-8.md)
+
+Scala compliance: the current Phase 8 accumulator is recorded in
+[phase-8-scala-compliance-ledger.md](phase-8-scala-compliance-ledger.md).
+The ledger records the completed independent re-review. A technical checkpoint
+commit does not replace P8-60 human confirmation.
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
 
@@ -148,38 +153,111 @@ phase=[Phase 8](phase-8.md)
   uses the generated update model and the server-derived stable Entity ID with
   `ServiceInternal` authorization; no private codec or raw datastore route is
   present.
-- [ ] `P8-43` Preserve failed, cancelled, expired, incompatible, and
+- [x] `P8-43` Preserve failed, cancelled, expired, incompatible, and
   policy-different Runs as attributable history without reusing them as
-  successful diagnosis. Partial evidence:
-  `ReviewDiagnosisPersistenceSpec` retains all four terminal state snapshots
-  and rejects successful reuse. Closure still requires CNCF's conditional
-  Entity transition for one safe same-key successor after terminal retention;
-  see `car-review-terminal-history-contract.md` and the CNCF handoff journal.
-- [ ] `P8-44` Implement CAR evolution/baseline history projections for
-  comparable version/digest/report/gate/capability/finding changes.
-- [ ] `P8-45` Prove database authorization, retention, expiry, comparison, and
+  successful diagnosis. Evidence: `ReviewDiagnosisPersistenceSpec` proves all
+  four terminal snapshots are retained, successful reuse is refused, and one
+  persisted CNCF conditional transition installs a successor while concurrent
+  callers receive one Owner plus Joined outcomes. The predecessor remains an
+  immutable composition snapshot; see `car-review-terminal-history-contract.md`.
+- [x] `P8-44` Implement CAR evolution/baseline history projections for
+  comparable version/digest/report/gate/capability/finding changes. Evidence:
+  `CarReviewEvolutionProjection` compares only Entity-adapter-supplied,
+  immutable canonical Reports in the same lineage, configuration compatibility
+  identity, and CAR identity. It preserves both Report/version/digest/gate
+  identities and projects sorted Finding and capability additions, removals,
+  and changes without a provider, repository lookup, or history enumeration.
+  `CarReviewEvolutionProjectionSpec` proves compatible evolution, each
+  incompatible-comparison denial, and independently added/removed Finding and
+  capability identities.
+- [x] `P8-45` Prove database authorization, retention, expiry, comparison, and
   MCP history bounds preserve attribution and deny arbitrary enumeration.
+  Evidence: `ReviewDiagnosisPersistenceSpec` proves authorized exact persisted
+  Report read, denial, policy-aged expiry, attributable tombstone, payload
+  removal, and fresh successor admission through the Entity/UnitOfWork
+  boundary. `CarReviewEvolutionProjectionSpec` proves comparison requires
+  retained compatible lineage/configuration snapshots. `CarReviewMcpReadProjectionSpec`
+  and `ComponentFactorySpec` prove MCP offers only authorized exact Report and
+  bounded exact-Report projections, not history enumeration.
 
 ## P8-50 to P8-59: Quality-attribute rule execution
 
-- [ ] `P8-50` Publish the quality-attribute rule matrix with concrete rule ID,
+- [x] `P8-50` Publish the quality-attribute rule matrix with concrete rule ID,
   applicability, Evidence, authority, outcome, limitation, and maturity
-  semantics for every supported attribute.
-- [ ] `P8-51` Implement deterministic checks for the initial Security, Domain,
+  semantics for every supported attribute. Evidence:
+  `CarReviewQualityRuleMatrix` derives one stable, total row from every
+  catalog capability, while `CarReviewQualityRuleMatrixSpec` proves unique
+  sorted IDs, Evidence requirements, authority, Unknown/limitation, maturity,
+  and independent MCP/Skill AI-operability rows. The normative contract is
+  `car-review-quality-rule-matrix.md`; P8-51 through P8-54 remain responsible
+  for executing and admitting the individual checks.
+- [x] `P8-51` Implement deterministic checks for the initial Security, Domain,
   Documentation, Resilience, Testability, Evaluability, Observability, and UX
-  attributes.
-- [ ] `P8-52` Implement AI View checks for Textus MCP/standard Skill support
-  and for component-provided MCP/Skill content appropriateness.
-- [ ] `P8-53` Implement Cost View checks for Static Web App and Gemma plus MCP
-  optimization evidence, estimates, measurements, and trade-offs.
-- [ ] `P8-54` Add runtime/provider/advisory checks only with explicit
-  authority, cost, redaction, and Unknown behavior.
-- [ ] `P8-55` Prove every supported attribute has executable coverage or an
-  explicit visible Unknown for the absent check/provider.
+  attributes. Evidence: `CarReviewInitialStaticQualityProviderRunner` accepts a
+  bounded, digest-bound Cozy/static-analyzer result and has fixed (not
+  caller-selected) rules for authorization, bounded domain text, identity,
+  rationale, resilience contract, executable tests, evaluation corpus,
+  structured logging schema, and Web/CLI/Skill/cross-surface UX contracts.
+  Each supplied result is an attributed Assurance or Finding; a missing result
+  is an explicit retryable Unknown and limitation. The provider refuses an
+  unbounded source identity. Executable evidence:
+  `CarReviewInitialStaticQualityProviderRunnerSpec`.
+- [x] `P8-52` Implement AI View checks for Textus MCP/standard Skill support
+  and for component-provided MCP/Skill content appropriateness. Evidence:
+  `TextusAiSurfaceCarReviewProviderRunner` accepts only bounded compatibility
+  and publication metadata, emits an attributed provider bundle, and is
+  admitted through the normal provider boundary. It maps independent MCP and
+  Skill support Evidence to AI View capabilities, retains complete content as
+  `unknown` pending advisory/human semantic review, and emits a deterministic
+  Finding when a supplied publication omits required authority, limitation,
+  operation, version, or digest metadata. Provider mapping admission rejects a
+  capability not declared by that provider, while reconciliation preserves
+  admitted mappings in the canonical Report. Executable evidence:
+  `TextusAiSurfaceCarReviewProviderRunnerSpec`,
+  `CarReviewProviderBundleAdmissionSpec`, and
+  `CarReviewBundleReconcilerSpec`.
+- [x] `P8-53` Implement Cost View checks for Static Web App and Gemma plus MCP
+  optimization evidence, estimates, measurements, and trade-offs. Evidence:
+  `CarReviewCostScenarioProviderRunner` turns bounded provider-supplied cost
+  scenarios into normal attributed bundles; `CarReviewCostViewProjection`
+  derives the read-only view from canonical Evidence and Observations. Expected
+  and measured reductions are separate values. An expected-only Static Web App
+  optimization remains `unknown` with an explicit limitation; a Gemma + MCP
+  measurement becomes Assurance only when it supplies a comparison period and
+  normalized unit. A purported measured result without those conditions is a
+  deterministic medium Finding. The projection retains quality constraints and
+  operational trade-offs without recalculation or provider execution.
+  Executable evidence: `CarReviewCostScenarioProviderRunnerSpec`.
+- [x] `P8-54` Add runtime/provider/advisory checks only with explicit
+  authority, cost, redaction, and Unknown behavior. Evidence:
+  `CarReviewQualityProviderAdmission` requires a finite preflight cost and
+  validates authority after strict v1 bundle admission. Deterministic providers
+  cannot submit advisory or runtime Evidence; Runtime Assurance requires
+  descriptor-declared `runtime-observation` Evidence; Advisory providers may
+  emit only `ai.advisory.*` Finding/Unknown results. Forbidden secret,
+  credential, password, raw payload, endpoint, URL, and authorization fact
+  keys are refused. `CarReviewProviderExecutionCoordinator` has the policy
+  overload so checks apply in the execution path. Provider admission also
+  refuses Evidence kinds not declared by the descriptor. Executable evidence:
+  `CarReviewQualityProviderAdmissionSpec`,
+  `TextusAiCarReviewProviderRunnerSpec`, and
+  `CarReviewProviderBundleAdmissionSpec`.
+- [x] `P8-55` Prove every supported attribute has executable coverage or an
+  explicit visible Unknown for the absent check/provider. Evidence:
+  `CarReviewQualityCoverageProjection` is total over the catalog's base rule
+  rows. It retains canonical Observation/Evidence identities for an observed
+  capability and otherwise emits a rule-bound retryable Unknown limitation with
+  the matrix's missing-Evidence code. It is read-only and does not run a
+  provider. `CarReviewQualityCoverageProjectionSpec` proves all 155 supported
+  capabilities appear exactly once, including observed Domain evidence and an
+  explicit Security Unknown.
 
 ## P8-60: Human confirmation
 
-- [ ] `P8-60` Present the complete cross-surface, persistence/history, and
-  CI/CD result to a human
-  reviewer. Stop the phase here until the reviewer explicitly accepts or
-  returns it for revision.
+- [ ] `P8-60` **ON HOLD** — Present the complete cross-surface,
+  persistence/history, and CI/CD result to a human reviewer. Automated
+  validation and the 2026-07-26 deferral do not complete this item. The
+  project owner explicitly authorized subsequent work to proceed while this
+  confirmation remains pending; see
+  `docs/phase/phase-8-human-confirmation.md` and
+  `docs/journal/2026/07/phase-8-p8-60-human-confirmation-deferred-2026-07-26.md`.

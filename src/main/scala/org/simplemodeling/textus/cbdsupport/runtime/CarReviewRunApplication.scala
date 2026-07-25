@@ -5,7 +5,7 @@ import org.goldenport.cncf.context.ExecutionContext
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class ReviewStartRequest(
@@ -39,6 +39,7 @@ object CarReviewAuthorization {
   val submitBundleRoles: Set[String] = startRoles
   val readRoles: Set[String] = Set("viewer", "reviewer", "operator", "admin")
   val cancelRoles: Set[String] = Set("operator", "admin")
+  val retentionRoles: Set[String] = cancelRoles
 
   def roles(ctx: ExecutionContext): Set[String] = {
     val attributes = ctx.security.principal.attributes.toVector.collect {
@@ -61,6 +62,7 @@ object CarReviewAuthorization {
       case "review.submit-bundle" => submitBundleRoles
       case "review.read-run" => readRoles
       case "review.cancel" => cancelRoles
+      case "review.retention-expire" => retentionRoles
       case _ => Set.empty[String]
     }
     if (actorroles.map(_.trim.toLowerCase).exists(allowed.contains))

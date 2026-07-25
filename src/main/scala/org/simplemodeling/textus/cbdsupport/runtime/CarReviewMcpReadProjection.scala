@@ -6,7 +6,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CarReviewMcpSummary(
@@ -45,21 +45,45 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
   def summary(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewMcpSummary] =
     _authorized(roles).flatMap(_ => _report(reportid).map(_summary))
 
+  /**
+   * Projects an already authorized Entity-backed exact Report read.  The
+   * caller supplies no collection, history selector, or persistence adapter;
+   * this keeps the MCP redaction/bounds policy shared with the legacy reader
+   * while moving the storage authority to the P8 Entity Aggregate.
+   */
+  def summaryOf(report: CarReviewReport, roles: Set[String]): Consequence[CarReviewMcpSummary] =
+    _authorized(roles).map(_ => _summary(report))
+
   def report(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewMcpReport] =
     _authorized(roles).flatMap(_ => _report(reportid).map(_report_projection))
+
+  def reportOf(report: CarReviewReport, roles: Set[String]): Consequence[CarReviewMcpReport] =
+    _authorized(roles).map(_ => _report_projection(report))
 
   def views(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewViewProjection] =
     _authorized(roles).flatMap(_ => _report(reportid).map(CarReviewViewProjection.project))
 
+  def viewsOf(report: CarReviewReport, roles: Set[String]): Consequence[CarReviewViewProjection] =
+    _authorized(roles).map(_ => CarReviewViewProjection.project(report))
+
   def findings(reportid: ReviewReportId, roles: Set[String], limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
     _observations(reportid, roles, "finding", limit)
+
+  def findingsOf(report: CarReviewReport, roles: Set[String], limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
+    _observations_from(report, roles, "finding", limit)
 
   def assurances(reportid: ReviewReportId, roles: Set[String], limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
     _observations(reportid, roles, "assurance", limit)
 
+  def assurancesOf(report: CarReviewReport, roles: Set[String], limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
+    _observations_from(report, roles, "assurance", limit)
+
   private def _observations(reportid: ReviewReportId, roles: Set[String], kind: String, limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
+    _report(reportid).flatMap(_observations_from(_, roles, kind, limit))
+
+  private def _observations_from(report: CarReviewReport, roles: Set[String], kind: String, limit: Int): Consequence[Vector[CarReviewMcpObservation]] =
     if (limit <= 0 || limit > MAX_OBSERVATIONS) Consequence.operationInvalid("review-mcp-observation-limit-invalid")
-    else _authorized(roles).flatMap(_ => _report(reportid).map(_.observations.filter(_.`type`.value == kind).sortBy(_.id.value).take(limit).map(_observation)))
+    else _authorized(roles).map(_ => report.observations.filter(_.`type`.value == kind).sortBy(_.id.value).take(limit).map(_observation))
 
   private def _authorized(roles: Set[String]): Consequence[Unit] =
     CarReviewAuthorization.authorize("review.read-run", roles)

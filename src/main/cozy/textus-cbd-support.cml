@@ -292,7 +292,7 @@ ReviewViewsResponse
 
 ##### DESCRIPTION
 
-Return canonical CNCF, implementation, and quality views for one exact Report ID. Each item keeps canonical Evidence/Observation IDs and provider/location navigation links.
+Return canonical CNCF, implementation, and quality views plus catalog-driven named quality views for one exact Report ID. Named views are discovered from capability definitions rather than fixed response fields. Each item keeps canonical Evidence/Observation IDs and provider/location navigation links.
 
 ## CbdCatalogAdmin
 
@@ -908,6 +908,7 @@ Bounded projection of one typed Review Run and its exact CNCF Job binding.
 | cncf | ReviewViewItem | * |
 | implementation | ReviewViewItem | * |
 | quality | ReviewViewItem | * |
+| namedViews | ReviewNamedView | * |
 
 ## ReviewDashboardResponse
 
@@ -964,6 +965,15 @@ Bounded projection of one typed Review Run and its exact CNCF Job binding.
 | disposition | CbdWarning | ? |
 | limitations | ReviewMcpLimitation | * |
 | nextActions | CbdWarning | * |
+
+## ReviewNamedView
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| name | CbdWarning | 1 |
+| items | ReviewViewItem | * |
 
 ## ReviewViewItem
 
@@ -1702,7 +1712,7 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 
 | name | type | multiplicity |
 |------|------|--------------|
-| value | string | 1 |
+| value | ContentBody | 1 |
 
 ## ReviewId
 
@@ -1713,6 +1723,14 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 | value | string | 1 |
 
 ## ReviewReportId
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewAttestationId
 
 ### ATTRIBUTE
 
@@ -1781,6 +1799,22 @@ Versioned server-defined identity algorithm for one reusable Review diagnosis.
 | value | string | 1 |
 
 ## ReviewRunState
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewRetentionAction
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | string | 1 |
+
+## ReviewRetentionRecordType
 
 ### ATTRIBUTE
 
@@ -1902,10 +1936,19 @@ Versioned server-defined identity algorithm for one reusable Review diagnosis.
 
 # ENTITY
 
+## SimpleEntity
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+
 ## ReviewDiagnosis
 
 ### FEATURES
 
+extends = ["SimpleEntity"]
 usageKind = "task"
 operationKind = "task"
 applicationDomain = "system"
@@ -1936,6 +1979,7 @@ applicationDomain = "system"
 | runs | ReviewRunSnapshot | composition | * | diagnosis_id |
 | reports | ReviewReportSnapshot | composition | * | diagnosis_id |
 | attestations | ReviewAttestationSnapshot | composition | * | diagnosis_id |
+| retention_events | ReviewRetentionEvent | composition | * | diagnosis_id |
 
 #### STATE
 
@@ -1971,6 +2015,7 @@ applicationDomain = "system"
 
 ### FEATURES
 
+extends = ["SimpleEntity"]
 usageKind = "task"
 operationKind = "task"
 applicationDomain = "system"
@@ -1992,6 +2037,7 @@ applicationDomain = "system"
 
 ### FEATURES
 
+extends = ["SimpleEntity"]
 usageKind = "task"
 operationKind = "task"
 applicationDomain = "system"
@@ -2013,6 +2059,7 @@ applicationDomain = "system"
 
 ### FEATURES
 
+extends = ["SimpleEntity"]
 usageKind = "task"
 operationKind = "task"
 applicationDomain = "system"
@@ -2024,6 +2071,7 @@ applicationDomain = "system"
 | id | entityid | 1 |
 | diagnosis_id | entityid | 1 |
 | review_id | ReviewId | 1 |
+| attestation_id | ReviewAttestationId | 1 |
 | report_id | ReviewReportId | 1 |
 | report_digest | ReviewDigest | 1 |
 | report_document | ReviewSubmissionDocument | 1 |
@@ -2033,6 +2081,7 @@ applicationDomain = "system"
 
 ### FEATURES
 
+extends = ["SimpleEntity"]
 usageKind = "task"
 operationKind = "task"
 applicationDomain = "system"
@@ -2048,3 +2097,27 @@ applicationDomain = "system"
 | report_digest | ReviewDigest | 1 |
 | attestation_document | ReviewSubmissionDocument | 1 |
 | created_at | ReviewInstant | 1 |
+
+## ReviewRetentionEvent
+
+### FEATURES
+
+extends = ["SimpleEntity"]
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| diagnosis_id | entityid | 1 |
+| action | ReviewRetentionAction | 1 |
+| record_type | ReviewRetentionRecordType | 1 |
+| record_id | entityid | 1 |
+| record_digest | ReviewDigest | 1 |
+| report_id | ReviewReportId | ? |
+| report_digest | ReviewDigest | ? |
+| target_digest | ReviewDigest | 1 |
+| effective_at | ReviewInstant | 1 |

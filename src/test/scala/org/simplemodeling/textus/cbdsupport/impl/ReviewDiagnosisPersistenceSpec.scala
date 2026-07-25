@@ -24,10 +24,13 @@ import org.goldenport.cncf.component.{
   ComponentInstanceId
 }
 import org.goldenport.cncf.config.ResolvedParameters
-import org.goldenport.cncf.context.{DataStoreContext, EntityStoreContext, ExecutionContext, RuntimeContext, ScopeContext, ScopeKind}
+import org.goldenport.cncf.context.{DataStoreContext, EntitySpaceContext, EntityStoreContext, ExecutionContext, RuntimeContext, ScopeContext, ScopeKind}
 import org.goldenport.cncf.datastore.{DataStore, DataStoreSpace}
+import org.goldenport.cncf.datastore.sql.SqlDataStore
 import org.goldenport.cncf.entity.{
   EntityPersistent,
+  EntityRevisionBinding,
+  EntityRevisionRepresentation,
   EntityStore,
   EntityStoreSpace
 }
@@ -51,13 +54,17 @@ import org.scalacheck.Gen
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import org.simplemodeling.textus.cbdsupport.runtime.*
 import org.simplemodeling.textus.cbdsupport.entity.{
+  ReviewAttestationSnapshot as ReviewAttestationSnapshotEntity,
   ReviewDiagnosis as ReviewDiagnosisEntity,
+  ReviewReportSnapshot as ReviewReportSnapshotEntity,
+  ReviewRetentionEvent as ReviewRetentionEventEntity,
+  ReviewTargetSnapshot as ReviewTargetSnapshotEntity,
   ReviewRunSnapshot as ReviewRunSnapshotEntity
 }
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 25, 2026
+ * @version Jul. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ReviewDiagnosisPersistenceSpec
@@ -69,7 +76,7 @@ final class ReviewDiagnosisPersistenceSpec
     "claim one stable Entity diagnosis and join a duplicate reusable execution" in {
       Given("two executions with the same server-derived reuse identity")
       val factory = new ComponentFactory()
-      val context = _context()
+      val context = _sqlite_context()
       val firstplan = _plan("review-owner")
       val duplicateplan = _plan("review-joiner")
 
@@ -116,6 +123,73 @@ final class ReviewDiagnosisPersistenceSpec
           digest shouldBe report.reportDigest
         case other => fail(s"Expected persisted reuse, got $other")
       }
+    }
+
+    "read one completed Report from the persisted Entity boundary by exact Report ID" in {
+      Given("a completed diagnosis persisted through the Aggregate")
+      val factory = new ComponentFactory()
+      val context = _context()
+      val report = CarReviewReportCodec.decode(Files.readString(Path.of("docs", "spec", "examples", "car-review-report-v1.json"))).fold(error => fail(error.message), identity)
+      val attestation = CarReviewAttestationCodec.fromReport(report).fold(error => fail(error.message), identity)
+      val plan = _plan_for(report, report.reviewId.value)
+      val owner = _owner(_run(factory, context, plan))
+      _run_completion(factory, context, owner, plan, CarReviewCanonicalResponse(report, report.gate, attestation))
+      val viewercontext = _viewer_context(context)
+
+      When("an authorized reader requests that exact Report through a fresh UnitOfWork")
+      val loaded = _value(new UnitOfWorkInterpreter(new UnitOfWork(viewercontext)).run(
+        factory._load_persisted_review_report(_core(viewercontext), report.reportId)
+      ))
+      val missing = new UnitOfWorkInterpreter(new UnitOfWork(viewercontext)).run(
+        factory._load_persisted_review_report(_core(viewercontext), ReviewReportId("report-missing"))
+      )
+      val denied = new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
+        factory._load_persisted_review_report(_core(context), report.reportId)
+      )
+
+      Then("the Entity record, not an in-memory repository, is the exact bounded source")
+      loaded.reportId shouldBe report.reportId
+      loaded.reportDigest shouldBe report.reportDigest
+      loaded.reviewId shouldBe report.reviewId
+      missing shouldBe a[Consequence.Failure[_]]
+      denied shouldBe a[Consequence.Failure[_]]
+    }
+
+    "expire a due persisted Report with an attributable tombstone and admit a fresh successor" in {
+      Given("a completed Report in the SQLite-backed datastore older than the fixed Entity retention policy")
+      val factory = new ComponentFactory()
+      val context = _sqlite_context()
+      val report = CarReviewReportCodec.decode(Files.readString(Path.of("docs", "spec", "examples", "car-review-report-v1.json"))).fold(error => fail(error.message), identity)
+      val attestation = CarReviewAttestationCodec.fromReport(report).fold(error => fail(error.message), identity)
+      val plan = _plan_for(report, report.reviewId.value)
+      val owner = _owner(_run(factory, context, plan))
+      _run_completion(factory, context, owner, plan, CarReviewCanonicalResponse(report, report.gate, attestation))
+      val viewercontext = _viewer_context(context)
+      val operatorcontext = _operator_context(context)
+
+      When("an operator expires the exact payload after its retention age")
+      val denied = new UnitOfWorkInterpreter(new UnitOfWork(viewercontext)).run(
+        factory._expire_persisted_review_report(_core(viewercontext), report.reportId, ReviewInstant("2026-12-16T00:02:01Z"))
+      )
+      val event = _value(new UnitOfWorkInterpreter(new UnitOfWork(operatorcontext)).run(
+        factory._expire_persisted_review_report(_core(operatorcontext), report.reportId, ReviewInstant("2026-12-16T00:02:01Z"))
+      ))
+      val afterexpiry = new UnitOfWorkInterpreter(new UnitOfWork(viewercontext)).run(
+        factory._load_persisted_review_report(_core(viewercontext), report.reportId)
+      )
+      val repeated = new UnitOfWorkInterpreter(new UnitOfWork(context)).run(
+        factory._admit_review_execution(_core(context), _plan_for(report, "review-after-expiry"))
+      )
+
+      Then("only an authorized tombstone remains, payload reads fail, and a fresh successor owns the next execution")
+      denied shouldBe a[Consequence.Failure[_]]
+      event.action.value shouldBe "expired"
+      event.record_type.value shouldBe "report"
+      event.record_digest.value shouldBe report.reportDigest.value
+      event.report_id.map(_.value) shouldBe Some(report.reportId.value)
+      event.report_digest.map(_.value) shouldBe Some(report.reportDigest.value)
+      afterexpiry shouldBe a[Consequence.Failure[_]]
+      _owner(_value(repeated)).reviewId shouldBe ReviewId("review-after-expiry")
     }
 
     "retain every non-success terminal Run while admitting a fresh successor" in {
@@ -399,9 +473,13 @@ final class ReviewDiagnosisPersistenceSpec
     CarReviewExecutionPlan.create(ReviewStartRequest(ReviewId(reviewid), report.target, report.profile, report.execution.startedAt), input).fold(error => fail(error.message), identity)
   }
 
-  private def _context(): ExecutionContext = {
+  private def _sqlite_context(): ExecutionContext =
+    _context(SqlDataStore.sqlite(":memory:"))
+
+  private def _context(datastore: DataStore = DataStore.inMemorySearchable()): ExecutionContext = {
     val base = ExecutionContext.create()
-    val datastorespace = new DataStoreSpace().useDataStore(DataStore.inMemorySearchable())
+    val component = _component()
+    val datastorespace = new DataStoreSpace().useDataStore(datastore)
     val entitystorespace = new EntityStoreSpace().addEntityStore(EntityStore.standard())
     lazy val context: ExecutionContext = ExecutionContext.create(runtime)
     lazy val unitofwork: UnitOfWork = new UnitOfWork(context)
@@ -415,7 +493,7 @@ final class ReviewDiagnosisPersistenceSpec
         httpDriverOption = None,
         datastore = Some(DataStoreContext(datastorespace)),
         entitystore = Some(EntityStoreContext(entitystorespace)),
-        entityspace = None,
+        entityspace = Some(EntitySpaceContext(component.entitySpace)),
         aggregateInternalRead = false,
         processExecutionDriverOption = None,
         processExecutionAdmissionOption = None,
@@ -457,22 +535,50 @@ final class ReviewDiagnosisPersistenceSpec
     }
     component.entitySpace.registerEntity(
       ReviewDiagnosisEntity.collectionId.name,
-      _empty_collection(
+      _simple_entity_collection(
         ReviewDiagnosisEntity.collectionId,
         summon[EntityPersistent[ReviewDiagnosisEntity]]
       )
     )
     component.entitySpace.registerEntity(
+      ReviewTargetSnapshotEntity.collectionId.name,
+      _simple_entity_collection(
+        ReviewTargetSnapshotEntity.collectionId,
+        summon[EntityPersistent[ReviewTargetSnapshotEntity]]
+      )
+    )
+    component.entitySpace.registerEntity(
       ReviewRunSnapshotEntity.collectionId.name,
-      _empty_collection(
+      _simple_entity_collection(
         ReviewRunSnapshotEntity.collectionId,
         summon[EntityPersistent[ReviewRunSnapshotEntity]]
+      )
+    )
+    component.entitySpace.registerEntity(
+      ReviewReportSnapshotEntity.collectionId.name,
+      _simple_entity_collection(
+        ReviewReportSnapshotEntity.collectionId,
+        summon[EntityPersistent[ReviewReportSnapshotEntity]]
+      )
+    )
+    component.entitySpace.registerEntity(
+      ReviewAttestationSnapshotEntity.collectionId.name,
+      _simple_entity_collection(
+        ReviewAttestationSnapshotEntity.collectionId,
+        summon[EntityPersistent[ReviewAttestationSnapshotEntity]]
+      )
+    )
+    component.entitySpace.registerEntity(
+      ReviewRetentionEventEntity.collectionId.name,
+      _simple_entity_collection(
+        ReviewRetentionEventEntity.collectionId,
+        summon[EntityPersistent[ReviewRetentionEventEntity]]
       )
     )
     component
   }
 
-  private def _empty_collection[E](
+  private def _simple_entity_collection[E](
     collectionid: org.simplemodeling.model.datatype.EntityCollectionId,
     persistent: EntityPersistent[E]
   ): EntityCollection[E] = {
@@ -492,7 +598,10 @@ final class ReviewDiagnosisPersistenceSpec
         maxPartitions = 1,
         maxEntitiesPerPartition = 1
       ),
-      persistent = persistent
+      persistent = persistent,
+      revisionBinding = Some(
+        EntityRevisionBinding(EntityRevisionRepresentation.Embedded)
+      )
     )
     new EntityCollection(
       descriptor,

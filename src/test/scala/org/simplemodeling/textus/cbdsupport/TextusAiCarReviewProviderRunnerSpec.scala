@@ -12,7 +12,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -34,14 +34,14 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
         case ProviderBundleRunnerResult.Completed(value, _) => value
         case value => fail(s"Expected bundle completion but got $value")
       }
-      val admitted = CarReviewProviderBundleAdmission.admit(ProviderBundleAdmissionContext(
+      val admitted = CarReviewQualityProviderAdmission.admit(ProviderBundleAdmissionContext(
         request.reviewId,
         request.target,
         ProviderBundleAvailability.Enabled,
         descriptor,
         request.providerRequest,
         bundle
-      ))
+      ), CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Advisory, declaredCostUnits = 1L, maximumCostUnits = 1L))
       admitted shouldBe a[ProviderBundleAdmissionOutcome.Admitted]
       val reconciled = CarReviewBundleReconciler.reconcile(Vector(AdmittedProviderBundleInput(
         admitted.asInstanceOf[ProviderBundleAdmissionOutcome.Admitted].value,
@@ -75,7 +75,7 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
       When("the Review is cancelled before invoking an otherwise usable provider")
       val recording = new RecordingRunner(_candidate)
       val cancelled = new TextusAiCarReviewProviderRunner(profile, new CarReviewAiRunnerAdapter(recording))
-      val request = _request(descriptor, reviewId = "review-ai-cancelled")
+      val request = _request(descriptor, reviewid = "review-ai-cancelled")
       cancelled.cancel(request)
       val cancelledresult = cancelled.execute(request)
 
@@ -113,7 +113,7 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
       Vector(CarReviewAiEvidence(ReviewEvidenceId("cozy:documentation"), "component:account", "The public guide omits operation rationale."))
     )
 
-  private def _request(descriptor: String, reviewId: String = "review-ai-provider-001"): ProviderBundleExecutionRequest = {
+  private def _request(descriptor: String, reviewid: String = "review-ai-provider-001"): ProviderBundleExecutionRequest = {
     val target = ReviewTarget(
       ReviewTargetKind("project"),
       Some("org.textus"),
@@ -122,21 +122,21 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
       ReviewDigest("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     )
     ProviderBundleExecutionRequest(
-      ReviewId(reviewId),
+      ReviewId(reviewid),
       target,
       ReviewProviderIdentity(ReviewProviderId("textus-ai"), ReviewVersion("0.2.1")),
       ProviderBundleAvailability.Enabled,
       descriptor,
-      _provider_request(reviewId, target),
+      _provider_request(reviewid, target),
       startedAtMillis = 0L
     )
   }
 
-  private def _provider_request(reviewId: String, target: ReviewTarget): String =
+  private def _provider_request(reviewid: String, target: ReviewTarget): String =
     Printer.noSpaces.copy(sortKeys = true).print(Json.obj(
       "schemaVersion" -> Json.fromString(TextusAiCarReviewProviderRunner.schemaVersion),
       "documentType" -> Json.fromString("provider-request"),
-      "reviewId" -> Json.fromString(reviewId),
+      "reviewId" -> Json.fromString(reviewid),
       "target" -> Json.fromJsonObject(JsonObject.fromIterable(Vector(
         "kind" -> Json.fromString(target.kind.value),
         "organization" -> Json.fromString(target.organization.get),

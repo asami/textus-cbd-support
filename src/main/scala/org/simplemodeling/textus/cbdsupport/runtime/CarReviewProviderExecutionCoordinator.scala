@@ -4,7 +4,7 @@ import org.goldenport.cncf.action.ActionCall
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Jul. 24, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class ProviderBundleExecutionRequest(
@@ -70,7 +70,27 @@ final class CarReviewProviderExecutionCoordinator {
       case Right(digest) =>
         _admitted.get((request.provider, digest)) match {
           case Some(value) => ProviderBundleExecutionOutcome.Admitted(value, fromCache = true)
-          case None => _execute_new(request, runner, digest)
+          case None => _execute_new(request, runner, digest, CarReviewProviderBundleAdmission.admit)
+        }
+    }
+  }
+
+  /** Executes a quality provider only after finite-cost preflight and authority/redaction admission. */
+  def execute(
+    request: ProviderBundleExecutionRequest,
+    runner: CarReviewProviderRunner,
+    qualityPolicy: CarReviewQualityProviderPolicy
+  ): ProviderBundleExecutionOutcome = synchronized {
+    CarReviewQualityProviderAdmission.preflight(request.provider, qualityPolicy) match {
+      case Left(value) => ProviderBundleExecutionOutcome.Refused(value)
+      case Right(_) =>
+        _request_digest(request) match {
+          case Left(code) => _refused(request.provider, "incompatible", code, runfailure = false)
+          case Right(digest) =>
+            _admitted.get((request.provider, digest)) match {
+              case Some(value) => ProviderBundleExecutionOutcome.Admitted(value, fromCache = true)
+              case None => _execute_new(request, runner, digest, context => CarReviewQualityProviderAdmission.admit(context, qualityPolicy))
+            }
         }
     }
   }
@@ -107,7 +127,8 @@ final class CarReviewProviderExecutionCoordinator {
   private def _execute_new(
     request: ProviderBundleExecutionRequest,
     runner: CarReviewProviderRunner,
-    requestdigest: ReviewDigest
+    requestdigest: ReviewDigest,
+    admit: ProviderBundleAdmissionContext => ProviderBundleAdmissionOutcome
   ): ProviderBundleExecutionOutcome =
     if request.cancellationRequested then {
       runner.cancel(request)
@@ -116,7 +137,7 @@ final class CarReviewProviderExecutionCoordinator {
       case ProviderBundleAvailability.Enabled =>
         runner.execute(request) match {
           case ProviderBundleRunnerResult.Completed(bundle, completedat) =>
-            _completed(request, bundle, completedat, runner, requestdigest)
+            _completed(request, bundle, completedat, runner, requestdigest, admit)
           case ProviderBundleRunnerResult.Failed(code, _, _) =>
             _refused(request.provider, "failed", _failure_code(code), runfailure = true)
         }
@@ -129,7 +150,8 @@ final class CarReviewProviderExecutionCoordinator {
     bundle: String,
     completedat: Long,
     runner: CarReviewProviderRunner,
-    requestdigest: ReviewDigest
+    requestdigest: ReviewDigest,
+    admit: ProviderBundleAdmissionContext => ProviderBundleAdmissionOutcome
   ): ProviderBundleExecutionOutcome =
     if completedat < request.startedAtMillis then
       _refused(request.provider, "failed", "provider-time-invalid", runfailure = true)
@@ -138,7 +160,7 @@ final class CarReviewProviderExecutionCoordinator {
         runner.cancel(request)
         _refused(request.provider, "failed", "provider-timeout", runfailure = true)
       case Right(_) =>
-        CarReviewProviderBundleAdmission.admit(ProviderBundleAdmissionContext(
+        admit(ProviderBundleAdmissionContext(
           request.reviewId,
           request.target,
           ProviderBundleAvailability.Enabled,

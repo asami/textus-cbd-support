@@ -66,6 +66,36 @@ Text, HTML, SARIF, Web, CLI, and MCP views project this report. A renderer does
 not rerun a rule, promote maturity, suppress an Observation, or derive a gate
 result absent from the canonical report.
 
+The read-only cross-view projection includes canonical `cncf`, `implementation`,
+and `quality` collections plus a deterministic `namedViews` collection. Each
+named view has a stable `name` and an `items` collection selected only from
+canonical Observation quality-capability mappings whose CBD-owned capability
+definition declares that view. The catalog, not the response schema, defines
+available names; all catalog view names are returned in sorted order, including
+views with no mapped items. A named projection does not inspect rendered HTML,
+command output, or Skill content and does not create a Finding or Assurance.
+Providers and Review rules must admit that Evidence and conclusion before
+projection.
+
+The Observability view initially projects runtime evidence, evaluation
+correlation, and security auditability capabilities. Telemetry volume alone is
+not Assurance; missing, sampled, stale, or incompatible evidence stays visible.
+
+The Security view initially covers authentication, authorization, auditability,
+bounded purpose-specific text and numeric domain datatypes, immutable
+infrastructure, non-persistent architecture, disposable infrastructure,
+deliberate volatility, cyber resilience, and Moving Target Defense. A raw
+string or numeric primitive in a transport adapter is not by itself a Finding;
+the review concerns unconstrained values admitted into a domain object and used
+without semantic validation. Architecture labels alone are not Assurances:
+deployment, state-boundary, replacement, recovery, rotation, and runtime
+Evidence is required according to the claimed maturity.
+
+The initial UX capabilities are Web, CLI, Skill-assisted interaction, and
+cross-surface consistency. They review discoverability, task completion,
+feedback, error recovery, accessibility, automation safety, guidance accuracy,
+and consistent task semantics as applicable to each surface.
+
 ## Evidence and Provider Attribution
 
 Every report Evidence record has a canonical report-local ID and retains its

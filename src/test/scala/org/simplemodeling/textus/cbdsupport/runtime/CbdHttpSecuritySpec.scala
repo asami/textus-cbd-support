@@ -20,7 +20,8 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 15, 2026
- * @version Jul. 15, 2026
+ *  version Jul. 15, 2026
+ * @version Aug.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CbdHttpSecuritySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -167,7 +168,7 @@ final class CbdHttpSecuritySpec extends AnyWordSpec with Matchers with GivenWhen
       core = RuntimeContext.core(
         name = "cbd-http-security-spec",
         parent = None,
-        observabilityContext = base.cncfCore.observability,
+        observabilityContext = base.observability,
         httpDriverOption = Some(driver)
       ),
       unitOfWorkSupplier = () => unitofwork,

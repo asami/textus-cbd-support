@@ -23,7 +23,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.{BokFetcher, CatalogFetcher,
 
 /*
  * @since   Jul. 18, 2026
- * @version Jul. 20, 2026
+ *  version Jul. 20, 2026
+ * @version Aug.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -227,7 +228,7 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
     lazy val unitofwork: UnitOfWork = new UnitOfWork(context)
     lazy val interpreter: UnitOfWorkInterpreter = new UnitOfWorkInterpreter(unitofwork)
     lazy val runtime: RuntimeContext = new RuntimeContext(
-      core = RuntimeContext.core("cbd-component-factory-runtime-boundary-spec", None, base.cncfCore.observability),
+      core = RuntimeContext.core("cbd-component-factory-runtime-boundary-spec", None, base.observability),
       unitOfWorkSupplier = () => unitofwork,
       unitOfWorkInterpreterFn = new (UnitOfWorkOp ~> Consequence) {
         def apply[A](operation: UnitOfWorkOp[A]): Consequence[A] = interpreter.interpret(operation)

@@ -64,7 +64,8 @@ import org.simplemodeling.textus.cbdsupport.entity.{
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 26, 2026
+ *  version Jul. 26, 2026
+ * @version Aug.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ReviewDiagnosisPersistenceSpec
@@ -489,7 +490,7 @@ final class ReviewDiagnosisPersistenceSpec
         kind = ScopeKind.Runtime,
         name = "cbd-review-diagnosis-persistence-spec",
         parent = None,
-        observabilityContext = base.cncfCore.observability,
+        observabilityContext = base.observability,
         httpDriverOption = None,
         datastore = Some(DataStoreContext(datastorespace)),
         entitystore = Some(EntityStoreContext(entitystorespace)),

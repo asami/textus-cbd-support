@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 3,
+  "component": {
+    "namespace": "org.simplemodeling.textus",
+    "id": "CbdSupport",
+    "version": "0.1.0-SNAPSHOT"
+  },
+  "config": {
+    "textus.server.default-port": "18013"
+  }
+}

@@ -1,7 +1,8 @@
 {
-  "format": "cozy.car.abi-manifest.v1",
-  "car": {
-    "name": "textus-cbd-support",
+  "format": "cozy.car.abi-manifest.v2",
+  "component": {
+    "namespace": "org.simplemodeling.textus",
+    "id": "CbdSupport",
     "version": "0.1.0-SNAPSHOT"
   },
   "abi": {
@@ -9,7 +10,8 @@
     "exports": {
       "components": [
         {
-          "name": "textus-cbd-support"
+          "namespace": "org.simplemodeling.textus",
+          "id": "CbdSupport"
         }
       ],
       "operations": [

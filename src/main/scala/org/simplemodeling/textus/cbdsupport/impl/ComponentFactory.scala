@@ -46,7 +46,8 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 26, 2026
+ *  version Jul. 26, 2026
+ * @version Aug.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -908,7 +909,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     val access = ComponentConfigurationAccess(ComponentConfigurationSources(
       core.component.flatMap(_.applicationConfig.config).getOrElse(Configuration.empty),
       core.component.flatMap(_.subsystem).map(_.configuration.configuration).getOrElse(Configuration.empty),
-      _runtime_configuration(core.executionContext.runtime)
+      _runtime_configuration(core.executionContext.scope)
     ))
     _runtime_configuration_input(access).map { input =>
       val admittedinventory = _admitted_local_inventory(

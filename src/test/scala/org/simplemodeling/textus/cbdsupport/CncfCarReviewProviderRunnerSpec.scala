@@ -15,7 +15,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ *  version Jul. 16, 2026
+ * @version Aug.  8, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CncfCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -90,7 +91,7 @@ final class CncfCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
     lazy val unitofwork: UnitOfWork = new UnitOfWork(context)
     lazy val interpreter: UnitOfWorkInterpreter = new UnitOfWorkInterpreter(unitofwork)
     lazy val runtime: RuntimeContext = new RuntimeContext(
-      core = RuntimeContext.core("cncf-car-review-provider-runner-spec", None, base.cncfCore.observability),
+      core = RuntimeContext.core("cncf-car-review-provider-runner-spec", None, base.observability),
       unitOfWorkSupplier = () => unitofwork,
       unitOfWorkInterpreterFn = new (UnitOfWorkOp ~> Consequence) {
         def apply[A](operation: UnitOfWorkOp[A]): Consequence[A] = interpreter.interpret(operation)

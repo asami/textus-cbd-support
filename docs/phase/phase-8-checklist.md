@@ -1,6 +1,9 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: ON HOLD — P8-60 human confirmation is deferred (Stages 8.1–8.6 complete; P8-30 through P8-33, P8-40 through P8-45, and P8-50 through P8-55 complete)
+Status: ON HOLD — P8-60 human confirmation is the only unresolved Phase 8
+closure gate; P8-61 Cozy runtime-selection acceptance is completed (Stages
+8.1–8.6 complete; P8-30 through P8-33, P8-40 through P8-45, and P8-50 through
+P8-55 complete).
 phase=[Phase 8](phase-8.md)
 
 Scala compliance: the current Phase 8 accumulator is recorded in
@@ -248,9 +251,13 @@ commit does not replace P8-60 human confirmation.
   rows. It retains canonical Observation/Evidence identities for an observed
   capability and otherwise emits a rule-bound retryable Unknown limitation with
   the matrix's missing-Evidence code. It is read-only and does not run a
-  provider. `CarReviewQualityCoverageProjectionSpec` proves all 155 supported
-  capabilities appear exactly once, including observed Domain evidence and an
-  explicit Security Unknown.
+  provider. At P8-55 completion the catalog contained 155 supported
+  capabilities. After the admitted catalog expansion, the current observed
+  total is 161. `CarReviewQualityCoverageProjectionSpec` dynamically proves
+  equality to `CarReviewCapabilityCatalog.definitions.size`, rather than a
+  second fixed total, including observed Domain evidence and an explicit
+  Security Unknown. This records current catalog truth without claiming new
+  test execution.
 
 ## P8-60: Human confirmation
 
@@ -261,3 +268,38 @@ commit does not replace P8-60 human confirmation.
   confirmation remains pending; see
   `docs/phase/phase-8-human-confirmation.md` and
   `docs/journal/2026/07/phase-8-p8-60-human-confirmation-deferred-2026-07-26.md`.
+
+## P8-61: Cozy snapshot runtime-selection acceptance
+
+- [x] `P8-61` **COMPLETED** — Current evidence uses Cozy `0.3.4-SNAPSHOT` and
+  CNCF `0.5.2-SNAPSHOT`; full review accepted the runtime/config/generated
+  identity behavior and focused re-review was CLEAN. Findings
+  `P8-61-VF-001` and `P8-61A-RV-001` are CLOSED. `conf/cozy/launcher.yaml`
+  sets only `development.runtime.enabled: false`. `cozy runtime config show`
+  exited 0 with `runtime.devDir: (not configured)`, `development.enabled:
+  true`, `development.launcher.enabled: true`, and
+  `development.runtime.enabled: false`; `cozy --runtime 0.3.4-SNAPSHOT
+  version` exited 0 with `cozy 0.3.4-SNAPSHOT`. Forced-generation invocation
+  `7556-20260814T213837Z` recorded `sbt_exit=0`, `wrapper_exit=0`,
+  `lock=released`, accepted `goldenport-cncf_3:0.5.2-SNAPSHOT |
+  cozy_2.12:0.3.4-SNAPSHOT`, and generated 175 Scala sources. Provenance was
+  `cozy.generation-provenance.v1`, `cozyVersion=0.3.4-SNAPSHOT`,
+  `cncfVersion=0.5.2-SNAPSHOT`, runtime descriptor SHA-256
+  `9568025493a6273e99cba5d14df9d9ba9e0b26b33278f9dca4ef127d5b907dfd`; the
+  descriptor identified CNCF `0.5.2-SNAPSHOT`, module
+  `org.goldenport:goldenport-cncf_3:0.5.2-SNAPSHOT`. Initial exact-suite
+  invocation `8248-20260814T214002Z` discovered 8 tests; all 8 failed at the
+  common obsolete `CbdSupport` fixture (failure history, not acceptance
+  evidence). Repair `P8-61-VF-001` derives fixture name, componentId, and
+  instanceId from generated `CbdSupportComponent` identity. Final
+  repair-validation
+  invocation `9751-20260814T214332Z` recorded `sbt_exit=0`, `wrapper_exit=0`,
+  `lock=released`, compiled 1 test source, and passed
+  `testOnly org.simplemodeling.textus.cbdsupport.impl.ReviewDiagnosisPersistenceSpec`
+  as 1 suite/8 tests. The fully-qualified `testOnly` supplies its `Test /
+  compile` dependency; no duplicate standalone compile was required.
+  Post-repair `git diff --check` passed. The historical Cozy
+  `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT` launcher-selection mismatch remains
+  context only; it does not re-open Cozy's generated Entity revision source
+  contract. P8-60 remains `[ ]` and ON_HOLD as the only unresolved Phase 8
+  closure gate. Full Phase validation remains pending for the release gate.

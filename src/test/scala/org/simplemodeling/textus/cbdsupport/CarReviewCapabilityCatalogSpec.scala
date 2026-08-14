@@ -23,8 +23,8 @@ final class CarReviewCapabilityCatalogSpec extends AnyWordSpec with Matchers wit
       val capabilities = CarReviewCapabilityCatalog.project(report)
 
       Then("the complete taxonomy has stable unique identities and mapped views retain canonical IDs")
-      definitions should have size 157
-      definitions.map(_.id).distinct should have size 157
+      definitions should have size 161
+      definitions.map(_.id).distinct should have size 161
       capabilities.map(_.capability.id.value) should contain allOf (
         "quality.domain.identity-consistency",
         "quality.documentation.rationale",
@@ -56,12 +56,32 @@ final class CarReviewCapabilityCatalogSpec extends AnyWordSpec with Matchers wit
         "quality.evaluability.corpus-first-experiment",
         "quality.observability.runtime-evidence",
         "quality.observability.structured-logging",
+        "quality.observability.error-correlation",
         "quality.observability.distributed-tracing",
         "quality.observability.metrics-visualization",
         "quality.observability.state-visibility",
         "quality.operability.tracing",
         "quality.operability.metrics",
         "quality.security.auditability"
+      )
+      val errormodel = CarReviewCapabilityCatalog.definition(ReviewCapabilityId("quality.consistency.error-model")).getOrElse(fail("structured error model capability missing"))
+      errormodel.assessmentFocus should include("stable code")
+      errormodel.runtimeEvidenceRequired shouldBe false
+      val errorcorrelation = CarReviewCapabilityCatalog.definition(ReviewCapabilityId("quality.observability.error-correlation")).getOrElse(fail("error observability correlation capability missing"))
+      errorcorrelation.views should contain allElementsOf Vector("observability", "operational", "consistency")
+      errorcorrelation.representativeEvidenceKinds should contain allElementsOf Vector("error-contract", "calltree", "failure-test", "runtime-observation")
+      errorcorrelation.runtimeEvidenceRequired shouldBe true
+      CarReviewCapabilityCatalog.capabilityIdsForView("testability").map(_.value) should contain allElementsOf Set(
+        "quality.testability.time-control",
+        "quality.testability.randomness-control",
+        "quality.testability.identifier-generation-control"
+      )
+      CarReviewCapabilityCatalog.capabilityIdsForView("internationalization").map(_.value) should contain allElementsOf Set(
+        "quality.internationalization.locale",
+        "quality.internationalization.timezone",
+        "quality.internationalization.character-encoding",
+        "quality.internationalization.translation",
+        "quality.internationalization.cultural-format"
       )
       Vector("performance", "security", "availability", "reliability", "scalability", "resilience", "operability", "observability", "deployability", "configurability", "maintainability", "extensibility", "reusability", "testability", "readability", "consistency", "portability", "interoperability", "evolvability", "cost-efficiency", "ai-readiness", "functional-suitability", "accessibility", "supply-chain", "privacy", "safety", "data-quality", "ai-trustworthiness", "compatibility", "business-continuity", "internationalization", "supportability", "compliance", "sustainability").foreach { view =>
         withClue(s"quality taxonomy view '$view': ") {

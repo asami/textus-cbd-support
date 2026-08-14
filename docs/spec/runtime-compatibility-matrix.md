@@ -19,18 +19,21 @@ passes.
 
 | CNCF version | minimum | tested | excluded | classification | evidence |
 |---|---:|---:|---:|---|---|
-| `0.5.1-SNAPSHOT` | yes | yes | no | tested-compatible | representative CBD/SIE SAR |
+| `0.5.2-SNAPSHOT` | yes | yes | no | tested-compatible declaration; P8-61 accepted; representative Phase release validation pending | representative CBD/SIE SAR (Phase release gate) and P8-61 driver-CAR acceptance |
 
 The declared excluded set is empty. This is an explicit statement that no
 version currently has sufficient project-owned evidence for an exclusion; it
 is not a claim that every other version is compatible. Versions absent from the
 table are unassessed and must not be reported as supported or incompatible.
 
-`tested-compatible` means only that the declared snapshot candidate completed
-the representative execution described below. It is not a promise that later
-artifacts published under the mutable SNAPSHOT coordinate are identical. A
-release decision must record immutable dependency and artifact evidence under
-P4-43.
+`tested-compatible` is the current `project.yaml` declaration required by the
+runtime compatibility checker. P8-61 driver-CAR acceptance for Cozy
+`0.3.4-SNAPSHOT` with CNCF `0.5.2-SNAPSHOT` is accepted; the JSON `p8_61`
+record points to its canonical handoff. The separate `representative-sar`
+evidence remains `pending-phase-release-validation` and must not be inferred
+from P8-61 acceptance. The declaration is not a promise that later artifacts
+published under the mutable SNAPSHOT coordinate are identical. A release
+decision must record immutable dependency and artifact evidence under P4-43.
 
 ## Representative Evidence
 
@@ -58,6 +61,26 @@ The representative evidence covers:
 
 It does not establish ABI compatibility with another CAR version; that is the
 separate P4-31 gate.
+
+The broader CBD/SIE SAR command has not been freshly run for the final Phase
+tree. It remains required evidence at the Phase release gate and is therefore
+not claimed as passed by this matrix.
+
+## P8-61 Accepted
+
+P8-61 is accepted for Cozy `0.3.4-SNAPSHOT` and CNCF `0.5.2-SNAPSHOT`,
+matching `project.yaml`. Forced generation invocation
+`7556-20260814T213837Z` accepted the declared toolchain. Final persistence
+invocation `9751-20260814T214332Z` supplied `Test/compile` and passed
+`ReviewDiagnosisPersistenceSpec` as 1 suite/8 tests. Findings
+`P8-61-VF-001` and `P8-61A-RV-001` are closed, and the focused re-review was
+clean. The historical Cozy `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT`
+launcher-selection failure remains recorded in the P8-61 handoff as historical
+context, not as current compatibility evidence.
+
+P8-61 acceptance does not complete P8-60: P8-60 remains the sole unresolved
+human gate, Phase 8 remains ON_HOLD, and full Phase validation remains pending
+for the release gate.
 
 ## Update Rule
 

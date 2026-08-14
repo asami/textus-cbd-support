@@ -52,6 +52,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalacheck.Gen
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.runtime.*
 import org.simplemodeling.textus.cbdsupport.entity.{
   ReviewAttestationSnapshot as ReviewAttestationSnapshotEntity,
@@ -65,7 +66,7 @@ import org.simplemodeling.textus.cbdsupport.entity.{
 /*
  * @since   Jul. 23, 2026
  *  version Jul. 26, 2026
- * @version Aug.  8, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ReviewDiagnosisPersistenceSpec
@@ -525,9 +526,9 @@ final class ReviewDiagnosisPersistenceSpec
   private def _component(): Component = {
     val component = new Component {
       override val core: Component.Core = Component.Core.create(
-        "CbdSupport",
-        ComponentId("CbdSupport"),
-        ComponentInstanceId.default(ComponentId("CbdSupport")),
+        CbdSupportComponent.name,
+        CbdSupportComponent.componentId,
+        ComponentInstanceId.default(CbdSupportComponent.componentId),
         Protocol.empty
       )
 

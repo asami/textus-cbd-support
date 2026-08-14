@@ -2,15 +2,16 @@
   "schema_version": "textus-cbd.runtime-compatibility-matrix.v1",
   "component": "textus-cbd-support",
   "declaration": {
-    "minimum": "0.5.1-SNAPSHOT",
+    "minimum": "0.5.2-SNAPSHOT",
     "tested": [
-      "0.5.1-SNAPSHOT"
+      "0.5.2-SNAPSHOT"
     ],
     "excluded": []
   },
   "evidence": {
     "representative-sar": {
       "command": "scripts/check-cbd-sie-sar.sh",
+      "status": "pending-phase-release-validation",
       "success_markers": [
         "RUNTIME_COMPATIBILITY_DECLARATION_OK",
         "RUNTIME_COMPATIBILITY_CANDIDATE_OK",
@@ -20,9 +21,22 @@
       ]
     }
   },
+  "p8_61": {
+    "status": "accepted",
+    "accepted_on": "2026-08-15",
+    "acceptance_record": "docs/journal/2026/08/phase-8-p8-61-cozy-snapshot-runtime-acceptance-handoff-2026-08-03.md",
+    "cozy_version": "0.3.4-SNAPSHOT",
+    "cncf_version": "0.5.2-SNAPSHOT",
+    "required_evidence": [
+      "effective Cozy runtime identity",
+      "cozyGenerate",
+      "Test/compile",
+      "ReviewDiagnosisPersistenceSpec"
+    ]
+  },
   "candidates": [
     {
-      "version": "0.5.1-SNAPSHOT",
+      "version": "0.5.2-SNAPSHOT",
       "classification": "tested-compatible",
       "evidence_ids": [
         "representative-sar"

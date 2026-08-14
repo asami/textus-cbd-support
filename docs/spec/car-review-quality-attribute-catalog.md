@@ -56,6 +56,7 @@ or replace profile-specific control mapping.
 - `quality.operability.metrics`: Metrics have stable semantics, bounded cardinality, and operationally useful labels.
 - `quality.operability.admin-api`: Administrative operations are discoverable, authorized, bounded, and diagnostically useful.
 - `quality.observability.structured-logging`: Logs use structured, stable fields that retain severity, identity, correlation, and diagnostic meaning.
+- `quality.observability.error-correlation`: Structured error identity and taxonomy are projected into CallTree and other admitted observability evidence with operation correlation, causation, and redaction preserved.
 - `quality.observability.distributed-tracing`: Distributed traces preserve context, causation, sampling limits, and provider attribution.
 - `quality.observability.metrics-visualization`: Metrics can be interpreted through a documented dashboard or equivalent projection without hidden calculations.
 - `quality.observability.state-visibility`: Relevant runtime, Job, Task, provider, and resource states are visible with explicit staleness and authority.
@@ -79,12 +80,15 @@ or replace profile-specific control mapping.
 - `quality.testability.mockability`: External effects can be replaced by bounded deterministic test providers without changing business semantics.
 - `quality.testability.isolation`: Behavior can be exercised with explicit dependencies and controlled state boundaries.
 - `quality.testability.deterministic-execution`: Equivalent admitted inputs and execution context produce reproducible decisions and evidence.
+- `quality.testability.time-control`: Time-dependent behavior obtains clocks, instants, timeouts, and scheduling decisions from an explicit controllable boundary rather than ambient system time.
+- `quality.testability.randomness-control`: Random behavior obtains entropy and seeds from an explicit controllable boundary so equivalent tests can reproduce decisions.
+- `quality.testability.identifier-generation-control`: Generated identifiers come from an explicit controllable boundary so tests can reproduce identity while production preserves uniqueness policy.
 - `quality.readability.naming`: Names consistently express domain and framework concepts without hidden aliases or ambiguous abbreviations.
 - `quality.readability.dsl-expressiveness`: DSL constructs express intent and constraints directly without requiring implementation inference.
 - `quality.readability.documentation-linkage`: Rules, specifications, design, implementation, and executable evidence remain navigably linked.
 - `quality.consistency.model`: Domain, protocol, storage, and projection models preserve one declared semantic contract.
 - `quality.consistency.api`: Related APIs use consistent naming, envelopes, lifecycle, authorization, and error semantics.
-- `quality.consistency.error-model`: Failures use one structured error model across execution, transport, observability, and user surfaces.
+- `quality.consistency.error-model`: Failures use a typed, structured error model with stable code, category, severity, retryability, safe context, and cause semantics across execution, transport, and user surfaces.
 
 ## Business
 

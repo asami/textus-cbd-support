@@ -1,9 +1,13 @@
 project:
   namespace: "org.simplemodeling.textus"
   id: "CbdSupport"
+  name: "textus-cbd-support"
   title: "Textus CBD Support"
   kind: car
+  scalaPackage: "org.simplemodeling.textus.cbdsupport"
   component:
+    name: "CbdSupport"
+    className: "CbdSupportComponent"
     displayName: "Textus CBD Support"
     version: "0.1.0-SNAPSHOT"
     config:

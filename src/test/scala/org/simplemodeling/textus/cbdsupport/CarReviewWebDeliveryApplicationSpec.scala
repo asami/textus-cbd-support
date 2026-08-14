@@ -11,7 +11,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 23, 2026
- * @version Aug. 14, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewWebDeliveryApplicationSpec extends AnyWordSpec with Matchers with GivenWhenThen {

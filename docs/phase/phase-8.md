@@ -2,9 +2,10 @@
 
 Stage Status:
 - Current status: ON_HOLD
-- Current step: Stages 8.1 through 8.6 and P8-43 through P8-55 are complete.
-  P8-60 human confirmation is deferred by explicit project-owner direction;
-  no automated result substitutes for that acceptance.
+- Current step: All technical items through P8-61 are complete and accepted.
+  P8-60 human confirmation is the only unresolved Phase 8 closure gate and is
+  deferred by explicit project-owner direction; no automated result substitutes
+  for that acceptance.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
   item has reproducible evidence. Do not close the phase without explicit
@@ -352,18 +353,25 @@ a capability. For every other capability it shows a retryable Unknown with the
 matrix-defined missing-Evidence limitation. Thus an unimplemented, disabled, or
 absent provider is visible in Web/CLI/report consumers through one projection
 rather than disappearing from the quality view or being inferred as a pass.
+The completion checkpoint observed 155 supported capabilities. After the
+admitted catalog expansion, the current observed total is 161;
+`CarReviewQualityCoverageProjectionSpec` remains dynamically total over
+`CarReviewCapabilityCatalog.definitions.size`, so the observed count is not a
+second fixed coverage contract. This records current catalog truth without
+claiming new test execution.
 
 ### Stage 8.7: Cross-surface verification and human confirmation
 
 Stage Status:
 - Current status: ON_HOLD
-- Current step: Cross-surface evidence is prepared; P8-60 remains unchecked
-  after the 2026-07-26 project-owner deferral.
-- Owner: Human reviewer
+- Current step: P8-61 completed and accepted on 2026-08-15 after clean focused
+  re-review. P8-60 remains unchecked after the 2026-07-26 project-owner
+  deferral and is the only unresolved Phase 8 closure gate.
+- Owner: Textus CBD Support development and human reviewer
 - Checklist basis: `P8-60`
-- Update rule: Update only from an attributable human confirmation or
-  rejection; a technical checkpoint, automated validation, or later-phase work
-  cannot complete P8-60.
+- Update rule: Only attributable human confirmation can complete P8-60. A
+  technical checkpoint, automated validation, or later-phase work cannot
+  complete P8-60.
 
 Run focused/full tests, CAR build/lint, report artifact verification, Web/CLI/
 CI equivalence, and quality-rule coverage checks. Present the resulting
@@ -374,6 +382,38 @@ scheduling exception only: it does not complete P8-60, close Phase 8,
 authorize publication, or weaken the acceptance criteria. The review packet,
 acceptance criteria, and resume rule are recorded in
 `phase-8-human-confirmation.md`.
+
+P8-61 was completed and accepted on 2026-08-15 after clean focused re-review,
+using the current declared Cozy `0.3.4-SNAPSHOT` and CNCF `0.5.2-SNAPSHOT`
+toolchain. The shared
+`conf/cozy/launcher.yaml` sets only `development.runtime.enabled: false`;
+`cozy runtime config show` exited 0 with `runtime.devDir: (not configured)`,
+`development.enabled: true`, `development.launcher.enabled: true`, and
+`development.runtime.enabled: false`; `cozy --runtime 0.3.4-SNAPSHOT version`
+exited 0 with `cozy 0.3.4-SNAPSHOT`. Forced-generation invocation
+`7556-20260814T213837Z` recorded `sbt_exit=0`, `wrapper_exit=0`,
+`lock=released`, accepted `goldenport-cncf_3:0.5.2-SNAPSHOT |
+cozy_2.12:0.3.4-SNAPSHOT`, and generated 175 Scala sources. The provenance
+was `cozy.generation-provenance.v1`, `cozyVersion=0.3.4-SNAPSHOT`,
+`cncfVersion=0.5.2-SNAPSHOT`, with runtime descriptor SHA-256
+`9568025493a6273e99cba5d14df9d9ba9e0b26b33278f9dca4ef127d5b907dfd`; the
+descriptor identified CNCF `0.5.2-SNAPSHOT`, module
+`org.goldenport:goldenport-cncf_3:0.5.2-SNAPSHOT`. Initial exact-suite
+invocation `8248-20260814T214002Z` discovered 8 tests; all 8 failed at the
+common obsolete `CbdSupport` fixture. Repair `P8-61-VF-001` now derives the
+fixture name, componentId, and instanceId from generated
+`CbdSupportComponent` identity. Final repair-validation
+invocation `9751-20260814T214332Z` recorded `sbt_exit=0`, `wrapper_exit=0`,
+`lock=released`, compiled 1 test source, and passed
+`testOnly org.simplemodeling.textus.cbdsupport.impl.ReviewDiagnosisPersistenceSpec`
+as 1 suite/8 tests; its fully-qualified `testOnly` supplies `Test / compile`,
+with no duplicate standalone compile required. Post-repair `git diff --check`
+passed. Full review accepted the runtime/config/generated identity behavior;
+`P8-61-VF-001` was repaired, and focused re-review was CLEAN. Findings
+`P8-61-VF-001` and `P8-61A-RV-001` are CLOSED. The historical Cozy
+`0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT` launcher-selection failure remains
+context only. P8-60 remains the only unresolved Phase 8 closure gate. Full
+Phase validation remains pending for the release gate.
 
 ## Acceptance
 
@@ -391,5 +431,6 @@ acceptance criteria, and resume rule are recorded in
 - Every supported quality attribute has an explicit rule matrix entry and at
   least one executable evidence path, or is visibly `Unknown` with its missing
   provider/check identified.
-- Phase closure awaits explicit human confirmation after Stage 8.6. P8-60 is
-  currently deferred and remains the only Phase 8 closure gate.
+- Phase closure awaits explicit human confirmation in P8-60 only. Full Phase
+  validation remains pending for the release gate; P8-61 acceptance does not
+  imply Phase completion.

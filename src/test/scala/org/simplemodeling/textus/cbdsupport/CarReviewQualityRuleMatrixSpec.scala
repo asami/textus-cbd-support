@@ -58,5 +58,59 @@ final class CarReviewQualityRuleMatrixSpec extends AnyWordSpec with Matchers wit
       mcprules.last.authority shouldBe
         CarReviewQualityCheckAuthority.Advisory
     }
+
+    "review structured errors separately from their Observability correlation" in {
+      Given("the structured error and error correlation capabilities")
+      val errormodelid = ReviewCapabilityId("quality.consistency.error-model")
+      val errorcorrelationid = ReviewCapabilityId("quality.observability.error-correlation")
+
+      When("CBD resolves their review rules")
+      val errormodel = CarReviewQualityRuleMatrix.rule(errormodelid).getOrElse(fail("structured error model rule missing"))
+      val errorcorrelation = CarReviewQualityRuleMatrix.rule(errorcorrelationid).getOrElse(fail("error correlation rule missing"))
+
+      Then("the static contract and runtime Observability checks remain independent")
+      errormodel.authority shouldBe CarReviewQualityCheckAuthority.Deterministic
+      errormodel.requiredEvidenceKinds should contain allElementsOf Vector("error-contract", "failure-test")
+      errorcorrelation.authority shouldBe CarReviewQualityCheckAuthority.Runtime
+      errorcorrelation.requiredEvidenceKinds should contain allElementsOf Vector("error-contract", "calltree", "failure-test", "runtime-observation")
+      errorcorrelation.missingEvidenceObservationType shouldBe ReviewObservationType("unknown")
+    }
+
+    "review internationalization and controllable nondeterminism as explicit quality rules" in {
+      Given("the internationalization and testability capability families")
+      val internationalizationids = Vector(
+        "quality.internationalization.locale",
+        "quality.internationalization.timezone",
+        "quality.internationalization.character-encoding",
+        "quality.internationalization.translation",
+        "quality.internationalization.cultural-format"
+      ).map(ReviewCapabilityId.apply)
+      val controllabilityids = Vector(
+        "quality.testability.time-control",
+        "quality.testability.randomness-control",
+        "quality.testability.identifier-generation-control"
+      ).map(ReviewCapabilityId.apply)
+
+      When("CBD resolves each item through the provider-neutral rule matrix")
+      val internationalizationrules = internationalizationids.map(id =>
+        CarReviewQualityRuleMatrix.rule(id).getOrElse(fail(s"internationalization rule missing: ${id.value}"))
+      )
+      val controllabilityrules = controllabilityids.map(id =>
+        CarReviewQualityRuleMatrix.rule(id).getOrElse(fail(s"testability rule missing: ${id.value}"))
+      )
+
+      Then("every item is independently reviewable and missing evidence remains Unknown")
+      (internationalizationrules ++ controllabilityrules).foreach { rule =>
+        rule.authority shouldBe CarReviewQualityCheckAuthority.Deterministic
+        rule.requiredEvidenceKinds should not be empty
+        rule.missingEvidenceObservationType shouldBe ReviewObservationType("unknown")
+      }
+      controllabilityrules.flatMap(_.requiredEvidenceKinds) should contain allElementsOf Vector(
+        "time-provider-contract",
+        "random-provider-contract",
+        "identifier-provider-contract",
+        "deterministic-test"
+      )
+    }
   }
 }

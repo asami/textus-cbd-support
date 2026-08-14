@@ -1,11 +1,11 @@
 # Phase 8 Scala Compliance Ledger
 
-Status: independent re-review complete; final technical checkpoint validation
-pending. P8-60 human confirmation remains separately on hold.
+Status: independent re-review complete and P8-60 human confirmation recorded;
+final Phase technical and release validation pending.
 
 This ledger is the Phase 8 accumulator record required by the CNCF phase
-workflow. It covers every repository-managed Scala source or specification
-currently changed or newly introduced by the uncommitted Phase 8 accumulator.
+workflow. It covers the repository-managed Scala source and executable-
+specification evidence reviewed for the Phase 8 technical accumulator.
 Generated files beneath `target/` are excluded because their CML producer is
 the reviewed source of truth.
 
@@ -67,6 +67,5 @@ final release commit.
 - Focused validation: the eight directly affected specifications passed 25
   tests; the three renamed provider/specification surfaces passed 7 tests.
 - `sbt --batch Test/compile`: passed after the complete review-fix set.
-- Final independent re-review: clean. The Phase 8 technical checkpoint
-  validation remains pending. This ledger does not self-approve P8-60 human
-  confirmation or Phase closure.
+- Final independent re-review: clean. P8-60 human confirmation is recorded;
+  this ledger does not substitute for pending final Phase release validation.

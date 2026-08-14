@@ -1,15 +1,15 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: ON HOLD — P8-60 human confirmation is the only unresolved Phase 8
-closure gate; P8-61 Cozy runtime-selection acceptance is completed (Stages
-8.1–8.6 complete; P8-30 through P8-33, P8-40 through P8-45, and P8-50 through
-P8-55 complete).
+Status: COMPLETE — all checklist items, including P8-60 human confirmation and
+P8-61 Cozy runtime-selection acceptance, are complete. Phase 8 release
+validation and review remain a separate pending gate (Stages 8.1–8.7 complete;
+P8-30 through P8-33, P8-40 through P8-45, and P8-50 through P8-55 complete).
 phase=[Phase 8](phase-8.md)
 
 Scala compliance: the current Phase 8 accumulator is recorded in
 [phase-8-scala-compliance-ledger.md](phase-8-scala-compliance-ledger.md).
-The ledger records the completed independent re-review. A technical checkpoint
-commit does not replace P8-60 human confirmation.
+The ledger records the completed independent re-review. Human confirmation is
+recorded; this checklist does not replace final Phase release validation.
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
 
@@ -261,13 +261,17 @@ commit does not replace P8-60 human confirmation.
 
 ## P8-60: Human confirmation
 
-- [ ] `P8-60` **ON HOLD** — Present the complete cross-surface,
-  persistence/history, and CI/CD result to a human reviewer. Automated
-  validation and the 2026-07-26 deferral do not complete this item. The
-  project owner explicitly authorized subsequent work to proceed while this
-  confirmation remains pending; see
-  `docs/phase/phase-8-human-confirmation.md` and
+- [x] `P8-60` **COMPLETED** — Human confirmation was recorded on 2026-08-15
+  with the exact response `Phase 8 human confirmation complete.` for the
+  approved pre-confirmation packet SHA-256
+  `9ddfcb0c9ce5305d83a898a7bee95849a52957c0a01fe8bf600ef8455fa8e717`.
+  The canonical packet is `docs/phase/phase-8-human-confirmation.md`; the
+  historical deferral record is
   `docs/journal/2026/07/phase-8-p8-60-human-confirmation-deferred-2026-07-26.md`.
+  Approval scope is Stage 8.7 and P8-60 acceptance only. It does not close
+  Phase 8, pass final validation, authorize release, publication, distribution,
+  deployment, provider execution, dependency release, or entry into a
+  successor Phase.
 
 ## P8-61: Cozy snapshot runtime-selection acceptance
 
@@ -301,5 +305,5 @@ commit does not replace P8-60 human confirmation.
   Post-repair `git diff --check` passed. The historical Cozy
   `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT` launcher-selection mismatch remains
   context only; it does not re-open Cozy's generated Entity revision source
-  contract. P8-60 remains `[ ]` and ON_HOLD as the only unresolved Phase 8
-  closure gate. Full Phase validation remains pending for the release gate.
+  contract. P8-60 is complete. Final Phase validation and review remain
+  pending for the release gate.

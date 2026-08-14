@@ -1,15 +1,16 @@
 # Phase 8: Review Delivery, CI/CD, and Quality Rule Execution
 
 Stage Status:
-- Current status: ON_HOLD
-- Current step: All technical items through P8-61 are complete and accepted.
-  P8-60 human confirmation is the only unresolved Phase 8 closure gate and is
-  deferred by explicit project-owner direction; no automated result substitutes
-  for that acceptance.
+- Current status: OPEN
+- Current step: P8-60 human confirmation and P8-61 runtime-selection
+  acceptance are complete. Final full Phase validation, final-tree/current CAR
+  lint, representative CBD/SIE SAR, full review, and the Phase release commit
+  remain pending.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
-  item has reproducible evidence. Do not close the phase without explicit
-  human confirmation.
+  item has reproducible evidence. Human confirmation is satisfied but does not
+  replace final release validation, review, and the release commit; close the
+  Phase only after those gates complete.
 
 ## Purpose
 
@@ -363,24 +364,27 @@ claiming new test execution.
 ### Stage 8.7: Cross-surface verification and human confirmation
 
 Stage Status:
-- Current status: ON_HOLD
+- Current status: DONE
 - Current step: P8-61 completed and accepted on 2026-08-15 after clean focused
-  re-review. P8-60 remains unchecked after the 2026-07-26 project-owner
-  deferral and is the only unresolved Phase 8 closure gate.
+  re-review. P8-60 human confirmation completed on 2026-08-15 with the exact
+  response `Phase 8 human confirmation complete.` for approved packet SHA-256
+  `9ddfcb0c9ce5305d83a898a7bee95849a52957c0a01fe8bf600ef8455fa8e717`.
+  Final Phase release validation remains pending.
 - Owner: Textus CBD Support development and human reviewer
 - Checklist basis: `P8-60`
-- Update rule: Only attributable human confirmation can complete P8-60. A
-  technical checkpoint, automated validation, or later-phase work cannot
-  complete P8-60.
+- Update rule: Only attributable human confirmation can complete P8-60. The
+  recorded confirmation does not replace final Phase release validation,
+  review, or the release commit.
 
 Run focused/full tests, CAR build/lint, report artifact verification, Web/CLI/
 CI equivalence, and quality-rule coverage checks. Present the resulting
 dashboard, diagnosis, Markdown, PDF, CI artifact, and residual Unknowns for
 human confirmation. The project owner deferred that confirmation on
-2026-07-26 and authorized subsequent work to proceed independently. This is a
-scheduling exception only: it does not complete P8-60, close Phase 8,
-authorize publication, or weaken the acceptance criteria. The review packet,
-acceptance criteria, and resume rule are recorded in
+2026-07-26 and authorized subsequent work to proceed independently. That
+deferral remains historical scheduling and non-acceptance evidence for its
+original date; it did not accept the Phase and was superseded by the
+attributable P8-60 response recorded on 2026-08-15. The review packet,
+acceptance criteria, and confirmation record are in
 `phase-8-human-confirmation.md`.
 
 P8-61 was completed and accepted on 2026-08-15 after clean focused re-review,
@@ -412,8 +416,10 @@ passed. Full review accepted the runtime/config/generated identity behavior;
 `P8-61-VF-001` was repaired, and focused re-review was CLEAN. Findings
 `P8-61-VF-001` and `P8-61A-RV-001` are CLOSED. The historical Cozy
 `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT` launcher-selection failure remains
-context only. P8-60 remains the only unresolved Phase 8 closure gate. Full
-Phase validation remains pending for the release gate.
+context only. P8-60 is complete and no checklist item remains unresolved.
+Final Phase validation, final-tree/current CAR lint, representative CBD/SIE
+SAR, full review, and the Phase release commit remain pending for the release
+gate.
 
 ## Acceptance
 
@@ -431,6 +437,7 @@ Phase validation remains pending for the release gate.
 - Every supported quality attribute has an explicit rule matrix entry and at
   least one executable evidence path, or is visibly `Unknown` with its missing
   provider/check identified.
-- Phase closure awaits explicit human confirmation in P8-60 only. Full Phase
-  validation remains pending for the release gate; P8-61 acceptance does not
-  imply Phase completion.
+- No checklist item remains unresolved: P8-60 human confirmation and P8-61
+  acceptance are complete. Phase closure awaits final release validation,
+  final-tree/current CAR lint, representative CBD/SIE SAR, full review, and
+  the Phase release commit only.

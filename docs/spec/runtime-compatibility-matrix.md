@@ -78,9 +78,9 @@ clean. The historical Cozy `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT`
 launcher-selection failure remains recorded in the P8-61 handoff as historical
 context, not as current compatibility evidence.
 
-P8-61 acceptance does not complete P8-60: P8-60 remains the sole unresolved
-human gate, Phase 8 remains ON_HOLD, and full Phase validation remains pending
-for the release gate.
+P8-60 human confirmation completed on 2026-08-15. P8-61 runtime acceptance
+does not prove or replace final-tree representative SAR or full Phase release
+validation, which remain pending for the release gate.
 
 ## Update Rule
 

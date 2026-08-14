@@ -2,7 +2,8 @@ package org.simplemodeling.textus.cbdsupport
 
 import java.nio.file.{Files, Path}
 
-import org.goldenport.cncf.http.WebDescriptor
+import org.goldenport.cncf.http.{WebApplicationEntryPolicy, WebDescriptor}
+import org.goldenport.cncf.subsystem.GenericSubsystemDescriptor
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -10,7 +11,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ * @version Aug. 14, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewWebDeliveryApplicationSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -65,10 +66,28 @@ final class CarReviewWebDeliveryApplicationSpec extends AnyWordSpec with Matcher
       absent.isFaillure shouldBe true
     }
 
+    "declare textus-cbd-support as the configuration-free sole public application entry" in {
+      Given("the authored Web descriptor")
+      val webdescriptor = WebDescriptor.load(Path.of("src", "main", "web-inf", "web.yaml")).fold(_fail_conclusion, identity)
+
+      When("the shared entry policy resolves the sole application for canonical component segment cbd-support")
+      val entry = WebApplicationEntryPolicy.resolve(
+        webdescriptor,
+        Some(GenericSubsystemDescriptor(Path.of("textus-cbd-support.sar"), "textus-cbd-support", implicitRootComponentName = Some("cbd-support")))
+      )
+
+      Then("the descriptor needs no entry flag while /web is the public entry and the canonical route remains configured")
+      webdescriptor.componentEntryApps shouldBe Vector.empty
+      entry shouldBe WebApplicationEntryPolicy.Selected(webdescriptor.apps.head, "cbd-support", "/web")
+      webdescriptor.apps.head.completedFor(Some("cbd-support")).effectiveRoute shouldBe "/web/cbd-support/textus-cbd-support"
+    }
+
     "publish authenticated static forms with bounded diagnosis choices through the private Review service instead of the MCP-ready retrieval service" in {
-      Given("the generated CML contract, static form configuration, and component MCP boundary")
+      Given("the generated CML contract and static form configuration")
       val cml = Files.readString(Path.of("src", "main", "cozy", "textus-cbd-support.cml"))
       val form = Files.readString(Path.of("src", "main", "web-inf", "form.yaml"))
+
+      When("the static form descriptor and component MCP boundary are inspected")
       val descriptor = WebDescriptor.load(Path.of("src", "main", "web-inf", "form.yaml")).fold(_fail_conclusion, identity)
       val component = new impl.ComponentFactory()._create_uninitialized_component()
 

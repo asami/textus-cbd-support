@@ -34,6 +34,12 @@ This non-normative journal records separately scoped maintenance only. It does n
   - The external Python wrapper invokes an unqualified PATH-selected `cozy lint car` and can select a runtime that misclassifies the numeric schemaVersion 3 descriptor as a blocking finding.
   - The project-declared Cozy `0.3.4-SNAPSHOT` path, invoked explicitly as `cozy --runtime 0.3.4-SNAPSHOT lint car . --format json`, completed successfully during Phase 8 evidence collection, with only documented development/first-release readiness warnings.
   - Therefore this item concerns external wrapper runtime selection/compatibility, not a request to weaken or suppress valid CAR lint findings.
+- **Historical evidence for CPB-P8-REL-001:**
+  - A locally published `org.simplemodeling:cozy_2.12:0.3.4-SNAPSHOT` artifact dated 2026-08-14 14:41 contained the pre-fix behavior treating `project.component.name` as `qualifiedId`.
+  - Clean committed Cozy fix `9db5afb45489559936b7a94d70136db3590cf453` at 2026-08-14 21:16 established `component.name` as the local ID; current Cozy HEAD was clean at `69c322f5d1612682993135cd05ddf43b6decc83d`.
+  - Serialized `publishLocal` invocation `6797-20260815T114236Z` succeeded with `sbt_exit=0`, `wrapper_exit=0`, and the lock released.
+  - Exact `cozy --runtime 0.3.4-SNAPSHOT lint car . --format json` then exited 0 with `CAR_COMPONENT_IDENTITY_CANONICAL` and only the existing ABI-baseline/sbt-cozy warnings.
+  - CPB-P8-REL-001 was a mutable local SNAPSHOT publication-skew signal and is cleared without changing cbd-support identity.
 - **Category:** external validation-tool runtime-selection compatibility
 - **Risk/priority:** Medium; a false blocking signal can prevent an otherwise valid Phase release, while blindly ignoring it could hide real findings.
 - **Why outside Phase 8:** Correct repair belongs to the external `cncf-car-lint` skill/tooling package; the CBD project already declares the accepted Cozy runtime and descriptor contract.

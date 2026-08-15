@@ -46,8 +46,7 @@ sealed trait ProviderBundleExecutionOutcome
 object ProviderBundleExecutionOutcome {
   final case class Admitted(
     value: AdmittedProviderBundle,
-    fromCache: Boolean,
-    bundleDocument: String
+    fromCache: Boolean
   ) extends ProviderBundleExecutionOutcome
 
   final case class Refused(
@@ -58,25 +57,23 @@ object ProviderBundleExecutionOutcome {
 /**
  * Executes one provider through its bounded contract and turns every
  * non-admitted outcome into attributable provider state. The coordinator keeps
- * a request/descriptor/availability/policy cache so an already admitted bundle
- * is never reused across a changed execution identity.
+ * a request-digest cache so an already admitted bundle is never re-run.
  */
 final class CarReviewProviderExecutionCoordinator {
-  private final case class ExecutionCacheKey(
-    provider: ReviewProviderIdentity,
-    requestdigest: ReviewDigest,
-    descriptordigest: ReviewDigest,
-    availability: ProviderBundleAvailability,
-    qualitypolicy: Option[CarReviewQualityProviderPolicy]
-  )
-
-  private var _admitted = Map.empty[ExecutionCacheKey, AdmittedProviderBundleInput]
+  private var _admitted = Map.empty[(ReviewProviderIdentity, ReviewDigest), AdmittedProviderBundle]
 
   def execute(
     request: ProviderBundleExecutionRequest,
     runner: CarReviewProviderRunner
   ): ProviderBundleExecutionOutcome = synchronized {
-    _execute_admitted(request, runner, None, CarReviewProviderBundleAdmission.admit)
+    _request_digest(request) match {
+      case Left(code) => _refused(request.provider, "incompatible", code, runfailure = false)
+      case Right(digest) =>
+        _admitted.get((request.provider, digest)) match {
+          case Some(value) => ProviderBundleExecutionOutcome.Admitted(value, fromCache = true)
+          case None => _execute_new(request, runner, digest, CarReviewProviderBundleAdmission.admit)
+        }
+    }
   }
 
   /** Executes a quality provider only after finite-cost preflight and authority/redaction admission. */
@@ -88,7 +85,14 @@ final class CarReviewProviderExecutionCoordinator {
     CarReviewQualityProviderAdmission.preflight(request.provider, qualityPolicy) match {
       case Left(value) => ProviderBundleExecutionOutcome.Refused(value)
       case Right(_) =>
-        _execute_admitted(request, runner, Some(qualityPolicy), context => CarReviewQualityProviderAdmission.admit(context, qualityPolicy))
+        _request_digest(request) match {
+          case Left(code) => _refused(request.provider, "incompatible", code, runfailure = false)
+          case Right(digest) =>
+            _admitted.get((request.provider, digest)) match {
+              case Some(value) => ProviderBundleExecutionOutcome.Admitted(value, fromCache = true)
+              case None => _execute_new(request, runner, digest, context => CarReviewQualityProviderAdmission.admit(context, qualityPolicy))
+            }
+        }
     }
   }
 
@@ -102,9 +106,9 @@ final class CarReviewProviderExecutionCoordinator {
   def execute(
     request: ProviderBundleExecutionRequest,
     registry: CarReviewProviderRegistry,
-    actionCore: ActionCall.Core
+    actioncore: ActionCall.Core
   ): ProviderBundleExecutionOutcome = synchronized {
-    _execute_registered(request, registry, runner => new CncfCarReviewProviderRunner(actionCore, runner))
+    _execute_registered(request, registry, runner => new CncfCarReviewProviderRunner(actioncore, runner))
   }
 
   private def _execute_registered(
@@ -115,16 +119,16 @@ final class CarReviewProviderExecutionCoordinator {
     registry.registrationFor(request.provider) match {
       case None => _refused(request.provider, "unavailable", "provider-not-registered", runfailure = false)
       case Some(registration) =>
-        CarReviewProviderBundleAdmission.descriptorDigest(request.descriptor) match {
-          case Right(descriptordigest) if descriptordigest == registration.descriptorDigest => execute(request, runnertransform(registration.runner), registration.qualityPolicy)
+        CarReviewProviderBundleAdmission.describeDescriptor(request.descriptor) match {
+          case Right(descriptor) if descriptor == registration.descriptor => execute(request, runnertransform(registration.runner))
           case _ => _refused(request.provider, "incompatible", "provider-registration-mismatch", runfailure = false)
         }
     }
 
-  private def _execute_admitted(
+  private def _execute_new(
     request: ProviderBundleExecutionRequest,
     runner: CarReviewProviderRunner,
-    qualitypolicy: Option[CarReviewQualityProviderPolicy],
+    requestdigest: ReviewDigest,
     admit: ProviderBundleAdmissionContext => ProviderBundleAdmissionOutcome
   ): ProviderBundleExecutionOutcome =
     if request.cancellationRequested then {
@@ -132,34 +136,14 @@ final class CarReviewProviderExecutionCoordinator {
       _refused(request.provider, "cancelled", "provider-cancelled", runfailure = false)
     } else request.availability match {
       case ProviderBundleAvailability.Enabled =>
-        CarReviewProviderBundleAdmission.descriptorDigest(request.descriptor) match {
-          case Left(code) => _refused(request.provider, "incompatible", code, runfailure = false)
-          case Right(descriptordigest) =>
-            _request_digest(request) match {
-              case Left(code) => _refused(request.provider, "incompatible", code, runfailure = false)
-              case Right(requestdigest) =>
-                val cachekey = ExecutionCacheKey(request.provider, requestdigest, descriptordigest, request.availability, qualitypolicy)
-                _admitted.get(cachekey) match {
-                  case Some(value) => ProviderBundleExecutionOutcome.Admitted(value.admitted, fromCache = true, value.bundle)
-                  case None => _execute_new(request, runner, cachekey, admit)
-                }
-            }
+        runner.execute(request) match {
+          case ProviderBundleRunnerResult.Completed(bundle, completedat) =>
+            _completed(request, bundle, completedat, runner, requestdigest, admit)
+          case ProviderBundleRunnerResult.Failed(code, _, _) =>
+            _refused(request.provider, "failed", _failure_code(code), runfailure = true)
         }
       case availability =>
         _refused(request.provider, availability.state.value, s"provider-${availability.state.value}", availability.runFailure)
-    }
-
-  private def _execute_new(
-    request: ProviderBundleExecutionRequest,
-    runner: CarReviewProviderRunner,
-    cachekey: ExecutionCacheKey,
-    admit: ProviderBundleAdmissionContext => ProviderBundleAdmissionOutcome
-  ): ProviderBundleExecutionOutcome =
-    runner.execute(request) match {
-      case ProviderBundleRunnerResult.Completed(bundle, completedat) =>
-        _completed(request, bundle, completedat, runner, cachekey, admit)
-      case ProviderBundleRunnerResult.Failed(code, _, _) =>
-        _refused(request.provider, "failed", _failure_code(code), runfailure = true)
     }
 
   private def _completed(
@@ -167,7 +151,7 @@ final class CarReviewProviderExecutionCoordinator {
     bundle: String,
     completedat: Long,
     runner: CarReviewProviderRunner,
-    cachekey: ExecutionCacheKey,
+    requestdigest: ReviewDigest,
     admit: ProviderBundleAdmissionContext => ProviderBundleAdmissionOutcome
   ): ProviderBundleExecutionOutcome =
     if completedat < request.startedAtMillis then
@@ -186,8 +170,8 @@ final class CarReviewProviderExecutionCoordinator {
           bundle
         )) match {
           case ProviderBundleAdmissionOutcome.Admitted(value) if value.provider == request.provider =>
-            _admitted = _admitted.updated(cachekey, AdmittedProviderBundleInput(value, bundle))
-            ProviderBundleExecutionOutcome.Admitted(value, fromCache = false, bundle)
+            _admitted = _admitted.updated((request.provider, requestdigest), value)
+            ProviderBundleExecutionOutcome.Admitted(value, fromCache = false)
           case ProviderBundleAdmissionOutcome.Admitted(_) =>
             _refused(request.provider, "incompatible", "provider-identity-mismatch", runfailure = false)
           case ProviderBundleAdmissionOutcome.Refused(value) =>

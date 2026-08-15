@@ -3,34 +3,36 @@
 This representative descriptor composes the snapshot CARs for CBD Support and
 Textus Semantic Integration Engine as subsystem `textus-cbd-sie`.
 
-Run the complete local build, SAR assembly, temporary CNCF server, and live MCP
-probe from the CBD Support project root:
+After the caller or orchestrator has run `publishLocal` for Scraper, SIE, BoK,
+and CBD Support in dependency order, run the SAR assembly, temporary CNCF
+server, and live MCP probe from the CBD Support project root:
 
 ```bash
-scripts/check-cbd-sie-sar.sh
+scripts/test/check-cbd-sie-sar.sh
 ```
 
 For the focused two-main-component composition gate, run:
 
 ```bash
-scripts/check-cbd-sie-sar.sh --profile baseline
+scripts/test/check-cbd-sie-sar.sh --profile baseline
 ```
 
-The focused command still builds both current CARs, assembles the SAR, starts
+The focused command resolves the four locally published CARs, assembles the SAR, starts
 the owned CNCF server and fixture server, verifies all 19 read-only tools, and
 proves stable `component.service.operation` identities, lexical discovery
 order, collision absence, and source ownership. It skips the three
 policy-narrowing profiles. Running without `--profile` remains the complete
 four-profile matrix.
 
-The check uses CNCF `0.5.1-SNAPSHOT` by default and builds both CARs. For each
-profile it creates a temporary `component.d` containing the two CARs and the
-selected descriptor as a SAR, starts one owned loopback server, verifies the
+The check uses CNCF `0.5.2-SNAPSHOT` by default and does not run SBT. For each
+profile it creates a temporary `component.d` containing a descriptor-only SAR;
+CNCF resolves its four components from the local CAR repository. The test
+starts one owned loopback server, verifies the
 exact JSON-RPC `tools/list` set, probes profile-disabled and all 15 non-public
 administration, ingestion, rebuild, import, and legacy-facade `tools/call`
 routes, and stops the server before the next profile.
 
-Before those builds, `scripts/check-runtime-compatibility.py` requires the
+Before the runtime probe, `scripts/check-runtime-compatibility.py` requires the
 selected `CNCF_VERSION` to match the project declaration and a non-excluded
 tested candidate in `docs/spec/runtime-compatibility-matrix.json`. The complete
 run emits `RUNTIME_COMPATIBILITY_EXECUTION_OK`; development-directory evidence

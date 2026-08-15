@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Test-only source-ownership probe; invoked by check-cbd-sie-sar.sh.
+
 import argparse
 import json
 import urllib.error
@@ -90,7 +92,7 @@ def _search(base_url: str, request_id: str, limit: int, timeout: float) -> dict:
     return _call_tool(
         base_url,
         request_id,
-        "CbdSupport.CbdRetrieval.searchComponents",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.searchComponents",
         {
             "requirement": "textus-runtime runtime",
             "organization": "org.textus",
@@ -167,7 +169,7 @@ def _run(
     before = _call_tool(
         base_url,
         "p4-22-sources-before",
-        "CbdSupport.CbdRetrieval.listCatalogs",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listCatalogs",
         {},
         timeout,
     )
@@ -197,7 +199,7 @@ def _run(
     after = _call_tool(
         base_url,
         "p4-22-sources-after",
-        "CbdSupport.CbdRetrieval.listCatalogs",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listCatalogs",
         {},
         timeout,
     )

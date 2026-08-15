@@ -1,16 +1,17 @@
 # Phase 8: Review Delivery, CI/CD, and Quality Rule Execution
 
 Stage Status:
-- Current status: OPEN
-- Current step: P8-60 human confirmation and P8-61 runtime-selection
-  acceptance are complete. Final full Phase validation, final-tree/current CAR
-  lint, representative CBD/SIE SAR, full review, and the Phase release commit
-  remain pending.
+- Current status: DONE
+- Current step: P8-RQH-A developer-authorized review-boundary scope
+  reconstruction and P8-REL release validation are complete. The Phase full
+  review was consumed exactly once; no replacement review ran. The accepted
+  tree retains direct submission and exact Entity-backed reads without the
+  rejected local production Job workaround. The Phase release commit closes
+  this accepted boundary.
 - Owner: Textus CBD Support development
 - Update rule: Update this block and `phase-8-checklist.md` only after each
-  item has reproducible evidence. Human confirmation is satisfied but does not
-  replace final release validation, review, and the release commit; close the
-  Phase only after those gates complete.
+  item has reproducible evidence. Human confirmation and release validation
+  are satisfied, and this release commit closes the Phase.
 
 ## Purpose
 
@@ -105,6 +106,19 @@ summaries.
   explicit authorization.
 - Closing the separate Phase 4 P4-45 human confirmation or the first-release
   ABI-baseline debt.
+
+## P8-RQH scope decision
+
+The developer rejected the CBD-local Review Job workaround layer. Phase 8
+retains established direct provider submission and CI compatibility, Entity
+persistence and exact Report-bound reads, accepted redaction hardening, and
+total quality coverage projections. Restart-safe production Review Job
+integration is nonblocking Deferred Work for
+cloud-native-component-framework Phase 69; it is not implemented, entered,
+or validated by this phase. The local boundary must not replace that work with
+bounded Job scans, synchronous timeout adapters, RunSnapshot reservations or
+outboxes, current-process result dependence, synthesized terminal
+leases/lifecycle, or private digest protocols.
 
 ## Stages
 
@@ -369,12 +383,12 @@ Stage Status:
   re-review. P8-60 human confirmation completed on 2026-08-15 with the exact
   response `Phase 8 human confirmation complete.` for approved packet SHA-256
   `9ddfcb0c9ce5305d83a898a7bee95849a52957c0a01fe8bf600ef8455fa8e717`.
-  Final Phase release validation remains pending.
+  Final Phase release validation passed on 2026-08-16.
 - Owner: Textus CBD Support development and human reviewer
 - Checklist basis: `P8-60`
 - Update rule: Only attributable human confirmation can complete P8-60. The
-  recorded confirmation does not replace final Phase release validation,
-  review, or the release commit.
+  recorded confirmation did not replace final Phase release validation, the
+  consumed one-time review, or the release commit.
 
 Run focused/full tests, CAR build/lint, report artifact verification, Web/CLI/
 CI equivalence, and quality-rule coverage checks. Present the resulting
@@ -417,9 +431,18 @@ passed. Full review accepted the runtime/config/generated identity behavior;
 `P8-61-VF-001` and `P8-61A-RV-001` are CLOSED. The historical Cozy
 `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT` launcher-selection failure remains
 context only. P8-60 is complete and no checklist item remains unresolved.
-Final Phase validation, final-tree/current CAR lint, representative CBD/SIE
-SAR, full review, and the Phase release commit remain pending for the release
-gate.
+The rollback accumulator passed 17 suites/80 tests, followed by the normal
+Phase suite at serialized invocation `10514-20260815T115341Z` with 71
+suites/289 tests. Exact project-declared Cozy CAR lint passed; the external
+Python wrapper mismatch remains nonblocking `HYG-P8-002`. For final
+representative evidence, dependency-order local publication passed for
+Scraper (`48714-20260815T194744Z`), SIE (`49308-20260815T194858Z`), BoK
+(`49807-20260815T195010Z`), and CBD Support (`50265-20260815T195113Z`), with
+every shared SBT lock released. `scripts/test/check-cbd-sie-sar.sh` then passed
+the complete canonical component catalog, source-ownership, BoK/CBD design
+flow, four-profile policy matrix, and
+`RUNTIME_COMPATIBILITY_EXECUTION_OK`. The one-time Phase full review remains
+consumed and was not rerun. The Phase release commit closes this accepted tree.
 
 ## Acceptance
 
@@ -437,7 +460,7 @@ gate.
 - Every supported quality attribute has an explicit rule matrix entry and at
   least one executable evidence path, or is visibly `Unknown` with its missing
   provider/check identified.
-- No checklist item remains unresolved: P8-60 human confirmation and P8-61
-  acceptance are complete. Phase closure awaits final release validation,
-  final-tree/current CAR lint, representative CBD/SIE SAR, full review, and
-  the Phase release commit only.
+- No checklist item remains unresolved: P8-60 human confirmation, P8-61
+  acceptance, P8-RQH-A, and P8-REL validation are complete. The Phase release
+  commit closes this accepted boundary; the consumed full review must not be
+  repeated.

@@ -10,8 +10,8 @@
   },
   "evidence": {
     "representative-sar": {
-      "command": "scripts/check-cbd-sie-sar.sh",
-      "status": "pending-phase-release-validation",
+      "command": "scripts/test/check-cbd-sie-sar.sh",
+      "status": "passed-phase-release-validation",
       "success_markers": [
         "RUNTIME_COMPATIBILITY_DECLARATION_OK",
         "RUNTIME_COMPATIBILITY_CANDIDATE_OK",

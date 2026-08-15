@@ -29,7 +29,7 @@ final class CarReviewProviderBehaviorMatrixSpec extends AnyWordSpec with Matcher
 
       Then("provider identity and the provider-owned runtime limitation remain attributable")
       outcome match {
-        case ProviderBundleExecutionOutcome.Admitted(value, false, _) =>
+        case ProviderBundleExecutionOutcome.Admitted(value, false) =>
           value.provider shouldBe _provider
           value.limitations shouldBe Vector(
             ReviewLimitation(
@@ -87,10 +87,10 @@ final class CarReviewProviderBehaviorMatrixSpec extends AnyWordSpec with Matcher
         case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(Some(`_provider`), ReviewProviderState("failed"), ReviewLimitation("provider-timeout", _, _, _, _), true)) =>
       }
       first should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(_, false, _) =>
+        case ProviderBundleExecutionOutcome.Admitted(_, false) =>
       }
       duplicate should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(_, true, _) =>
+        case ProviderBundleExecutionOutcome.Admitted(_, true) =>
       }
       cancelledrunner.executions shouldBe 0
       cancelledrunner.cancellations shouldBe 1

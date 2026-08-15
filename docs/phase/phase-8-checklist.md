@@ -1,15 +1,48 @@
 # Phase 8 Checklist: Review Delivery, CI/CD, and Quality Rule Execution
 
-Status: COMPLETE — all checklist items, including P8-60 human confirmation and
-P8-61 Cozy runtime-selection acceptance, are complete. Phase 8 release
-validation and review remain a separate pending gate (Stages 8.1–8.7 complete;
-P8-30 through P8-33, P8-40 through P8-45, and P8-50 through P8-55 complete).
+Status: DONE — P8-60 human confirmation, P8-61 Cozy
+runtime-selection acceptance, P8-RQH-A rollback validation, and P8-REL release
+validation are complete. The accepted direct-submission and exact Entity-read
+boundary is restored after removing the unaccepted CBD-local Review Job
+workaround. The Phase release commit closes this accepted boundary.
 phase=[Phase 8](phase-8.md)
 
 Scala compliance: the current Phase 8 accumulator is recorded in
 [phase-8-scala-compliance-ledger.md](phase-8-scala-compliance-ledger.md).
-The ledger records the completed independent re-review. Human confirmation is
-recorded; this checklist does not replace final Phase release validation.
+The consumed full review and later invalid second-review spike are historical
+context. The full review was not rerun; current-tree closure uses the bounded
+rollback accumulator, normal Phase suite, exact lint, dependency publications,
+and representative runtime evidence recorded below.
+
+## P8-RQH: Review-boundary scope narrowing
+
+- [x] P8-RQH-A Restore the pre-4934 direct submission and P5 Review Run
+  compatibility boundary while retaining accepted Entity-backed exact Report
+  reads, redaction hardening, and total quality coverage. Production
+  restart-safe Job integration is Deferred Work for CNCF Phase 69. The selected
+  rollback accumulator passed 17 suites/80 tests; the normal Phase suite then
+  passed 71 suites/289 tests at serialized invocation
+  `10514-20260815T115341Z`.
+
+## P8-REL: Release validation
+
+- [x] `P8-REL-A` Keep operational scripts directly under `scripts/` and move
+  the representative SAR test plus its three dedicated probes under
+  `scripts/test/`; update current executable-coverage and user/manual paths.
+- [x] `P8-REL-B` Publish dependency CARs locally in order rather than compiling
+  consumers against stale SNAPSHOT API artifacts: Scraper invocation
+  `48714-20260815T194744Z`, SIE `49308-20260815T194858Z`, BoK
+  `49807-20260815T195010Z`, and CBD Support `50265-20260815T195113Z`; all
+  exited zero and released the shared SBT lock.
+- [x] `P8-REL-C` Run `scripts/test/check-cbd-sie-sar.sh` against the locally
+  published CARs. Canonical component identities, fixed-user and private BoK
+  fixture bindings, the full namespace-qualified MCP catalog, source ownership,
+  BoK/CBD design flow, all four policy profiles, and
+  `RUNTIME_COMPATIBILITY_EXECUTION_OK` passed. The script contains no SBT
+  invocation.
+- [x] `P8-REL-D` Exact project-declared Cozy CAR lint passed. The separate
+  external wrapper/runtime-selection incompatibility remains nonblocking
+  `HYG-P8-002`; `DFW-P8-001` remains CNCF Phase 69-owned Deferred Work.
 
 ## P8-01 to P8-09: Delivery and diagnosis contract
 
@@ -305,5 +338,5 @@ recorded; this checklist does not replace final Phase release validation.
   Post-repair `git diff --check` passed. The historical Cozy
   `0.3.0-SNAPSHOT` / CNCF `0.5.1-SNAPSHOT` launcher-selection mismatch remains
   context only; it does not re-open Cozy's generated Entity revision source
-  contract. P8-60 is complete. Final Phase validation and review remain
-  pending for the release gate.
+  contract. P8-60 is complete. P8-REL release validation passed without a
+  second full review; only the Phase release commit remains pending.

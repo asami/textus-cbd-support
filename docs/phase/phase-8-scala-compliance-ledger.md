@@ -1,7 +1,9 @@
 # Phase 8 Scala Compliance Ledger
 
-Status: independent re-review complete and P8-60 human confirmation recorded;
-final Phase technical and release validation pending.
+Status: P8-RQH-A review-boundary rollback is pending the parent-selected focused
+compatibility, security, projection, and persistence validation. P8-60 human
+confirmation remains recorded; this ledger makes no current-tree test,
+compile, diff, or review-success claim.
 
 This ledger is the Phase 8 accumulator record required by the CNCF phase
 workflow. It covers the repository-managed Scala source and executable-
@@ -54,18 +56,20 @@ final release commit.
 | `src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewQualityRuleMatrixSpec.scala` | pass | pass | focused suite |
 | `src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewViewProjectionSpec.scala` | pass | pass | focused suite |
 | `src/test/scala/org/simplemodeling/textus/cbdsupport/ComponentFactorySpec.scala` | pass | pass | focused suite |
-| `src/test/scala/org/simplemodeling/textus/cbdsupport/Phase8ExecutableCoverageSpec.scala` | pass | pass | focused suite |
 | `src/test/scala/org/simplemodeling/textus/cbdsupport/TextusAiCarReviewProviderRunnerSpec.scala` | pass | pass | focused suite |
 | `src/test/scala/org/simplemodeling/textus/cbdsupport/TextusAiSurfaceCarReviewProviderRunnerSpec.scala` | pass | pass | focused suite |
 | `src/test/scala/org/simplemodeling/textus/cbdsupport/impl/ReviewDiagnosisPersistenceSpec.scala` | pass | pass | focused suite |
 
-## Acceptance evidence
+## Current-tree validation boundary
 
-- Whole-file naming and assertion scans: `rg` scans over all 31 ledger paths
-  found no nonconforming private member name, camel-case ordinary local, or
-  bare `assert` (the `runFailure` values are required public trait members).
-- Focused validation: the eight directly affected specifications passed 25
-  tests; the three renamed provider/specification surfaces passed 7 tests.
-- `sbt --batch Test/compile`: passed after the complete review-fix set.
-- Final independent re-review: clean. P8-60 human confirmation is recorded;
-  this ledger does not substitute for pending final Phase release validation.
+P8-RQH-A removed the unaccepted local Review Job/action layer and restored the
+established direct-submission, gateway, provider, and Entity-persistence
+contract while retaining accepted exact Entity-backed reads, redaction, and
+total-quality projections. The deleted
+Phase8ExecutableCoverageSpec.scala is not ledger evidence.
+
+The parent selected a serialized focused compatibility/security/projection/
+persistence accumulator and git diff --check; neither has been run or recorded
+by this rollback. The consumed Phase 8 full review and later invalid
+second-review spike are historical context only. Phase full-suite validation is
+reserved for the Phase release commit.

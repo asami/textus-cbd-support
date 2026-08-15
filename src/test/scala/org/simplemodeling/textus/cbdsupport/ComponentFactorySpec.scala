@@ -3,16 +3,11 @@ package org.simplemodeling.textus.cbdsupport
 import java.net.URI
 import java.nio.file.{Files, Path}
 import java.time.Instant
-import cats.~>
 
-import org.goldenport.Consequence
-import org.goldenport.cncf.action.{Action, ActionCall}
 import org.goldenport.cncf.component.{ComponentCreate, ComponentOrigin}
-import org.goldenport.cncf.context.{ExecutionContext, RuntimeContext}
 import org.goldenport.cncf.mcp.McpToolCatalog
 import org.goldenport.cncf.projection.OpenApiProjection
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
-import org.goldenport.cncf.unitofwork.{UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewCapabilityCatalog, CarReviewDeliveryProjection, CarReviewMcpReadApplication, CarReviewReportCodec, ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceDescriptor, InformationSourceFreshness, InformationSourceKind, InformationSourceState, SemanticRequirementEvidence}
@@ -84,7 +79,6 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val component = new impl.ComponentFactory().create(
         ComponentCreate(subsystem, ComponentOrigin.Repository("cbd-support-spec"))
       ).primary
-      val toolprefix = s"${CbdSupportComponent.name}.CbdRetrieval"
 
       When("CNCF projects the component MCP catalog")
       val tools = McpToolCatalog.toolsForComponent(component)
@@ -92,6 +86,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val searchschema = tools.find(_.name.endsWith(".searchComponents")).map(_.inputSchema).get
       val usageschema = tools.find(_.name.endsWith(".getUsage")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
+      val toolprefix = s"${CbdSupportComponent.name}.CbdRetrieval"
       val descriptions = component.operationDefinitions.flatMap { operation =>
         val toolname = s"$toolprefix.${operation.name}"
         operation.summary.filter(_ => names.contains(toolname)).map(toolname -> _)
@@ -361,39 +356,6 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         .isMcpReady("CbdReviewAdmin", "submitReviewDocuments") shouldBe false
     }
 
-    "fail closed before parsing or producing artifacts for both direct submission boundaries" in {
-      Given("one syntactically accepted provider-document submission and an executable ActionCall context")
-      val requestdocument = "{\"documentType\":\"provider-document-submission\"}"
-      val submitrequest = _value(CbdSupportComponent.CbdReviewAdminService.SubmitReviewDocumentsOperation
-        .createOperationRequest(Request.of(
-          component = "CbdSupport",
-          service = "CbdReviewAdmin",
-          operation = "submitReviewDocuments",
-          properties = List(Property("submissionDocument", requestdocument, None))
-        )))
-      val postrequest = _value(CbdSupportComponent.CbdReviewAdminService.PostOperation
-        .createOperationRequest(Request.of(
-          component = "CbdSupport",
-          service = "CbdReviewAdmin",
-          operation = "post",
-          properties = List(Property("submissionDocument", requestdocument, None))
-        )))
-      val factory = new impl.ComponentFactory()
-      val core = ActionCall.Core(TestAction(Request.ofOperation("direct-submission-disabled")), _executable_context(), None, None)
-
-      When("the generated submit and HTTP POST actions execute")
-      val submit = factory.CbdReviewAdmin.createSubmitReviewDocumentsActionCall(core, submitrequest).execute()
-      val post = factory.CbdReviewAdmin.createPostActionCall(core, postrequest).execute()
-
-      Then("both operations return the stable disabled operation-invalid result without a canonical response")
-      Vector(submit, post).foreach {
-        case Consequence.Failure(conclusion) =>
-          conclusion.display should include("operation.invalid")
-          conclusion.display should include("review-direct-provider-submission-disabled; use startReview")
-        case Consequence.Success(_) => fail("Direct provider submission unexpectedly produced a response.")
-      }
-    }
-
     "project the private Review submission gateway as an HTTP POST operation" in {
       Given("an initialized CBD component")
       val subsystem = DefaultSubsystemFactory.default(Some("server"))
@@ -452,31 +414,5 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
   private def _value[A](consequence: org.goldenport.Consequence[A]): A = consequence match {
     case org.goldenport.Consequence.Success(value) => value
     case org.goldenport.Consequence.Failure(conclusion) => fail(conclusion.display)
-  }
-
-  private def _executable_context(): ExecutionContext = {
-    val base = ExecutionContext.create()
-    lazy val context: ExecutionContext = ExecutionContext.withRuntimeContext(base, runtime)
-    lazy val unitofwork: UnitOfWork = new UnitOfWork(context)
-    lazy val interpreter: UnitOfWorkInterpreter = new UnitOfWorkInterpreter(unitofwork)
-    lazy val runtime: RuntimeContext = new RuntimeContext(
-      core = RuntimeContext.core("component-factory-spec", None, base.observability),
-      unitOfWorkSupplier = () => unitofwork,
-      unitOfWorkInterpreterFn = new (UnitOfWorkOp ~> Consequence) {
-        def apply[A](operation: UnitOfWorkOp[A]): Consequence[A] = interpreter.interpret(operation)
-      },
-      commitAction = _ => (),
-      abortAction = _ => (),
-      disposeAction = _ => (),
-      token = "component-factory-spec"
-    )
-    context
-  }
-
-  private final case class TestAction(request: Request) extends Action {
-    override def createCall(core: ActionCall.Core): ActionCall = {
-      val _ = core
-      throw new UnsupportedOperationException("TestAction is an ActionCall.Core fixture only.")
-    }
   }
 }

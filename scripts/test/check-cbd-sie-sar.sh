@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SIE_ROOT="${TEXTUS_SIE_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-semantic-integration-engine}"
 BOK_ROOT="${TEXTUS_BOK_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-bok}"
 SCRAPER_ROOT="${TEXTUS_SCRAPER_ROOT:-$(cd "$PROJECT_ROOT/.." && pwd)/textus-scraper}"
@@ -37,10 +37,12 @@ FIXTURE_PORT="${CBD_SIE_SAR_FIXTURE_PORT:-19537}"
 FIXTURE_BASEURL="${CBD_SIE_SAR_FIXTURE_BASEURL:-http://127.0.0.1:$FIXTURE_PORT}"
 STARTUP_TIMEOUT_SECONDS="${CBD_SIE_SAR_STARTUP_TIMEOUT_SECONDS:-120}"
 SHUTDOWN_TIMEOUT_SECONDS="${CBD_SIE_SAR_SHUTDOWN_TIMEOUT_SECONDS:-30}"
-CBD_CAR="$PROJECT_ROOT/target/textus-cbd-support-0.1.0-SNAPSHOT.car"
-SIE_CAR="$SIE_ROOT/target/textus-semantic-integration-engine-0.2.0-SNAPSHOT.car"
-BOK_CAR="$BOK_ROOT/target/textus-bok-0.1.0-SNAPSHOT.car"
-SCRAPER_CAR="$SCRAPER_ROOT/target/textus-scraper-0.1.1-SNAPSHOT.car"
+LOCAL_CAR_ROOT="${CNCF_LOCAL_CAR_ROOT:-${HOME}/.cncf/local}"
+LOCAL_CAR_REPOSITORY="$LOCAL_CAR_ROOT/repository/car/org/simplemodeling/textus"
+CBD_CAR="$LOCAL_CAR_REPOSITORY/textus-cbd-support/0.1.0-SNAPSHOT/textus-cbd-support-0.1.0-SNAPSHOT.car"
+SIE_CAR="$LOCAL_CAR_REPOSITORY/textus-semantic-integration-engine/0.2.0-SNAPSHOT/textus-semantic-integration-engine-0.2.0-SNAPSHOT.car"
+BOK_CAR="$LOCAL_CAR_REPOSITORY/textus-bok/0.1.0-SNAPSHOT/textus-bok-0.1.0-SNAPSHOT.car"
+SCRAPER_CAR="$LOCAL_CAR_REPOSITORY/textus-scraper/0.1.1-SNAPSHOT/textus-scraper-0.1.1-SNAPSHOT.car"
 SAR_DESCRIPTOR="$PROJECT_ROOT/examples/cbd-sie-sar/subsystem-descriptor.yaml"
 PROFILE_DIR="$PROJECT_ROOT/examples/cbd-sie-sar/profiles"
 FIXTURE_ROOT="$PROJECT_ROOT/examples/cbd-sie-sar/fixtures"
@@ -80,7 +82,7 @@ if (($# > 0)); then
   SELECTED_PROFILE_DESCRIPTORS=("$selected_descriptor")
 fi
 
-"$SCRIPT_DIR/check-runtime-compatibility.py" \
+"$PROJECT_ROOT/scripts/check-runtime-compatibility.py" \
   --runtime "$CNCF_VERSION" \
   --evidence representative-sar
 
@@ -111,9 +113,19 @@ if [[ ! -f "$BOK_ROOT/project.yaml" ]]; then
   echo "Textus BoK project is missing: $BOK_ROOT" >&2
   exit 1
 fi
+if [[ ! -f "$SCRAPER_ROOT/project.yaml" ]]; then
+  echo "Textus Scraper project is missing: $SCRAPER_ROOT" >&2
+  exit 1
+fi
 for descriptor in "${SELECTED_PROFILE_DESCRIPTORS[@]}"; do
   if [[ ! -f "$descriptor" ]]; then
     echo "Representative SAR descriptor is missing: $descriptor" >&2
+    exit 1
+  fi
+done
+for car in "$CBD_CAR" "$SCRAPER_CAR" "$SIE_CAR" "$BOK_CAR"; do
+  if [[ ! -f "$car" ]]; then
+    echo "Representative SAR CAR is missing; publish it locally before running this probe: $car" >&2
     exit 1
   fi
 done
@@ -137,11 +149,6 @@ if lsof -nP -iTCP:"$FIXTURE_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
   echo "The representative SAR fixture port is already in use: $FIXTURE_PORT" >&2
   exit 1
 fi
-
-(cd "$PROJECT_ROOT" && sbt --batch cozyBuildCAR)
-(cd "$SCRAPER_ROOT" && sbt --batch cozyBuildCAR)
-(cd "$SIE_ROOT" && sbt --batch cozyBuildCAR)
-(cd "$BOK_ROOT" && sbt --batch cozyBuildCAR)
 
 if ! sie_api_descriptor="$(unzip -p "$SIE_CAR" component-api-descriptor.json 2>/dev/null)"; then
   echo "The SIE CAR is missing component-api-descriptor.json." >&2
@@ -182,6 +189,22 @@ server_listener_pid=""
 server_log=""
 fixture_pid=""
 fixture_log="$runtime_dir/fixture.log"
+bok_fixture_root="$(cd "$FIXTURE_ROOT/bok" && pwd -P)"
+bok_config_file="$runtime_dir/bok-profile-config.yaml"
+
+cat >"$bok_config_file" <<EOF
+textus.bok.profile-registry:
+  profiles:
+    - profile: official
+      source:
+        sourceId: representative-bok
+        datasetId: representative-bok
+        generation: "representative-v1"
+        resource: "file://${bok_fixture_root}/"
+      evidence:
+        uri: "https://evidence.example/textus-cbd-support/p4-22-bok"
+        sourceId: representative-bok
+EOF
 
 stop_server() {
   local shutdown_deadline
@@ -262,14 +285,11 @@ run_profile() {
   server_log="$profile_root/server.log"
   mkdir -p \
     "$component_dir" \
-    "$sar_root/component" \
     "$sar_root" \
     "$local_car_root/repository/car" \
     "$cache_car_root/car"
-  cp "$CBD_CAR" "$SIE_CAR" "$BOK_CAR" "$SCRAPER_CAR" "$component_dir/"
-  cp "$CBD_CAR" "$SIE_CAR" "$BOK_CAR" "$SCRAPER_CAR" "$sar_root/component/"
   cp "$descriptor" "$sar_root/subsystem-descriptor.yaml"
-  (cd "$sar_root" && zip -qr "$sar_file" subsystem-descriptor.yaml component)
+  (cd "$sar_root" && zip -q "$sar_file" subsystem-descriptor.yaml)
 
   if curl -fsS "$CNCF_HTTP_BASEURL/openapi.json" >/dev/null 2>&1; then
     echo "A server responds before the $profile profile starts; refusing to reuse it." >&2
@@ -284,6 +304,7 @@ run_profile() {
     JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Dcncf.server.port=$CNCF_SERVER_PORT -Dcncf.http.baseurl=$CNCF_HTTP_BASEURL -Dtextus.sie.rdf-db=in-memory -Dtextus.sie.vector-db=in-memory" \
     "$CNCF_BIN" \
       "${CNCF_RUNTIME_ARGS[@]}" \
+      --textus.config.file "$bok_config_file" \
       "--textus.resource.url.file.roots=$FIXTURE_ROOT" \
       "--textus.resource.tree.file-roots=working=$FIXTURE_ROOT/development,local-car=$local_car_root,cache-car=$cache_car_root" \
       "--textus.cbd.catalog.allowed-origins=$FIXTURE_BASEURL" \

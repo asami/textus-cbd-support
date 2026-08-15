@@ -1,13 +1,30 @@
 subsystem: textus-cbd-sie
 version: 0.1.0-SNAPSHOT
 components:
-  - component: textus-cbd-support
-    coordinate: org.textus.car:textus-cbd-support:0.1.0-SNAPSHOT
-  - component: textus-semantic-integration-engine
-    coordinate: org.textus.car:textus-semantic-integration-engine:0.2.0-SNAPSHOT
+  - namespace: org.simplemodeling.textus
+    id: CbdSupport
+    version: 0.1.0-SNAPSHOT
+  - namespace: org.simplemodeling.textus
+    id: SemanticIntegrationEngine
+    version: 0.2.0-SNAPSHOT
     config:
       cncf.mcp.disabled-services: "SemanticRetrieval"
-  - component: textus-bok
-    coordinate: org.textus.car:textus-bok:0.1.0-SNAPSHOT
-  - component: textus-scraper
-    coordinate: org.textus.car:textus-scraper:0.1.1-SNAPSHOT
+  - namespace: org.simplemodeling.textus
+    id: Bok
+    version: 0.1.0-SNAPSHOT
+  - namespace: org.simplemodeling.textus
+    id: Scraper
+    version: 0.1.1-SNAPSHOT
+config:
+  textus.subsystem.user-mode: standalone
+security:
+  authentication:
+    convention: disabled
+    fallback_privilege: disabled
+    local_subject:
+      id: cbd-sie-sar-test-user
+      roles: [viewer, reviewer, operator, admin, user]
+      capabilities: [viewer, reviewer, operator, admin, user]
+      security_level: operator
+      attributes:
+        installation: cbd-sie-sar-test

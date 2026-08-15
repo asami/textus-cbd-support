@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Test-only representative SAR probe; invoked by check-cbd-sie-sar.sh.
+
 import argparse
 import json
 import urllib.error
@@ -8,72 +10,80 @@ import urllib.request
 
 MCP_PROTOCOL_VERSION = "2025-11-25"
 CBD_TOOLS = {
-    "CbdSupport.CbdRetrieval.searchComponents",
-    "CbdSupport.CbdRetrieval.getComponent",
-    "CbdSupport.CbdRetrieval.getUsage",
-    "CbdSupport.CbdRetrieval.resolveDependencies",
-    "CbdSupport.CbdRetrieval.listCatalogs",
-    "CbdSupport.CbdRetrieval.status",
-    "CbdSupport.CbdRetrieval.getReviewRun",
-    "CbdSupport.CbdRetrieval.getReviewSummary",
-    "CbdSupport.CbdRetrieval.getReviewReport",
-    "CbdSupport.CbdRetrieval.listReviewFindings",
-    "CbdSupport.CbdRetrieval.listReviewAssurances",
-    "CbdSupport.CbdRetrieval.getReviewViews",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.searchComponents",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getComponent",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getUsage",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.resolveDependencies",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listCatalogs",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.status",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getReviewRun",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getReviewSummary",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getReviewReport",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listReviewFindings",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listReviewAssurances",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getReviewViews",
 }
 SIE_TOOLS = {
-    "SemanticIntegrationEngine.SemanticRetrieval.query",
-    "SemanticIntegrationEngine.SemanticRetrieval.explain",
-    "SemanticIntegrationEngine.SemanticRetrieval.status",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.query",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.explain",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.status",
 }
 BOK_TOOLS = {
-    "Bok.BokRetrieval.searchTerms",
-    "Bok.BokRetrieval.explainTerm",
-    "Bok.BokRetrieval.searchComponentReferences",
-    "Bok.BokRetrieval.getComponentReference",
+    "org.simplemodeling.textus.Bok.BokRetrieval.searchTerms",
+    "org.simplemodeling.textus.Bok.BokRetrieval.explainTerm",
+    "org.simplemodeling.textus.Bok.BokRetrieval.searchComponentReferences",
+    "org.simplemodeling.textus.Bok.BokRetrieval.getComponentReference",
+}
+RUNTIME_TOOLS = {
+    "org.goldenport.cncf.Tool.decimal.calculate",
+    "org.goldenport.cncf.Tool.resource.read",
+    "org.goldenport.cncf.Tool.time.now",
+    "org.goldenport.cncf.Tool.web.fetch",
+    "org.goldenport.cncf.Tool.web.head",
+    "org.goldenport.cncf.Tool.web.search",
 }
 EXPECTED_TOOLS = CBD_TOOLS | SIE_TOOLS | BOK_TOOLS
 DENIED_TOOLS = {
-    "CbdSupport.CbdCatalogAdmin.refreshCatalog",
-    "CbdSupport.CbdReviewAdmin.startReview",
-    "CbdSupport.CbdReviewAdmin.cancelReview",
-    "SemanticIntegrationEngine.SemanticRetrieval.registerSource",
-    "SemanticIntegrationEngine.SemanticRetrieval.indexDocument",
-    "SemanticIntegrationEngine.SemanticRetrieval.rebuild",
-    "SemanticIntegrationEngine.Mcp.initialize",
-    "SemanticIntegrationEngine.Mcp.listTools",
-    "SemanticIntegrationEngine.Mcp.callTool",
-    "SemanticIntegrationEngine.KnowledgeStoreAdmin.initializeFuseki",
-    "SemanticIntegrationEngine.KnowledgeStoreAdmin.initializeChroma",
-    "SemanticIntegrationEngine.KnowledgeStoreAdmin.rebuildChroma",
-    "SemanticIntegrationEngine.KnowledgeStoreAdmin.indexHtmlSite",
-    "SemanticIntegrationEngine.KnowledgeStoreAdmin.ingestBokKnowledgeSource",
-    "SemanticIntegrationEngine.InformationImport.runPaperFlow",
-    "Bok.BokRetrieval.replaceKnowledgeSource",
+    "org.simplemodeling.textus.CbdSupport.CbdCatalogAdmin.refreshCatalog",
+    "org.simplemodeling.textus.CbdSupport.CbdReviewAdmin.startReview",
+    "org.simplemodeling.textus.CbdSupport.CbdReviewAdmin.cancelReview",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.registerSource",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.indexDocument",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.rebuild",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.Mcp.initialize",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.Mcp.listTools",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.Mcp.callTool",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.KnowledgeStoreAdmin.initializeFuseki",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.KnowledgeStoreAdmin.initializeChroma",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.KnowledgeStoreAdmin.rebuildChroma",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.KnowledgeStoreAdmin.indexHtmlSite",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.KnowledgeStoreAdmin.ingestBokKnowledgeSource",
+    "org.simplemodeling.textus.SemanticIntegrationEngine.InformationImport.runPaperFlow",
+    "org.simplemodeling.textus.Bok.BokRetrieval.replaceKnowledgeSource",
 }
 EXPECTED_TOOLS_BY_PROFILE = {
-    "baseline": EXPECTED_TOOLS,
-    "global-disabled": set(),
-    "sie-service-disabled": CBD_TOOLS | BOK_TOOLS,
-    "operation-disabled": EXPECTED_TOOLS
+    "baseline": RUNTIME_TOOLS | EXPECTED_TOOLS,
+    "global-disabled": RUNTIME_TOOLS,
+    "sie-service-disabled": RUNTIME_TOOLS | CBD_TOOLS | BOK_TOOLS,
+    "operation-disabled": RUNTIME_TOOLS | EXPECTED_TOOLS
     - {
-        "CbdSupport.CbdRetrieval.status",
-        "SemanticIntegrationEngine.SemanticRetrieval.status",
-        "Bok.BokRetrieval.explainTerm",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.status",
+        "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.status",
+        "org.simplemodeling.textus.Bok.BokRetrieval.explainTerm",
     },
 }
 REJECTED_TOOLS_BY_PROFILE = {
     "baseline": set(),
     "global-disabled": {
-        "CbdSupport.CbdRetrieval.status",
-        "SemanticIntegrationEngine.SemanticRetrieval.status",
-        "Bok.BokRetrieval.explainTerm",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.status",
+        "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.status",
+        "org.simplemodeling.textus.Bok.BokRetrieval.explainTerm",
     },
-    "sie-service-disabled": {"SemanticIntegrationEngine.SemanticRetrieval.status"},
+    "sie-service-disabled": {"org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.status"},
     "operation-disabled": {
-        "CbdSupport.CbdRetrieval.status",
-        "SemanticIntegrationEngine.SemanticRetrieval.status",
-        "Bok.BokRetrieval.explainTerm",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.status",
+        "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.status",
+        "org.simplemodeling.textus.Bok.BokRetrieval.explainTerm",
     },
 }
 

@@ -113,9 +113,11 @@ CNCF MCP publication can be narrowed with:
 - `cncf.mcp.disabled-services=CbdRetrieval`
 - `cncf.mcp.disabled-operations=CbdRetrieval.getUsage`
 
-The repository's representative `textus-cbd-sie` SAR composes this CAR and the
-Textus Semantic Integration Engine CAR. Run `scripts/check-cbd-sie-sar.sh` from
-the repository checkout to build both CARs and verify four temporary live
+The repository's representative `textus-cbd-sie` SAR composes this CAR with
+the Scraper, Semantic Integration Engine, and BoK CARs. After publishing
+Scraper, SIE, BoK, and CBD Support locally in dependency order through the
+caller's serialized SBT workflow, run `scripts/test/check-cbd-sie-sar.sh` from
+the repository checkout to resolve them and verify four temporary live
 JSON-RPC `/mcp` profiles. Exact CBD/SIE counts must be `12/7` at baseline, `0/0`
 under global disable, `12/0` under SIE service disable, and `11/6` when both
 status operations are disabled. Disabled calls must return `-32602`. CBD
@@ -132,10 +134,10 @@ bounds must preserve those conflict participants, and a missing catalog must
 remain degraded without an immediate retry loop.
 
 The same script checks the selected CNCF version against the declared runtime
-matrix before building either CAR. `project.yaml` owns the minimum, tested, and
+matrix before starting the probe. `project.yaml` owns the minimum, tested, and
 excluded declarations; `docs/spec/runtime-compatibility-matrix.json` owns the
 assessed candidate classifications and representative evidence IDs. The
-current matrix admits `0.5.1-SNAPSHOT` as its only tested-compatible candidate,
+current matrix admits `0.5.2-SNAPSHOT` as its only tested-compatible candidate,
 has no excluded version, and treats every unlisted version as unassessed. The
 final live marker records the runtime source, revision, and worktree state
 rather than treating a mutable SNAPSHOT label as immutable evidence.

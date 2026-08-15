@@ -140,12 +140,12 @@
       "evidence": [
         {
           "kind": "script-gate",
-          "path": "scripts/probe-cbd-sie-sar.py",
+          "path": "scripts/test/probe-cbd-sie-sar.py",
           "anchor": "administration_tools=0 unexpected_tools=0"
         },
         {
           "kind": "script-gate",
-          "path": "scripts/probe-cbd-sie-sar.py",
+          "path": "scripts/test/probe-cbd-sie-sar.py",
           "anchor": "CBD_BOK_SIE_SAR_MCP_OK"
         }
       ]
@@ -156,12 +156,12 @@
       "evidence": [
         {
           "kind": "script-gate",
-          "path": "scripts/probe-cbd-sie-sar.py",
+          "path": "scripts/test/probe-cbd-sie-sar.py",
           "anchor": "EXPECTED_TOOLS_BY_PROFILE"
         },
         {
           "kind": "script-gate",
-          "path": "scripts/check-cbd-sie-sar.sh",
+          "path": "scripts/test/check-cbd-sie-sar.sh",
           "anchor": "CBD_SIE_SAR_POLICY_MATRIX_OK"
         }
       ]
@@ -172,12 +172,12 @@
       "evidence": [
         {
           "kind": "script-gate",
-          "path": "scripts/probe-cbd-sie-source-aware.py",
+          "path": "scripts/test/probe-cbd-sie-source-aware.py",
           "anchor": "bounded_observations=1 conflict_participants=fixture-catalog,working"
         },
         {
           "kind": "script-gate",
-          "path": "scripts/probe-cbd-sie-source-aware.py",
+          "path": "scripts/test/probe-cbd-sie-source-aware.py",
           "anchor": "CBD_BOK_SIE_SOURCE_OWNERSHIP_OK"
         }
       ]
@@ -198,7 +198,7 @@
         },
         {
           "kind": "script-gate",
-          "path": "scripts/check-cbd-sie-sar.sh",
+          "path": "scripts/test/check-cbd-sie-sar.sh",
           "anchor": "RUNTIME_COMPATIBILITY_EXECUTION_OK"
         }
       ]

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Test-only CBD/SIE handoff probe; invoked by check-cbd-sie-sar.sh.
+
 import argparse
 import json
 import urllib.error
@@ -102,7 +104,7 @@ def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     term_search = _call_tool(
         base_url,
         "p5-23-term-search",
-        "Bok.BokRetrieval.searchTerms",
+        "org.simplemodeling.textus.Bok.BokRetrieval.searchTerms",
         {"query": "Runtime", "limit": 10},
         timeout,
     )
@@ -121,7 +123,7 @@ def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     term_explanation = _call_tool(
         base_url,
         "p5-23-term-explain",
-        "Bok.BokRetrieval.explainTerm",
+        "org.simplemodeling.textus.Bok.BokRetrieval.explainTerm",
         {"term": "Runtime"},
         timeout,
     )
@@ -141,7 +143,7 @@ def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     reference_search = _call_tool(
         base_url,
         "p5-23-reference-search",
-        "Bok.BokRetrieval.searchComponentReferences",
+        "org.simplemodeling.textus.Bok.BokRetrieval.searchComponentReferences",
         {"query": reference_query, "kind": COMPONENT_KIND, "limit": 10},
         timeout,
     )
@@ -183,7 +185,7 @@ def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     exact_reference = _call_tool(
         base_url,
         "p5-23-reference-lookup",
-        "Bok.BokRetrieval.getComponentReference",
+        "org.simplemodeling.textus.Bok.BokRetrieval.getComponentReference",
         lookup_arguments,
         timeout,
     )
@@ -206,7 +208,7 @@ def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     detail = _call_tool(
         base_url,
         "p5-23-component-detail",
-        "CbdSupport.CbdRetrieval.getComponent",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getComponent",
         cbd_arguments,
         timeout,
     )
@@ -223,7 +225,7 @@ def _run(base_url: str, bok_base_uri: str, timeout: float) -> None:
     usage = _call_tool(
         base_url,
         "p5-23-component-usage",
-        "CbdSupport.CbdRetrieval.getUsage",
+        "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getUsage",
         {**cbd_arguments, "intent": "inspect runtime execution"},
         timeout,
     )

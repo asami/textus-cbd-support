@@ -276,14 +276,18 @@ cache and invocation boundary, explicit-configuration harnesses, full test
 suite, CAR ABI governance, and normal CAR lint are verified. It has no new
 human-confirmation stage; P4-45 remains the independent ON_HOLD human gate.
 
-Phase 8 is the current OPEN CBD Support phase. Its checklist, P8-60 human
-confirmation, and P8-61 runtime-selection acceptance are complete. Mandatory
-full-review findings are under repair, while final Phase validation and the
-release commit remain pending. It does not close P4-45 or alter the
-independently deferred first released CAR ABI baseline. Publication and a
-successor Phase remain outside this phase.
+Phase 8 is DONE. The developer-authorized P8-RQH scope
+narrowing passed its focused rollback accumulator and normal Phase suite; exact
+lint and the dependency-order locally published representative SAR matrix also
+passed. The consumed Phase 8 full review was not rerun. The retained boundary
+is existing direct provider submission and CI compatibility, Entity
+persistence and exact Report reads, redaction hardening, and total quality
+coverage. It does not close P4-45 or alter the independently deferred first
+released CAR ABI baseline. Publication and a successor Phase remain outside
+this phase; the Phase release commit closes the accepted boundary.
 
-The Phase 8 Review Job lifecycle recovers handled submit failures by exact Job
-discovery and makes claim-to-submit concurrency retryable as pending. An abrupt
-process death in that window still requires persisted submission intent, jobId,
-or an outbox; current Job state has no restart-durability claim.
+Production restart-safe Review Job integration is nonblocking Deferred Work
+owned by cloud-native-component-framework Phase 69. CBD Support must not
+locally substitute timeout adapters, Job scans, reservations/outboxes,
+process-local results, synthesized leases/lifecycles, or private digests for
+the missing durable Job result and exact lookup contracts.

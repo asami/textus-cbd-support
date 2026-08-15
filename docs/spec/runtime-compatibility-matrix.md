@@ -10,7 +10,7 @@ to representative execution evidence. Neither file may infer support for an
 unlisted runtime.
 
 `scripts/check-runtime-compatibility.py` compares both records before a live
-candidate can run. `scripts/check-cbd-sie-sar.sh` invokes that check for its
+candidate can run. `scripts/test/check-cbd-sie-sar.sh` invokes that check for its
 selected `CNCF_VERSION` and emits `RUNTIME_COMPATIBILITY_EXECUTION_OK` only
 after the complete composed CBD/SIE source-aware and disable-policy matrix
 passes.
@@ -37,24 +37,30 @@ decision must record immutable dependency and artifact evidence under P4-43.
 
 ## Representative Evidence
 
+Representative Phase evidence is a two-part gate. The caller or orchestrator
+runs `publishLocal` for Scraper, SIE, BoK, and CBD Support in dependency order;
+automation serializes each top-level SBT invocation.
+
+Then `scripts/test/check-cbd-sie-sar.sh` resolves those CARs from the local CAR
+repository, validates them, assembles descriptor-only SARs, and runs the live
+matrix without invoking SBT.
+
 Run from the repository root:
 
 ```bash
+CNCF_VERSION=0.5.2-SNAPSHOT \
 CNCF_RUNTIME_DEV_DIR=/path/to/cloud-native-component-framework \
-  scripts/check-cbd-sie-sar.sh
+  scripts/test/check-cbd-sie-sar.sh
 ```
 
-Omit `CNCF_RUNTIME_DEV_DIR` to exercise the resolved runtime artifact instead.
-The selected version must occur as a non-excluded `tested-compatible` candidate
-before any build or server work begins. A successful run must emit all markers
-listed for `representative-sar` in the JSON matrix. The final marker includes
-the selected version and whether the runtime came from a coordinate or a local
-development directory; a development-directory run also records its Git
-revision and clean/dirty state.
+`CNCF_RUNTIME_DEV_DIR` may be omitted when the runtime is available through the normal project environment.
+
+The selected candidate must be `tested-compatible` before any server work begins. A successful run must emit all markers listed for `representative-sar` in the JSON matrix. The final marker includes the selected version and whether the runtime came from a coordinate or a local development directory; a development-directory run also records its Git revision and clean/dirty state.
 
 The representative evidence covers:
 
-- building the CBD Support and SIE CARs with the selected CNCF candidate;
+- consuming dependency-ordered local publications of the CBD Support, Scraper,
+  SIE, and BoK CARs with the selected candidate;
 - live baseline retrieval with separate catalog, development, and SIE-owned
   evidence plus bounded failure behavior; and
 - live global, service, and operation disable-policy profiles.

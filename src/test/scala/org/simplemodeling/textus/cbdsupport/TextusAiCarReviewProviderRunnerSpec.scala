@@ -49,7 +49,7 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
         bundle
       ))).toOption.get
       val registry = new CarReviewProviderRegistry()
-      registry.register(descriptor, runner, _advisory_policy).isRight shouldBe true
+      registry.register(descriptor, runner).isRight shouldBe true
       val coordinated = new CarReviewProviderExecutionCoordinator().execute(request, registry)
       reconciled.observations.map(_.`type`.value) shouldBe Vector("finding")
       reconciled.observations.map(_.rule.id.value) shouldBe Vector("ai.advisory.documentation.clarity")
@@ -70,7 +70,7 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
       val malformedrequest = _request(descriptor)
       val malformedresult = malformed.execute(malformedrequest)
       val registry = new CarReviewProviderRegistry()
-      registry.register(descriptor, malformed, _advisory_policy).isRight shouldBe true
+      registry.register(descriptor, malformed).isRight shouldBe true
       val coordinated = new CarReviewProviderExecutionCoordinator().execute(malformedrequest, registry)
 
       When("the Review is cancelled before invoking an otherwise usable provider")
@@ -105,8 +105,6 @@ final class TextusAiCarReviewProviderRunnerSpec extends AnyWordSpec with Matcher
     "severity" -> "warning",
     "message" -> "This severity is outside the CBD Review v1 vocabulary."
   )))
-
-  private val _advisory_policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Advisory, declaredCostUnits = 1L, maximumCostUnits = 1L)
 
   private def _profile(): TextusAiCarReviewProviderProfile =
     TextusAiCarReviewProviderProfile(

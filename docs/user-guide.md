@@ -11,8 +11,8 @@ exists.
 
 - Java 21
 - sbt 1.9.7 or later
-- Cozy/sbt-cozy `0.3.0-SNAPSHOT` development environment
-- CNCF `0.5.1-SNAPSHOT`
+- Cozy/sbt-cozy `0.3.4-SNAPSHOT` development environment
+- CNCF `0.5.2-SNAPSHOT`
 - Network access to simplemodeling.org or one configured component catalog
 
 ## First Success
@@ -107,29 +107,29 @@ derive a quality score, a provider conclusion, or a replacement gate.
 
 ## Representative SAR Check
 
+Before invoking the representative SAR check, the caller or orchestrator runs
+`publishLocal` for Scraper, SIE, BoK, and CBD Support in that dependency order;
+automation serializes each top-level SBT invocation. The script resolves those
+published snapshot CARs from the local CAR repository and does not run SBT.
+
 From the CBD Support project root, run:
 
 ```bash
-scripts/check-cbd-sie-sar.sh
+CNCF_VERSION=0.5.2-SNAPSHOT scripts/test/check-cbd-sie-sar.sh
 ```
 
-The command builds the CBD Support and sibling SIE snapshot CARs, creates a
-temporary `textus-cbd-sie` SAR for each policy profile, and checks each through
-a separately owned loopback CNCF server. Success requires exact CBD/SIE counts
-of baseline `12/7`, global disable `0/0`, SIE service disable `12/0`, and
-status-operation disable `11/6`. Representative disabled calls must return JSON-RPC
-`-32602`. CBD catalog administration, SIE mutation/administration, the legacy
-SIE MCP facade, and all other unexpected tools must remain absent. Each server
-and temporary SAR is removed on exit. Set `TEXTUS_SIE_ROOT` only when the
-sibling SIE checkout is in a non-default location; set `CNCF_RUNTIME_DEV_DIR`
-when validating a local CNCF runtime checkout.
+The command resolves four locally published snapshot CARs, creates a temporary
+descriptor-only `textus-cbd-sie` SAR for each policy profile, and checks each
+through a separately owned loopback CNCF server. Success requires exact CBD/SIE
+counts of baseline `12/7`, global disable `0/0`, SIE service disable `12/0`, and
+status-operation disable `11/6`. Representative disabled calls must return
+JSON-RPC `-32602`. CBD catalog administration, SIE mutation/administration, the
+legacy SIE MCP facade, and all other unexpected tools must remain absent. Each
+server and temporary SAR is removed on exit.
 
-Before building, the command checks the selected `CNCF_VERSION` against
-`project.yaml` and `docs/spec/runtime-compatibility-matrix.json`. The current
-matrix admits only the declared tested candidate `0.5.1-SNAPSHOT`; the excluded
-set is empty and every unlisted version is unassessed. A successful final marker
-records whether the runtime came from a resolved coordinate or development
-directory, plus its revision and worktree state when Git evidence is available.
+Set `TEXTUS_SCRAPER_ROOT`, `TEXTUS_SIE_ROOT`, and `TEXTUS_BOK_ROOT` to override the corresponding project roots when needed; set `CNCF_RUNTIME_DEV_DIR` when using a local CNCF runtime checkout.
+
+Before starting the runtime probe, the command checks the selected `CNCF_VERSION` against `project.yaml` and `docs/spec/runtime-compatibility-matrix.json`. The current candidate is `0.5.2-SNAPSHOT`; the excluded set is empty and every unlisted version is unassessed. A successful final marker records whether the runtime came from a resolved coordinate or development directory, plus its revision and worktree state when Git evidence is available.
 
 The baseline profile additionally serves repository-owned fixtures and ingests
 their BoK glossary into the temporary in-memory SIE. Its live source-aware

@@ -14,9 +14,7 @@ final case class CarReviewProviderDiscoveryRequest(
 
 final case class CarReviewRegisteredProvider(
   descriptor: CarReviewProviderDescriptor,
-  descriptorDigest: ReviewDigest,
-  runner: CarReviewProviderRunner,
-  qualityPolicy: CarReviewQualityProviderPolicy
+  runner: CarReviewProviderRunner
 )
 
 /**
@@ -30,25 +28,16 @@ final class CarReviewProviderRegistry {
 
   def register(
     descriptorDocument: String,
-    runner: CarReviewProviderRunner,
-    qualityPolicy: CarReviewQualityProviderPolicy
+    runner: CarReviewProviderRunner
   ): Either[CarReviewProviderRegistryFailure, CarReviewProviderDescriptor] = synchronized {
     CarReviewProviderBundleAdmission.describeDescriptor(descriptorDocument).left.map(error => CarReviewProviderRegistryFailure(error, s"Provider descriptor was not admitted: $error.")).flatMap { descriptor =>
-      CarReviewProviderBundleAdmission.descriptorDigest(descriptorDocument).left.map(error => CarReviewProviderRegistryFailure(error, s"Provider descriptor was not admitted: $error.")).flatMap { descriptorDigest =>
-      CarReviewQualityProviderAdmission.preflight(descriptor.provider, qualityPolicy).left.map { refusal =>
-        CarReviewProviderRegistryFailure(refusal.limitation.code, refusal.limitation.message)
-      }.flatMap { _ =>
-        _providers.get(descriptor.provider) match {
-          case Some(current) if current.descriptor == descriptor && current.descriptorDigest == descriptorDigest && (current.runner eq runner) && current.qualityPolicy == qualityPolicy => Right(current.descriptor)
-          case Some(current) if current.descriptorDigest != descriptorDigest => Left(CarReviewProviderRegistryFailure("provider-registration-conflict", "Provider identity is already registered with a different descriptor."))
-          case Some(current) if current.descriptor == descriptor && (current.runner eq runner) => Left(CarReviewProviderRegistryFailure("provider-policy-conflict", "Provider identity is already registered with a different quality policy."))
-          case Some(current) if current.descriptor == descriptor => Left(CarReviewProviderRegistryFailure("provider-runner-conflict", "Provider identity is already registered with a different runner."))
-          case Some(_) => Left(CarReviewProviderRegistryFailure("provider-registration-conflict", "Provider identity is already registered with a different descriptor."))
-          case None =>
-            _providers = _providers.updated(descriptor.provider, CarReviewRegisteredProvider(descriptor, descriptorDigest, runner, qualityPolicy))
-            Right(descriptor)
-        }
-      }
+      _providers.get(descriptor.provider) match {
+        case Some(current) if current.descriptor == descriptor && (current.runner eq runner) => Right(current.descriptor)
+        case Some(current) if current.descriptor == descriptor => Left(CarReviewProviderRegistryFailure("provider-runner-conflict", "Provider identity is already registered with a different runner."))
+        case Some(_) => Left(CarReviewProviderRegistryFailure("provider-registration-conflict", "Provider identity is already registered with a different descriptor."))
+        case None =>
+          _providers = _providers.updated(descriptor.provider, CarReviewRegisteredProvider(descriptor, runner))
+          Right(descriptor)
       }
     }
   }

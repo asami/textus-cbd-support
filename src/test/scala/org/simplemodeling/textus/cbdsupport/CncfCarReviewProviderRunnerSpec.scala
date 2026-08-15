@@ -15,8 +15,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- *  version Jul. 16, 2026
- * @version Aug.  8, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CncfCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -66,14 +65,14 @@ final class CncfCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       val coordinator = new CarReviewProviderExecutionCoordinator()
       val application = new CarReviewProviderExecutionApplication(registry, coordinator)
       val delegate = new RecordingRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
-      registry.register(_descriptor, delegate).isRight shouldBe true
+      registry.register(_descriptor, delegate, _deterministic_policy).isRight shouldBe true
 
       When("the Review Application invokes the selected provider")
       val outcome = application.execute(_actioncore(context), _execution_request)
 
       Then("the provider is admitted through ProviderCall and no exchange document reaches CallTree")
       outcome should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false) =>
+        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false, _) =>
       }
       delegate.executions shouldBe 1
       val calltree = context.observability.callTreeContext.build().getOrElse(fail("calltree missing"))
@@ -82,6 +81,25 @@ final class CncfCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       text should not include _descriptor
       text should not include _providerrequest
       text should not include _bundle
+    }
+
+    "refuse a registered static Assurance through ProviderCall when its immutable policy requires Runtime Evidence" in {
+      Given("one Runtime-authorized registered provider and one CBD ActionCall")
+      val context = _context
+      val registry = new CarReviewProviderRegistry()
+      val coordinator = new CarReviewProviderExecutionCoordinator()
+      val application = new CarReviewProviderExecutionApplication(registry, coordinator)
+      val delegate = new RecordingRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
+      registry.register(_descriptor, delegate, _runtime_policy).isRight shouldBe true
+
+      When("the Review Application invokes the selected registered provider")
+      val outcome = application.execute(_actioncore(context), _execution_request)
+
+      Then("ProviderCall executes once and the Runtime policy refuses the static Assurance bundle")
+      outcome should matchPattern {
+        case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("incompatible"), ReviewLimitation("runtime-assurance-evidence-required", _, _, _, _), false)) =>
+      }
+      delegate.executions shouldBe 1
     }
   }
 
@@ -120,6 +138,8 @@ final class CncfCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
   private val _descriptor = _load("car-review-provider-descriptor-v1.json")
   private val _providerrequest = _load("car-review-provider-request-v1.json")
   private val _bundle = _load("car-review-evidence-bundle-v1.json")
+  private val _deterministic_policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Deterministic, declaredCostUnits = 0L, maximumCostUnits = 0L)
+  private val _runtime_policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Runtime, declaredCostUnits = 0L, maximumCostUnits = 0L)
 
   private val _execution_request = ProviderBundleExecutionRequest(
     ReviewId("review-example-001"),

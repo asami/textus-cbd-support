@@ -276,7 +276,14 @@ cache and invocation boundary, explicit-configuration harnesses, full test
 suite, CAR ABI governance, and normal CAR lint are verified. It has no new
 human-confirmation stage; P4-45 remains the independent ON_HOLD human gate.
 
-Phase 8 is planned as the next CBD Support phase. It extends the completed
-Review foundation with product-grade delivery, CI/CD, and executable
-quality-attribute checks. It does not close P4-45 or alter the independently
-deferred first released CAR ABI baseline.
+Phase 8 is the current OPEN CBD Support phase. Its checklist, P8-60 human
+confirmation, and P8-61 runtime-selection acceptance are complete. Mandatory
+full-review findings are under repair, while final Phase validation and the
+release commit remain pending. It does not close P4-45 or alter the
+independently deferred first released CAR ABI baseline. Publication and a
+successor Phase remain outside this phase.
+
+The Phase 8 Review Job lifecycle recovers handled submit failures by exact Job
+discovery and makes claim-to-submit concurrency retryable as pending. An abrupt
+process death in that window still requires persisted submission intent, jobId,
+or an outbox; current Job state has no restart-durability claim.

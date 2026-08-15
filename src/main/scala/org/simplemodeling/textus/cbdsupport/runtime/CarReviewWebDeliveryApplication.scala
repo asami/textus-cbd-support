@@ -4,7 +4,8 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ *  version Jul. 23, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Authorized, exact-Report delivery for private Web forms. */
@@ -18,27 +19,24 @@ object CarReviewWebDiagnosisKind {
   val CAPABILITY = "capability"
 }
 
-final class CarReviewWebDeliveryApplication(repository: CarReviewRepository) {
-  def dashboard(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewDeliveryDocument] =
-    _report(reportid, roles).map(CarReviewDeliveryProjection.project)
+object CarReviewWebDeliveryApplication {
+  def dashboard(
+    report: CarReviewReport,
+    roles: Set[String]
+  ): Consequence[CarReviewDeliveryDocument] =
+    CarReviewAuthorization.authorize("review.read-run", roles)
+      .map(_ => CarReviewDeliveryProjection.project(report))
 
   def diagnosis(
-    reportid: ReviewReportId,
+    report: CarReviewReport,
     kind: String,
-    itemid: String,
+    itemId: String,
     roles: Set[String]
   ): Consequence[CarReviewWebDiagnosis] =
-    dashboard(reportid, roles).flatMap { document =>
-      _diagnosis(document, kind, itemid)
+    dashboard(report, roles).flatMap { document =>
+      _diagnosis(document, kind, itemId)
         .map(value => Consequence.success(CarReviewWebDiagnosis(value, _next_actions(document, value))))
-        .getOrElse(Consequence.operationNotFound(s"review delivery item: $kind:$itemid"))
-    }
-
-  private def _report(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewReport] =
-    CarReviewAuthorization.authorize("review.read-run", roles).flatMap { _ =>
-      repository.report(reportid)
-        .map(Consequence.success)
-        .getOrElse(Consequence.operationNotFound(s"review report: ${reportid.value}"))
+        .getOrElse(Consequence.operationNotFound(s"review delivery item: $kind:$itemId"))
     }
 
   private def _diagnosis(
@@ -68,5 +66,25 @@ final class CarReviewWebDeliveryApplication(repository: CarReviewRepository) {
       case CarReviewWebDiagnosisKind.CAPABILITY =>
         Vector("Inspect linked observations, evidence, strengths, gaps, and limitations before changing the capability assessment.")
       case _ => Vector.empty
+    }
+}
+
+final class CarReviewWebDeliveryApplication(repository: CarReviewRepository) {
+  def dashboard(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewDeliveryDocument] =
+    _report(reportid, roles).flatMap(report => CarReviewWebDeliveryApplication.dashboard(report, roles))
+
+  def diagnosis(
+    reportid: ReviewReportId,
+    kind: String,
+    itemid: String,
+    roles: Set[String]
+  ): Consequence[CarReviewWebDiagnosis] =
+    _report(reportid, roles).flatMap(report => CarReviewWebDeliveryApplication.diagnosis(report, kind, itemid, roles))
+
+  private def _report(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewReport] =
+    CarReviewAuthorization.authorize("review.read-run", roles).flatMap { _ =>
+      repository.report(reportid)
+        .map(Consequence.success)
+        .getOrElse(Consequence.operationNotFound(s"review report: ${reportid.value}"))
     }
 }

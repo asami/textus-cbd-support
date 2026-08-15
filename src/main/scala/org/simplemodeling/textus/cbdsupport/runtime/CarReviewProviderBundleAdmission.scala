@@ -8,7 +8,7 @@ import io.circe.parser.parse
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 24, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait ProviderBundleAvailability {
@@ -97,6 +97,13 @@ object CarReviewProviderBundleAdmission {
   private val _digest_pattern = "sha256:[0-9a-f]{64}".r
 
   def describeDescriptor(value: String): Either[String, CarReviewProviderDescriptor] =
+    _admitted_descriptor(value).map(_._1)
+
+  /** Digest of the complete admitted descriptor document, not its projection. */
+  def descriptorDigest(value: String): Either[String, ReviewDigest] =
+    _admitted_descriptor(value).map { case (_, descriptor) => ReviewDigest(_sha256(descriptor)) }
+
+  private def _admitted_descriptor(value: String): Either[String, (CarReviewProviderDescriptor, Json)] =
     for {
       descriptor <- _parse(value, "descriptor")
       _ <- _document(descriptor, "provider-descriptor", "descriptor")
@@ -106,7 +113,7 @@ object CarReviewProviderBundleAdmission {
       _ <- Either.cond(_strings(descriptor, "supportedSchemaVersions").exists(_.contains(_schema_version)), (), "descriptor-schema-not-supported")
       capabilities <- _descriptor_capabilities(descriptor)
       _ <- _limitations(descriptor)
-    } yield CarReviewProviderDescriptor(provider, ruleset, capabilities)
+    } yield CarReviewProviderDescriptor(provider, ruleset, capabilities) -> descriptor
 
   def admit(context: ProviderBundleAdmissionContext): ProviderBundleAdmissionOutcome = {
     val descriptor = _parse(context.descriptor, "descriptor")
@@ -137,6 +144,23 @@ object CarReviewProviderBundleAdmission {
       _ <- _document(request, "provider-request", "request")
       _ <- _shape(request, _request_fields, _request_required_fields, "request")
     } yield ReviewDigest(_sha256(request))
+
+  /**
+   * Validates an executable provider request against the identity already
+   * admitted by its outer provider-selection envelope.
+   */
+  private[runtime] def requestBinding(
+    value: String,
+    reviewid: ReviewId,
+    target: ReviewTarget
+  ): Either[String, Unit] =
+    for {
+      request <- _parse(value, "request")
+      _ <- _document(request, "provider-request", "request")
+      _ <- _shape(request, _request_fields, _request_required_fields, "request")
+      _ <- _target_matches(target, request, "request")
+      _ <- Either.cond(_string(request, "reviewId").contains(reviewid.value), (), "review-id-mismatch")
+    } yield ()
 
   def timeoutMillis(value: String): Either[String, Long] =
     for {

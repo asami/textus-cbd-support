@@ -3,7 +3,7 @@
 status=specified
 phase=Phase 8
 checklist=P8-41
-updated_at=2026-07-23
+updated_at=2026-08-15
 
 ## Purpose
 
@@ -28,15 +28,20 @@ The canonical document contains exactly these fields:
 | `profile` | selected CBD Review profile | yes |
 | `baselineDigest` | prior baseline digest or explicit `null` | yes |
 | `ruleSets` | sorted unique CBD/provider rule-set IDs and versions | yes |
-| `providerSelections` | sorted unique provider identity/version, selected rule set, and availability-policy digest | yes |
+| `providerSelections` | sorted unique provider identity/version, selected rule set, and v2 availability-policy digest | yes |
 | `evidenceSnapshots` | sorted unique accepted Evidence class, stable snapshot ID, provider identity/version, and digest; runtime entries use `evidenceClass=runtime` | yes |
 | `policyBindings` | exactly one sorted binding for `profile`, `gate`, `reconciliation`, and `suppression`, each with ID, version, and configuration digest | yes |
 
 An empty evidence-snapshot array is canonical and means that no optional
 snapshot was admitted. It is not equivalent to an omitted field. The
-availability-policy digest captures an explicit enabled/disabled/offline/AI or
-external-provider selection policy; a change to availability therefore cannot
-reuse an earlier Unknown or Assurance under a different provider posture.
+serialized `availabilityPolicyDigest` field is the v2 composite provider-
+selection identity. It binds the fully admitted canonical descriptor document
+digest, canonical provider-request digest, actual enabled/unavailable/disabled/
+failed availability, and immutable mandatory quality policy: authority,
+declared cost units, and maximum cost units. Any change to those inputs
+invalidates reuse and selection before provider execution; it cannot reuse an
+earlier Unknown or Assurance under a different provider posture. The field name
+and its JSON/ABI representation remain unchanged.
 
 ## Exclusions
 

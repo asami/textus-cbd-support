@@ -1,11 +1,13 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
+import java.util.Locale
+
 import io.circe.Json
 import io.circe.parser.parse
 
 /*
  * @since   Jul. 24, 2026
- * @version Jul. 24, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 enum CarReviewQualityProviderAuthority(val value: String) {
@@ -27,9 +29,13 @@ final case class CarReviewQualityProviderPolicy(
  * preflight this policy before starting a cost-bearing provider.
  */
 object CarReviewQualityProviderAdmission {
-  private val _forbidden_fact_keys = Set(
-    "secret", "credential", "password", "apikey", "api-key", "authorization",
-    "authorizationheader", "rawrequest", "rawresponse", "endpoint", "url"
+  private val _forbidden_fact_compact_keys = Set(
+    "secret", "credential", "password", "apikey", "authorization", "authorizationheader",
+    "rawrequest", "rawresponse", "endpoint", "url"
+  )
+  private val _forbidden_fact_tokens = Set("secret", "credential", "password", "authorization", "endpoint", "url")
+  private val _forbidden_fact_token_pairs = Set(
+    "api" -> "key", "raw" -> "request", "raw" -> "response", "authorization" -> "header"
   )
 
   def preflight(
@@ -105,9 +111,22 @@ object CarReviewQualityProviderAdmission {
   private def _has_forbidden_fact_key(value: Json): Boolean =
     value.asObject.exists { fields =>
       fields.toMap.exists { case (key, nested) =>
-        _forbidden_fact_keys.contains(key.toLowerCase) || _has_forbidden_fact_key(nested)
+        _forbidden_fact_key(key) || _has_forbidden_fact_key(nested)
       }
     } || value.asArray.exists(_.exists(_has_forbidden_fact_key))
+
+  private def _forbidden_fact_key(key: String): Boolean = {
+    val tokens = key
+      .replaceAll("([a-z0-9])([A-Z])", "$1 $2")
+      .toLowerCase(Locale.ROOT)
+      .split("[^a-z0-9]+")
+      .toVector
+      .filter(_.nonEmpty)
+    val compact = tokens.mkString
+    _forbidden_fact_compact_keys.contains(compact) ||
+      tokens.exists(_forbidden_fact_tokens.contains) ||
+      tokens.sliding(2).exists(pair => pair.length == 2 && _forbidden_fact_token_pairs.contains(pair(0) -> pair(1)))
+  }
 
   private def _array(value: Json, field: String): Either[String, Vector[Json]] =
     value.hcursor.downField(field).focus.flatMap(_.asArray).map(_.toVector).toRight(s"quality-provider-$field-invalid")

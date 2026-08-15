@@ -12,7 +12,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 24, 2026
- * @version Jul. 24, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewQualityProviderAdmissionSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -97,6 +97,47 @@ final class CarReviewQualityProviderAdmissionSpec extends AnyWordSpec with Match
       Then("the provider is admitted because every Assurance references declared bounded runtime Evidence")
       outcome shouldBe a[ProviderBundleAdmissionOutcome.Admitted]
     }
+
+    "refuse separator and case variants recursively while admitting an unrelated URL-like key" in {
+      Given("separately re-digested bundles with unsafe fact-key variants in nested objects and arrays")
+      val (context, provider) = _context()
+      val policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Deterministic, 0L, 0L)
+      val unsafevariants = Vector(
+        _with_nested_fact(context.bundle, Vector("password"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("apiKey"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("api_key"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("api-key"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("rawRequest"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("raw_request"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("nestedObject", "raw-request"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("authorizationHeader"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("authorization_header"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("authorization.header"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("endpoint"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("URL"), Json.fromString("must-not-retain")),
+        _with_nested_fact(context.bundle, Vector("url"), Json.fromString("must-not-retain")),
+        _with_nested_fact(
+          context.bundle,
+          Vector("nestedArray"),
+          Json.arr(Json.obj("RawResponse" -> Json.fromString("must-not-retain")))
+        )
+      )
+      val safevariant = _with_nested_fact(context.bundle, Vector("metadata", "curlVersion"), Json.fromString("8.0"))
+
+      When("CBD admits each re-digested bundle under deterministic policy")
+      val unsafeoutcomes = unsafevariants.map(bundle =>
+        CarReviewQualityProviderAdmission.admit(context.copy(bundle = bundle), policy)
+      )
+      val safeoutcome = CarReviewQualityProviderAdmission.admit(context.copy(bundle = safevariant), policy)
+
+      Then("every unsafe variant is refused for redaction while the unrelated key remains admissible")
+      unsafeoutcomes.foreach { outcome =>
+        outcome should matchPattern {
+          case ProviderBundleAdmissionOutcome.Refused(ProviderBundleUnknown(_, _, ReviewLimitation("quality-provider-evidence-redaction-required", _, _, _, _), false)) =>
+        }
+      }
+      safeoutcome shouldBe a[ProviderBundleAdmissionOutcome.Admitted]
+    }
   }
 
   private def _context(): (ProviderBundleAdmissionContext, ReviewProviderIdentity) = {
@@ -119,6 +160,19 @@ final class CarReviewQualityProviderAdmissionSpec extends AnyWordSpec with Match
       case value => fail(s"Expected completed static-quality bundle but got $value")
     }
     ProviderBundleAdmissionContext(reviewid, target, ProviderBundleAvailability.Enabled, descriptor, request, bundle) -> provider
+  }
+
+  private def _with_nested_fact(bundle: String, path: Vector[String], value: Json): String = {
+    val printer = Printer.noSpaces.copy(sortKeys = true)
+    val json = parse(bundle).toOption.get
+    val evidence = json.hcursor.downField("evidence").focus.flatMap(_.asArray).get
+    val nested = path.reverse.foldLeft(value) { case (current, segment) => Json.obj(segment -> current) }
+    val updatedevidence = evidence.updated(0, evidence.head.mapObject { fields =>
+      val facts = fields("facts").getOrElse(Json.obj())
+      fields.add("facts", facts.deepMerge(nested))
+    })
+    val body = json.mapObject(_.add("evidence", Json.fromValues(updatedevidence)))
+    _with_bundle_digest(printer.print(body))
   }
 
   private def _with_bundle_digest(value: String): String = {

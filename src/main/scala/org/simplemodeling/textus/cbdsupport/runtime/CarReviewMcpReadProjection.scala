@@ -6,7 +6,8 @@ import org.goldenport.Consequence
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 26, 2026
+ *  version Jul. 26, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CarReviewMcpSummary(
@@ -31,16 +32,29 @@ final case class CarReviewMcpObservation(
   locations: Vector[String]
 )
 
+/** MCP-safe quality coverage; it excludes canonical Evidence facts and rationale. */
+final case class CarReviewMcpQualityCoverage(
+  checkId: CarReviewQualityCheckId,
+  capabilityId: ReviewCapabilityId,
+  state: CarReviewQualityCoverageState,
+  observationIds: Vector[ReviewObservationId],
+  evidenceIds: Vector[ReviewEvidenceId],
+  limitation: Option[ReviewLimitation]
+)
+
 final case class CarReviewMcpReport(
   summary: CarReviewMcpSummary,
   providers: Vector[ReviewProviderExecution],
   observations: Vector[CarReviewMcpObservation],
+  qualityCoverage: Vector[CarReviewMcpQualityCoverage],
   limitations: Vector[ReviewLimitation]
 )
 
 /** Bounded MCP-safe Report read model. It deliberately excludes Evidence facts and rationale. */
-final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
+final class CarReviewMcpReadApplication private (repository: Option[CarReviewRepository]) {
   import CarReviewMcpReadApplication.MAX_OBSERVATIONS
+
+  def this(repository: CarReviewRepository) = this(Some(repository))
 
   def summary(reportid: ReviewReportId, roles: Set[String]): Consequence[CarReviewMcpSummary] =
     _authorized(roles).flatMap(_ => _report(reportid).map(_summary))
@@ -89,7 +103,7 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
     CarReviewAuthorization.authorize("review.read-run", roles)
 
   private def _report(reportid: ReviewReportId): Consequence[CarReviewReport] =
-    repository.report(reportid).map(Consequence.success).getOrElse(Consequence.operationNotFound(s"review report: ${reportid.value}"))
+    repository.flatMap(_.report(reportid)).map(Consequence.success).getOrElse(Consequence.operationNotFound(s"review report: ${reportid.value}"))
 
   private def _summary(report: CarReviewReport): CarReviewMcpSummary =
     CarReviewMcpSummary(
@@ -109,7 +123,18 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
       _summary(report),
       report.execution.providers.sortBy(value => (value.provider.id.value, value.provider.version.value)),
       report.observations.sortBy(_.id.value).take(MAX_OBSERVATIONS).map(_observation),
+      CarReviewQualityCoverageProjection.project(report).map(_quality_coverage),
       report.limitations.map(_limitation)
+    )
+
+  private def _quality_coverage(value: CarReviewQualityCoverageItem): CarReviewMcpQualityCoverage =
+    CarReviewMcpQualityCoverage(
+      value.rule.checkId,
+      value.rule.capabilityId,
+      value.state,
+      value.observationIds.distinct.sortBy(_.value),
+      value.evidenceIds.distinct.sortBy(_.value),
+      value.limitation.map(_limitation)
     )
 
   private def _observation(value: ReviewObservation): CarReviewMcpObservation =
@@ -135,6 +160,8 @@ final class CarReviewMcpReadApplication(repository: CarReviewRepository) {
 
 object CarReviewMcpReadApplication {
   val MAX_OBSERVATIONS = 100
+
+  def entityBacked: CarReviewMcpReadApplication = new CarReviewMcpReadApplication(None)
 
   def renderLocation(value: ReviewLocation): Option[String] =
     value.uri.map(uri => scala.util.Try(URI.create(uri)).toOption.map(InformationSourceDiagnosticPolicy.renderUri).getOrElse("[redacted-uri]")).orElse(

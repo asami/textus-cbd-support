@@ -12,7 +12,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 18, 2026
+ *  version Jul. 18, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -22,14 +23,14 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
       val coordinator = new CarReviewProviderExecutionCoordinator()
       val registry = new CarReviewProviderRegistry()
       val runner = _runner(_target, _provider, _result(_bundle))
-      registry.register(_descriptor, runner).isRight shouldBe true
+      registry.register(_descriptor, runner, _deterministic_policy).isRight shouldBe true
 
       When("CBD selects the descriptor-bound runner through the provider protocol")
       val outcome = coordinator.execute(_request(), registry)
 
       Then("the exact provider request reaches Cozy once and CBD admits its bundle")
       outcome should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false) =>
+        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false, _) =>
       }
     }
 
@@ -113,6 +114,7 @@ final class CozyCarReviewProviderRunnerSpec extends AnyWordSpec with Matchers wi
   )
 
   private val _provider = ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("0.1.14"))
+  private val _deterministic_policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Deterministic, declaredCostUnits = 0L, maximumCostUnits = 0L)
 
   private def _request(): ProviderBundleExecutionRequest =
     ProviderBundleExecutionRequest(

@@ -34,6 +34,9 @@ final class CarReviewWebDeliveryApplicationSpec extends AnyWordSpec with Matcher
       dashboard.dashboard.reportDigest shouldBe _report.reportDigest
       dashboard.dashboard.gate.result shouldBe _report.gate.result
       dashboard.dashboard.unknownCount shouldBe _report.observations.count(_.`type`.value == "unknown")
+      dashboard.qualityCoverage.size shouldBe CarReviewCapabilityCatalog.definitions.size
+      dashboard.qualityCoverage.map(_.capabilityId.value) shouldBe dashboard.qualityCoverage.map(_.capabilityId.value).sorted
+      dashboard.qualityCoverage.find(_.capabilityId == ReviewCapabilityId("quality.ai.operability.skill")).flatMap(_.limitation).map(_.code) shouldBe Some("cbd.car-review.quality.ai.operability.skill.evidence-unavailable")
       dashboard.dashboard.baseline.map(_.reportId) shouldBe _report.baseline.map(_.reportId)
       dashboard.limitations should not be empty
       finding.diagnosis.locations should contain("project.yaml")
@@ -55,12 +58,14 @@ final class CarReviewWebDeliveryApplicationSpec extends AnyWordSpec with Matcher
 
       When("a caller requests a dashboard or diagnosis outside exact authorized report scope")
       val denied = application.dashboard(_report.reportId, Set.empty)
+      val deniedmissing = application.dashboard(ReviewReportId("report-missing"), Set.empty)
       val missing = application.dashboard(ReviewReportId("report-missing"), Set("viewer"))
       val unsupported = application.diagnosis(_report.reportId, "history", "all", Set("viewer"))
       val absent = application.diagnosis(_report.reportId, CarReviewWebDiagnosisKind.OBSERVATION, "observation-missing", Set("viewer"))
 
       Then("the Web boundary does not enumerate history, select another Report, or fabricate a diagnosis")
       denied.isFaillure shouldBe true
+      deniedmissing.isFaillure shouldBe true
       missing.isFaillure shouldBe true
       unsupported.isFaillure shouldBe true
       absent.isFaillure shouldBe true

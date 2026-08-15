@@ -9,7 +9,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ *  version Jul. 23, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewDeliveryProjectionSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -36,6 +37,11 @@ final class CarReviewDeliveryProjectionSpec extends AnyWordSpec with Matchers wi
       first.dashboard.target.name shouldBe report.target.name
       first.dashboard.gate.result shouldBe report.gate.result
       first.dashboard.baseline.map(_.reportDigest) shouldBe Some(ReviewDigest("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
+      first.qualityCoverage.size shouldBe CarReviewCapabilityCatalog.definitions.size
+      first.qualityCoverage.map(_.capabilityId.value) shouldBe first.qualityCoverage.map(_.capabilityId.value).sorted
+      first.dashboard.qualityObservedCount + first.dashboard.qualityUnknownCount shouldBe CarReviewCapabilityCatalog.definitions.size
+      first.qualityCoverage.find(_.capabilityId == ReviewCapabilityId("quality.domain.identity-consistency")).map(_.observationIds) shouldBe Some(Vector(ReviewObservationId("report-assurance-component-identity")))
+      first.qualityCoverage.find(_.capabilityId == ReviewCapabilityId("quality.ai.operability.skill")).flatMap(_.limitation).map(_.code) shouldBe Some("cbd.car-review.quality.ai.operability.skill.evidence-unavailable")
       first.observations.map(_.id) shouldBe report.observations.map(_.id).sortBy(_.value)
       finding.reportId shouldBe report.reportId
       finding.reportDigest shouldBe report.reportDigest

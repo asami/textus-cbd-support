@@ -9,7 +9,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -26,12 +26,38 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
 
       Then("the first result is admitted and the second returns the admitted bundle without provider work")
       first should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false) =>
+        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false, _) =>
       }
       second should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(_, true) =>
+        case ProviderBundleExecutionOutcome.Admitted(_, true, bundle) if bundle == _bundle =>
       }
       runner.executions shouldBe 1
+      runner.cancellations shouldBe 0
+    }
+
+    "never reuse an enabled admitted bundle for disabled availability or a different full descriptor document" in {
+      Given("one admitted enabled request, a disabled repeat, and a descriptor change outside the projected descriptor")
+      val coordinator = new CarReviewProviderExecutionCoordinator()
+      val runner = new FakeRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
+      val request = _request()
+      val changeddescriptor = _descriptor.replace("runtime-evidence-not-supported", "runtime-evidence-alternate")
+
+      When("CBD repeats the request with disabled availability and then with the changed valid descriptor document")
+      val first = coordinator.execute(request, runner)
+      val disabled = coordinator.execute(request.copy(availability = ProviderBundleAvailability.Disabled), runner)
+      val changed = coordinator.execute(request.copy(descriptor = changeddescriptor), runner)
+
+      Then("disabled execution is attributable refusal and the changed descriptor cannot return the cached bundle")
+      first should matchPattern {
+        case ProviderBundleExecutionOutcome.Admitted(_, false, bundle) if bundle == _bundle =>
+      }
+      disabled should matchPattern {
+        case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("disabled"), ReviewLimitation("provider-disabled", _, _, _, _), false)) =>
+      }
+      changed should matchPattern {
+        case ProviderBundleExecutionOutcome.Admitted(_, false, bundle) if bundle == _bundle =>
+      }
+      runner.executions shouldBe 2
       runner.cancellations shouldBe 0
     }
 
@@ -95,14 +121,14 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
       val coordinator = new CarReviewProviderExecutionCoordinator()
       val registry = new CarReviewProviderRegistry()
       val runner = new FakeRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
-      registry.register(_descriptor, runner).isRight shouldBe true
+      registry.register(_descriptor, runner, _deterministic_policy).isRight shouldBe true
 
       When("CBD selects the registered provider through the coordinator")
       val result = coordinator.execute(_request(), registry)
 
       Then("only the registered runner executes and its admitted evidence remains attributable")
       result should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false) =>
+        case ProviderBundleExecutionOutcome.Admitted(AdmittedProviderBundle(ReviewProviderIdentity(ReviewProviderId("cozy"), _), _, _, _, _, _, _), false, _) =>
       }
       runner.executions shouldBe 1
     }
@@ -116,7 +142,7 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
 
       When("the unregistered and mismatched requests reach selection")
       val unavailable = coordinator.execute(_request(), registry)
-      registry.register(_descriptor, runner).isRight shouldBe true
+      registry.register(_descriptor, runner, _deterministic_policy).isRight shouldBe true
       val mismatched = coordinator.execute(_request(descriptor = conflicting), registry)
 
       Then("neither path invokes an arbitrary runner")
@@ -128,11 +154,37 @@ final class CarReviewProviderExecutionCoordinatorSpec extends AnyWordSpec with M
       }
       runner.executions shouldBe 0
     }
+
+    "refuse a static Assurance through a registered Runtime policy while admitting it through a deterministic policy" in {
+      Given("the same static provider bundle registered once with Runtime authority and once with deterministic authority")
+      val runtimecoordinator = new CarReviewProviderExecutionCoordinator()
+      val deterministiccoordinator = new CarReviewProviderExecutionCoordinator()
+      val runtimeregistry = new CarReviewProviderRegistry()
+      val deterministicregistry = new CarReviewProviderRegistry()
+      val runtimerunner = new FakeRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
+      val deterministicrunner = new FakeRunner(ProviderBundleRunnerResult.Completed(_bundle, 1000L))
+      runtimeregistry.register(_descriptor, runtimerunner, _runtime_policy).isRight shouldBe true
+      deterministicregistry.register(_descriptor, deterministicrunner, _deterministic_policy).isRight shouldBe true
+
+      When("both coordinator registry routes execute the static Assurance bundle")
+      val refused = runtimecoordinator.execute(_request(), runtimeregistry)
+      val admitted = deterministiccoordinator.execute(_request(), deterministicregistry)
+
+      Then("Runtime authority retains the missing runtime Evidence refusal while deterministic authority admits the canonical bundle")
+      refused should matchPattern {
+        case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(_, ReviewProviderState("incompatible"), ReviewLimitation("runtime-assurance-evidence-required", _, _, _, _), false)) =>
+      }
+      admitted shouldBe a[ProviderBundleExecutionOutcome.Admitted]
+      runtimerunner.executions shouldBe 1
+      deterministicrunner.executions shouldBe 1
+    }
   }
 
   private val _descriptor = _load("car-review-provider-descriptor-v1.json")
   private val _providerrequest = _load("car-review-provider-request-v1.json")
   private val _bundle = _load("car-review-evidence-bundle-v1.json")
+  private val _deterministic_policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Deterministic, declaredCostUnits = 0L, maximumCostUnits = 0L)
+  private val _runtime_policy = CarReviewQualityProviderPolicy(CarReviewQualityProviderAuthority.Runtime, declaredCostUnits = 0L, maximumCostUnits = 0L)
 
   private def _request(
     reviewid: String = "review-example-001",

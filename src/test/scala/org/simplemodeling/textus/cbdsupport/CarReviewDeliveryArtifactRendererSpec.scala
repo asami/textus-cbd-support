@@ -10,7 +10,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ *  version Jul. 23, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewDeliveryArtifactRendererSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -40,6 +41,9 @@ final class CarReviewDeliveryArtifactRendererSpec extends AnyWordSpec with Match
       first.markdown.indexOf("## Dashboard") should be < first.markdown.indexOf("## Baseline")
       first.markdown.indexOf("## Baseline") should be < first.markdown.indexOf("## Capabilities")
       first.markdown.indexOf("## Capabilities") should be < first.markdown.indexOf("## Observations")
+      first.markdown.indexOf("## Capabilities") should be < first.markdown.indexOf("## Quality Coverage")
+      first.markdown.indexOf("## Quality Coverage") should be < first.markdown.indexOf("## Observations")
+      first.markdown should include("cbd.car-review.quality.domain.identity-consistency")
       first.markdown.indexOf("## Observations") should be < first.markdown.indexOf("## Limitations")
       first.markdown.indexOf("## Limitations") should be < first.markdown.indexOf("## Redaction and omissions")
       pdf should startWith("%PDF-1.7")
@@ -54,6 +58,7 @@ final class CarReviewDeliveryArtifactRendererSpec extends AnyWordSpec with Match
       pdf should include("/Lang (en-US)")
       pdf should include(report.reportId.value)
       pdf should include(report.gate.result.value)
+      pdf should include("Quality Coverage")
       Files.readAllBytes(artifact).sameElements(first.pdf) shouldBe true
     }
 

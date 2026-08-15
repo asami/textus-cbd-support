@@ -9,7 +9,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -29,7 +29,7 @@ final class CarReviewProviderBehaviorMatrixSpec extends AnyWordSpec with Matcher
 
       Then("provider identity and the provider-owned runtime limitation remain attributable")
       outcome match {
-        case ProviderBundleExecutionOutcome.Admitted(value, false) =>
+        case ProviderBundleExecutionOutcome.Admitted(value, false, _) =>
           value.provider shouldBe _provider
           value.limitations shouldBe Vector(
             ReviewLimitation(
@@ -87,10 +87,10 @@ final class CarReviewProviderBehaviorMatrixSpec extends AnyWordSpec with Matcher
         case ProviderBundleExecutionOutcome.Refused(ProviderBundleUnknown(Some(`_provider`), ReviewProviderState("failed"), ReviewLimitation("provider-timeout", _, _, _, _), true)) =>
       }
       first should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(_, false) =>
+        case ProviderBundleExecutionOutcome.Admitted(_, false, _) =>
       }
       duplicate should matchPattern {
-        case ProviderBundleExecutionOutcome.Admitted(_, true) =>
+        case ProviderBundleExecutionOutcome.Admitted(_, true, _) =>
       }
       cancelledrunner.executions shouldBe 0
       cancelledrunner.cancellations shouldBe 1

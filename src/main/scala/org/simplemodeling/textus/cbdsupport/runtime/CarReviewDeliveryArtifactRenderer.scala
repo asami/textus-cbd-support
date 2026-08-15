@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -85,6 +85,18 @@ object CarReviewDeliveryArtifactRenderer {
         Line("P", s"Coverage: ${coverage.assessedSubjects}/${coverage.applicableSubjects}; Unknown: ${coverage.unknownSubjects}")
       } ++ value.strengths.map(text => Line("P", s"Strength: $text")) ++ value.gaps.map(text => Line("P", s"Gap: $text"))
     }
+    val qualitycoverage = Vector(
+      Line("H2", "Quality Coverage"),
+      Line("TH", "Check | Capability | State")
+    ) ++ document.qualityCoverage.flatMap { value =>
+      Vector(
+        Line("TD", s"${value.checkId.value} | ${value.capabilityId.value} | ${value.state.value}"),
+        Line("P", s"Observations: ${_ids(value.observationIds.map(_.value))}"),
+        Line("P", s"Evidence: ${_ids(value.evidenceIds.map(_.value))}")
+      ) ++ value.limitation.toVector.map { limitation =>
+        Line("P", s"Limitation: ${limitation.scope.value}:${limitation.code} [${limitation.subjectId.getOrElse("report")}] ${limitation.message}")
+      }
+    }
     val observations = Vector(Line("H2", "Observations")) ++ document.observations.flatMap { value =>
       Vector(
         Line("H3", s"${value.id.value} [${value.`type`.value}]"),
@@ -100,7 +112,7 @@ object CarReviewDeliveryArtifactRenderer {
     val limitations = Vector(Line("H2", "Limitations")) ++ document.limitations.map { value =>
       Line("P", s"${value.scope.value}:${value.code} [${value.subjectId.getOrElse("report")}] ${value.message}")
     }
-    identity ++ gate ++ counts ++ baseline ++ capabilities ++ observations ++ limitations ++
+    identity ++ gate ++ counts ++ baseline ++ capabilities ++ qualitycoverage ++ observations ++ limitations ++
       Vector(Line("H2", "Redaction and omissions"), Line("P", "Delivery-safe text only; canonical Evidence facts, rationale, raw provider data, credentials, and unsafe locations are omitted upstream."))
   }
 
@@ -155,8 +167,8 @@ object CarReviewDeliveryArtifactRenderer {
       val pageobject = pageobjects(pageindex)
       val contentobject = contentobjects(pageindex)
       objects += pageobject -> s"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 $_pdf_page_width $_pdf_page_height] /Resources << /Font << /F1 3 0 R >> >> /Contents $contentobject 0 R /StructParents $pageindex >>"
-      val pageLines = pages(pageindex).lines
-      val content = _pdf_content(pageLines)
+      val pagelines = pages(pageindex).lines
+      val content = _pdf_content(pagelines)
       objects += contentobject -> s"<< /Length ${content.getBytes(StandardCharsets.ISO_8859_1).length} >>\nstream\n$content\nendstream"
     }
     tables.foreach { table =>

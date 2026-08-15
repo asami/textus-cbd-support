@@ -9,7 +9,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ *  version Jul. 16, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewMcpReadProjectionSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -35,6 +36,10 @@ final class CarReviewMcpReadProjectionSpec extends AnyWordSpec with Matchers wit
       projected.observations.map(_.id).toSet shouldBe report.observations.map(_.id).toSet
       projected.observations.map(_.message).mkString(" ") should not include "secret-value"
       projected.observations.map(_.locations).flatten.mkString(" ") should not include "/private/repository"
+      projected.qualityCoverage.size shouldBe CarReviewCapabilityCatalog.definitions.size
+      projected.qualityCoverage.map(_.capabilityId.value) shouldBe projected.qualityCoverage.map(_.capabilityId.value).sorted
+      projected.qualityCoverage.find(_.capabilityId == ReviewCapabilityId("quality.domain.identity-consistency")).map(_.observationIds) shouldBe Some(Vector(ReviewObservationId("report-assurance-component-identity")))
+      projected.qualityCoverage.find(_.capabilityId == ReviewCapabilityId("quality.ai.operability.skill")).flatMap(_.limitation).map(_.code) shouldBe Some("cbd.car-review.quality.ai.operability.skill.evidence-unavailable")
       findings.size shouldBe 1
       assurances.size shouldBe 1
       projected.toString should not include "facts"

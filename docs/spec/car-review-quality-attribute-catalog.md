@@ -358,10 +358,11 @@ One Observation from this item maps to all applicable existing capabilities:
 
 ## Cross-view Projection
 
-The complete 154-capability catalog appears in the `quality` collection. It
+The complete 161-capability catalog appears in the `quality` collection. It
 contains 72 capabilities promoted from the six February 23, 2026 quality
-attribute mind maps, 23 prior CNCF cross-cutting capabilities, and 59 gap-closing
-capabilities in the extended quality model. The `namedViews` collection is
+attribute mind maps, 23 prior CNCF cross-cutting capabilities, and 66
+gap-closing/extended capabilities in the extended quality model. The
+`namedViews` collection is
 generated from every distinct catalog `views` value in deterministic name
 order. Each named view selects the same canonical Observation and Evidence
 identities and remains present with an empty `items` collection when no current

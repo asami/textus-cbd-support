@@ -3,21 +3,27 @@ package org.simplemodeling.textus.cbdsupport
 import java.net.URI
 import java.nio.file.{Files, Path}
 import java.time.Instant
+import cats.~>
 
+import org.goldenport.Consequence
+import org.goldenport.cncf.action.{Action, ActionCall}
 import org.goldenport.cncf.component.{ComponentCreate, ComponentOrigin}
+import org.goldenport.cncf.context.{ExecutionContext, RuntimeContext}
 import org.goldenport.cncf.mcp.McpToolCatalog
 import org.goldenport.cncf.projection.OpenApiProjection
 import org.goldenport.cncf.subsystem.DefaultSubsystemFactory
+import org.goldenport.cncf.unitofwork.{UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.record.Record
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewReportCodec, ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceDescriptor, InformationSourceFreshness, InformationSourceKind, InformationSourceState, ReviewReportId, SemanticRequirementEvidence}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewCapabilityCatalog, CarReviewDeliveryProjection, CarReviewMcpReadApplication, CarReviewReportCodec, ComponentEvidenceAbsence, ExactComponentSelection, InformationSourceDescriptor, InformationSourceFreshness, InformationSourceKind, InformationSourceState, SemanticRequirementEvidence}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 26, 2026
+ *  version Jul. 26, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -78,6 +84,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val component = new impl.ComponentFactory().create(
         ComponentCreate(subsystem, ComponentOrigin.Repository("cbd-support-spec"))
       ).primary
+      val toolprefix = s"${CbdSupportComponent.name}.CbdRetrieval"
 
       When("CNCF projects the component MCP catalog")
       val tools = McpToolCatalog.toolsForComponent(component)
@@ -86,24 +93,24 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val usageschema = tools.find(_.name.endsWith(".getUsage")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
       val descriptions = component.operationDefinitions.flatMap { operation =>
-        val toolname = s"CbdSupport.CbdRetrieval.${operation.name}"
+        val toolname = s"$toolprefix.${operation.name}"
         operation.summary.filter(_ => names.contains(toolname)).map(toolname -> _)
       }.toMap
 
       Then("all retrieval tools are visible and administrative refresh is absent")
       names shouldBe Set(
-        "CbdSupport.CbdRetrieval.searchComponents",
-        "CbdSupport.CbdRetrieval.getComponent",
-        "CbdSupport.CbdRetrieval.getUsage",
-        "CbdSupport.CbdRetrieval.resolveDependencies",
-        "CbdSupport.CbdRetrieval.listCatalogs",
-        "CbdSupport.CbdRetrieval.status",
-        "CbdSupport.CbdRetrieval.getReviewRun",
-        "CbdSupport.CbdRetrieval.getReviewSummary",
-        "CbdSupport.CbdRetrieval.getReviewReport",
-        "CbdSupport.CbdRetrieval.listReviewFindings",
-        "CbdSupport.CbdRetrieval.listReviewAssurances",
-        "CbdSupport.CbdRetrieval.getReviewViews"
+        s"$toolprefix.searchComponents",
+        s"$toolprefix.getComponent",
+        s"$toolprefix.getUsage",
+        s"$toolprefix.resolveDependencies",
+        s"$toolprefix.listCatalogs",
+        s"$toolprefix.status",
+        s"$toolprefix.getReviewRun",
+        s"$toolprefix.getReviewSummary",
+        s"$toolprefix.getReviewReport",
+        s"$toolprefix.listReviewFindings",
+        s"$toolprefix.listReviewAssurances",
+        s"$toolprefix.getReviewViews"
       )
       tools.map(x => x.name -> x.description).toMap shouldBe descriptions
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
@@ -143,22 +150,19 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       form should not include "${result.id}"
     }
 
-    "retain canonical reports for bounded MCP projection without exposing history" in {
-      Given("one factory-local canonical Report")
+    "project entity-backed canonical reports without a factory-local repository" in {
+      Given("one canonical Report supplied directly to a repository-free Entity-backed reader")
       val report = CarReviewReportCodec.decode(Files.readString(Path.of("docs", "spec", "examples", "car-review-report-v1.json"))).fold(error => fail(error.message), identity)
-      val factory = new impl.ComponentFactory()
+      val reads = CarReviewMcpReadApplication.entityBacked
 
-      When("the CBD submission retention boundary stores the canonical Report")
-      val retained = factory._retain_review_report(report)
-      val summary = factory._review_read_application.summary(report.reportId, Set("viewer"))
-      val findings = factory._review_read_application.findings(report.reportId, Set("viewer"), 10)
-      val views = factory._review_read_application.views(report.reportId, Set("viewer"))
-      val viewrecord = views.toOption.map(factory._review_views_record)
-      val denied = factory._review_read_application.report(report.reportId, Set.empty)
-      val missing = factory._review_read_application.report(ReviewReportId("report-missing"), Set("viewer"))
+      When("the Entity-backed projection receives the already-authorized canonical Report")
+      val summary = reads.summaryOf(report, Set("viewer"))
+      val findings = reads.findingsOf(report, Set("viewer"), 10)
+      val views = reads.viewsOf(report, Set("viewer"))
+      val viewrecord = views.toOption.map(new impl.ComponentFactory()._review_views_record)
+      val denied = reads.reportOf(report, Set.empty)
 
-      Then("authorized queries expose only the exact retained Report and no caller can enumerate history")
-      retained.isSuccess shouldBe true
+      Then("authorized queries expose only the supplied Report and repository-free reads cannot enumerate history")
       summary.toOption.map(_.reportId) shouldBe Some(report.reportId)
       findings.toOption.map(_.map(_.`type`.value).toSet) shouldBe Some(Set("finding"))
       views.toOption.map(_.implementation.flatMap(_.locations).flatMap(_.path).toSet) shouldBe Some(Set("project.yaml", "src/main/cozy/textus-user-account.cml"))
@@ -167,7 +171,26 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       viewrecord.flatMap(_.getAny("observability")) shouldBe empty
       viewrecord.flatMap(_.getAny("ux")) shouldBe empty
       denied.isSuccess shouldBe false
-      missing.isSuccess shouldBe false
+    }
+
+    "project total quality coverage in authorized dashboard and exact MCP Report records without provider work" in {
+      Given("one immutable canonical Report and handwritten record projections")
+      val report = CarReviewReportCodec.decode(Files.readString(Path.of("docs", "spec", "examples", "car-review-report-v1.json"))).fold(error => fail(error.message), identity)
+      val factory = new impl.ComponentFactory()
+      val dashboard = factory._review_dashboard_record(CarReviewDeliveryProjection.project(report))
+      val mcp = factory._review_report_record(CarReviewMcpReadApplication.entityBacked.reportOf(report, Set("viewer")).fold(error => fail(error.toString), identity))
+
+      When("the common dashboard and MCP Report records are projected from the exact Report")
+      val dashboardcoverage = dashboard.getAny("qualityCoverage")
+      val mcpreportcoverage = mcp.getAny("qualityCoverage")
+
+      Then("both authorized records expose the full sorted coverage catalog without Evidence facts or provider execution")
+      dashboard.getInt("qualityObservedCount").getOrElse(fail("quality observed count missing")) + dashboard.getInt("qualityUnknownCount").getOrElse(fail("quality unknown count missing")) shouldBe CarReviewCapabilityCatalog.definitions.size
+      dashboardcoverage should not be empty
+      mcpreportcoverage should not be empty
+      dashboardcoverage.toString should include("quality.domain.identity-consistency")
+      mcpreportcoverage.toString should include("cbd.car-review.quality.ai.operability.skill.evidence-unavailable")
+      mcp.toString should not include "facts"
     }
     }
 
@@ -338,6 +361,39 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         .isMcpReady("CbdReviewAdmin", "submitReviewDocuments") shouldBe false
     }
 
+    "fail closed before parsing or producing artifacts for both direct submission boundaries" in {
+      Given("one syntactically accepted provider-document submission and an executable ActionCall context")
+      val requestdocument = "{\"documentType\":\"provider-document-submission\"}"
+      val submitrequest = _value(CbdSupportComponent.CbdReviewAdminService.SubmitReviewDocumentsOperation
+        .createOperationRequest(Request.of(
+          component = "CbdSupport",
+          service = "CbdReviewAdmin",
+          operation = "submitReviewDocuments",
+          properties = List(Property("submissionDocument", requestdocument, None))
+        )))
+      val postrequest = _value(CbdSupportComponent.CbdReviewAdminService.PostOperation
+        .createOperationRequest(Request.of(
+          component = "CbdSupport",
+          service = "CbdReviewAdmin",
+          operation = "post",
+          properties = List(Property("submissionDocument", requestdocument, None))
+        )))
+      val factory = new impl.ComponentFactory()
+      val core = ActionCall.Core(TestAction(Request.ofOperation("direct-submission-disabled")), _executable_context(), None, None)
+
+      When("the generated submit and HTTP POST actions execute")
+      val submit = factory.CbdReviewAdmin.createSubmitReviewDocumentsActionCall(core, submitrequest).execute()
+      val post = factory.CbdReviewAdmin.createPostActionCall(core, postrequest).execute()
+
+      Then("both operations return the stable disabled operation-invalid result without a canonical response")
+      Vector(submit, post).foreach {
+        case Consequence.Failure(conclusion) =>
+          conclusion.display should include("operation.invalid")
+          conclusion.display should include("review-direct-provider-submission-disabled; use startReview")
+        case Consequence.Success(_) => fail("Direct provider submission unexpectedly produced a response.")
+      }
+    }
+
     "project the private Review submission gateway as an HTTP POST operation" in {
       Given("an initialized CBD component")
       val subsystem = DefaultSubsystemFactory.default(Some("server"))
@@ -396,5 +452,31 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
   private def _value[A](consequence: org.goldenport.Consequence[A]): A = consequence match {
     case org.goldenport.Consequence.Success(value) => value
     case org.goldenport.Consequence.Failure(conclusion) => fail(conclusion.display)
+  }
+
+  private def _executable_context(): ExecutionContext = {
+    val base = ExecutionContext.create()
+    lazy val context: ExecutionContext = ExecutionContext.withRuntimeContext(base, runtime)
+    lazy val unitofwork: UnitOfWork = new UnitOfWork(context)
+    lazy val interpreter: UnitOfWorkInterpreter = new UnitOfWorkInterpreter(unitofwork)
+    lazy val runtime: RuntimeContext = new RuntimeContext(
+      core = RuntimeContext.core("component-factory-spec", None, base.observability),
+      unitOfWorkSupplier = () => unitofwork,
+      unitOfWorkInterpreterFn = new (UnitOfWorkOp ~> Consequence) {
+        def apply[A](operation: UnitOfWorkOp[A]): Consequence[A] = interpreter.interpret(operation)
+      },
+      commitAction = _ => (),
+      abortAction = _ => (),
+      disposeAction = _ => (),
+      token = "component-factory-spec"
+    )
+    context
+  }
+
+  private final case class TestAction(request: Request) extends Action {
+    override def createCall(core: ActionCall.Core): ActionCall = {
+      val _ = core
+      throw new UnsupportedOperationException("TestAction is an ActionCall.Core fixture only.")
+    }
   }
 }

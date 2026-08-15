@@ -2,7 +2,8 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 23, 2026
+ *  version Jul. 23, 2026
+ * @version Aug. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 /**
@@ -16,6 +17,7 @@ final case class CarReviewDeliveryDocument(
   dashboard: CarReviewDeliveryDashboard,
   observations: Vector[CarReviewDeliveryObservation],
   capabilities: Vector[CarReviewDeliveryCapability],
+  qualityCoverage: Vector[CarReviewDeliveryQualityCoverage],
   limitations: Vector[CarReviewDeliveryLimitation]
 ) {
   def diagnoseObservation(id: ReviewObservationId): Option[CarReviewItemDiagnosis] =
@@ -83,6 +85,8 @@ final case class CarReviewDeliveryDashboard(
   findingCount: Int,
   assuranceCount: Int,
   unknownCount: Int,
+  qualityObservedCount: Int,
+  qualityUnknownCount: Int,
   baseline: Option[CarReviewDeliveryBaseline]
 )
 
@@ -158,6 +162,16 @@ final case class CarReviewDeliveryLimitation(
   retryable: Boolean
 )
 
+/** Delivery-safe total quality coverage derived from one canonical Report. */
+final case class CarReviewDeliveryQualityCoverage(
+  checkId: CarReviewQualityCheckId,
+  capabilityId: ReviewCapabilityId,
+  state: CarReviewQualityCoverageState,
+  observationIds: Vector[ReviewObservationId],
+  evidenceIds: Vector[ReviewEvidenceId],
+  limitation: Option[CarReviewDeliveryLimitation]
+)
+
 final case class CarReviewItemDiagnosis(
   kind: String,
   itemId: String,
@@ -180,6 +194,7 @@ object CarReviewDeliveryProjection {
     val limitations = report.limitations.map(_limitation).sortBy(value => (value.scope.value, value.code, value.subjectId.getOrElse(""), value.message))
     val observations = report.observations.sortBy(_.id.value).map(_observation)
     val capabilities = report.assessments.sortBy(_.capabilityId.value).map(_capability)
+    val qualitycoverage = CarReviewQualityCoverageProjection.project(report).map(_quality_coverage)
     val dashboard = CarReviewDeliveryDashboard(
       report.reviewId,
       report.reportId,
@@ -190,9 +205,11 @@ object CarReviewDeliveryProjection {
       observations.count(_.`type`.value == "finding"),
       observations.count(_.`type`.value == "assurance"),
       observations.count(_.`type`.value == "unknown"),
+      qualitycoverage.count(_.state == CarReviewQualityCoverageState.Observed),
+      qualitycoverage.count(_.state == CarReviewQualityCoverageState.Unknown),
       report.baseline.map(_baseline)
     )
-    CarReviewDeliveryDocument(dashboard, observations, capabilities, limitations)
+    CarReviewDeliveryDocument(dashboard, observations, capabilities, qualitycoverage, limitations)
   }
 
   def diagnoseObservation(report: CarReviewReport, id: ReviewObservationId): Option[CarReviewItemDiagnosis] =
@@ -256,6 +273,16 @@ object CarReviewDeliveryProjection {
       value.subjectId.map(_safe_text),
       _safe_text(value.message),
       value.retryable
+    )
+
+  private def _quality_coverage(value: CarReviewQualityCoverageItem): CarReviewDeliveryQualityCoverage =
+    CarReviewDeliveryQualityCoverage(
+      value.rule.checkId,
+      value.rule.capabilityId,
+      value.state,
+      value.observationIds.distinct.sortBy(_.value),
+      value.evidenceIds.distinct.sortBy(_.value),
+      value.limitation.map(_limitation)
     )
 
   private def _gate(value: ReviewGate): CarReviewDeliveryGate =

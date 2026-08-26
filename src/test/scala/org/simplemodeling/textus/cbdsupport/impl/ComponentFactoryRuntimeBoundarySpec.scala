@@ -2,6 +2,7 @@ package org.simplemodeling.textus.cbdsupport.impl
 
 import java.net.URI
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext as ScalaExecutionContext, Future}
 
@@ -10,6 +11,7 @@ import org.goldenport.Consequence
 import org.goldenport.cncf.action.{ActionCall, Action}
 import org.goldenport.cncf.component.Component
 import org.goldenport.cncf.context.{ExecutionContext, RuntimeContext}
+import org.goldenport.cncf.knowledge.{ComponentKnowledgeCarrier, ComponentKnowledgeCarrierCodec, ComponentKnowledgeManifestConsumerContractCodec}
 import org.goldenport.cncf.resource.{ResourceTreeAccess, ResourceTreeEntry, ResourceTreeReference}
 import org.goldenport.cncf.unitofwork.{UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
 import org.goldenport.configuration.{Configuration, ConfigurationValue}
@@ -24,7 +26,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.{BokFetcher, CatalogFetcher,
 /*
  * @since   Jul. 18, 2026
  *  version Jul. 20, 2026
- * @version Aug.  8, 2026
+ * @version Aug. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -152,6 +154,34 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
       status.toOption.map(_.display).getOrElse("") should include("working=ready")
     }
 
+    "project admitted local carrier detail and usage without a carrier absence" in {
+      Given("a normal action runtime context with one locally admitted component-knowledge carrier")
+      val factory = new ComponentFactory()
+      val component = _component(factory)
+      val context = _knowledge_context(_executable_context())
+      val core = _core(context, Some(component))
+      val componentrequest = CbdSupportComponent.CbdRetrievalService.ComponentLookupRequest.unsafeForTest(
+        Request.ofOperation("getComponent"),
+        Record.dataAuto("name" -> "Order")
+      )
+      val usagerequest = CbdSupportComponent.CbdRetrievalService.ComponentUsageRequest.unsafeForTest(
+        Request.ofOperation("getUsage"),
+        Record.dataAuto("name" -> "Order")
+      )
+
+      When("the normal getComponent and getUsage ActionCalls project the selected local component")
+      val componentresponse = factory.CbdRetrieval.createGetComponentActionCall(core, componentrequest).execute()
+      val usageresponse = factory.CbdRetrieval.createGetUsageActionCall(core, usagerequest).execute()
+
+      Then("both responses retain local carrier detail or guidance without reporting component-knowledge-absent")
+      val componentdisplay = componentresponse.toOption.map(_.display).getOrElse(fail("getComponent did not return a response."))
+      val usagedisplay = usageresponse.toOption.map(_.display).getOrElse(fail("getUsage did not return a response."))
+      componentdisplay should include("documentation/order.md")
+      usagedisplay should include("documentation/order.md")
+      componentdisplay should not include "component-knowledge-absent"
+      usagedisplay should not include "component-knowledge-absent"
+    }
+
     "return malformed declared configuration as a structured failure" in {
       Given("a component whose catalog declaration has a non-string value")
       val factory = new ComponentFactory()
@@ -197,6 +227,19 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
     )
   }
 
+  private def _knowledge_context(base: ExecutionContext): ExecutionContext = {
+    val contract = _knowledge_consumer_contract_bytes()
+    val carrier = ComponentKnowledgeCarrier.createC(_sha256(contract)).toOption.get
+    val reference = _value(ResourceTreeReference.parseC("working"))
+    val entries = Vector(
+      _project_entry("project.yaml", "Order"),
+      _value(ResourceTreeEntry.createC("target/cncf.d/component-descriptor.json", _component_descriptor(carrier).getBytes(StandardCharsets.UTF_8).toVector)),
+      _value(ResourceTreeEntry.createC("target/cncf.d/component-knowledge.json", contract)),
+      _value(ResourceTreeEntry.createC("target/cncf.d/car-runtime-manifest.json", _runtime_manifest(contract).getBytes(StandardCharsets.UTF_8).toVector))
+    )
+    ExecutionContext.withResourceTreeAccess(base, ResourceTreeAccess.inMemory(Map(reference -> entries)))
+  }
+
   private def _project_entry(
     path: String,
     componentname: String
@@ -240,6 +283,61 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
     )
     context
   }
+
+  private def _component_descriptor(carrier: ComponentKnowledgeCarrier): String =
+    s"""{"schemaVersion":3,"component":{"namespace":"org.example","id":"Order","version":"1.0.0-SNAPSHOT"},"extensions":{"artifact":"order"},"componentKnowledge":${ComponentKnowledgeCarrierCodec.encode(carrier)}}"""
+
+  private def _knowledge_consumer_contract_bytes(): Vector[Byte] = {
+    val text =
+      """{
+        |  "schema": "cncf.component-knowledge-consumer.v1",
+        |  "componentId": "org.example.Order",
+        |  "logicalRelease": "1.0.0-SNAPSHOT",
+        |  "resources": [{
+        |    "logicalIdentity": {
+        |      "componentId": "org.example.Order",
+        |      "logicalRelease": "1.0.0-SNAPSHOT",
+        |      "parentComponentId": null,
+        |      "childRole": "Documentation",
+        |      "logicalResource": "urn:cncf:resource:example:order"
+        |    },
+        |    "logicalPath": "documentation/order.md",
+        |    "kind": "documentation",
+        |    "role": "documentation",
+        |    "language": "en",
+        |    "mediaType": "text/markdown",
+        |    "size": 1,
+        |    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        |    "metadata": {
+        |      "authority": "component",
+        |      "stability": "stable",
+        |      "source": "component-declared",
+        |      "license": "Apache-2.0",
+        |      "disclosure": "metadata-only"
+        |    },
+        |    "availability": "available",
+        |    "integrity": "verified",
+        |    "authorization": "granted",
+        |    "provenance": {
+        |      "sourceKind": "expanded-car",
+        |      "artifactCoordinate": "org.example:order:1.0.0-SNAPSHOT",
+        |      "logicalSource": "component-car:example-order",
+        |      "resolutionStep": "expanded-car:2",
+        |      "externalDeploymentRequired": false,
+        |      "matchingDigest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        |    }
+        |  }]
+        |}""".stripMargin
+    ComponentKnowledgeManifestConsumerContractCodec.encode(
+      ComponentKnowledgeManifestConsumerContractCodec.decodeC(text).toOption.get
+    ).getBytes(StandardCharsets.UTF_8).toVector
+  }
+
+  private def _runtime_manifest(contract: Vector[Byte]): String =
+    s"""{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":[{"path":"target/cncf.d/component-knowledge.json","sha256":"${_sha256(contract)}"}]}"""
+
+  private def _sha256(bytes: Vector[Byte]): String =
+    MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
 
   private def _local_names(invocation: CbdRuntimeInvocation): Vector[String] =
     invocation._local_inventory_snapshot.toVector.flatMap(_.observations).flatMap(_.componentName).distinct.sorted

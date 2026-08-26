@@ -14,7 +14,8 @@ import org.goldenport.cncf.knowledge.{ComponentKnowledgeCarrier, ComponentKnowle
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 18, 2026
+ *  version Jul. 18, 2026
+ * @version Aug. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CatalogSource(
@@ -2303,7 +2304,8 @@ final class CbdRuntimeInvocation private[runtime] (
    * processed, without changing selection or adding a fallback resolver.
    */
   def componentKnowledgeAbsence(profile: ComponentProfile): Option[ComponentEvidenceAbsence] =
-    profile.componentKnowledge match {
+    if (_component_knowledge_backed(profile).nonEmpty) None
+    else profile.componentKnowledge match {
       case None => ComponentKnowledgeProjection.catalogAbsence(profile, ComponentKnowledgeIntegration.Absent)
       case Some(_) => synchronized(_catalog_component_knowledge.get(_component_knowledge_key(profile))).flatMap(
         ComponentKnowledgeProjection.catalogAbsence(profile, _)

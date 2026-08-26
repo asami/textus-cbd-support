@@ -167,6 +167,63 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       usage.operations shouldBe Vector(ComponentOperation(Some("OrderQuery"), "getOrder", Some("query"), Some("Return one order.")))
       fetcher.requestedSourceIds.distinct shouldBe Vector(source.id)
     }
+
+    "admit Component knowledge only from the selected version's canonical catalog route" in {
+      Given("one CAR version with a canonical carrier and one version with a noncanonical contract path")
+      val source = CatalogSource("fixture", URI.create("https://catalog.example/"), 100, true)
+      val digest = "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+      val carindex =
+        s"""{
+           |  "entries": [{
+           |    "artifact_id": "textus-order",
+           |    "recommended": "1.2.0",
+           |    "versions": [
+           |      {
+           |        "version": "1.2.0",
+           |        "component": "org.example.Order",
+           |        "component_knowledge": {
+           |          "carrier": {
+           |            "carrierSchema": "cncf.component-knowledge-carrier.v1",
+           |            "consumerContractSchema": "cncf.component-knowledge-consumer.v1",
+           |            "logicalPath": "component-knowledge.json",
+           |            "sha256": "$digest"
+           |          },
+           |          "consumer_contract": "repository/car/textus-order/1.2.0/component-knowledge.json"
+           |        }
+           |      },
+           |      {
+           |        "version": "1.3.0",
+           |        "component": "org.example.Order",
+           |        "component_knowledge": {
+           |          "carrier": {
+           |            "carrierSchema": "cncf.component-knowledge-carrier.v1",
+           |            "consumerContractSchema": "cncf.component-knowledge-consumer.v1",
+           |            "logicalPath": "component-knowledge.json",
+           |            "sha256": "$digest"
+           |          },
+           |          "consumer_contract": "repository/car/textus-order/component-knowledge.json"
+           |        }
+           |      }
+           |    ]
+           |  }]
+           |}""".stripMargin
+      val fetcher = new MapCatalogFetcher(Map(
+        source.baseUri.resolve("metadata/repository/car/index.json") -> carindex,
+        source.baseUri.resolve("metadata/repository/sar/index.json") -> """{"entries": []}"""
+      ))
+
+      When("the Cozy catalog is parsed and each version is selected")
+      val profile = new CozyComponentCatalogProvider(clock = _clock).read(source, fetcher).toOption.get.profiles.head
+      val canonical = profile.selectVersion("1.2.0")
+      val generic = profile.selectVersion("1.3.0")
+
+      Then("only the exact selected CAR version supplies a same-origin consumer-contract endpoint")
+      canonical.componentKnowledge.map(_.consumerContractUri) shouldBe Some(
+        URI.create("https://catalog.example/repository/car/textus-order/1.2.0/component-knowledge.json")
+      )
+      canonical.componentKnowledge.map(_.carrier.sha256) shouldBe Some(digest)
+      generic.componentKnowledge shouldBe None
+    }
   }
 
   "CompatibleComponentCatalogProvider" should {

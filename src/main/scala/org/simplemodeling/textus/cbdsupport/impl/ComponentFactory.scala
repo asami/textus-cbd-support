@@ -29,7 +29,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
-import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
+import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentKnowledgeDetail, ComponentKnowledgeResourceDetail, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewArtifactBundle, CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAttestationCodec, CarReviewReportCodec, CarReviewRun, CarReviewRunCodec, CarReviewRunLifecycle, CarReviewRunVocabulary, CarReviewVocabulary, ReviewDocumentType, ReviewRunState, ReviewSchemaVersion}
@@ -1052,23 +1052,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             _unavailable_local_inventory(source, core, Some(conclusion.display))
         }
       else
-        ResourceTreeQuery.exactLeafNameC(source.reference, "project.yaml") match {
-          case Consequence.Success(query) =>
-            core.executionContext.resourceTrees.query(query) match {
-              case Consequence.Success(result) =>
-                LocalInformationSourceInventory.inspectDevelopmentQuery(
-                  source.descriptor,
-                  result,
-                  source.versionstate,
-                  LocalInspectionPolicy.DEFAULT,
-                  core.executionContext.clock
-                )
-              case Consequence.Failure(conclusion) =>
-                _unavailable_local_inventory(source, core, Some(conclusion.display))
-            }
-          case Consequence.Failure(conclusion) =>
-            _unavailable_local_inventory(source, core, Some(conclusion.display))
-        }
+        _development_inventory(source, core)
     }
     LocalInformationInventory(
       sources.map(_.descriptor),
@@ -1077,6 +1061,35 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core.executionContext.clock.instant(),
       inventories.flatMap(_.sourceDiagnostics).toMap
     )
+  }
+
+  private def _development_inventory(
+    source: LocalTreeSource,
+    core: ActionCall.Core
+  ): LocalInformationInventory = {
+    val queried = for {
+      projects <- ResourceTreeQuery.exactLeafNameC(source.reference, "project.yaml")
+      descriptors <- ResourceTreeQuery.exactLeafNameC(source.reference, "component-descriptor.json")
+      carriers <- ResourceTreeQuery.exactLeafNameC(source.reference, "component-knowledge.json")
+      manifests <- ResourceTreeQuery.exactLeafNameC(source.reference, "car-runtime-manifest.json")
+      projectresult <- core.executionContext.resourceTrees.query(projects)
+      descriptorresult <- core.executionContext.resourceTrees.query(descriptors)
+      carrierresult <- core.executionContext.resourceTrees.query(carriers)
+      manifestresult <- core.executionContext.resourceTrees.query(manifests)
+    } yield LocalInformationSourceInventory.inspectDevelopmentEvidenceQueries(
+      source.descriptor,
+      projectresult,
+      descriptorresult,
+      carrierresult,
+      manifestresult,
+      source.versionstate,
+      LocalInspectionPolicy.DEFAULT,
+      core.executionContext.clock
+    )
+    queried match {
+      case Consequence.Success(inventory) => inventory
+      case Consequence.Failure(conclusion) => _unavailable_local_inventory(source, core, Some(conclusion.display))
+    }
   }
 
   private def _unavailable_local_inventory(
@@ -1300,18 +1313,22 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     protected def build_Program: ExecUowM[OperationResponse] = exec_from {
       _runtime_for(core).flatMap { runtime =>
         val fetcher = new CbdHttp(core)
-        runtime.ensureInputsReady(fetcher).map { _ =>
+        runtime.ensureInputsReady(fetcher).flatMap { _ =>
           val selection = _selection(runtime, action.record, _optional_string(action.record, "kind"))
           val profile = selection.selectedProfile
-          OperationResponse(Record.dataAuto(
+          val knowledgeabsences = profile.toVector.flatMap { value =>
+            runtime.ensureComponentKnowledge(value, fetcher)
+            runtime.componentKnowledgeAbsence(value)
+          }
+          org.goldenport.Consequence.success(OperationResponse(Record.dataAuto(
             "status" -> selection.status,
             "reference" -> profile.map(_reference_record),
             "component" -> profile.map(_profile_record(runtime, _)),
             "alternatives" -> selection.alternatives.map(_reference_record),
             "candidateCount" -> selection.candidateCount,
-            "absences" -> selection.absences.map(_absence_record),
+            "absences" -> (selection.absences ++ knowledgeabsences).distinct.map(_absence_record),
             "warnings" -> (selection.warnings ++ _source_warnings(runtime)).distinct
-          ))
+          )))
         }
       }
     }
@@ -1328,8 +1345,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           val selection = _selection(runtime, action.record, _optional_string(action.record, "kind"))
           selection.selectedProfile match {
             case Some(profile) =>
+              runtime.ensureComponentKnowledge(profile, fetcher)
+              val knowledgeabsences = runtime.componentKnowledgeAbsence(profile).toVector
               runtime.usage(profile, _optional_string(action.record, "intent"), fetcher).map { usage =>
-                OperationResponse(_usage_record(runtime, usage, selection))
+                OperationResponse(_usage_record(
+                  runtime,
+                  usage.copy(absences = (usage.absences ++ knowledgeabsences).distinct),
+                  selection
+                ))
               }
             case None =>
               org.goldenport.Consequence.success(OperationResponse(_unselected_usage_record(runtime, selection)))
@@ -1776,7 +1799,57 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "artifactChecksumSha256" -> profile.artifactChecksumSha256,
       "evidenceUri" -> profile.evidenceUri.toString,
       "observation" -> runtime.observation(profile).map(_observation_record),
+      "componentKnowledge" -> runtime.componentKnowledge(profile).map(_component_knowledge_record),
       "warnings" -> profile.warnings
+    )
+
+  /**
+   * The public detail projection deliberately has no raw archive payload,
+   * physical path, credential, resolver result, or execution authority.
+   */
+  private[cbdsupport] def _component_knowledge_record(detail: ComponentKnowledgeDetail): Record =
+    Record.dataAuto(
+      "sourceId" -> detail.sourceId,
+      "sourceKind" -> detail.sourceKind,
+      "evidenceLocation" -> detail.evidenceLocation,
+      "artifactChecksumSha256" -> detail.artifactChecksumSha256,
+      "componentId" -> detail.componentId,
+      "logicalRelease" -> detail.logicalRelease,
+      "carrierSchema" -> detail.carrierSchema,
+      "carrierLogicalPath" -> detail.carrierLogicalPath,
+      "carrierSha256" -> detail.carrierSha256,
+      "truncatedResourceCount" -> detail.truncatedResourceCount,
+      "resources" -> detail.resources.map(_component_knowledge_resource_record)
+    )
+
+  private[cbdsupport] def _component_knowledge_resource_record(resource: ComponentKnowledgeResourceDetail): Record =
+    Record.dataAuto(
+      "componentId" -> resource.componentId,
+      "logicalRelease" -> resource.logicalRelease,
+      "parentComponentId" -> resource.parentComponentId,
+      "childRole" -> resource.childRole,
+      "logicalResource" -> resource.logicalResource,
+      "logicalPath" -> resource.logicalPath,
+      "kind" -> resource.kind,
+      "role" -> resource.role,
+      "language" -> resource.language,
+      "mediaType" -> resource.mediaType,
+      "size" -> resource.size,
+      "sha256" -> resource.sha256,
+      "authority" -> resource.authority,
+      "stability" -> resource.stability,
+      "source" -> resource.source,
+      "license" -> resource.license,
+      "disclosure" -> resource.disclosure,
+      "availability" -> resource.availability,
+      "integrity" -> resource.integrity,
+      "authorization" -> resource.authorization,
+      "sourceKind" -> resource.sourceKind,
+      "artifactCoordinate" -> resource.artifactCoordinate,
+      "logicalSource" -> resource.logicalSource,
+      "resolutionStep" -> resource.resolutionStep,
+      "externalDeploymentRequired" -> resource.externalDeploymentRequired,
+      "matchingDigest" -> resource.matchingDigest
     )
 
   private def _observation_record(observation: ComponentObservation): Record =

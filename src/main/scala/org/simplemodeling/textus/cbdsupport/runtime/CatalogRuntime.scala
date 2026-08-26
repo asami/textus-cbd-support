@@ -9,6 +9,8 @@ import scala.util.control.NonFatal
 import io.circe.Json
 import io.circe.parser.parse
 import org.goldenport.Consequence
+import org.goldenport.cncf.component.ComponentId
+import org.goldenport.cncf.knowledge.{ComponentKnowledgeCarrier, ComponentKnowledgeCarrierCodec}
 
 /*
  * @since   Jul. 14, 2026
@@ -296,6 +298,12 @@ final case class ComponentOperation(
   description: Option[String]
 )
 
+/** A catalog-declared, version-scoped route to value-only Component knowledge. */
+final case class ComponentKnowledgeCatalogEvidence(
+  carrier: ComponentKnowledgeCarrier,
+  consumerContractUri: URI
+)
+
 final case class ComponentVersionEvidence(
   version: String,
   runtimeMinimum: Option[String],
@@ -309,7 +317,8 @@ final case class ComponentVersionEvidence(
   publishedAt: Option[String] = None,
   runtimeMaximum: Option[String] = None,
   runtimeTested: Vector[String] = Vector.empty,
-  artifactChecksumSha256: Option[String] = None
+  artifactChecksumSha256: Option[String] = None,
+  componentKnowledge: Option[ComponentKnowledgeCatalogEvidence] = None
 )
 
 final case class ComponentProfile(
@@ -341,7 +350,8 @@ final case class ComponentProfile(
   runtimeMaximum: Option[String] = None,
   runtimeTested: Vector[String] = Vector.empty,
   artifactChecksumSha256: Option[String] = None,
-  observationContext: Option[ComponentObservationContext] = None
+  observationContext: Option[ComponentObservationContext] = None,
+  componentKnowledge: Option[ComponentKnowledgeCatalogEvidence] = None
 ) {
   private def _version_neutral_warnings: Vector[String] =
     warnings.filterNot { warning =>
@@ -370,6 +380,7 @@ final case class ComponentProfile(
           selectedComponent = evidence.component,
           selectedPublishedAt = evidence.publishedAt,
           artifactChecksumSha256 = evidence.artifactChecksumSha256,
+          componentKnowledge = evidence.componentKnowledge,
           warnings = _version_neutral_warnings ++
             Option.when(evidence.artifactUri.isEmpty)(s"Selected version $requested does not publish an artifact path.")
         )
@@ -388,6 +399,7 @@ final case class ComponentProfile(
           selectedComponent = None,
           selectedPublishedAt = None,
           artifactChecksumSha256 = None,
+          componentKnowledge = None,
           warnings = _version_neutral_warnings :+
             s"Selected version $requested is listed without version-specific metadata."
         )
@@ -776,7 +788,8 @@ final class CozyComponentCatalogProvider(
         selectedPublishedAt = selectedevidence.flatMap(_.publishedAt),
         runtimeMaximum = selectedevidence.flatMap(_.runtimeMaximum),
         runtimeTested = selectedevidence.toVector.flatMap(_.runtimeTested),
-        artifactChecksumSha256 = selectedevidence.flatMap(_.artifactChecksumSha256)
+        artifactChecksumSha256 = selectedevidence.flatMap(_.artifactChecksumSha256),
+        componentKnowledge = selectedevidence.flatMap(_.componentKnowledge)
       )
     }
   }
@@ -814,7 +827,8 @@ final class CozyComponentCatalogProvider(
           publishedAt = _string(entry, "published_at").orElse(_string(entry, "publishedAt")),
           runtimeMaximum = _string_at(entry, "runtime", "cncf", "maximum"),
           runtimeTested = _strings_at(entry, "runtime", "cncf", "tested"),
-          artifactChecksumSha256 = _string_at(entry, "checksum", "sha256")
+          artifactChecksumSha256 = _string_at(entry, "checksum", "sha256"),
+          componentKnowledge = _catalog_component_knowledge(source, entry, componentname, version)
         )
       }
     }
@@ -834,6 +848,31 @@ final class CozyComponentCatalogProvider(
       )
     }
     (entries ++ placeholders).sortBy(_.version)
+  }
+
+  /**
+   * A catalog can nominate exactly one version-scoped consumer-contract
+   * endpoint.  This parser deliberately accepts neither a generic sidecar nor
+   * a caller-provided URI, so a selected profile cannot turn into a second
+   * resolver or an archive-discovery path.
+   */
+  private def _catalog_component_knowledge(
+    source: CatalogSource,
+    version: Json,
+    componentname: String,
+    release: String
+  ): Option[ComponentKnowledgeCatalogEvidence] = {
+    val declaration = _json_at(version, Vector("component_knowledge", "carrier"))
+    val path = _string_at(version, "component_knowledge", "consumer_contract")
+    val expected = s"repository/car/$componentname/$release/component-knowledge.json"
+    for {
+      value <- declaration
+      carrier <- ComponentKnowledgeCarrierCodec.decodeC(value.noSpaces).toOption
+      contractpath <- path.filter(_ == expected)
+      endpoint <- scala.util.Try(new URI(contractpath)).toOption.filter(uri =>
+        !uri.isAbsolute && uri.getRawQuery == null && uri.getRawFragment == null && uri.getUserInfo == null
+      )
+    } yield ComponentKnowledgeCatalogEvidence(carrier, source.baseUri.resolve(endpoint))
   }
 
   private def _parse_operations(body: String, uri: URI): Consequence[Vector[ComponentOperation]] =
@@ -1348,6 +1387,36 @@ final class CbdRuntime(
     ExactComponentSelection.fromCandidates(candidates)
   }
 
+  /**
+   * Exact selection for one invocation.  The shared runtime holds remote
+   * catalog state only; admitted local Component knowledge stays with the
+   * invocation that supplied it.
+   */
+  private[runtime] def _select_component_for(
+    name: String,
+    organization: Option[String],
+    kind: Option[String],
+    version: Option[String],
+    catalogid: Option[String],
+    inventory: Option[LocalInformationInventory]
+  ): ExactComponentSelection = {
+    val remote = _profiles.filter(_.name.equalsIgnoreCase(name.trim))
+      .filter(x => organization.forall(y => x.organization.exists(_.equalsIgnoreCase(y))))
+      .filter(x => kind.forall(_.equalsIgnoreCase(x.kind)))
+      .filter(x => version.forall(x.versions.contains))
+      .filter(x => catalogid.forall(_ == x.catalogId))
+      .sortBy(x => (_source_priority(x.catalogId), x.catalogId, x.name))
+      .map(x => version.map(x.selectVersion).getOrElse(x))
+    val local = ComponentKnowledgeProjection.all(inventory)
+      .filter(ComponentKnowledgeProjection.matches(_, name, organization, kind, version, catalogid))
+      .map(_.profile)
+    val selection = ExactComponentSelection.fromCandidates((remote ++ local)
+      .sortBy(x => (_source_priority(x.catalogId), x.catalogId, x.name)))
+    if (selection.selectedProfile.nonEmpty || selection.status != "no-match") selection
+    else selection.copy(absences = (selection.absences ++
+      ComponentKnowledgeProjection.missingAbsences(inventory, name, organization, kind, version, catalogid)).distinct)
+  }
+
   def usage(
     profile: ComponentProfile,
     fetcher: CatalogFetcher
@@ -1361,6 +1430,82 @@ final class CbdRuntime(
     sources.find(_.id == profile.catalogId)
       .fold(provider.readUsage(profile, fetcher))(provider.readUsage(_, profile, fetcher))
       .map(IntentAwareUsageGuidance.enrich(_, intent))
+
+  private[runtime] def _usage_for(
+    profile: ComponentProfile,
+    intent: Option[String],
+    fetcher: CatalogFetcher,
+    inventory: Option[LocalInformationInventory]
+  ): Consequence[ComponentUsage] =
+    _local_component_knowledge(profile, inventory)
+      .map(value => Consequence.success(ComponentKnowledgeProjection.usage(value, intent)))
+      .getOrElse(usage(profile, intent, fetcher))
+
+  private[runtime] def _component_knowledge_for(
+    profile: ComponentProfile,
+    inventory: Option[LocalInformationInventory]
+  ): Option[ComponentKnowledgeDetail] =
+    _local_component_knowledge(profile, inventory).map(_.detail)
+
+  /**
+   * Admit only the selected profile's declared catalog endpoint.  The catalog
+   * route is already exact and version-scoped; this method neither opens the
+   * artifact URI nor consults a filesystem/cache resolver.
+   */
+  private[runtime] def _catalog_component_knowledge_for(
+    profile: ComponentProfile,
+    fetcher: CatalogFetcher
+  ): ComponentKnowledgeIntegration.Result =
+    profile.componentKnowledge match {
+      case None => ComponentKnowledgeIntegration.Absent
+      case Some(evidence) =>
+        val expected = for {
+          component <- profile.selectedComponent
+          release <- profile.selectedVersion
+          componentid <- scala.util.Try(ComponentId(component)).toOption
+        } yield componentid -> release
+        expected match {
+          case None => ComponentKnowledgeIntegration.Rejected(
+            "Catalog Component knowledge requires the selected Component identity and release."
+          )
+          case Some((componentid, release)) if !CatalogUriPolicy.isAuthorizedFetch(profile.evidenceUri, evidence.consumerContractUri) =>
+            ComponentKnowledgeIntegration.Rejected(
+              "Catalog Component knowledge consumer-contract URI is not authorized by the selected catalog evidence origin."
+            )
+          case Some((componentid, release)) =>
+            val response = sources.find(_.id == profile.catalogId).fold(
+              fetcher.get(evidence.consumerContractUri, CbdRuntime.MAX_COMPONENT_KNOWLEDGE_BYTES)
+            )(fetcher.get(_, evidence.consumerContractUri, CbdRuntime.MAX_COMPONENT_KNOWLEDGE_BYTES))
+            response match {
+              case Consequence.Success(body) =>
+                ComponentKnowledgeIntegration.admit(
+                  ComponentKnowledgeIntegration.Input(
+                    Some(evidence.carrier),
+                    body.getBytes(StandardCharsets.UTF_8).toVector,
+                    componentid,
+                    release
+                  )
+                )
+              case Consequence.Failure(conclusion) =>
+                ComponentKnowledgeIntegration.Rejected(
+                  InformationSourceDiagnosticPolicy.sanitize(
+                    s"Declared catalog Component knowledge is unavailable: ${conclusion.display}"
+                  )
+                )
+            }
+        }
+    }
+
+  private[runtime] def _local_component_knowledge(
+    profile: ComponentProfile,
+    inventory: Option[LocalInformationInventory]
+  ): Option[ComponentKnowledgeBackedProfile] =
+    ComponentKnowledgeProjection.all(inventory).find { value =>
+      value.profile.catalogId == profile.catalogId &&
+        value.profile.name.equalsIgnoreCase(profile.name) &&
+        value.profile.kind.equalsIgnoreCase(profile.kind) &&
+        value.contract.logicalRelease == profile.selectedVersion.getOrElse(value.contract.logicalRelease)
+    }
 
   def resolveDependencies(
     profile: ComponentProfile,
@@ -2096,6 +2241,7 @@ final class CbdRuntimeInvocation private[runtime] (
   admittedinventory: LocalInformationInventory
 ) {
   private var _local_inventory: Option[LocalInformationInventory] = None
+  private var _catalog_component_knowledge = Map.empty[String, ComponentKnowledgeIntegration.Result]
 
   def ensureInputsReady(fetcher: CatalogFetcher & BokFetcher): Consequence[Unit] =
     runtime._prepare_invocation_inputs_for(fetcher, admittedinventory).map { inventory =>
@@ -2131,14 +2277,92 @@ final class CbdRuntimeInvocation private[runtime] (
     version: Option[String],
     catalogid: Option[String]
   ): ExactComponentSelection =
-    runtime.selectComponent(name, organization, kind, version, catalogid)
+    runtime._select_component_for(
+      name,
+      organization,
+      kind,
+      version,
+      catalogid,
+      synchronized(_local_inventory)
+    )
 
   def usage(
     profile: ComponentProfile,
     intent: Option[String],
     fetcher: CatalogFetcher
   ): Consequence[ComponentUsage] =
-    runtime.usage(profile, intent, fetcher)
+    _component_knowledge_backed(profile)
+      .map(value => Consequence.success(ComponentKnowledgeProjection.usage(value, intent)))
+      .getOrElse(runtime._usage_for(profile, intent, fetcher, synchronized(_local_inventory)))
+
+  def componentKnowledge(profile: ComponentProfile): Option[ComponentKnowledgeDetail] =
+    _component_knowledge_backed(profile).map(_.detail)
+
+  /**
+   * Expose catalog carrier absence/rejection after the selected profile was
+   * processed, without changing selection or adding a fallback resolver.
+   */
+  def componentKnowledgeAbsence(profile: ComponentProfile): Option[ComponentEvidenceAbsence] =
+    profile.componentKnowledge match {
+      case None => ComponentKnowledgeProjection.catalogAbsence(profile, ComponentKnowledgeIntegration.Absent)
+      case Some(_) => synchronized(_catalog_component_knowledge.get(_component_knowledge_key(profile))).flatMap(
+        ComponentKnowledgeProjection.catalogAbsence(profile, _)
+      )
+    }
+
+  /**
+   * Fetches at most the one exact consumer-contract URI declared by this
+   * already-selected catalog profile.  Results stay invocation-local.
+   */
+  def ensureComponentKnowledge(
+    profile: ComponentProfile,
+    fetcher: CatalogFetcher
+  ): ComponentKnowledgeIntegration.Result =
+    profile.componentKnowledge match {
+      case None => ComponentKnowledgeIntegration.Absent
+      case Some(_) =>
+        val key = _component_knowledge_key(profile)
+        synchronized {
+          _catalog_component_knowledge.get(key).getOrElse {
+            val result = runtime._catalog_component_knowledge_for(profile, fetcher)
+            _catalog_component_knowledge = _catalog_component_knowledge.updated(key, result)
+            result
+          }
+        }
+    }
+
+  /**
+   * Exposes a deterministic CAR Review provider input for one selected local
+   * Component.  This is value-only: the resulting provider has no archive,
+   * filesystem, resolver, credential, process, or MCP-operation authority.
+   */
+  def componentKnowledgeCarReviewProvider(
+    profile: ComponentProfile,
+    provider: ReviewProviderIdentity,
+    ruleSet: ReviewRuleIdentity
+  ): Option[ComponentKnowledgeCarReviewProviderProfile] =
+    componentKnowledge(profile).flatMap(ComponentKnowledgeCarReviewProviderRunner.fromDetail(provider, ruleSet, _))
+
+  private def _component_knowledge_backed(
+    profile: ComponentProfile
+  ): Option[ComponentKnowledgeBackedProfile] =
+    runtime._local_component_knowledge(profile, synchronized(_local_inventory)).orElse {
+      profile.componentKnowledge.flatMap { evidence =>
+        synchronized(_catalog_component_knowledge.get(_component_knowledge_key(profile))).flatMap {
+          case ComponentKnowledgeIntegration.Admitted(contract, carrier) =>
+            Some(ComponentKnowledgeProjection.fromCatalog(
+              profile,
+              carrier,
+              contract,
+              evidence.consumerContractUri.toString
+            ))
+          case _ => None
+        }
+      }
+    }
+
+  private def _component_knowledge_key(profile: ComponentProfile): String =
+    s"${profile.catalogId}:${profile.kind}:${profile.identity}:${profile.selectedVersion.getOrElse("?")}".toLowerCase(java.util.Locale.ROOT)
 
   def resolveDependencies(
     profile: ComponentProfile,
@@ -2169,6 +2393,7 @@ final class CbdRuntimeInvocation private[runtime] (
 object CbdRuntime {
   val DEFAULT_DEPENDENCY_DEPTH = 8
   val MAX_DEPENDENCY_DEPTH = 32
+  val MAX_COMPONENT_KNOWLEDGE_BYTES = 1024 * 1024
   private val _empty_local_configuration = LocalInformationSourceConfiguration(Vector.empty, Vector.empty, Vector.empty)
 
   /**

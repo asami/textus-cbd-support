@@ -27,9 +27,9 @@ final class ComponentReferenceHandoffSpec extends AnyWordSpec with Matchers with
   "DOC-07 CBD component-reference handoff" should {
     "select catalog detail and usage from handoff coordinates without using the BoK source id" in {
       Given("one deterministic published catalog and a BoK-like existence handoff coordinate")
-      val catalogSource = CatalogSource("catalog-primary", URI.create("https://catalog.example/"), 100, enabled = true)
+      val catalogsource = CatalogSource("catalog-primary", URI.create("https://catalog.example/"), 100, enabled = true)
       val runtime = CbdRuntime.create(
-        Vector(catalogSource),
+        Vector(catalogsource),
         new InMemoryComponentCatalogProvider(
           Vector(_component_profile),
           Map("example-textus-order" -> Vector(ComponentOperation(Some("OrderQuery"), "getOrder", Some("query"), Some("Return one order.")))),

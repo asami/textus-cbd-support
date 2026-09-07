@@ -261,17 +261,21 @@ Completion target: one coherent authorized Component Dashboard, representative s
 
 Phase 9 intentionally keeps project ownership explicit.
 
-### Cozy
+### Cozy Phase 54
 
-Cozy owns CML/model transformation and publication of faithful machine-readable model metadata. Phase 9 may identify required metadata extensions for Structure, Classification, Workflow, StateMachine, and Use Case views.
+Cozy Phase 54 `Semantic Component Model Metadata for Dashboard` owns the CML/model transformation and machine-readable publication work needed by Structure, Classification, Workflow, StateMachine, and Use Case views.
 
-CBD Support must not bypass missing Cozy metadata by building a second CML parser.
+Phase 9.1 must inventory what is already available before assuming all of Phase 54 is required. Phase 9.4 through Phase 9.10 consume only the metadata that Cozy can publish authoritatively. Missing metadata remains an explicit upstream gap.
 
-### CNCF
+CBD Support must not bypass Phase 54 gaps by building a second CML parser.
 
-CNCF owns runtime realization/enforcement of admitted model semantics. Composition/aggregation lifecycle semantics may require future CNCF work after comparison with existing Entity/Aggregate/StateMachine/runtime contracts.
+### CNCF Phase 72
 
-CBD Support may visualize declared semantics and runtime evidence but must not introduce a competing runtime lifecycle engine.
+CNCF Phase 72 `Model-Driven Lifecycle Semantics` owns runtime realization/enforcement and attributable runtime evidence for strict composition, aggregation, association, and Structure/StateMachine lifecycle consistency.
+
+Phase 9.11 consumes this evidence when available. Earlier Dashboard views remain useful without Phase 72 and must report unavailable runtime evidence explicitly.
+
+CBD Support must not introduce a competing lifecycle engine or infer runtime semantics locally.
 
 ## Non-Goals
 

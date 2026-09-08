@@ -23,9 +23,18 @@ This non-normative journal records separately scoped maintenance only. It does n
 - **Why outside Phase 8:** Files under `tmp/` are not source, committed review artifacts, runtime input, or required validation evidence; deleting or ignoring user-owned outputs is not part of the frozen Review delivery scope.
 - **Proposed boundary:** A separate workspace-output hygiene task decides retention, archival, or ignore policy. Do not delete them in this journal or Phase.
 
+Hygiene Triage: HANDED_OFF
+Hygiene ID: HYG-P8-001
+Handoff Journal: textus-cbd-support:docs/journal/2026/09/2026-09-09-hygiene-resolution-batch-handoff.md
+Handed Off On: 2026-09-09
+Hygiene Status: RESOLVED
+Resolution Batch: textus-cbd-support:docs/journal/2026/09/2026-09-09-hygiene-resolution-batch-handoff.md
+Validated On: 2026-09-09
+Validation Evidence: four retained PNGs mapped to `.gitignore` `tmp/`; final CBD suite invocation `36464-20260908T222929Z` passed 77 suites and 312 tests with `lock=released`
+
 ## HYG-P8-002 — external validation-tool runtime-selection compatibility
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Discovery date/state:** 2026-08-15; observed during Phase 8 CAR review/lint evidence collection.
 - **Affected repository:** `textus-cbd-support`
 - **External tooling location:** `cncf-car-lint/scripts/cncf_car_lint.py` in the external Codex skill package.
@@ -48,6 +57,6 @@ This non-normative journal records separately scoped maintenance only. It does n
 
 ## Ledger summary
 
-- Two OPEN items; zero RESOLVED and zero SCHEDULED items.
+- One OPEN item; one RESOLVED and zero SCHEDULED items.
 - Neither item authorizes publication, deployment, or successor Phase work.
 - Later maintenance must update these same IDs with task/commit references rather than deleting history.

@@ -9,7 +9,7 @@ This non-normative journal records separately scoped maintenance only. It does n
 
 ## HYG-P8-001 — workspace/generated-artifact hygiene
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Discovery date/state:** 2026-08-15; observed while freezing Phase 8 Step/release worktrees.
 - **Repository:** `textus-cbd-support`
 - **Locations:**
@@ -34,7 +34,7 @@ Validation Evidence: four retained PNGs mapped to `.gitignore` `tmp/`; final CBD
 
 ## HYG-P8-002 — external validation-tool runtime-selection compatibility
 
-- **Status:** RESOLVED
+- **Status:** OPEN
 - **Discovery date/state:** 2026-08-15; observed during Phase 8 CAR review/lint evidence collection.
 - **Affected repository:** `textus-cbd-support`
 - **External tooling location:** `cncf-car-lint/scripts/cncf_car_lint.py` in the external Codex skill package.

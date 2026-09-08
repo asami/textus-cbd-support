@@ -1,0 +1,22 @@
+# Sample Codex client configuration for Textus CBD Support.
+# Replace 127.0.0.1 when the MCP server runs on another host.
+[mcp_servers.textus-cbd-support]
+url = "http://127.0.0.1:19534/mcp"
+enabled = true
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled_tools = [
+  "CbdSupport.CbdRetrieval.getComponent",
+  "CbdSupport.CbdRetrieval.getReviewReport",
+  "CbdSupport.CbdRetrieval.getReviewRun",
+  "CbdSupport.CbdRetrieval.getReviewSummary",
+  "CbdSupport.CbdRetrieval.getReviewViews",
+  "CbdSupport.CbdRetrieval.getUsage",
+  "CbdSupport.CbdRetrieval.listCatalogs",
+  "CbdSupport.CbdRetrieval.listReviewAssurances",
+  "CbdSupport.CbdRetrieval.listReviewFindings",
+  "CbdSupport.CbdRetrieval.resolveDependencies",
+  "CbdSupport.CbdRetrieval.searchComponents",
+  "CbdSupport.CbdRetrieval.status",
+]
+default_tools_approval_mode = "approve"

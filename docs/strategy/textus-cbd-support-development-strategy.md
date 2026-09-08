@@ -89,12 +89,12 @@ conclusion.
 
 ## Current Priority
 
-Phases 1 through 3 are complete. Phase 4 automated work is complete, while
-Stage 4.6 Human Confirmation P4-45 is explicitly on hold and remains
-unchecked. The human reviewer authorized Phase 5 to proceed independently
-without treating that deferral as Phase 4 acceptance. Phase 5 and Phase 6 are
-complete; the Phase 6 checkpoint removes the runtime-boundary debt from CBD
-Support while the first released CAR ABI baseline remains separately deferred.
+Phases 1 through 6 are complete. Phase 4 received its attributable Stage 4.6
+human confirmation on 2026-08-15 and is closed without authorizing
+publication. The earlier scheduling exception allowed Phase 5 to proceed
+while confirmation was pending but was not used as acceptance evidence. The
+Phase 6 checkpoint removes the runtime-boundary debt from CBD Support while
+the first released CAR ABI baseline remains separately deferred.
 Phase 2 provides bounded,
 same-catalog dependency graph resolution, version-specific profile projection,
 and finite-lifetime catalog snapshots with observable refresh and stale-cache
@@ -144,8 +144,8 @@ all five source kinds, their authorization and freshness boundaries, local path
 safety, version reconciliation, conflicts, citations, and inference labels.
 Phase 3 closure passed full tests, CAR build and descriptor inspection, CML
 lint, CAR lint, and representative source-aware MCP projection. Phase 4's
-automated implementation and evidence are complete, but the phase remains open
-and on hold solely for P4-45 human confirmation.
+implementation, evidence, and P4-45 human confirmation are complete; the phase
+closed on 2026-08-15 without authorizing publication.
 P4-01 now provides bounded, source-owned authentication schemes and
 configuration-key references without projecting credential identity. P4-02
 now carries source ownership through every remote provider boundary, resolves
@@ -208,9 +208,9 @@ four-profile source-aware SAR projection. P4-43 records the assessment artifact,
 runtime and dependency SNAPSHOTs, first-release ABI baseline state, residual
 warnings, dependency-first manual publication procedure, and the explicit
 `not publish-ready` result without publishing. Every Phase 4 checklist item is
-complete through P4-44; P4-45 remains unchecked and on hold pending explicit
-human confirmation. Phase 5 work proceeds under the recorded scheduling
-exception, while actual publication remains a separately authorized workflow.
+complete through P4-45. The explicit human confirmation received on
+2026-08-15 closed Phase 4, while actual publication remains a separately
+authorized workflow.
 
 Phase 5 makes CBD Support the owner of the CAR Review product, provider
 orchestration, canonical report, Review Run, Web UI, CLI, MCP report-query, and
@@ -274,7 +274,8 @@ first released ABI baseline remain outside the completed phase.
 Phase 7 is complete as the post-Phase-6 cache-lifetime follow-up. Its runtime
 cache and invocation boundary, explicit-configuration harnesses, full test
 suite, CAR ABI governance, and normal CAR lint are verified. It has no new
-human-confirmation stage; P4-45 remains the independent ON_HOLD human gate.
+human-confirmation stage and does not replace the separately recorded Phase 4
+acceptance.
 
 Phase 8 is DONE. The developer-authorized P8-RQH scope
 narrowing passed its focused rollback accumulator and normal Phase suite; exact
@@ -282,9 +283,10 @@ lint and the dependency-order locally published representative SAR matrix also
 passed. The consumed Phase 8 full review was not rerun. The retained boundary
 is existing direct provider submission and CI compatibility, Entity
 persistence and exact Report reads, redaction hardening, and total quality
-coverage. It does not close P4-45 or alter the independently deferred first
-released CAR ABI baseline. Publication and a successor Phase remain outside
-this phase; the Phase release commit closes the accepted boundary.
+coverage. It does not authorize publication or alter the independently
+deferred first released CAR ABI baseline. Publication and a successor Phase
+remain outside this phase; the Phase release commit closes the accepted
+boundary.
 
 Production restart-safe Review Job integration is nonblocking Deferred Work
 owned by cloud-native-component-framework Phase 69. CBD Support must not

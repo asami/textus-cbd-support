@@ -39,4 +39,7 @@ deleted; a checked item requires observable evidence.
 ## Human Confirmation
 
 - [x] `P4-44` A human-confirmation packet identifies the completed Phase 4 evidence, residual warnings, non-goals, acceptance criteria, and exact confirmation or correction response.
-- [ ] `P4-45` **ON HOLD** — A human reviewer explicitly confirms that the Phase 4 runtime-hardening result, documentation, residual warnings, and separate not-publish-ready release boundary are accepted; automated validation cannot satisfy this item. The hold does not satisfy or remove the gate, but the 2026-07-16 human direction permits Phase 5 work to proceed independently while confirmation remains pending.
+- [x] `P4-45` A human reviewer explicitly confirmed on 2026-08-15 that the
+  Phase 4 runtime-hardening result, documentation, residual warnings, and
+  separate not-publish-ready release boundary are accepted. This confirmation
+  closes Phase 4 without authorizing publication.

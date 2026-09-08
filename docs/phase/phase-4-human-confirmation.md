@@ -1,6 +1,6 @@
 # Phase 4 Human Confirmation
 
-Status: ON HOLD — HUMAN CONFIRMATION REMAINS PENDING
+Status: COMPLETE — HUMAN CONFIRMATION RECORDED
 
 Prepared: 2026-07-16
 
@@ -14,7 +14,8 @@ publication, distribution, deployment, or dependency release.
 
 Phase 4 was previously closed from automated evidence. It was explicitly
 reopened to add this human gate. All earlier checklist items remain complete;
-only human acceptance is pending.
+at reopening, only human acceptance remained pending. That acceptance was
+received on 2026-08-15 and is recorded below.
 
 ## Review Artifacts
 
@@ -87,17 +88,25 @@ To reject or request changes, identify the acceptance criterion and required
 correction. P4-45 remains unchecked while corrections are implemented and
 validated.
 
-After acceptance, invoke `cncf-goal-phase` for Phase 4 again. The workflow will
-record the human confirmation, complete P4-45, perform final stabilization, and
-close the phase if no other closure condition remains.
+The required acceptance was received on 2026-08-15. The Phase 4 records now
+carry that attributable confirmation, P4-45 is complete, and Phase 4 is closed
+without authorizing publication.
 
 ## Deferral Record
 
 On 2026-07-16, the human reviewer stated that P4-45 could not be completed for
-some time and directed development to continue beyond the gate. P4-45 remains
-unchecked. Phase 5 may proceed independently, but its progress cannot be used
-as evidence of Phase 4 human acceptance and does not authorize publication.
+some time and directed development to continue beyond the gate. Phase 5
+proceeded independently; its progress was not used as evidence of Phase 4
+human acceptance and did not authorize publication. This deferral ended with
+the explicit confirmation recorded below.
 
 ## Confirmation Record
 
-Pending explicit human confirmation; currently on hold.
+Accepted on 2026-08-15 with the explicit human statement:
+
+```text
+Phase 4 human confirmation complete.
+```
+
+This accepts Stage 4.6, completes P4-45, and closes Phase 4. It does not
+authorize publication, distribution, deployment, or dependency release.

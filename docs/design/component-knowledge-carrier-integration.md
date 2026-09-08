@@ -1,6 +1,6 @@
 # Component Knowledge Carrier Integration Design
 
-status=partially-implemented
+status=implemented
 phase=cncf-59.6
 updated_at=2026-08-26
 

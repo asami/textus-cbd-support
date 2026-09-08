@@ -1,6 +1,6 @@
 # Component Knowledge Carrier Consumer Contract
 
-status=partially-implemented
+status=implemented
 phase=cncf-59.6
 updated_at=2026-08-26
 

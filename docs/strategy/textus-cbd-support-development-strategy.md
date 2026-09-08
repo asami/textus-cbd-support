@@ -291,3 +291,22 @@ owned by cloud-native-component-framework Phase 69. CBD Support must not
 locally substitute timeout adapters, Job scans, reservations/outboxes,
 process-local results, synthesized leases/lifecycles, or private digests for
 the missing durable Job result and exact lookup contracts.
+
+## Component Knowledge Carrier Consumption
+
+CBD Support completed its consumer-side adoption of the Component Knowledge
+Carrier contract delivered by CNCF Phase 59.6. It consumes producer-declared
+Component knowledge through exact schema, logical-path, and digest evidence
+from configured development directories, local or cached CARs, and the
+explicit version-scoped published-catalog transport. Development-directory
+admission additionally requires generated runtime evidence for the exact
+target-relative carrier path and digest. Catalog admission requires the
+declared same-origin version-scoped URI and never derives a route by unpacking
+or guessing from the CAR artifact.
+
+The admitted typed contract supports selected detail, usage, read-only MCP,
+and deterministic CAR Review metadata evidence. Carrier membership does not
+grant content access, executable operations, resolver authority, or BoK
+authority. The detailed design and normative consumer boundary are
+`docs/design/component-knowledge-carrier-integration.md` and
+`docs/spec/component-knowledge-carrier-consumer.md`.

@@ -216,6 +216,34 @@ An incompatible input contributes a bounded diagnostic, not a synthesized
 observation. See `docs/spec/input-compatibility-governance.md` for the
 normative matrix.
 
+## Declared Component Knowledge
+
+For a Component that publishes a declared knowledge carrier, use the normal
+exact `getComponent` selection and inspect the returned `componentKnowledge`.
+It lists only the carrier's schema/logical path/digest and logical resource
+metadata: identity, logical path, digest, license, disclosure, availability,
+authorization, and provenance.  It does
+not return a manual or source file, a physical local path, a credential, a
+resolver result, or an executable operation.
+
+For a configured development directory, generate current runtime evidence
+before starting CBD Support.  The generated descriptor must declare the
+carrier and `target/cncf.d/car-runtime-manifest.json` must record the exact
+`target/cncf.d/component-knowledge.json` digest. If the descriptor declares no
+carrier, CBD Support keeps the generic local observation and returns the
+explicit `component-knowledge-absent` absence. If a declared carrier or its
+runtime evidence is missing, malformed, or mismatched, it instead returns
+`component-knowledge-rejected`. In either case, it does not inspect a sibling
+file or fall back to a packaged CAR.
+
+`getUsage` includes a carrier reference only when the declared resource is
+both `available` and authorization `granted`.  A restricted or denied resource
+is reported as `component-knowledge-reference-withheld`.  Carrier metadata is
+descriptive: it does not create an operation recommendation.  CAR Review can
+use the same metadata for integrity and source-policy checks, while manual
+content, Scaladoc, Help routes, and BoK publication remain explicitly
+unverified unless their own evidence is provided.
+
 ## Normal Workflow
 
 1. Search with a requirement such as `account authentication` and optional

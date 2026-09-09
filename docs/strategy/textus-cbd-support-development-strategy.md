@@ -312,3 +312,30 @@ grant content access, executable operations, resolver authority, or BoK
 authority. The detailed design and normative consumer boundary are
 `docs/design/component-knowledge-carrier-integration.md` and
 `docs/spec/component-knowledge-carrier-consumer.md`.
+
+## 9. Development Item Status
+
+| ID | Source | Development item | Disposition | Target | Status |
+| --- | --- | --- | --- | --- | --- |
+| DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions without turning inference into catalog fact. | STRATEGY_ITEM | 9.1 | CANDIDATE |
+| DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Use Case Realization and CML projection work. | STRATEGY_ITEM | 9.2 | CANDIDATE |
+
+### 9.1 Use Case-driven component composition
+
+This candidate owns the requirement-side model and CBD Support workflow for
+turning Story, Use Case, Scenario, and Step intent into explicit Activities,
+capability requirements, component alternatives, gaps, proposals, and human
+decisions. The draft
+`src/main/cml/usecase/application-component-composition.cml` is working input,
+not an implemented product contract. A Phase may adopt this item only after
+provider ownership, stable CML syntax, persistence, decision authority, and
+executable acceptance evidence are bounded.
+
+### 9.2 Project-local internal-model continuation
+
+This candidate owns the source layout, schema, lifecycle, integrity,
+freshness, approval, build exclusion, and resume semantics of a project-local
+internal-model package. It depends on a stable Use Case Realization metamodel
+and a reviewed CML projection boundary. A Phase may adopt it only after the
+portable minimum package, sensitive-data policy, CBD Support API, skill
+authority, and validation boundary are explicit.

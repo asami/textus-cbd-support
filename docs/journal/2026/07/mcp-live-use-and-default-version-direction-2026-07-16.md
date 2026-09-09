@@ -58,3 +58,13 @@ The human set the desired component-version behavior:
 This direction is recorded for promotion through notes, design, static
 specification, and executable specification. It is not yet the behavior of the
 current no-automatic-winner source-aware retrieval contract.
+
+## Client Configuration Separation — 2026-07-20
+
+The project-local `.codex/config.toml` described in the execution record was
+later removed as an active repository configuration. CBD Support runs as an MCP
+server, while its Codex users may work in different home and project
+directories. The repository therefore provides the configuration as
+`examples/codex-mcp/config.toml` for explicit copy or merge into each client's
+own Codex environment. This also makes the loopback endpoint and client-owned
+tool-approval policy visible as sample choices rather than server policy.

@@ -10,40 +10,62 @@ approximately six hours or less per item.
 
 ## P9-01: Shared responsibility boundary
 
-- [ ] Define CBD Support, semantic/AI-provider, human-decision, Dashboard,
+- [x] Define CBD Support, semantic/AI-provider, human-decision, Dashboard,
   Discovery, and Review ownership without allowing any surface to create a
   catalog fact or select a component implicitly.
 
 ## P9-02: Shared evidence inventory
 
-- [ ] Inventory catalog, canonical design source, model, runtime, BoK, Review,
+- [x] Inventory catalog, canonical design source, model, runtime, BoK, Review,
   and existing Web evidence; define exact attribution, authorization,
   redaction, absence, and limitation behavior for composition and Dashboard.
 
 ## P9-03: No-hidden-winner and no-inference rules
 
-- [ ] Specify how conflicting, insufficient, or unavailable evidence remains
+- [x] Specify how conflicting, insufficient, or unavailable evidence remains
   visible without selection, CML-source heuristics, naming heuristics,
   diagram-layout inference, or Dashboard-local conclusions.
 
 ## P9-04: Composition model and promotion boundary
 
-- [ ] Promote stable V1 identities for application intent, required
+- [x] Promote stable V1 identities for application intent, required
   capability, component evidence, coverage disposition, alternative, gap,
   proposal, and human decision into design and specification contracts.
 
 ## P9-05: Shared executable contract skeleton
 
-- [ ] Add executable specifications for attribution, absence, redaction, and
+- [x] Add executable specifications for attribution, absence, redaction, and
   the boundary between composition candidates, Dashboard projections, and
   canonical Component facts.
 
 ## P9-06: Canonical Component Design Model and projection contract
 
-- [ ] Define canonical-source authority, admitted enrichment evidence, stable
+- [x] Define canonical-source authority, admitted enrichment evidence, stable
   semantic identities, projection rules, cross-view identity/navigation, and
   explicit absence/ambiguity behavior shared by Mono-Koto, Use Case, Entity,
   Event, Structure, Classification, Workflow, and StateMachine views.
+
+### Stage 9.1 accepted evidence record
+
+Stage 9.1 is CLOSED from the accepted evidence for P9-01 through P9-06. The
+promoted design/specification set is:
+
+- [`docs/design/evidence-backed-component-composition.md`](../design/evidence-backed-component-composition.md)
+- [`docs/spec/evidence-backed-component-composition-contract.md`](../spec/evidence-backed-component-composition-contract.md)
+- [`docs/design/application-component-composition-model.md`](../design/application-component-composition-model.md)
+- [`docs/spec/application-component-composition-model-contract.md`](../spec/application-component-composition-model-contract.md)
+- [`docs/design/canonical-component-design-model-projections.md`](../design/canonical-component-design-model-projections.md)
+- [`docs/spec/canonical-component-design-model-contract.md`](../spec/canonical-component-design-model-contract.md)
+
+Executable evidence is
+[`EvidenceBackedComponentBoundarySpec`](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/EvidenceBackedComponentBoundarySpec.scala).
+Focused validation `P9-05-SBT-002` passed with one suite, two tests passed,
+and zero failures. The P9-05 CAR lint exited 0 with only the previously
+recorded `abi.baseline.missing` and `build.sbt-cozy-latest` warnings. Accepted
+review identities are `phase-9-p9-01b-step-review`,
+`phase-9-p9-01c-step-review`, and `phase-9-p9-05-step-review`. The single
+typed `DEV-P9-01B-CML-001` development candidate remains OPEN with
+`pending-journal-sync` disposition and is unchanged and unmaterialized.
 
 ## P9-10: Canonical composition plan
 

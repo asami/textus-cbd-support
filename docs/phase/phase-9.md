@@ -2,9 +2,8 @@
 
 Stage Status:
 - Current status: OPEN
-- Current step: P9-01 through P9-06 establish the shared evidence,
-  responsibility, canonical-model, and projection boundaries before
-  implementation begins.
+- Completed stage: Stage 9.1 (P9-01 through P9-06) — CLOSED.
+- Current step: Stage 9.2 (P9-10 through P9-14) — NEXT / NOT STARTED.
 - Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
@@ -337,6 +336,9 @@ number of headings here, records completion.
 
 Checklist basis: `P9-01` through `P9-06`.
 
+Status: CLOSED from the accepted evidence recorded in
+`phase-9-checklist.md`.
+
 Freeze the composition/provider/human split, Dashboard source inventory,
 canonical-source authority, Canonical Component Design Model boundary,
 projection semantics, shared attribution/absence rules, and required
@@ -345,6 +347,8 @@ design/specification promotion before implementation.
 ### Stage 9.2: Canonical composition plan
 
 Checklist basis: `P9-10` through `P9-14`.
+
+Status: NEXT / NOT STARTED.
 
 Implement the typed transient plan, deterministic coverage projection, explicit
 human decision admission, advisory-provider limitations, and executable

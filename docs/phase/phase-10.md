@@ -1,7 +1,7 @@
 # Phase 10 - Durable Model Development and Continuation
 
 Stage Status:
-- Current status: PLANNED
+- Current status: OPEN
 - Predecessor: Phase 9 - Evidence-Backed Component Composition and Dashboard
 - Development item: DEV-CBD-002
 - Current step: begin only after Phase 9 establishes accepted canonical-model,
@@ -198,6 +198,12 @@ normal approximately six-hour phase/subphase work unit.
 
 ### Stage 10.1: Package and integrity contract
 
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
+
 Checklist basis: `P10-01` through `P10-04`.
 
 Freeze source-root role, manifest, package identity/revision, schema version,
@@ -205,12 +211,24 @@ artifact inventory, hashes, and fail-closed integrity behavior.
 
 ### Stage 10.2: Source snapshots and freshness
 
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
+
 Checklist basis: `P10-10` through `P10-13`.
 
 Define Scenario, model-context, glossary/BoK, and CML-baseline snapshots with
 canonical provenance and deterministic drift/freshness checks.
 
 ### Stage 10.3: Durable semantic state and traceability
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
 
 Checklist basis: `P10-20` through `P10-23`.
 
@@ -220,12 +238,24 @@ parallel semantic model.
 
 ### Stage 10.4: CML projection, review, and approval
 
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
+
 Checklist basis: `P10-30` through `P10-34`.
 
 Persist candidate CML projection and semantic diff, bind review/approval to exact
 hashes, and define supersession and invalidation.
 
 ### Stage 10.5: Continuation and rehydration
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
 
 Checklist basis: `P10-40` through `P10-44`.
 
@@ -235,12 +265,24 @@ session state.
 
 ### Stage 10.6: Drift and CML change gate
 
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
+
 Checklist basis: `P10-50` through `P10-54`.
 
 Detect drift, calculate invalidation, enforce exact approval before mutation,
 and validate approved CML changes through canonical tooling.
 
 ### Stage 10.7: Retained-state and security integration
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
 
 Checklist basis: `P10-60` through `P10-63`.
 
@@ -249,6 +291,12 @@ boundaries, and build/publication exclusion without weakening project-local
 resume independence.
 
 ### Stage 10.8: End-to-end validation and closure
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-10-checklist.md` with
+  reproducible evidence.
 
 Checklist basis: `P10-70` through `P10-73`.
 

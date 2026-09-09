@@ -1,6 +1,6 @@
 # Phase 10 Checklist: Durable Model Development and Continuation
 
-Status: PLANNED
+Status: OPEN
 phase=[Phase 10](phase-10.md)
 predecessor=[Phase 9](phase-9.md)
 development-item=DEV-CBD-002

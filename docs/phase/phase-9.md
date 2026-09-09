@@ -294,7 +294,7 @@ lifecycle concerns in advance.
   planning record introduced by the synchronized upstream history.
 - `docs/journal/2026/09/2026-09-09-mono-koto-analysis-view.md` records the
   Mono-Koto analysis/projection and stakeholder-communication direction.
-- `docs/journal/2026/09/2026-09-03-cml-design-improvement-pr-loop.md`, where
+- `docs/journal/2026/09/2026-09-03-design-improvement-pull-request-loop.md`, where
   present in synchronized history, records the canonical-source candidate
   design and Git-governed improvement direction.
 - `src/main/cml/usecase/application-component-composition.cml` remains working
@@ -394,6 +394,12 @@ stable semantic identities and candidate/diff handoff needed by Phase 10, but
 do not persist the continuation package here.
 
 ### Stage 9.8: Validation and closure
+
+Stage Status:
+- Current status: OPEN
+- Owner: Textus CBD Support development
+- Update rule: completion is recorded only by `phase-9-checklist.md` with
+  reproducible evidence.
 
 Checklist basis: `P9-70` through `P9-73`.
 

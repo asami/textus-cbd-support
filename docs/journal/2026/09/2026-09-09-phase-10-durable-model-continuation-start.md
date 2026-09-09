@@ -73,5 +73,5 @@ Any item that cannot reasonably remain within the project's normal roughly
 six-hour phase/subphase unit should be split before implementation rather than
 allowed to become an oversized stage.
 
-This journal records planning authority only. Implementation acceptance remains
-with the Phase 10 checklist and reproducible evidence.
+This journal records the Phase 10 planning handoff. Implementation acceptance
+remains with the Phase 10 checklist and reproducible evidence.

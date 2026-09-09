@@ -1,0 +1,380 @@
+Application Component Composition
+=================================
+
+This CML requirement model defines how Textus CBD Support helps an application
+designer plan an application from attributable existing CAR and SAR evidence
+and explicitly identified component gaps.
+
+# VISION
+
+## EvidenceBackedApplicationComposition
+
+### SUMMARY
+
+Make an intended Textus application explainable as a composition of existing
+components, unresolved requirements, and proposed component responsibilities.
+
+### GOAL
+
+Enable a human developer or an MCP-connected generative-AI client to describe
+an application goal and receive a reviewable component composition whose
+existing-component claims are grounded in attributable CAR and SAR evidence.
+
+### PRECONDITION
+
+Textus treats component selection and application composition as explicit
+modeling concerns rather than as an unrecorded search or prompt result.
+
+### POSTCONDITION
+
+Application composition can be discussed through shared intent, capability,
+coverage, gap, proposal, evidence, and decision vocabulary.
+
+# CONTEXT
+
+## ApplicationCompositionBackground
+
+### SUMMARY
+
+Describe the information needed to plan an application from reusable
+components.
+
+### DESCRIPTION
+
+An application description may contain actors, stakeholder goals, desired
+behaviors, data responsibilities, external integrations, quality expectations,
+runtime constraints, deployment assumptions, and implementation preferences.
+
+CBD Support currently observes component identity, kind, source, version,
+freshness, runtime compatibility, operations, references, artifacts,
+dependencies, conflicts, and explicit evidence absences.  Application
+composition additionally requires structured statements about the capabilities
+provided and required by each component and about the application requirements
+that those capabilities cover.
+
+# SYSTEM CONTEXT
+
+## CbdSupportCompositionBoundary
+
+### SUMMARY
+
+Define the boundary between application-composition support and component
+generation or execution.
+
+### DESCRIPTION
+
+CBD Support collects and reconciles component evidence, accounts for
+application-requirement coverage, preserves conflicts and limitations, and
+returns a composition plan.  Semantic or AI providers may interpret intent or
+propose component boundaries through attributable provider contracts.
+
+Cozy and CNCF remain responsible for generating, assembling, building, and
+running CAR and SAR artifacts.  A composition plan does not claim that an
+application has been generated or executed.
+
+# CAPABILITY
+
+## ApplicationIntentCapture
+
+### SUMMARY
+
+Preserve what the application designer wants to build before interpretation.
+
+### GOAL
+
+Retain a stable application-intent identity, the original description, actors,
+stakeholder goals, desired behavior, data and integration responsibilities,
+quality expectations, runtime and deployment constraints, preferences, and
+unresolved questions.
+
+### PRECONDITION
+
+The application designer supplies an application purpose and at least one
+desired behavior.
+
+### POSTCONDITION
+
+The original statements remain distinguishable from deterministic, model, and
+human interpretations derived from them.
+
+## RequiredCapabilityModeling
+
+### SUMMARY
+
+Represent one bounded capability required by the admitted application intent.
+
+### GOAL
+
+Give every functional, quality, integration, data, runtime, or operational
+capability a stable identity, originating intent statement, mandatory or
+optional status, acceptance condition, semantic terms, assumptions,
+confidence, and interpretation provenance.
+
+### PRECONDITION
+
+One admitted application intent is available for decomposition.
+
+### POSTCONDITION
+
+The application has a bounded capability inventory that can be compared with
+component evidence.
+
+## ComponentCapabilityEvidence
+
+### SUMMARY
+
+Describe what one observed component can provide without completing missing
+facts from another source.
+
+### GOAL
+
+Relate exact component, source, kind, and version identity to provided and
+required capabilities, realizing services and operations, dependencies,
+runtime and deployment constraints, quality evidence, supported use cases,
+known limitations, freshness, and diagnostics.
+
+### PRECONDITION
+
+An attributable component observation is available.
+
+### POSTCONDITION
+
+Each component-capability statement identifies whether it is an observed fact,
+deterministic inference, model inference, or human decision and retains the
+supporting Evidence.
+
+## ApplicationCapabilityCoverage
+
+### SUMMARY
+
+Account for how existing components cover the application's required
+capabilities.
+
+### GOAL
+
+Bind each required capability to one selected component, a bounded alternative
+set, a composition gap, or an explicit unresolved result.
+
+### PRECONDITION
+
+The required-capability inventory and relevant component evidence are
+available.
+
+### POSTCONDITION
+
+Coverage status, rationale, supporting and missing evidence, conflicts,
+constraints, and selection-decision provenance remain reviewable.
+
+## MissingComponentProposal
+
+### SUMMARY
+
+Describe a candidate component responsibility for application capabilities
+not covered by existing evidence.
+
+### GOAL
+
+Propose a provisional component identity, kind, responsibility boundary,
+provided and required capabilities, services and operations, dependencies,
+runtime and quality constraints, rationale, alternatives, confidence, open
+questions, provider identity, and human confirmation state.
+
+### PRECONDITION
+
+One or more required capabilities remain uncovered after existing-component
+analysis.
+
+### POSTCONDITION
+
+The proposed component remains a design artifact distinct from every existing
+catalog component until a human decision promotes it into component modeling.
+
+## ApplicationCompositionPlanning
+
+### SUMMARY
+
+Produce the reviewable result that combines intent, coverage, existing
+components, gaps, and proposed components.
+
+### GOAL
+
+Return selected existing components, bounded alternatives,
+requirement-to-component coverage, dependency and runtime composition,
+composition gaps, proposed components, conflicts, limitations, assumptions,
+open questions, Evidence provenance, inference provenance, and human
+decisions.
+
+### PRECONDITION
+
+Application intent, required capabilities, and available component evidence
+have been admitted.
+
+### POSTCONDITION
+
+Every admitted application requirement has an explicit disposition and every
+material statement has attributable evidence or decision provenance.
+
+# CONSTRAINT
+
+## EvidenceAndInferenceSeparation
+
+### SUMMARY
+
+Existing-component facts cite attributable source evidence.  Deterministic
+inference, model inference, and human decisions remain explicitly labeled and
+do not alter the cited observation.
+
+## TotalRequirementAccounting
+
+### SUMMARY
+
+Every admitted required capability appears in the composition result as
+selected, alternative, proposed, or unresolved.
+
+## NoHiddenWinner
+
+### SUMMARY
+
+Source priority, match score, or model preference does not silently select one
+component when the admitted evidence remains ambiguous or conflicting.
+
+## ProposalIsNotCatalogFact
+
+### SUMMARY
+
+A proposed component remains a separate design artifact until an explicit
+human decision promotes it into a component-development workflow.
+
+## AssemblyIsNotExecution
+
+### SUMMARY
+
+The composition plan supplies information needed to assemble an application;
+it does not claim that a SAR has been generated, built, or run.
+
+# USE CASE
+
+## plan_application_component_composition
+
+### ID
+
+UC-CBD-001
+
+### SUMMARY
+
+Describe an application to build and obtain an evidence-backed composition
+plan containing the required existing components and proposed new components
+for responsibilities not covered by available evidence.
+
+### ACTOR
+
+A human developer or an MCP-connected generative-AI client designing a Textus
+application.
+
+### PRIMARY ACTOR
+
+ApplicationDesigner
+
+### SUPPORTING ACTOR
+
+CatalogProvider, SemanticKnowledgeProvider, CompositionAdvisor
+
+### STAKEHOLDER
+
+ApplicationOwner
+
+### GOAL
+
+Determine how the intended application can be realized from existing CAR and
+SAR components, make every uncovered responsibility explicit, and propose
+bounded component responsibilities for the remaining work.
+
+### TRIGGER
+
+The application designer describes an application that they want to create.
+
+### PRIORITY
+
+high
+
+### STATUS
+
+draft
+
+### PRECONDITION
+
+The application designer supplies an application purpose and at least one
+required behavior.  CBD Support has access to attributable component evidence
+or can report explicitly that the required evidence is unavailable.
+
+### POSTCONDITION
+
+Every admitted application requirement is covered by one selected existing
+component, associated with bounded alternatives, assigned to a proposed new
+component responsibility, or retained as unresolved because the evidence is
+insufficient or conflicting.
+
+The resulting plan retains the source, version, freshness, runtime,
+dependency, conflict, limitation, assumption, and inference provenance needed
+to review each disposition.
+
+### MAIN FLOW
+
+#### evidence_backed_application_composition
+
+1. The application designer supplies the application purpose, actors, desired
+   behaviors, data responsibilities, external integrations, quality
+   expectations, runtime constraints, deployment assumptions, and optional
+   implementation preferences.
+2. CBD Support retains the original intent and identifies missing decision
+   inputs as open questions.
+3. The intent is decomposed into bounded required capabilities, each retaining
+   its originating statement and interpretation provenance.
+4. CBD Support searches attributable catalog, development, local artifact,
+   cache, and semantic evidence for relevant CAR and SAR components.
+5. CBD Support returns source-preserving candidates with identity, kind,
+   version, freshness, runtime compatibility, operations, dependencies,
+   limitations, and Evidence.
+6. CBD Support evaluates how the candidates collectively cover the required
+   capabilities and records overlaps, gaps, dependency conflicts, runtime
+   incompatibilities, missing evidence, and assumptions.
+7. A composition advisor groups uncovered responsibilities into proposed
+   component boundaries with explicit rationale, confidence, provider
+   identity, and open questions.
+8. CBD Support presents the selected existing components, bounded alternatives,
+   capability coverage, composition graph, gaps, proposed components,
+   conflicts, limitations, assumptions, and provenance as one reviewable plan.
+
+#### explicit_component_alternatives
+
+1. Two or more existing components plausibly cover the same required
+   capability.
+2. CBD Support preserves every bounded alternative with its source, version,
+   match rationale, constraints, and supporting Evidence.
+3. No component becomes selected until an admitted selection policy or human
+   decision chooses it.
+
+#### insufficient_component_evidence
+
+1. A required capability has a possible component match whose capability,
+   runtime, dependency, or freshness evidence is insufficient.
+2. CBD Support records the candidate and the missing evidence without claiming
+   coverage.
+3. The composition result keeps the capability unresolved or assigns it to a
+   provisional component proposal with the insufficiency visible.
+
+#### no_existing_component
+
+1. No attributable existing component covers one or more required
+   capabilities.
+2. CBD Support records a composition gap and the considered evidence.
+3. A composition advisor proposes a bounded new component responsibility.
+4. The proposal remains separate from catalog facts and awaits human decision.
+
+#### incompatible_composition
+
+1. Individually relevant components have incompatible dependency versions,
+   runtime constraints, or composition assumptions.
+2. CBD Support preserves the conflict paths and affected requirements.
+3. The composition plan presents alternatives or an unresolved result instead
+   of silently choosing a winner.

@@ -219,11 +219,20 @@ MCP tool. CAR/SAR runtime configuration may further disable a ready service or
 operation through `cncf.mcp.enabled`, `cncf.mcp.disabled-services`, and
 `cncf.mcp.disabled-operations`.
 
+Codex clients configure the CBD Support MCP endpoint in their own workspace or
+user environment; the server repository does not install client configuration
+automatically. See the
+[Codex MCP client configuration example](examples/codex-mcp/README.md). The
+sample uses a loopback endpoint and must be adjusted when the server runs on a
+different host.
+
 ## Representative CBD and SIE SAR
 
-Run `scripts/check-cbd-sie-sar.sh` to build both local snapshot CARs, assemble
-the representative `textus-cbd-sie` SAR profiles, and verify each through a
-separately owned loopback CNCF server. The policy matrix requires exact CBD/SIE
+Publish the CBD Support, Scraper, SIE, and BoK snapshot CARs locally in
+dependency order, then run `scripts/test/check-cbd-sie-sar.sh`. The test resolves
+those CARs from the local CAR repository, assembles descriptor-only
+`textus-cbd-sie` SAR profiles, and verifies each through a separately owned
+loopback CNCF server. The policy matrix requires exact CBD/SIE
 tool counts of `12/7` at baseline, `0/0` under global disable, `12/0` when the
 SIE service is disabled, and `11/6` when both status operations are disabled.
 Disabled calls must return JSON-RPC `-32602`; any administration, mutation,
@@ -237,8 +246,8 @@ applies result bounds without losing conflict provenance, and checks that a
 missing catalog stays degraded without an immediate retry loop. See
 [the representative SAR example](examples/cbd-sie-sar/README.md).
 
-Use `scripts/check-cbd-sie-sar.sh --profile baseline` when validating only the
-two-main-component composition and source-ownership boundary. Omitting
+Use `scripts/test/check-cbd-sie-sar.sh --profile baseline` when validating
+only the two-main-component composition and source-ownership boundary. Omitting
 `--profile` remains the complete publication-policy matrix gate.
 
 Run `scripts/check-cbd-standalone.sh` to verify CBD Support independently from

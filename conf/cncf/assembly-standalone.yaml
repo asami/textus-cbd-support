@@ -1,0 +1,21 @@
+subsystem: textus-cbd-support
+version: 0.1.0-SNAPSHOT
+components:
+  - namespace: org.simplemodeling.textus
+    id: CbdSupport
+    version: 0.1.0-SNAPSHOT
+config:
+  textus.subsystem.user-mode: standalone
+security:
+  authentication:
+    convention: disabled
+    fallback_privilege: disabled
+    local_subject:
+      id: cbd-standalone-review
+      roles:
+        - reviewer
+      capabilities:
+        - reviewer
+      security_level: user
+      attributes:
+        installation: cbd-standalone

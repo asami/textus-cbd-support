@@ -5,7 +5,8 @@ phase=[Phase 9](phase-9.md)
 
 This checklist is the authoritative Phase 9 state ledger. Each item remains
 unchecked until reproducible evidence is recorded. Split an item before
-implementation when its declared boundary exceeds a focused work slice.
+implementation when its declared boundary exceeds a focused work slice; target
+approximately six hours or less per item.
 
 ## P9-01: Shared responsibility boundary
 
@@ -15,15 +16,15 @@ implementation when its declared boundary exceeds a focused work slice.
 
 ## P9-02: Shared evidence inventory
 
-- [ ] Inventory catalog, model, runtime, BoK, Review, and existing Web
-  evidence; define exact attribution, authorization, redaction, absence, and
-  limitation behavior for both surfaces.
+- [ ] Inventory catalog, canonical design source, model, runtime, BoK, Review,
+  and existing Web evidence; define exact attribution, authorization,
+  redaction, absence, and limitation behavior for composition and Dashboard.
 
 ## P9-03: No-hidden-winner and no-inference rules
 
 - [ ] Specify how conflicting, insufficient, or unavailable evidence remains
-  visible without selection, CML-source parsing, naming heuristics, or
-  Dashboard-local conclusions.
+  visible without selection, CML-source heuristics, naming heuristics,
+  diagram-layout inference, or Dashboard-local conclusions.
 
 ## P9-04: Composition model and promotion boundary
 
@@ -34,7 +35,15 @@ implementation when its declared boundary exceeds a focused work slice.
 ## P9-05: Shared executable contract skeleton
 
 - [ ] Add executable specifications for attribution, absence, redaction, and
-  the boundary between composition candidates and Dashboard component facts.
+  the boundary between composition candidates, Dashboard projections, and
+  canonical Component facts.
+
+## P9-06: Canonical Component Design Model and projection contract
+
+- [ ] Define canonical-source authority, admitted enrichment evidence, stable
+  semantic identities, projection rules, cross-view identity/navigation, and
+  explicit absence/ambiguity behavior shared by Mono-Koto, Use Case, Entity,
+  Event, Structure, Classification, Workflow, and StateMachine views.
 
 ## P9-10: Canonical composition plan
 
@@ -64,14 +73,14 @@ implementation when its declared boundary exceeds a focused work slice.
 ## P9-20: Component Dashboard projection contract
 
 - [ ] Define one deterministic `ComponentDashboard` projection for identity,
-  content, usage, operation, quality, knowledge attribution, and explicit
-  absences.
+  content, usage, operation, quality, knowledge attribution, explicit
+  absences, and stable model-view navigation.
 
 ## P9-21: Content Overview
 
 - [ ] Project purpose, responsibility, domain summary, capabilities,
-  representative use cases, rules, interfaces/events, and related knowledge
-  where admitted evidence exists.
+  representative analysis/model entry points, rules, interfaces/events, and
+  related knowledge where admitted evidence exists.
 
 ## P9-22: Dashboard Web entry
 
@@ -81,70 +90,124 @@ implementation when its declared boundary exceeds a focused work slice.
 ## P9-23: Dashboard executable specifications
 
 - [ ] Prove deterministic source attribution, absence-safe projection,
-  authorization, and redaction for the Dashboard foundation.
+  authorization, redaction, and canonical-identity preservation for the
+  Dashboard foundation.
 
-## P9-30: Structure-view contract
+## P9-30: Mono-Koto projection contract
 
-- [ ] Normalize Entity, Value, Aggregate, composition, aggregation, and
-  association metadata; record unsupported Cozy fields as explicit gaps.
+- [ ] Define Mono and Koto as stakeholder-facing projections over shared
+  semantic identities, explicitly rejecting mandatory `Mono = Entity` and
+  `Koto = Event` one-to-one mappings.
 
-## P9-31: Structure-view Web projection
+## P9-31: Mono-Koto Web overview
 
-- [ ] Implement overview and exact relation/element detail that preserves
-  published ownership, lifecycle, cardinality, and navigability semantics.
+- [ ] Implement a non-engineering-oriented Mono-Koto overview using domain
+  vocabulary, simple relationships, source attribution, explicit ambiguity,
+  and drill-down links without exposing engineering detail by default.
 
-## P9-32: Classification view
+## P9-32: Mono-Koto semantic bridge
+
+- [ ] Link each admitted Mono to relevant Entity/Value/Aggregate semantics and
+  each admitted Koto to relevant Command/Event/Workflow/state-effect semantics
+  with stable forward and reverse navigation.
+
+## P9-33: Use Case communication projection
+
+- [ ] Project actor, goal, trigger, flows, postconditions, domain elements,
+  collaborators, realizing Workflow, and Mono-Koto relationships with stable
+  semantic navigation.
+
+## P9-40: Entity Model contract
+
+- [ ] Normalize and project Entity, Value, Aggregate, identity, ownership,
+  lifecycle, and aggregate-boundary metadata; record unsupported Cozy fields as
+  explicit gaps.
+
+## P9-41: Structure view
+
+- [ ] Implement overview and exact composition/aggregation/association detail
+  that preserves published ownership, independent-existence, reassignment,
+  deletion/lifecycle, cardinality, and navigability semantics.
+
+## P9-42: Classification view
 
 - [ ] Project generalization, trait, and multiple powertype dimensions with
   exact detail and reverse navigation where stable metadata permits it.
 
-## P9-40: Workflow projection and Web view
+## P9-43: Static cross-view navigation
+
+- [ ] Preserve canonical identity across Mono-Koto, Entity, Structure, and
+  Classification projections so a user can move between overview and detailed
+  static semantics without name-based reconstruction.
+
+## P9-50: Event Model contract
+
+- [ ] Normalize and project Command/Event identities, cause, consequence,
+  affected domain elements, generated state effects, and attribution without
+  treating every Koto as a single Event.
+
+## P9-51: Workflow projection and Web view
 
 - [ ] Project Workflow identity, activities, flow, participants, domain
   elements, operations/events, and published state effects with stable detail
   navigation.
 
-## P9-41: StateMachine deep dive
+## P9-52: StateMachine deep dive
 
 - [ ] Project states, transitions, triggers, guards, actions, related
   activities, operations, events, and rules without name-based lookup.
 
-## P9-42: Use Case view
+## P9-53: Dynamic cross-view navigation
 
-- [ ] Project actor, goal, trigger, flows, postconditions, domain elements,
-  collaborators, and realizing Workflow with stable semantic navigation.
+- [ ] Preserve canonical identity across Koto, Event, Workflow, StateMachine,
+  and affected Entity projections with stable forward/reverse navigation and
+  explicit missing-semantics behavior.
 
-## P9-50: Lifecycle semantics evidence
+## P9-60: Analysis-to-design impact projection
+
+- [ ] Given a stakeholder-facing Mono-Koto or Use Case correction/proposal,
+  identify affected Entity, Event, Structure, Workflow, StateMachine, and
+  canonical-source locations without directly mutating canonical main-branch
+  source.
+
+## P9-61: Candidate design and semantic diff integration
+
+- [ ] Connect analysis-view proposals to the existing proposed-CML,
+  Candidate Component Design Model, semantic Design Diff, candidate Review,
+  and Git-governed acceptance loop where CML owns the affected design.
+
+## P9-62: Lifecycle and unified evidence integration
 
 - [ ] Present declared composition/aggregation/association semantics beside
-  available runtime and Review evidence, preserving disagreement and absence.
+  available runtime and Review evidence and integrate Usage/Discovery,
+  Operation, and Quality/Review projections without changing their canonical
+  owners or conclusions.
 
-## P9-51: Unified Dashboard integration
-
-- [ ] Integrate existing Usage/Discovery, Operation, and Quality/Review
-  projections without changing their canonical owners or conclusions.
-
-## P9-52: Cross-surface navigation
+## P9-63: Composition-to-Dashboard cross-surface navigation
 
 - [ ] Allow an admitted composition candidate to link to an exact Component
-  Dashboard entry without converting that candidate into selection or fact.
+  Dashboard entry and its model projections without converting that candidate
+  into selection or fact.
 
-## P9-60: Validation and compatibility
+## P9-70: Validation and compatibility
 
-- [ ] Run selected executable, static, ABI, integration, and representative
-  SAR validation appropriate to the admitted implementation boundary.
+- [ ] Run selected executable, static, ABI, integration, representative SAR,
+  projection-consistency, and navigation validation appropriate to the admitted
+  implementation boundary.
 
-## P9-61: Documentation record
+## P9-71: Documentation record
 
 - [ ] Synchronize design, specification, CML, README/reference material,
-  strategy, Phase ledger, and journals with accepted implementation evidence.
+  strategy, Phase ledger, model-view notes, and journals with accepted
+  implementation evidence.
 
-## P9-62: Deferred-work accounting
+## P9-72: Deferred-work accounting
 
-- [ ] Record persistence, approval-history, continuation, and unavailable
-  upstream work under DEV-CBD-002 or explicit successor authority.
+- [ ] Record persistence, approval-history, continuation, unavailable upstream
+  semantic metadata, and successor work under DEV-CBD-002 or explicit successor
+  authority.
 
-## P9-63: Final review and closure
+## P9-73: Final review and closure
 
 - [ ] Complete final review, commit validated work, and close Phase 9 only
   after every required item is checked or explicitly relocated.

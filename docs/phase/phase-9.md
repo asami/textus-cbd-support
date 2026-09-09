@@ -5,6 +5,7 @@ Stage Status:
 - Current step: P9-01 through P9-06 establish the shared evidence,
   responsibility, canonical-model, and projection boundaries before
   implementation begins.
+- Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
   in `phase-9-checklist.md`; phase closure is based solely on that ledger.
@@ -213,6 +214,51 @@ but the analysis view does not directly rewrite the canonical main branch.
 This preserves the existing principle: **model-driven improvement,
 Git-governed acceptance**.
 
+## Phase 10 handoff boundary
+
+Phase 9 deliberately keeps composition plans and candidate modeling state
+transient. Its responsibility is to establish the semantic identities,
+projections, traceability, candidate design, semantic diff, review evidence, and
+canonical-source change proposal that can be inspected in the current work
+context.
+
+Phase 10 takes over when that work must survive a process/session boundary or
+become an explicit reviewed development state. The handoff is therefore not a
+conversion to a different storage model:
+
+```text
+Phase 9
+Canonical Component Design Model
+  -> stakeholder / engineering projections
+  -> semantic feedback
+  -> Candidate Design Model
+  -> Semantic Diff / Candidate Review
+            |
+            | durable handoff using the same semantic identities
+            v
+Phase 10
+Project-local Internal Model Package
+  -> source snapshots
+  -> selected semantic state
+  -> decisions / open issues
+  -> candidate CML projection
+  -> approval / validation
+  -> continuation cursor
+            |
+            v
+fresh-process rehydration
+            |
+            v
+Phase 9 Canonical Component Design Model + projections
+```
+
+Phase 9 acceptance must therefore provide stable enough semantic identity,
+projection, traceability, candidate-design, and semantic-diff contracts for
+Phase 10 to persist and rehydrate them without reinterpretation. Phase 10 owns
+durability, approval binding, continuation, freshness/invalidation, and the
+exact CML mutation gate. Phase 9 does not need to implement those storage and
+lifecycle concerns in advance.
+
 ## Scope
 
 1. Promote the V1 composition responsibility, evidence, coverage, proposal,
@@ -233,9 +279,11 @@ Git-governed acceptance**.
    and Use Case projections with stable semantic cross-navigation.
 8. Preserve analysis-view feedback as explicit semantic proposals that can be
    traced to canonical-source changes and candidate design review.
-9. Integrate Usage, Operation, and canonical Review information into Dashboard
-   without changing their source authority.
-10. Verify the behavior with executable specifications and proportionate static,
+9. Establish stable handoff identities and semantic-diff/candidate contracts
+   sufficient for Phase 10 durable persistence and rehydration.
+10. Integrate Usage, Operation, and canonical Review information into Dashboard
+    without changing their source authority.
+11. Verify the behavior with executable specifications and proportionate static,
     integration, and review evidence.
 
 ## Planning sources
@@ -251,6 +299,8 @@ Git-governed acceptance**.
   design and Git-governed improvement direction.
 - `src/main/cml/usecase/application-component-composition.cml` remains working
   input until its syntax and contracts are promoted.
+- `docs/phase/phase-10.md` defines the durable successor boundary for
+  DEV-CBD-002.
 
 ## Non-goals
 
@@ -268,8 +318,9 @@ Git-governed acceptance**.
   metadata.
 - Allowing stakeholder-facing edits to bypass candidate-design validation and
   Git-governed acceptance where CML owns the affected design.
-- Persisting composition plans, approval history, or continuation packages;
-  those remain DEV-CBD-002 work.
+- Persisting composition plans, approval history, continuation packages,
+  freshness/invalidation state, or durable candidate state; these are Phase 10
+  responsibilities under DEV-CBD-002.
 - Replacing Discovery search, Review conclusions, or existing retrieval
   selection rules.
 
@@ -338,7 +389,9 @@ Checklist basis: `P9-60` through `P9-63`.
 
 Connect analysis and engineering projections, identify detailed-model impact of
 stakeholder-facing changes, preserve lifecycle evidence, and integrate Usage,
-Operation, and Quality/Review while retaining canonical ownership.
+Operation, and Quality/Review while retaining canonical ownership. Produce the
+stable semantic identities and candidate/diff handoff needed by Phase 10, but
+do not persist the continuation package here.
 
 ### Stage 9.8: Validation and closure
 
@@ -346,7 +399,8 @@ Checklist basis: `P9-70` through `P9-73`.
 
 Run proportionate validation, synchronize the documentation record, account for
 deferred work, and close only after final review and every ledger item is
-complete or explicitly relocated.
+complete or explicitly relocated. Closure records Phase 10 as the successor for
+DEV-CBD-002 durability and continuation work.
 
 ## Cross-project dependencies
 
@@ -360,3 +414,7 @@ upstream gap rather than infer it locally.
 CNCF Phase 72 owns runtime lifecycle semantics and attributable runtime
 evidence. Missing upstream contracts remain explicit gaps; they do not authorize
 a CBD Support workaround.
+
+Phase 10 consumes the accepted Phase 9 semantic/model contracts. A Phase 10
+storage need does not by itself authorize Phase 9 to add a parallel semantic
+model or infer missing upstream metadata.

@@ -87,6 +87,19 @@ quality conclusions tied to the same canonical Evidence, Observation,
 capability, and limitation identities; no surface may rerun a rule or invent a
 conclusion.
 
+### Phase 9: Evidence-Backed Component Composition and Dashboard
+
+Turn application intent and attributable CAR/SAR component evidence into a
+reviewable composition plan, while making each exact Component understandable
+through an evidence-backed Dashboard. Composition retains alternatives, gaps,
+limitations, provider suggestions, and human decisions without a hidden
+winner. Dashboard projects admitted component content, usage, operation, and
+Quality/Review condition without creating facts or conclusions. Both surfaces
+share attribution, absence, authorization, and redaction boundaries but retain
+their distinct responsibilities. The initial phase excludes application
+generation/execution and durable plan or approval storage, which remains a
+separate successor concern.
+
 ## Current Priority
 
 Phases 1 through 6 are complete. Phase 4 received its attributable Stage 4.6
@@ -284,9 +297,15 @@ passed. The consumed Phase 8 full review was not rerun. The retained boundary
 is existing direct provider submission and CI compatibility, Entity
 persistence and exact Report reads, redaction hardening, and total quality
 coverage. It does not authorize publication or alter the independently
-deferred first released CAR ABI baseline. Publication and a successor Phase
-remain outside this phase; the Phase release commit closes the accepted
-boundary.
+deferred first released CAR ABI baseline. Publication remains outside this
+phase; its release commit closes the accepted boundary.
+
+Phase 9 is OPEN with DEV-CBD-001 as its Work A. It starts by promoting the
+composition V1 responsibility, evidence, and decision boundaries and by
+freezing the Component Dashboard source/projection contract. Composition and
+Dashboard share admitted evidence but do not share selection authority or make
+inference into fact. The current CML requirement model remains working input
+until those contracts and executable evidence are accepted.
 
 Production restart-safe Review Job integration is nonblocking Deferred Work
 owned by cloud-native-component-framework Phase 69. CBD Support must not
@@ -317,19 +336,24 @@ authority. The detailed design and normative consumer boundary are
 
 | ID | Source | Development item | Disposition | Target | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions without turning inference into catalog fact. | STRATEGY_ITEM | 9.1 | CANDIDATE |
+| DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions without turning inference into catalog fact. | ACTIVE_PHASE_WORK | Phase 9 | OPEN |
 | DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Use Case Realization and CML projection work. | STRATEGY_ITEM | 9.2 | CANDIDATE |
 
-### 9.1 Use Case-driven component composition
+### 9.1 Use Case-driven component composition and Dashboard
 
-This candidate owns the requirement-side model and CBD Support workflow for
+Phase 9 owns the requirement-side model and CBD Support workflow for
 turning Story, Use Case, Scenario, and Step intent into explicit Activities,
 capability requirements, component alternatives, gaps, proposals, and human
 decisions. The draft
 `src/main/cml/usecase/application-component-composition.cml` is working input,
-not an implemented product contract. A Phase may adopt this item only after
-provider ownership, stable CML syntax, persistence, decision authority, and
-executable acceptance evidence are bounded.
+not an implemented product contract. Phase 9 must bound provider ownership,
+stable CML syntax, decision authority, and executable acceptance evidence before
+it can claim implementation progress. Plan persistence and approval history
+remain DEV-CBD-002 work. The companion Component Dashboard presents the
+identity, content, usage, operation, and canonical Review condition of an exact
+Component from admitted evidence. It may link to a composition candidate by
+stable identity, but it must not treat the candidate as a catalog fact or a
+human selection.
 
 ### 9.2 Project-local internal-model continuation
 

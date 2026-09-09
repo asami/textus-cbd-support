@@ -243,5 +243,5 @@ Candidate Triage: COMPLETED
 Canonical ID: DEV-CBD-001
 Disposition: STRATEGY_ITEM
 Strategy Record: docs/strategy/textus-cbd-support-development-strategy.md#9-development-item-status
-Target Phase: -
+Target Phase: Phase 9
 Triaged On: 2026-09-09

@@ -415,8 +415,13 @@ hand-written code must remain distinguishable.
 
 ### Quality Attribute View
 
+The normative capability inventory is
+`docs/spec/car-review-quality-attribute-catalog.md`. It promotes the Runtime,
+Operational, Design-time, Business, and AI-aware XMind taxonomy into stable
+Review capability IDs while retaining this note as design rationale.
+
 The initial quality set should be Security, Domain, Documentation, AI
-Readiness, Resilience, Testability, and Observability. Performance, I18N,
+Readiness, Resilience, Testability, Evaluability, and Observability. Performance, I18N,
 Reliability, Compatibility, Maintainability, Availability, and Scalability can
 follow after their capability and coverage contracts are specified.
 
@@ -424,6 +429,209 @@ Domain is a traceability-oriented view rather than a subjective score. It maps
 CML concepts to implementation, tests, and documentation. Documentation and AI
 Readiness likewise require structured coverage and consistency evidence, not a
 document-volume metric.
+
+Evaluability is a corpus-first review view. It verifies that a versioned
+evaluation corpus and experiment/arm/run identity are fixed before execution,
+and that resulting runtime observations can be correlated to those identities.
+It must not infer an evaluation corpus retrospectively from sampled or retained
+observability data. This view complements Testability and Observability rather
+than replacing either one.
+
+### Observability View
+
+The Observability View projects capabilities that let an operator explain
+runtime behavior from attributable Evidence. Its initial scope includes
+accepted runtime observations, corpus/experiment correlation, and security
+auditability. Telemetry volume, an installed backend, or the mere presence of
+logs is not an Assurance. Evidence must be bounded, structured, correlated to
+the reviewed execution identity, and explicit about missing, sampled, stale,
+or incompatible data.
+
+Error review has two independent questions. First, the component must use a
+typed, structured error contract with stable code, category, severity,
+retryability, safe context, and cause semantics; message strings or stack
+traces alone are not structured errors. Second, that error taxonomy must be
+projected into CNCF Observability, including CallTree correlation and causation,
+without parsing display text or leaking sensitive context. Static model and
+failure-test evidence can establish the first capability. The second requires
+runtime evidence that the same error identity and classification survive the
+operation-to-observability boundary. Missing runtime evidence remains
+`Unknown`; a structured error type alone is not an Observability Assurance.
+
+### Security View
+
+The Security View treats authentication, authorization, and auditability as
+separate capabilities. Authentication verifies workload, service, and user
+identity and its trust/credential lifecycle. Authorization evaluates and
+enforces access from authenticated subject context with deny-by-default and
+attributable decisions. Auditability retains bounded, tamper-resistant evidence
+of security-relevant actions and decisions with explicit retention and access
+policy. Evidence for one does not establish either of the others.
+
+Web security review treats cross-site request forgery protection as a
+first-class capability when a browser automatically attaches a session
+credential. Unsafe Form, Form API, and Web-facing REST requests must present a
+framework-issued token bound to the authenticated session; JavaScript must use
+the supported token projection and request helper rather than parsing cookies
+or inventing an application-local mechanism. Review evidence must distinguish
+browser Web REST from explicit Bearer, service-account, or mTLS external REST,
+prove that ambiguous credentials cannot downgrade protection, and show that
+token values do not enter URLs, logs, errors, telemetry, audit payloads, or
+demo manifests. CORS, `SameSite`, authentication, and authorization are
+complementary controls and do not by themselves establish CSRF protection.
+
+The view also includes domain-value safety and runtime/infrastructure defense.
+Domain object text attributes should use purpose-specific bounded datatypes
+rather than raw strings, preventing oversized values from becoming unbounded
+memory, storage, logging, or processing work. Numeric attributes should use
+constrained semantic datatypes rather than raw integer or decimal primitives,
+preventing negative, overflowing, or out-of-range values from violating domain
+invariants. Raw transport values are acceptable only at the decoding boundary.
+
+Infrastructure review distinguishes Immutable Infrastructure, Non-persistent
+Architecture, Disposable Infrastructure, deliberate Volatility, Cyber
+Resilience, and Moving Target Defense. These names do not establish Assurance
+by declaration: each retains separate deployment, state-boundary, replacement,
+recovery, rotation, and runtime Evidence because one does not imply the others.
+
+### UX View
+
+The UX View reviews whether a person can discover, understand, complete, and
+recover from the component's principal tasks through its supported interaction
+surfaces. Its initial sections are Web, CLI, Skill-assisted interaction, and
+cross-surface consistency. Web review covers task-oriented navigation, forms,
+feedback, validation, recovery, accessibility, and responsive behavior. CLI
+review covers command discovery, help, stable arguments and output, diagnostics,
+exit behavior, and automation safety. Skill review covers task discovery,
+accurate prerequisites and version scope, bounded authority, workflow guidance,
+diagnostics, limitations, and recovery procedures.
+
+The cross-surface section checks that Web, CLI, and Skills use consistent task
+vocabulary, invoke compatible operation semantics, expose comparable result and
+status concepts, and provide actionable diagnostics. A visually polished Web
+page, a present CLI command, or an installed Skill is not by itself an
+Assurance. The conclusion requires admitted evidence and an explicit Review
+Observation mapped to a UX capability.
+
+UX is a read-only projection of the canonical report. It may reuse one Evidence
+or Observation in Quality and AI views, but must not scrape a renderer or rerun
+a provider during projection. AI View asks whether an agent can safely consume
+the component; UX View asks whether the complete user journey, including an
+AI/Skill-assisted journey, is usable and coherent.
+
+### AI View
+
+The AI View assesses whether the reviewed component can be discovered,
+understood, and safely used by an AI agent or an AI-assisted developer. It is
+an AI-readiness and component-consumption view, not a record of which tools an
+AI Review provider happened to use during a Review Run. For a component using
+an admitted compatible Textus runtime, the framework-provided MCP and standard
+Skill paths are baseline capabilities: both are reported as supported unless
+the reviewed deployment explicitly disables or makes them incompatible.
+
+It has two first-class sections:
+
+- **MCP** reports the Textus-provided MCP consumption path as **○ Supported**
+  when the component's compatible runtime and MCP projection policy admit it.
+  It lists the framework/runtime version, effective publication policy, and
+  safe service/operation/tool identities when available. A component-specific
+  tool declaration adds detail but is not required to receive the baseline
+  Textus MCP support result. It never exposes endpoint URLs, credentials, raw
+  requests, raw results, or an unbounded invocation history.
+- **Skill** reports the Textus standard Skill consumption path as **○
+  Supported** when the component's compatible Textus environment admits the
+  standard skill set. The view lists the standard skill-set identity/version
+  and compatible component/runtime range. A component-specific skill is an
+  optional enhancement that adds domain guidance; it is not required to
+  receive the baseline Textus Skill support result. It never stores private
+  workspace paths, account identity, task transcripts, or an implicit
+  authority inferred from a Skill body.
+
+Both sections distinguish framework support, package or projection
+verification, and accepted live runtime evidence. The implemented provider
+expresses framework support through canonical `Assurance` or `Unknown`
+Observations and keeps structural or semantic content review as a separate
+`Finding` or `Unknown`; it does not add a second, competing lifecycle enum.
+Missing, disabled, incompatible, or unverified framework evidence remains an
+explicit `Unknown` or limitation. A source-tree-only `cncf-*` Skill remains
+development evidence and does not prove that a published standard `text-*`
+Skill is installed. The view retains links to compatible Textus runtime,
+effective MCP policy, and standard Skill-set Evidence so a user can distinguish
+framework AI support from component-specific guidance.
+
+Framework support is not a quality verdict. The AI View must also review the
+appropriateness of the MCP operations and Skills actually provided for the
+component, emitting Finding, Assurance, or Unknown with Evidence references:
+
+- **MCP content review** assesses task coverage, operation granularity,
+  command/query/action boundary, input/output schema and descriptions, error
+  and limitation reporting, authorization/readiness policy, versioning, and
+  whether the exposed surface is bounded enough for agent use. A framework
+  projection with no useful component operation, an over-broad mutation, or an
+  undocumented input remains reviewable even when MCP support is **○**.
+- **Skill content review** assesses whether a Skill has a clear component
+  purpose, accurate supported versions and prerequisites, correct MCP/tool
+  selection, bounded authority, useful workflow/diagnostic guidance, and
+  explicit limitations. A present Skill is not an Assurance merely because it
+  installs; stale instructions, unsafe implicit actions, or a mismatch with
+  the component's public contract are reviewable Findings.
+
+Deterministic contract checks establish the initial result where metadata,
+schemas, package contents, and installation evidence are sufficient. Semantic
+questions such as task coverage, explanation quality, and workflow usefulness
+may use advisory AI evidence, but no AI-only conclusion establishes final
+Assurance or changes a deterministic Finding.
+
+### Cost View
+
+The Cost View makes operational-cost optimization an explicit CAR Review
+concern. It is not limited to a cloud-billing total. It groups attributable
+evidence and observations about infrastructure consumption, continuing
+operations, development and maintenance effort, change and migration cost, AI
+usage, and risk-adjusted cost. It must keep cost reduction visible together
+with its performance, availability, maintainability, security, and quality
+trade-offs.
+
+Cost optimization should be represented as a review projection over canonical
+Evidence and Observations rather than as renderer-local advice. An initial
+projection item should carry the following concepts:
+
+```text
+CostOptimization
+- currentArchitecture
+- costDriver
+- optimization
+- expectedReduction
+- measuredReduction
+- qualityConstraints
+- operationalTradeoffs
+- evidence
+- confidence
+```
+
+`expectedReduction` and `measuredReduction` are distinct. A design-time
+estimate must not be presented as an observed saving. When price, usage, or
+runtime evidence is unavailable, the view may still identify a bounded cost
+driver and optimization opportunity, but it must expose the missing evidence
+and confidence instead of manufacturing an amount.
+
+The first executable scenarios should cover two current CNCF directions:
+
+- a Static Web App reduces avoidable dynamic Web-server access; relevant
+  evidence includes origin request count, CDN/cache hit rate, transfer volume,
+  compute utilization, update frequency, and the operational burden removed or
+  introduced by static delivery; and
+- Gemma plus MCP routes suitable AI work to a local or smaller model to reduce
+  commercial AI usage; relevant evidence includes requests by model, tokens or
+  equivalent usage, latency, response quality, fallback rate, local compute,
+  model-management burden, and commercial-provider cost avoided.
+
+Gemma plus MCP is not assumed to be cheaper merely because per-call API billing
+is absent. Local compute, model operation, reduced answer quality, and fallback
+to a stronger model remain part of the same cost assessment. Providers such as
+Cozy, sbt-cozy, CNCF runtime telemetry, Textus AI, deployment platforms, and
+billing systems may contribute evidence. CBD Support owns reconciliation and
+the canonical Cost View.
 
 ## Rule Model
 
@@ -632,12 +840,29 @@ implementation.
 - add CML/implementation, domain terminology, documentation, and test-adequacy
   rules; and
 - record provider/model/prompt/input/output provenance and cost limitations.
+- add AI View projections for component-provided MCP and Skill availability,
+  with declared/verified/operational evidence and redacted identity/digest
+  metadata.
+- add deterministic and advisory rules that assess the appropriateness of the
+  component's exposed MCP operations and supplied Skills, not only their
+  existence.
 
 ### Slice 9: Runtime evidence
 
 - define signed or attributable runtime evidence import;
 - map CallTree, metrics, job, authorization, and failure records; and
 - allow `Operational` maturity only from accepted runtime evidence.
+
+### Slice 10: Cost optimization view
+
+- define stable cost-driver, optimization, estimate, measurement, constraint,
+  trade-off, and confidence contracts;
+- project cost information from canonical Evidence and Observations without
+  embedding calculations in renderers;
+- add the Static Web App and Gemma-plus-MCP scenarios as initial executable
+  specifications; and
+- admit runtime, AI-usage, infrastructure, and billing evidence through
+  attributable providers while preserving unknown and stale measurements.
 
 ## Open Questions
 
@@ -662,6 +887,8 @@ implementation.
   publish, distribution, and deployment tasks?
 - Which semantic rules justify AI cost in CI, and which remain interactive
   developer review only?
+- Which normalized units and comparison periods are required before a Cost
+  View may report measured savings across runtime and billing providers?
 
 ## Promotion Gates
 
@@ -681,3 +908,25 @@ Before this note is promoted to stable design and specification:
   contracts; and
 - create executable specifications for report determinism, projection
   consistency, redaction, and unknown handling.
+
+
+## Post-Phase Quality Catalog Structure (2026-07-23)
+
+Quality-attribute gap analysis added Functional Suitability, Accessibility,
+Software Supply Chain Assurance, Privacy and Data Governance, Safety, Data
+Quality, AI Trustworthiness, Compatibility and Coexistence, Business
+Continuity, Internationalization and Localization, Supportability, Compliance
+and Governance, and Sustainability.
+
+The resulting 161-capability catalog and the Phase 8 P8-51 through P8-53
+providers implement the catalog-driven quality, AI-surface, UX, and Cost View
+boundary described above.
+
+The earlier response shape with dedicated `observability`, `security`, and
+`ux` fields would require a schema revision for every useful perspective. The
+implemented direction instead retains `cncf`, `implementation`, and `quality`
+as canonical roots and exposes catalog-driven `namedViews` entries. A named
+view is a discoverable read-only index over canonical Observation and Evidence
+identities; it is not another assessment result and cannot promote Assurance.
+Empty named views remain visible so clients can distinguish an available view
+with no mapped evidence from an unknown view name.

@@ -1,212 +1,239 @@
-# Mono-Koto Analysis View and Model Projection
+# Mono-Koto Analysis, Terminology, and Event Storming Views
 
 Date: 2026-09-09
+Updated: 2026-09-10
 
 ## Context
 
-CBD Support should provide a モノ・コト分析 (Mono-Koto Analysis) view that can be used both for domain analysis and for communication with stakeholders who do not need to understand engineering-level modeling notation.
+CBD Support should provide stakeholder-facing analysis views over the same canonical semantic/design model used by engineering views. Analysis and design are not separate models connected by a one-way transformation.
 
-The important design decision is that analysis and design are **not separate models connected by a one-way analysis-to-design transformation**. Instead, the analysis model is an overview/projection of the same semantic model represented in more detailed engineering views.
+The analysis family now consists primarily of:
 
-## Core Principle
+- Mono-Koto Analysis: conceptual/domain overview and terminology bridge.
+- Use Case: actor, goal, and stakeholder intent view.
+- Event Storming: behavioral overview organized around events and causal progression.
 
-Treat CBD Support as a set of views over a canonical semantic model.
-
-```text
-Canonical Semantic Model
-        |
-        +-- projection --> Mono-Koto Analysis View
-        +-- projection --> Entity Model View
-        +-- projection --> Event Model View
-        +-- projection --> Structure View
-        +-- projection --> Classification View
-        +-- projection --> Workflow View
-        +-- projection --> StateMachine View
-```
-
-The Mono-Koto Analysis View is therefore not merely an upstream artifact that is discarded or transformed after design begins. It remains useful throughout modeling as an overview of the detailed design.
-
-## Mono and Koto
-
-At the analysis level, use domain vocabulary that is understandable without engineering terminology.
+## Projection Principle
 
 ```text
-Mono
-  顧客
-  注文
-  商品
-  支払い
-
-Koto
-  注文する
-  支払う
-  出荷する
-  キャンセルする
+                    Terminology / BoK
+                           |
+                    domain vocabulary
+                           |
+                           v
+             Communication / Analysis Views
+              /             |              \
+      Mono-Koto          Use Case       Event Storming
+              \             |              /
+               \            |             /
+                 Canonical Design Model
+                  /                  \
+          Static Views            Dynamic Views
+        Entity / Structure       Event / Workflow
+        / Classification         / StateMachine
 ```
 
-Mono and Koto should not be mapped mechanically one-to-one to engineering concepts.
+All views are projections of shared semantics. None is an independently authoritative model. Changes made through a stakeholder-facing view are semantic change proposals that must be reconciled with canonical source and the existing candidate-design/Git-governed acceptance loop.
 
-A Mono is an overview projection of structural/domain concepts. For example, the stakeholder concept `注文` may project detailed elements such as:
+## Mono-Koto Analysis
+
+Mono-Koto is the stakeholder-facing conceptual overview and terminology bridge.
+
+A Mono is not mechanically one Entity. It may summarize an Entity, Value, Aggregate, structural relations, or other related structural semantics.
+
+A Koto is not mechanically one Event. It may summarize Use Case intent, Command, Domain Event, Workflow activity, state effect, or related behavioral semantics.
+
+Example:
 
 ```text
-Order       : AggregateRoot
-OrderLine   : Entity
-OrderStatus : Value
+Mono: 注文
+  <-> Term: 注文 / Order
+  <-> Order : AggregateRoot
+      OrderLine : Entity
+      OrderStatus : Value
+
+Koto: 注文する
+  <-> Term: 注文する / Place Order
+  <-> Use Case: Place Order
+      PlaceOrder : Command
+      OrderPlaced : DomainEvent
+      Order Placement : Workflow
 ```
 
-A Koto is an overview projection of behavioral/temporal concepts. For example, `注文する` may project:
+Engineering vocabulary should normally be hidden until drill-down.
+
+## Terminology / BoK Integration
+
+Terminology is not merely a display-label dictionary. A domain term is a semantic anchor that may be cross-referenced with multiple model elements.
+
+Representative information includes:
 
 ```text
-PlaceOrder  : Command
-OrderPlaced : DomainEvent
+Term
+  - preferred name
+  - aliases / alternative expressions
+  - definition
+  - language / localized labels where available
+  - Mono / Koto relevance
+  - related Use Cases
+  - related Entities / Values / Aggregates
+  - related Commands / Events
+  - related Workflows
 ```
 
-A Koto can therefore cover intent/action, occurrence/event, and process aspects rather than being equivalent to a Domain Event.
+CBD Support should support navigation questions such as:
 
-## Entity Model and Event Model Integration
+- Where is this domain term used in the design?
+- What stakeholder/domain term describes this Entity?
+- Which events and workflows realize this Koto?
+- Which terminology is relevant to this Workflow?
 
-The Mono-Koto view should be directly connected to the Entity Model and Event Model through the shared semantic model.
+Terminology evidence must remain attributable. Similar names or AI suggestions must not silently merge concepts. Possible synonyms such as `注文`, `受注`, and `オーダー` should be represented as synonym candidates or terminology inconsistencies until authoritative evidence or an explicit human decision resolves them.
+
+Mono-Koto therefore serves as the primary bridge between stakeholder vocabulary / BoK and engineering semantics.
+
+## Event Storming View
+
+Event Storming is a stakeholder-facing behavioral overview. It is not merely another rendering of Event Model because it crosses several engineering projections.
 
 Conceptually:
 
 ```text
-Mono -------------------- Entity / Value / Aggregate
-  \                       Structure / lifecycle
-   \
-    \ shared semantics
-     \
-Koto -------------------- Command / Event
-                          Workflow / StateMachine
+Actor
+  -> Command
+  -> Aggregate / Entity
+  -> Domain Event
+  -> Policy / Reaction
+  -> Command
+  -> Domain Event
 ```
 
-Examples of useful detailed relationships include:
+Representative mappings are:
+
+```text
+Event Storming concept   Semantic source
+Actor                    Use Case Actor
+Command                  Command / Operation semantics
+Aggregate                Entity Model
+Domain Event             Event Model
+Policy / Reaction        Workflow semantics
+External System          Component / external dependency
+Read Model               Query / View semantics
+Hotspot                  Issue / unresolved semantic question
+```
+
+Actor identity should normally derive from admitted Use Case semantics rather than being independently invented by the Event Storming projection.
+
+Hotspots are analysis/review observations, not canonical domain facts.
+
+## Relationship to Workflow and Flowchart
+
+Event Storming, Flowchart, Workflow, and StateMachine have distinct purposes:
+
+```text
+Event Storming
+  stakeholder/domain view of what happens, why, and what follows
+       |
+       v
+Flowchart
+  intentionally approachable, potentially non-faithful Workflow presentation
+       |
+       v
+Workflow
+  faithful engineering view of behavioral progression and control semantics
+       |
+       v
+StateMachine
+  detailed lifecycle view of an affected subject
+```
+
+This is a conceptual refinement order, not a transformation pipeline. All views project from shared admitted semantics.
+
+A Flowchart view may simplify or omit technical detail for communication. It must therefore disclose that it is not necessarily a faithful representation of every Workflow semantic detail. Workflow remains the precise engineering projection.
+
+## Mono-Koto and Event Storming Navigation
+
+Mono-Koto provides the conceptual map; Event Storming expands behavioral concepts into causal/event progression.
+
+Example:
+
+```text
+Mono-Koto
+  Mono: 注文
+  Koto: 注文する
+  Koto: 支払う
+  Koto: 発送する
+
+       drill down: 注文する
+
+Event Storming
+  Customer
+    -> PlaceOrder
+    -> Order
+    -> OrderPlaced
+    -> ReserveStock
+    -> StockReserved
+```
+
+Reverse navigation is equally important:
 
 ```text
 OrderPlaced
-  creates  -> Order
-  affects  -> Inventory
-  refers   -> Customer
-
-OrderCancelled
-  changes  -> Order.status
-  releases -> InventoryReservation
+  -> Koto: 注文する
+  -> Mono: 注文
+  -> Term: 注文 / Order
+  -> Entity/Aggregate: Order
 ```
 
-The same event can appear differently in different views: as an Event in the Event Model, as part of a Koto in the Mono-Koto Analysis View, and as a transition trigger in a StateMachine View.
-
-## Projection Rather Than One-Way Transformation
-
-Do not define the lifecycle as:
-
-```text
-Analysis -> Design
-```
-
-Instead use:
-
-```text
-Detailed / Canonical Model
-          |
-          | projection / abstraction
-          v
-   Analysis Overview
-          |
-          | stakeholder/design feedback
-          v
-Detailed / Canonical Model
-```
-
-The semantic authority remains the shared canonical model. Analysis views and engineering views expose different abstractions of it.
-
-This avoids maintaining two independent models and eliminates the usual analysis/design synchronization problem.
-
-Edits made through an analysis view should be interpreted as proposed semantic changes. CBD Support can resolve or propose how those changes should be represented in detailed engineering concepts.
-
-For example, if a user adds the stakeholder-level relation:
-
-```text
-注文 --含む--> 注文明細
-```
-
-CBD Support may propose:
-
-```text
-Order composition OrderLine
-```
-
-If the detailed relationship later changes, the Mono-Koto projection should reflect the change automatically.
-
-## Stakeholder Communication
-
-A primary purpose of the Mono-Koto Analysis View is communication with non-engineering stakeholders.
-
-Engineering concepts such as `AggregateRoot`, `composition`, `Command`, `DomainEvent`, and `StateTransition` should normally be hidden in this view. The stakeholder-facing representation should use domain vocabulary and simple relationships.
-
-For example:
-
-```text
-顧客
-  |
-  +-- 注文する --> 注文
-                    |
-                    +-- 商品を含む
-                    +-- 支払われる
-                    +-- 出荷される
-```
-
-Internally the same representation may correspond to Aggregate, Entity, Command, Event, Workflow, and StateMachine elements.
-
-This makes the analysis view a **communication projection** as well as an analysis projection.
-
-## Stakeholder Feedback Interface
-
-The view should eventually support editing during stakeholder discussions.
-
-For example, a discussion may reveal that the relationship between `注文` and `支払う` is incorrect. A stakeholder-level edit should not create a disconnected analysis-only model. Instead CBD Support should identify affected detailed model elements and present them to the designer, for example:
-
-```text
-Analysis-view change:
-  relationship between 注文 and 支払う changed
-
-Potentially affected design elements:
-  Order state machine
-  Payment workflow
-  OrderPlaced / PaymentCompleted event relationship
-```
-
-This makes the Mono-Koto view a stakeholder feedback interface into the canonical model.
+This supports stakeholder review without losing traceability to engineering semantics.
 
 ## View Roles
 
-A useful conceptual grouping is:
-
 ```text
-Communication / Analysis Views
-  - Mono-Koto Analysis
-  - Use Case
-  - Conceptual Overview
+Communication / Analysis
+  - Mono-Koto Analysis      domain world / terminology overview
+  - Use Case                actor, goal, stakeholder intent
+  - Event Storming          event and causal behavioral overview
 
-Engineering Views
-  - Entity Model
-  - Event Model
-  - Structure
-  - Classification
-  - Workflow
-  - StateMachine
+Engineering Bridge
+  - Entity Model            precise structural/domain semantics
+  - Event Model             precise command/event semantics
+
+Detailed Engineering
+  - Structure               composition / aggregation / association
+  - Classification          generalization / trait / powertype
+  - Workflow                precise behavioral progression
+  - Flowchart               approachable projection of Workflow
+  - StateMachine            entity/subject lifecycle detail
 ```
 
-These groups are presentation roles, not separate underlying models.
+These are presentation and interaction roles, not separate underlying models.
 
-## Design Implication for CBD Support
+## Stakeholder Feedback
 
-CBD Support should evolve toward a model in which:
+Mono-Koto, Use Case, Event Storming, and Flowchart remain useful after detailed design begins. Corrections made through them should identify affected canonical semantics and become explicit semantic change proposals.
 
-1. a canonical semantic model is the shared source of semantics;
-2. each modeling notation is a projection/view over that model;
-3. Mono-Koto Analysis provides a deliberately simplified domain overview;
-4. Entity and Event views expose more precise engineering semantics;
-5. Workflow and StateMachine views expose behavioral detail;
-6. changes in any editable view can be reconciled with the canonical model and reflected in the other views; and
-7. the Mono-Koto view remains useful after detailed design begins, especially for stakeholder communication and whole-model validation.
+For example, changing the perceived relation between `注文` and `支払う`, or inserting a missing event in Event Storming, may identify impacts on:
 
-This positions CBD Support not only as a tool for creating engineering models, but also as a tool for translating the same domain semantics between different levels of expertise.
+- terminology links,
+- Order state machine,
+- Payment workflow,
+- commands and domain events,
+- Use Case actor/goal relations.
+
+CBD Support may propose the corresponding canonical-source change and show analysis/engineering diffs, but stakeholder-facing views do not directly rewrite authoritative source.
+
+## Design Direction
+
+CBD Support should evolve so that:
+
+1. one canonical semantic/design model supplies shared semantic identity;
+2. terminology/BoK provides attributable domain vocabulary linked to those identities;
+3. Mono-Koto is the conceptual overview and terminology bridge;
+4. Use Case supplies actor and goal semantics;
+5. Event Storming is a cross-model behavioral overview built from Use Case, Entity, Event, Workflow, and related semantics;
+6. Entity and Event views bridge stakeholder analysis to engineering precision;
+7. Workflow is faithful while Flowchart may intentionally simplify for human communication;
+8. StateMachine deepens lifecycle semantics;
+9. all views support stable cross-navigation; and
+10. edits in stakeholder-facing views enter the semantic proposal and Git-governed design-change loop rather than creating parallel sources of truth.

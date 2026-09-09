@@ -35,6 +35,24 @@ decision into a Component fact. A semantic or AI provider may make an
 attributable suggestion; only an explicit human decision can select an existing
 component or promote a proposed component.
 
+## Dashboard information architecture
+
+    Component Dashboard
+    |
+    +-- Content
+    |    +-- DomainModel
+    |    |    +-- Static Model: Structure, Classification
+    |    |    +-- Dynamic Model: Workflow, StateMachine detail
+    |    +-- Use Case View
+    |
+    +-- Usage
+    +-- Operation
+    +-- Quality / Review
+
+Content is a first-class Dashboard concern, not a Review subsection. Discovery
+finds Components and retrieves attributable evidence; Dashboard explains an
+exact Component; Review remains the canonical evaluator of quality.
+
 ## Scope
 
 1. Promote the V1 composition responsibility, evidence, coverage, proposal,
@@ -77,6 +95,13 @@ component or promote a proposed component.
   DEV-CBD-002 work.
 - Replacing Discovery search, Review conclusions, or existing retrieval
   selection rules.
+
+## Planning rule
+
+Each Stage is a bounded work slice. Split a checklist item before
+implementation when its admitted boundary is materially larger than focused,
+reproducible work. The checklist, not the number of headings here, records
+completion.
 
 ## Stages
 

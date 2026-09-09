@@ -343,12 +343,37 @@ That artifact describes CBD Support as a product. A consuming project's
 `src/main/internal-model/` contains that project's intermediate realization and
 review artifacts. The two model scopes must remain separate.
 
+## Phase assignment and continuity
+
+This direction is assigned to **Phase 10 - Durable Model Development and
+Continuation** as the successor to Phase 9.
+
+Phase 9 establishes the Canonical Component Design Model, Mono-Koto/Use Case and
+engineering projections, candidate design, semantic diff, and review/change
+proposal contracts. Phase 10 persists and rehydrates those same semantic
+identities; it must not introduce a parallel storage-only model. The durable
+handoff is therefore:
+
+```text
+Phase 9 Candidate Design / Semantic Diff
+  -> Phase 10 internal-model package
+  -> fresh-process rehydration
+  -> Phase 9 projection architecture
+  -> approved CML change and validation
+```
+
+The authoritative Phase 10 planning records are:
+
+- `docs/phase/phase-10.md`
+- `docs/phase/phase-10-checklist.md`
+
 ## Open decisions
 
 1. the final source-root name and whether it is shared across every
    SimpleModeling project type;
 2. the serialization format and schema/version identifiers;
-3. the minimum Use Case Realization metamodel;
+3. the minimum Use Case Realization metamodel and its exact relationship to the
+   Phase 9 Canonical Component Design Model;
 4. the exact RDF-node identity and revision contract;
 5. lifecycle states such as `proposed`, `under-review`, `approved`,
    `changes-requested`, `rejected`, and `superseded`;
@@ -357,7 +382,7 @@ review artifacts. The two model scopes must remain separate.
 8. the CBD Support MCP/API surface for reading, proposing, reviewing, and
    retaining these artifacts;
 9. the dedicated skill name, repository permissions, and mutation boundary;
-10. sensitive-data, prompt/response retention, and CallTree policy; and
+10. sensitive-data, prompt/response retention, and CallTree policy;
 11. build-tool and packaging rules that guarantee the internal source root is
     not accidentally published or executed; and
 12. the exact self-contained continuation schema, integrity digest, freshness
@@ -365,7 +390,7 @@ review artifacts. The two model scopes must remain separate.
 
 ## Promotion boundary
 
-The next step is to promote only the stable portion of this direction into:
+Phase 10 promotes only the stable portion of this direction into:
 
 - CBD Support design for storage, review, persistence, and API boundaries;
 - a schema/specification for project-local internal-model artifacts;
@@ -378,7 +403,7 @@ without acting as an executable or normative contract.
 
 Candidate Triage: COMPLETED
 Canonical ID: DEV-CBD-002
-Disposition: STRATEGY_ITEM
+Disposition: ACTIVE_PHASE_WORK
 Strategy Record: docs/strategy/textus-cbd-support-development-strategy.md#9-development-item-status
-Target Phase: -
+Target Phase: Phase 10
 Triaged On: 2026-09-09

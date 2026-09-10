@@ -122,26 +122,54 @@ its P9-14A structural remedy is complete.
 
 ## P9-20: Component Dashboard projection contract
 
-- [ ] Define one deterministic `ComponentDashboard` projection for identity,
+- [x] Define one deterministic `ComponentDashboard` projection for identity,
   content, usage, operation, quality, knowledge attribution, explicit
   absences, and stable model-view navigation.
 
 ## P9-21: Content Overview
 
-- [ ] Project purpose, responsibility, domain summary, capabilities,
+- [x] Project purpose, responsibility, domain summary, capabilities,
   representative analysis/model entry points, rules, interfaces/events, and
   related knowledge where admitted evidence exists.
 
 ## P9-22: Dashboard Web entry
 
-- [ ] Add an authorized exact-component Dashboard entry backed only by the
+- [x] Add an authorized exact-component Dashboard entry backed only by the
   common projection and navigation targets with implemented contracts.
 
 ## P9-23: Dashboard executable specifications
 
-- [ ] Prove deterministic source attribution, absence-safe projection,
+- [x] Prove deterministic source attribution, absence-safe projection,
   authorization, redaction, and canonical-identity preservation for the
   Dashboard foundation.
+
+### Stage 9.3 accepted evidence record
+
+Stage 9.3 is CLOSED from the accepted evidence for P9-20 through P9-23. The
+accepted Dashboard boundary includes the P9-20 projection design/specification
+contracts with `ComponentDashboardProjection` and
+`ComponentDashboardProjectionSpec`; the P9-21 Content Overview
+design/specification contracts with `ComponentDashboardContentOverview` and
+`ComponentDashboardContentOverviewSpec`; the P9-22 Web-entry
+design/specification contracts with `ComponentDashboardWebEntry` and
+`ComponentDashboardWebEntrySpec`; and
+`ComponentDashboardFoundationSpec` for P9-23.
+
+Focused validation `P9-20B-SBT-002` passed with one suite, seven tests passed,
+and zero failures. `P9-21B-SBT-001`, `P9-22B-SBT-003`, and `P9-23A-SBT-003`
+each passed with one suite, five tests passed, and zero failures. Accepted
+review identities are `phase-9-p9-20a-step-review`,
+`phase-9-p9-20b-cb-focused-rereview`, `phase-9-p9-21a-step-review`,
+`phase-9-p9-21b-step-review`, `phase-9-p9-22a-step-review`,
+`phase-9-p9-22b-step-review`, and `phase-9-p9-23a-step-review`.
+
+Immutable journal materialization bundles
+`journal-materialization-sha256-9c1ea2962aa65bd5f5f308a5441e163829ba8081b122c638e5ea2be785f195d2`
+and
+`journal-materialization-sha256-54ddc770f8a175dc399028d0f4953ac70fc9d8dde905261dea56b8b5c72aa328`
+record the two P9-20A hygiene findings. `HYG-P9-20A-CAR-ABI-BASELINE` and
+`HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT` remain OPEN. P9-30 and all later entries
+remain unchecked.
 
 ## P9-30: Mono-Koto projection contract
 

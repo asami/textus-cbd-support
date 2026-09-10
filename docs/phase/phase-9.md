@@ -4,7 +4,8 @@ Stage Status:
 - Current status: OPEN
 - Completed stage: Stage 9.1 (P9-01 through P9-06) — CLOSED.
 - Completed stage: Stage 9.2 (P9-10 through P9-14) — CLOSED.
-- Later Phase 9 work: P9-20 onward — NOT STARTED.
+- Completed stage: Stage 9.3 (P9-20 through P9-23) — CLOSED.
+- Later Phase 9 work: P9-30 onward — NOT STARTED.
 - Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
@@ -359,6 +360,9 @@ specifications without storage or application-generation behavior.
 ### Stage 9.3: Dashboard foundation and Content
 
 Checklist basis: `P9-20` through `P9-23`.
+
+Status: CLOSED from the accepted evidence recorded in
+`phase-9-checklist.md`.
 
 Implement one deterministic Component Dashboard projection, Content Overview,
 and an authorized Web entry with no local source heuristics or dead links.

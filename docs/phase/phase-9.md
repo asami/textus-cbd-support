@@ -29,15 +29,34 @@ Canonical CML + admitted attributable evidence + terminology/BoK
         v                            v                  v
 Communication / Analysis       Static projections   Dynamic projections
         |                            |                  |
-        +-- Mono-Koto                +-- Entity         +-- Event
-        +-- Use Case                 +-- Structure      +-- Workflow
-        +-- Event Storming           +-- Classification +-- Flowchart
-                                                        +-- StateMachine
+        +-- Actor Goal List          +-- Entity         +-- Event
+        +-- Mono-Koto                +-- Structure      +-- Workflow
+        +-- Use Case                 +-- Classification +-- Flowchart
+        +-- Event Storming                               +-- StateMachine
 ```
 
 A view is a projection of shared semantics, not an independently authoritative model. A model element may appear differently in several views.
 
 ## Communication / Analysis semantics
+
+### Actor Goal List
+
+Actor Goal List is a stakeholder-facing intent overview organized by Actor and the goals that motivate interaction with the system. It provides a compact entry point before or alongside Use Case, Mono-Koto Analysis, and Event Storming.
+
+Actor identity is shared with Use Case Actor semantics; Actor Goal List must not introduce a parallel Actor model. A Goal expresses what an Actor wants to achieve rather than an implementation action or automatically inferred Use Case. Where evidence supports it, a Goal links to one or more Use Cases and can be traced onward into Mono-Koto and Event Storming semantics.
+
+```text
+Actor
+  +-- Goal
+  |     +-- Use Case(s)
+  |            +-- Mono-Koto context
+  |            +-- Event Storming behavior
+  +-- Goal
+```
+
+The view should answer questions such as "what does this Actor want to accomplish?", "which Use Cases realize this Goal?", and "which goals currently have weak or missing realization?" Missing Goal-to-Use-Case or Actor-to-Goal evidence must be exposed rather than synthesized merely for completeness.
+
+Actor Goal List is intentionally understandable by non-engineering stakeholders and acts as an intent-oriented complement to Mono-Koto's conceptual/terminology overview and Event Storming's behavioral overview.
 
 ### Mono-Koto Analysis
 
@@ -47,7 +66,7 @@ Mono-Koto must cross-reference attributable terminology/BoK entries. Terms are s
 
 ### Use Case
 
-Use Case remains the stakeholder intent view and the normal source of Actor semantics used by other communication projections. Actor identity must not be invented merely to complete a diagram.
+Use Case remains the stakeholder intent/realization view and the normal source of Actor semantics used by other communication projections. Actor identity must not be invented merely to complete a diagram. Actor Goal List uses these same Actor identities and provides the goal-oriented overview above Use Case realization details.
 
 ### Event Storming
 
@@ -60,7 +79,7 @@ Actor -> Command -> Aggregate/Entity -> Domain Event
 
 Representative semantic sources are Use Case Actor, Command/Operation, Entity/Aggregate, Event, Workflow policy/reaction, external Component/dependency, and Query/View semantics. Hotspots are explicit analysis/review observations rather than canonical domain facts.
 
-Mono-Koto and Event Storming should support bidirectional cross-navigation. A Koto may be expanded into its event/causal progression; an Event Storming event may navigate back to its Koto, Mono, terminology, Entity/Aggregate, Workflow, and other admitted semantics.
+Actor Goal List, Mono-Koto, Use Case, and Event Storming should support bidirectional cross-navigation. A Goal may navigate to realizing Use Cases and their behavioral/conceptual projections. A Koto may be expanded into its event/causal progression; an Event Storming event may navigate back to its Actor/Goal/Use Case context, Koto, Mono, terminology, Entity/Aggregate, Workflow, and other admitted semantics.
 
 ## Dynamic presentation roles
 
@@ -87,34 +106,21 @@ This is a conceptual refinement order, not a transformation pipeline. Flowchart 
 
 ## Stakeholder feedback and design-change loop
 
-Mono-Koto, Use Case, Event Storming, and Flowchart remain available after detailed design begins. Edits/corrections are semantic change proposals, not independent analysis facts. Where CML owns the affected design, CBD Support traces proposals back to CML and uses candidate design, semantic diff, Review, and Git-governed acceptance.
-
-```text
-Canonical CML
-    -> Canonical Component Design Model
-    -> stakeholder / engineering projections
-    -> Semantic change proposal
-    -> Proposed CML patch
-    -> Candidate Component Design Model
-       + Analysis-view diff
-       + Engineering-view diff
-       + Candidate Review
-    -> Git branch / Pull Request
-    -> Human review and merge
-```
+Actor Goal List, Mono-Koto, Use Case, Event Storming, and Flowchart remain available after detailed design begins. Edits/corrections are semantic change proposals, not independent analysis facts. Where CML owns the affected design, CBD Support traces proposals back to CML and uses candidate design, semantic diff, Review, and Git-governed acceptance.
 
 ## Scope additions for analysis views
 
 Phase 9 must:
 
-1. define the Canonical Component Design Model and projection rules shared by Mono-Koto, Use Case, Event Storming, Entity, Event, Structure, Classification, Workflow, Flowchart, and StateMachine;
-2. implement Mono-Koto as stakeholder conceptual overview and terminology/BoK bridge;
-3. preserve attributable terminology links and explicit synonym/inconsistency candidates without hidden semantic merging;
-4. implement Event Storming as a cross-model behavioral projection using admitted Actor, Command, Entity/Aggregate, Event, Workflow, external-system, and Query/View semantics;
-5. derive Actor semantics normally from Use Case;
-6. implement stable forward/reverse navigation among terminology, Mono/Koto, Event Storming, Use Case, Entity/Event, Workflow, and StateMachine semantics;
-7. keep Workflow faithful while permitting an explicitly non-faithful/simplified Flowchart projection for communication; and
-8. route stakeholder-facing edits through semantic proposal and Git-governed design acceptance.
+1. define the Canonical Component Design Model and projection rules shared by Actor Goal List, Mono-Koto, Use Case, Event Storming, Entity, Event, Structure, Classification, Workflow, Flowchart, and StateMachine;
+2. implement Actor Goal List as a stakeholder intent overview using shared Use Case Actor identity and explicit Goal-to-Use-Case traceability;
+3. implement Mono-Koto as stakeholder conceptual overview and terminology/BoK bridge;
+4. preserve attributable terminology links and explicit synonym/inconsistency candidates without hidden semantic merging;
+5. implement Event Storming as a cross-model behavioral projection using admitted Actor, Goal/Use Case context, Command, Entity/Aggregate, Event, Workflow, external-system, and Query/View semantics;
+6. derive Actor semantics normally from Use Case and never create a parallel Actor identity for Actor Goal List;
+7. implement stable forward/reverse navigation among Actor/Goal, Use Case, terminology, Mono/Koto, Event Storming, Entity/Event, Workflow, and StateMachine semantics;
+8. keep Workflow faithful while permitting an explicitly non-faithful/simplified Flowchart projection for communication; and
+9. route stakeholder-facing edits through semantic proposal and Git-governed design acceptance.
 
 The existing composition, Dashboard, evidence, candidate-design, Phase 10 handoff, Usage, Operation, Quality/Review, and validation responsibilities remain unchanged.
 
@@ -122,7 +128,7 @@ The existing composition, Dashboard, evidence, candidate-design, Phase 10 handof
 
 ### Stage 9.1: Shared evidence, authority, terminology, and projection contract
 
-Freeze composition/provider/human boundaries, Dashboard source inventory, canonical authority, Canonical Component Design Model, terminology/BoK linkage, projection semantics, attribution/absence rules, and required upstream contracts.
+Freeze composition/provider/human boundaries, Dashboard source inventory, canonical authority, Canonical Component Design Model, Actor/Goal and terminology/BoK linkage, projection semantics, attribution/absence rules, and required upstream contracts.
 
 ### Stage 9.2: Canonical composition plan
 
@@ -134,7 +140,7 @@ Implement deterministic Component Dashboard Content and authorized Web entry fro
 
 ### Stage 9.4: Communication and analysis projections
 
-Implement Mono-Koto, Use Case, and Event Storming. Mono-Koto acts as terminology bridge; Event Storming acts as cross-model behavioral overview. Provide stable cross-navigation and expose ambiguity/missing semantics rather than synthesizing completeness.
+Implement Actor Goal List, Mono-Koto, Use Case, and Event Storming. Actor Goal List provides Actor -> Goal -> Use Case intent navigation; Mono-Koto acts as terminology bridge; Event Storming acts as cross-model behavioral overview. Provide stable cross-navigation and expose ambiguity/missing semantics rather than synthesizing completeness.
 
 ### Stage 9.5: Static engineering projections
 
@@ -146,7 +152,7 @@ Implement Event, faithful Workflow, explicitly simplified/non-faithful Flowchart
 
 ### Stage 9.7: Cross-view feedback and evidence integration
 
-Connect terminology, analysis, and engineering projections; identify detailed-model impacts of stakeholder changes; preserve evidence; integrate Usage, Operation, and Quality/Review; and produce stable semantic identities/candidate contracts for Phase 10.
+Connect Actor/Goal, terminology, analysis, and engineering projections; identify detailed-model impacts of stakeholder changes; preserve evidence; integrate Usage, Operation, and Quality/Review; and produce stable semantic identities/candidate contracts for Phase 10.
 
 ### Stage 9.8: Validation and closure
 
@@ -154,7 +160,7 @@ Run proportionate validation, synchronize documentation, account for deferred wo
 
 ## Cross-project dependencies
 
-Cozy Phase 54 owns machine-readable semantic component metadata required by Entity, Structure, Classification, Event, Workflow, StateMachine, Use Case, and related projections. Mono-Koto/Event Storming may require additional semantic grouping, terminology-link, Actor, Command/Event, policy/reaction, external-system, and Query/View metadata. Missing contracts must be recorded as upstream gaps rather than inferred locally.
+Cozy Phase 54 owns machine-readable semantic component metadata required by Entity, Structure, Classification, Event, Workflow, StateMachine, Use Case, and related projections. Actor Goal List may require explicit Actor/Goal/Use-Case trace metadata; Mono-Koto/Event Storming may require additional semantic grouping, terminology-link, Actor, Command/Event, policy/reaction, external-system, and Query/View metadata. Missing contracts must be recorded as upstream gaps rather than inferred locally.
 
 CNCF Phase 72 owns runtime lifecycle semantics and attributable runtime evidence. CNCF runtime events/workflow evidence may enrich Event Storming and other projections only as attributable evidence; CNCF does not own stakeholder presentation or terminology projection.
 
@@ -163,14 +169,17 @@ Phase 10 consumes the accepted Phase 9 semantic/model contracts for durability a
 ## Planning sources
 
 - `docs/journal/2026/09/2026-09-09-mono-koto-analysis-view.md` records the Mono-Koto, terminology, Event Storming, Flowchart, and stakeholder-communication direction.
+- `docs/journal/2026/09/2026-09-10-actor-goal-list-view.md` records the Actor Goal List direction and its relationship to Use Case, Mono-Koto, Event Storming, and Phase 11 editing.
 - Existing composition, Dashboard, candidate-design, and Phase 10 planning records remain applicable.
 
 ## Non-goals
 
-- independent authoritative Mono-Koto, Event Storming, Event, or other view models;
+- independent authoritative Actor Goal, Mono-Koto, Event Storming, Event, or other view models;
+- creating Actor identities separate from Use Case Actor semantics;
+- automatically equating Goal with Use Case without attributable/model evidence;
 - treating `Mono = Entity` or `Koto = Event` as mandatory one-to-one mappings;
 - treating terminology similarity as proof of semantic identity;
-- inventing Actor, Event, policy, or causal semantics to make Event Storming visually complete;
+- inventing Actor, Goal, Event, policy, or causal semantics to make views visually complete;
 - treating Flowchart as necessarily faithful to every Workflow semantic detail;
 - bypassing candidate-design validation and Git-governed acceptance from stakeholder-facing edits;
 - compensating locally for missing Cozy/CNCF published semantics.

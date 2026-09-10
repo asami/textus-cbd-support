@@ -1,0 +1,127 @@
+# Interactive View and Model Editing
+
+## Direction
+
+CBD Support views remain primarily reference projections of the canonical object model. Editing is introduced as an interaction layer over a reference view rather than by turning each view into an independent editor.
+
+The interaction model distinguishes three responsibilities:
+
+- **View**: inspect a projection of the model.
+- **Review**: diagnose omissions, inconsistencies, weak traceability, and insufficient model strength without implicitly changing the model.
+- **Edit**: intentionally mutate the object model through semantic model-edit operations.
+
+The same projection can therefore remain stable while Review and Edit are invoked as separate interactions.
+
+## Update Palette
+
+When an update is requested, the reference view exposes an **Update Palette**. The palette is a model-editing client, not the owner of model semantics.
+
+Two primary interaction styles are required:
+
+1. **Direct commands** for frequent and deterministic operations, for example adding a Mono/Koto, Event, Command, relationship, or other known model element.
+2. **Conversational instructions** for ambiguous, compound, exploratory, or context-dependent changes.
+
+Both paths converge on the same semantic edit-operation boundary.
+
+```text
+Reference View
+      |
+Update Palette
+   /       \
+Direct    Chat/AI
+   \       /
+   Edit Intent
+       |
+Model Edit Operation
+       |
+CBD Support Model Edit Service
+       |
+Canonical Object Model
+       |
+CML persistence / projection refresh
+```
+
+A UI command such as `AddThing(Customer)` and a conversational instruction such as "add Customer as a thing" must ultimately use the same model operation.
+
+## Model Edit Service
+
+CBD Support provides services for updating its canonical object model. Clients must not depend on textual CML rewriting as the primary editing mechanism.
+
+Representative semantic operations include:
+
+- add/update/remove model elements where permitted;
+- add Mono/Koto concepts and glossary links;
+- add Event/Command/Policy/Aggregate-related semantics;
+- connect Actor, Use Case, Workflow, Event, Entity, and other existing semantic identities;
+- modify structural relationships such as association/composition where supported;
+- query applicable edit operations and validation requirements;
+- return semantic diff and validation/review consequences.
+
+Exact service names are implementation details. The contract is semantic: mutations are performed against the object model and then reflected into CML and views through the established canonical-source and projection boundaries.
+
+## External editing clients
+
+The Update Palette is generalized as a **Model Editing Client**. CBD Support must not assume that the most capable editing client is embedded in CBD Support itself.
+
+Supported client classes include:
+
+- CBD Support direct Update Palette;
+- CBD Support built-in conversational client when useful;
+- ChatGPT through Plugin/MCP integration;
+- Codex through MCP integration;
+- future AI or automation clients.
+
+External AI clients are valuable because they may combine CBD Support model context with other authorized context such as repository contents, BoK/glossary information, design documents, implementation code, tests, and ongoing reasoning. CBD Support remains responsible for model semantics and mutation safety; the external AI remains responsible for interpretation and orchestration.
+
+```text
+Model Editing Clients
+  +-- Direct Update Palette
+  +-- Built-in Chat
+  +-- ChatGPT Plugin/MCP
+  +-- Codex MCP
+  +-- future clients
+             |
+             v
+      Model Edit Service
+             |
+      Canonical Object Model
+```
+
+ChatGPT and Codex are therefore not special mutation paths. They consume the same semantic editing capabilities exposed to other clients.
+
+## Review-to-Edit transition
+
+Review and Edit remain distinct but composable. A review finding can open the Update Palette with the finding as context, or an AI client can be asked to resolve the finding. No review result implicitly mutates the model.
+
+Example:
+
+```text
+Review: OrderCancelled has no triggering Command.
+                 |
+              Fix...
+                 |
+Update Palette / external AI
+                 |
+proposed AddCommand + relationship operations
+                 |
+semantic diff / validation / applicable approval gate
+```
+
+Existing candidate-review, semantic-diff, approval, and canonical-source rules from Phases 9 and 10 remain applicable. Interactive editing is not a bypass around them.
+
+## Solo Event Storming as the primary validation scenario
+
+Solo Event Storming is the first strong use case for the architecture.
+
+- Event Storming elements are represented through CML/object-model semantics rather than an isolated Event Storming data model.
+- Event Storming View is a projection used to inspect the evolving model.
+- A user can add elements through direct palette operations.
+- A user can conduct the session conversationally with an AI facilitator.
+- ChatGPT/Codex can act as an external editing palette and use additional authorized context.
+- Changes are applied through Model Edit Service operations and the Event Storming View is refreshed from the resulting model.
+
+The same architecture must subsequently be reusable by Mono-Koto Analysis, Workflow, Entity/Event, Structure, StateMachine, and other model views.
+
+## Architectural rule
+
+Do not implement a separate editor and mutation model for every view. Views provide projections and contextual affordances; Model Edit Service owns semantic mutation. Direct UI, conversational UI, Plugin, and MCP clients are alternative front ends to that same service boundary.

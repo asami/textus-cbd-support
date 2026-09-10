@@ -168,55 +168,106 @@ Immutable journal materialization bundles
 and
 `journal-materialization-sha256-54ddc770f8a175dc399028d0f4953ac70fc9d8dde905261dea56b8b5c72aa328`
 record the two P9-20A hygiene findings. `HYG-P9-20A-CAR-ABI-BASELINE` and
-`HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT` remain OPEN. P9-30 and all later entries
-remain unchecked.
+`HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT` remain OPEN. The accepted evidence for
+Stages 9.4 and 9.5 is recorded below; later entries remain unchecked.
 
 ## P9-30: Mono-Koto projection contract
 
-- [ ] Define Mono and Koto as stakeholder-facing projections over shared
+- [x] Define Mono and Koto as stakeholder-facing projections over shared
   semantic identities, explicitly rejecting mandatory `Mono = Entity` and
   `Koto = Event` one-to-one mappings.
 
 ## P9-31: Mono-Koto Web overview
 
-- [ ] Implement a non-engineering-oriented Mono-Koto overview using domain
+- [x] Implement a non-engineering-oriented Mono-Koto overview using domain
   vocabulary, simple relationships, source attribution, explicit ambiguity,
   and drill-down links without exposing engineering detail by default.
 
 ## P9-32: Mono-Koto semantic bridge
 
-- [ ] Link each admitted Mono to relevant Entity/Value/Aggregate semantics and
+- [x] Link each admitted Mono to relevant Entity/Value/Aggregate semantics and
   each admitted Koto to relevant Command/Event/Workflow/state-effect semantics
   with stable forward and reverse navigation.
 
 ## P9-33: Use Case communication projection
 
-- [ ] Project actor, goal, trigger, flows, postconditions, domain elements,
+- [x] Project actor, goal, trigger, flows, postconditions, domain elements,
   collaborators, realizing Workflow, and Mono-Koto relationships with stable
   semantic navigation.
 
 ## P9-40: Entity Model contract
 
-- [ ] Normalize and project Entity, Value, Aggregate, identity, ownership,
+- [x] Normalize and project Entity, Value, Aggregate, identity, ownership,
   lifecycle, and aggregate-boundary metadata; record unsupported Cozy fields as
   explicit gaps.
 
 ## P9-41: Structure view
 
-- [ ] Implement overview and exact composition/aggregation/association detail
+- [x] Implement overview and exact composition/aggregation/association detail
   that preserves published ownership, independent-existence, reassignment,
   deletion/lifecycle, cardinality, and navigability semantics.
 
 ## P9-42: Classification view
 
-- [ ] Project generalization, trait, and multiple powertype dimensions with
+- [x] Project generalization, trait, and multiple powertype dimensions with
   exact detail and reverse navigation where stable metadata permits it.
 
 ## P9-43: Static cross-view navigation
 
-- [ ] Preserve canonical identity across Mono-Koto, Entity, Structure, and
+- [x] Preserve canonical identity across Mono-Koto, Entity, Structure, and
   Classification projections so a user can move between overview and detailed
   static semantics without name-based reconstruction.
+
+### Stage 9.4 accepted evidence record
+
+Stage 9.4 is CLOSED from the accepted evidence for P9-30 through P9-33. The
+communication and analysis boundary is defined by the Mono-Koto projection,
+Mono-Koto Web overview, Mono-Koto semantic bridge, and Use Case communication
+projection design/specification contracts. Its executable specifications are
+`MonoKotoProjectionSpec`, `MonoKotoWebOverviewSpec`,
+`MonoKotoSemanticBridgeSpec`, and `UseCaseCommunicationProjectionSpec`.
+
+Accepted commits are `2dce3c98563ae721e766226cef97a265394d6eaf`,
+`4430a8bb66cdd16954e25b6bdb7d36fafe9bc91c`,
+`c3cb8c5fbf486feedce19efba78d276d5f56e361`,
+`75d0bcaf4a82d0de9cf6350203d838bca465daa3`,
+`23a2b7715608c1e6fb7d55f8f983e39ffd6d79f9`,
+`69ff55689ecfb1f9e1d42ac6abc105b4a9b2e790`,
+`f65aa75a027f624496ce5682f08b2d0f0ec25ba1`,
+`6a6e4b9bc00b6edcb26a641762f5176529cb3760`, and
+`9965347b80227df334396dbdf507c6622256435a`. Passed validation
+receipts are `P9-30A-STATIC-001`, `P9-30B-SBT-003`, `P9-31A-STATIC-001`,
+`P9-31B-SBT-005`, `P9-32A-STATIC-001`, `P9-32B-SBT-002`,
+`P9-32C-SBT-002`, `P9-33A-STATIC-001`, and `P9-33B-SBT-001`.
+Final review identities are `phase-9-p9-30b-sbr-focused-rereview`,
+`phase-9-p9-31b-sbr-focused-rereview`, `phase-9-p9-32c-focused-rereview`,
+and `phase-9-p9-33b-step-review`.
+
+### Stage 9.5 accepted evidence record
+
+Stage 9.5 is CLOSED from the accepted evidence for P9-40 through P9-43. The
+static engineering boundary is defined by the Entity Model, Structure View,
+Classification View, and Static Cross-View Navigation design/specification
+contracts. Its executable specifications are `EntityModelProjectionSpec`,
+`StructureViewProjectionSpec`, `ClassificationViewProjectionSpec`, and
+`StaticCrossViewNavigationSpec`.
+
+Accepted commits are `e507522eb245fd22f18a94808c25ac233abf0aed`,
+`32c84cd7dce08f72ee978565c3d17884fdcdb090`,
+`78ce8b297feed29f42497db2bc3308ac3704eeb2`,
+`214f2ecd49e50eb3fade66ee0762afb8d1b9a4a5`,
+`67d21aec4b39b437e38a7323bd4087199a813829`,
+`7c9cae11bf0efc776c0f6fce6ad80d55188ee621`,
+`7cb558cc10e4b2e403d73c58ef4598e3ad2489cf`, and
+`9d17e7af0c5758b0b7d0fe0f413ed65f8e610860`. Passed validation receipts
+are `P9-40A-STATIC-001`, `P9-40B-SBT-004`, `P9-41A-STATIC-001`,
+`P9-41B-SBT-001`, `P9-42A-STATIC-001`, `P9-42B-SBT-001`, and
+`P9-43B-SBT-002`. Final review identities are
+`phase-9-p9-40b-step-review`, `phase-9-p9-41b-step-review`,
+`phase-9-p9-42b-step-review`, and `phase-9-p9-43b-step-review`.
+
+The established `HYG-P9-20A-CAR-ABI-BASELINE` and
+`HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT` findings remain OPEN and unchanged.
 
 ## P9-50: Event Model contract
 

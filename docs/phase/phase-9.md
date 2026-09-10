@@ -5,7 +5,9 @@ Stage Status:
 - Completed stage: Stage 9.1 (P9-01 through P9-06) — CLOSED.
 - Completed stage: Stage 9.2 (P9-10 through P9-14) — CLOSED.
 - Completed stage: Stage 9.3 (P9-20 through P9-23) — CLOSED.
-- Later Phase 9 work: P9-30 onward — NOT STARTED.
+- Completed stage: Stage 9.4 (P9-30 through P9-33) — CLOSED.
+- Completed stage: Stage 9.5 (P9-40 through P9-43) — CLOSED.
+- Later Phase 9 work: P9-50 onward — NOT STARTED.
 - Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
@@ -371,6 +373,9 @@ and an authorized Web entry with no local source heuristics or dead links.
 
 Checklist basis: `P9-30` through `P9-33`.
 
+Status: CLOSED from the accepted evidence recorded in
+`phase-9-checklist.md`.
+
 Implement the stakeholder-facing Mono-Koto Analysis projection and Use Case
 projection, including stable links from Mono to structural semantics and Koto
 to behavioral semantics. Preserve source attribution and expose ambiguity or
@@ -379,6 +384,9 @@ missing semantics rather than synthesizing a complete analysis model.
 ### Stage 9.5: Static engineering projections
 
 Checklist basis: `P9-40` through `P9-43`.
+
+Status: CLOSED from the accepted evidence recorded in
+`phase-9-checklist.md`.
 
 Implement Entity, Structure, and Classification projections only from published
 normalized metadata. Preserve identity, ownership, lifecycle, cardinality,

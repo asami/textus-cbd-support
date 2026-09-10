@@ -271,26 +271,59 @@ The established `HYG-P9-20A-CAR-ABI-BASELINE` and
 
 ## P9-50: Event Model contract
 
-- [ ] Normalize and project Command/Event identities, cause, consequence,
+- [x] Normalize and project Command/Event identities, cause, consequence,
   affected domain elements, generated state effects, and attribution without
   treating every Koto as a single Event.
 
 ## P9-51: Workflow projection and Web view
 
-- [ ] Project Workflow identity, activities, flow, participants, domain
+- [x] Project Workflow identity, activities, flow, participants, domain
   elements, operations/events, and published state effects with stable detail
   navigation.
 
 ## P9-52: StateMachine deep dive
 
-- [ ] Project states, transitions, triggers, guards, actions, related
+- [x] Project states, transitions, triggers, guards, actions, related
   activities, operations, events, and rules without name-based lookup.
 
 ## P9-53: Dynamic cross-view navigation
 
-- [ ] Preserve canonical identity across Koto, Event, Workflow, StateMachine,
+- [x] Preserve canonical identity across Koto, Event, Workflow, StateMachine,
   and affected Entity projections with stable forward/reverse navigation and
   explicit missing-semantics behavior.
+
+### Stage 9.6 accepted evidence record
+
+Stage 9.6 is CLOSED from the accepted evidence for P9-50 through P9-53. The
+dynamic engineering boundary is defined by the Event Model, Workflow,
+StateMachine, and Dynamic Cross-View Navigation design/specification
+contracts. Its executable specifications are `EventModelProjectionSpec`,
+`WorkflowProjectionSpec`, `WorkflowWebOverviewSpec`,
+`StateMachineProjectionSpec`, and `DynamicCrossViewNavigationSpec`.
+
+Accepted commits are `87e1a7b5c7d529b18b170eb90cf9623002ee6bdf`,
+`be349f54f778488eebd322003697158a777fb766`,
+`dcbbf3e2dff815c7486118cf1418d77f59096a68`,
+`9c2a9c0b9d305bf34f56e971f84c07ddff7152d0`,
+`2fab9e0e2a8d0e6ce913207a7a7368dcbeebf30`,
+`dd37be278b3b6e28fd2a7345a3c2c7a6c10f60d8`,
+`4a5561f32a498f15cd8b9fbb627f05c2f2ad092c`,
+`fd6ff8ecd2bff7bfc2b35bd7461066dc9b130369`, and
+`f4df7e206cbf262d2f047cb885a9429ba80e4262`. Passed validation receipts are
+`P9-50A-STATIC-001`, `P9-50B-SBT-002`, `P9-51A-STATIC-001`,
+`P9-51B-SBT-002`, `P9-51C-SBT-001`, `P9-52A-STATIC-001`,
+`P9-52B-SBT-001`, `P9-53A-STATIC-001`, and `P9-53B-SBT-002`. Final review
+identities are `phase-9-p9-50b-step-review`,
+`phase-9-p9-51b-focused-rereview`, `phase-9-p9-51c-focused-rereview`,
+`phase-9-p9-52b-focused-rereview`, and
+`phase-9-p9-53b-sbr-focused-rereview`.
+
+The P9-53B counterpart-admission repair is covered by the final focused test
+and re-review: a known gap counterpart must be an already admitted record for
+the requested category and role in the exact Component/context, and an
+Entity-only counterpart cannot admit an Event assertion. The established
+`HYG-P9-20A-CAR-ABI-BASELINE`, `HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT`, and
+`HYG-P9-53B-UNUSED-MAPPING-PARAM` findings remain nonblocking and unchanged.
 
 ## P9-60: Analysis-to-design impact projection
 

@@ -7,7 +7,8 @@ Stage Status:
 - Completed stage: Stage 9.3 (P9-20 through P9-23) — CLOSED.
 - Completed stage: Stage 9.4 (P9-30 through P9-33) — CLOSED.
 - Completed stage: Stage 9.5 (P9-40 through P9-43) — CLOSED.
-- Later Phase 9 work: P9-50 onward — NOT STARTED.
+- Completed stage: Stage 9.6 (P9-50 through P9-53) — CLOSED.
+- Later Phase 9 work: P9-60 onward — NOT STARTED.
 - Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
@@ -396,6 +397,9 @@ upstream metadata as explicit gaps.
 ### Stage 9.6: Dynamic engineering projections
 
 Checklist basis: `P9-50` through `P9-53`.
+
+Status: CLOSED from the accepted evidence recorded in
+`phase-9-checklist.md`.
 
 Implement Event, Workflow, and StateMachine projections with explicit
 cause/consequence and affected-entity links, plus stable forward and reverse

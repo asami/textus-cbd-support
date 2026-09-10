@@ -32,58 +32,13 @@ Canonical Change Gate
 Canonical Object Model / CML
 ```
 
-This is a core Phase 11 rule, not merely an AI safety convention. Direct palette commands, built-in chat, ChatGPT, Codex, and future editing clients all use the same provisional-update lifecycle.
-
-A modeling session may contain multiple provisional edits before approval. Approval should normally apply to an exact candidate revision/hash rather than interrupt exploratory modeling after every small operation.
-
-```text
-Edit Session
-  +-- provisional edit
-  +-- provisional edit
-  +-- provisional edit
-          |
-          v
-     View confirmation
-          |
-       Approval
-          |
-  Canonical promotion
-```
-
-The candidate View must make provisional state distinguishable from the current canonical state and should allow semantic diff/review to be inspected before approval. Rejecting or abandoning the candidate leaves the canonical model unchanged.
+Direct palette commands, built-in chat, ChatGPT, Codex, and future editing clients all use the same provisional-update lifecycle. A modeling session may contain multiple provisional edits before approval; approval normally applies to an exact candidate revision/hash.
 
 ## Update Palette
 
-When an update is requested, the reference view exposes an **Update Palette**. The palette is a model-editing client, not the owner of model semantics.
+When an update is requested, the reference view exposes an **Update Palette**. Two primary interaction styles are required: direct commands for frequent deterministic operations and conversational instructions for compound/exploratory changes. Both converge on the same semantic edit-operation boundary and update candidate state first.
 
-Two primary interaction styles are required:
-
-1. **Direct commands** for frequent and deterministic operations, for example adding a Mono/Koto, Event, Command, relationship, or other known model element.
-2. **Conversational instructions** for ambiguous, compound, exploratory, or context-dependent changes.
-
-Both paths converge on the same semantic edit-operation boundary and update the candidate model first.
-
-```text
-Reference View
-      |
-Update Palette
-   /       \
-Direct    Chat/AI
-   \       /
-   Edit Intent
-       |
-Model Edit Operation
-       |
-CBD Support Model Edit Service
-       |
-Candidate Object Model
-       |
-Candidate View / confirmation
-       |
-Approval -> canonical change gate
-```
-
-A UI command such as `AddThing(Customer)` and a conversational instruction such as "add Customer as a thing" must ultimately use the same model operation.
+Representative direct operations now include Actor Goal List operations such as adding/refining a Goal and linking a Goal to a Use Case, in addition to Mono/Koto, Event, Command, and relationship operations. Actor Goal operations must reuse Use Case Actor identity rather than create a view-local Actor.
 
 ## Model Edit Service
 
@@ -92,54 +47,52 @@ CBD Support provides services for updating candidate object-model state. Clients
 Representative semantic operations include:
 
 - add/update/remove model elements where permitted;
+- add/refine Actor Goals and Goal-to-Use-Case relationships using shared Actor identity;
 - add Mono/Koto concepts and glossary links;
 - add Event/Command/Policy/Aggregate-related semantics;
-- connect Actor, Use Case, Workflow, Event, Entity, and other existing semantic identities;
+- connect Actor, Goal, Use Case, Workflow, Event, Entity, and other existing semantic identities;
 - modify structural relationships such as association/composition where supported;
 - query applicable edit operations and validation requirements;
 - return semantic diff and validation/review consequences;
 - identify the exact candidate revision/hash presented for approval;
 - promote only an approved candidate through the established canonical change gate.
 
-Exact service names are implementation details. The contract is semantic: editing develops candidate state, confirmation is performed through projections, and only approved exact candidate state is reflected into canonical CML through established Phase 9/10 boundaries.
-
 ## External editing clients
 
-The Update Palette is generalized as a **Model Editing Client**. CBD Support must not assume that the most capable editing client is embedded in CBD Support itself.
+The Update Palette is generalized as a **Model Editing Client**. Supported clients include CBD Support direct UI, built-in conversational interaction, ChatGPT through Plugin/MCP, Codex through MCP, and future clients.
 
-Supported client classes include:
+External AI clients may combine CBD Support model context with other authorized context such as repository contents, BoK/glossary information, design documents, implementation code, tests, and ongoing reasoning. They may develop provisional candidate state within authorization but do not thereby gain authority to commit canonical CML.
 
-- CBD Support direct Update Palette;
-- CBD Support built-in conversational client when useful;
-- ChatGPT through Plugin/MCP integration;
-- Codex through MCP integration;
-- future AI or automation clients.
+## Actor Goal List as an editing surface
 
-External AI clients are valuable because they may combine CBD Support model context with other authorized context such as repository contents, BoK/glossary information, design documents, implementation code, tests, and ongoing reasoning. CBD Support remains responsible for model semantics and mutation safety; the external AI remains responsible for interpretation and orchestration.
+Actor Goal List is a useful early-stage interactive surface because it exposes stakeholder intent before detailed behavioral modeling.
 
-ChatGPT and Codex may freely develop provisional candidate state within their authorization, but they do not thereby gain authority to commit that state to canonical CML. Canonical promotion remains behind explicit confirmation/approval and the existing change gate.
+```text
+Actor Goal List
+  -> Goal refinement
+  -> Goal / Use Case linkage
+  -> Candidate Actor Goal List View
+  -> navigate to Mono-Koto / Event Storming
+```
 
-## Review-to-Edit transition
+The same candidate can then be explored through other projections. Review can detect, for example, a Goal with no realizing Use Case or an important Goal with no Event Storming behavioral realization. These findings can transition into explicit candidate Edit operations.
 
-Review and Edit remain distinct but composable. A review finding can open the Update Palette with the finding as context, or an AI client can be asked to resolve the finding. No review result implicitly mutates the model.
-
-A fix first changes the candidate model; the resulting View and semantic diff are then confirmed before canonical promotion.
-
-Existing candidate-review, semantic-diff, approval, and canonical-source rules from Phases 9 and 10 remain applicable. Interactive editing is not a bypass around them.
+See `docs/notes/actor-goal-list-view.md` for the projection-specific semantics.
 
 ## Solo Event Storming as the primary validation scenario
 
-Solo Event Storming is the first strong use case for the architecture.
+Solo Event Storming remains the first strong end-to-end use case. Actor Goal List strengthens its starting context:
 
-- Event Storming elements are represented through CML/object-model semantics rather than an isolated Event Storming data model.
-- Event Storming View can project both canonical and clearly marked candidate state.
-- A user can make multiple provisional changes through direct palette operations.
-- A user can conduct the session conversationally with an AI facilitator.
-- ChatGPT/Codex can act as an external editing palette and use additional authorized context.
-- The user confirms the accumulated candidate through Event Storming View, semantic diff, and Review where useful.
-- Only the approved exact candidate is promoted to canonical CML.
+```text
+Actor -> Goal -> Use Case
+                 |
+                 v
+          Event Storming
+```
 
-The same architecture must subsequently be reusable by Mono-Koto Analysis, Workflow, Entity/Event, Structure, StateMachine, and other model views.
+A user may establish or inspect Actor Goals first, select a Goal/Use Case context, and then develop Event Storming semantics through direct or AI-assisted provisional edits. Event Storming and Actor Goal List project the same candidate model from different stakeholder perspectives.
+
+The architecture must subsequently be reusable by Actor Goal List, Mono-Koto Analysis, Workflow, Entity/Event, Structure, StateMachine, and other model views.
 
 ## Architectural rule
 

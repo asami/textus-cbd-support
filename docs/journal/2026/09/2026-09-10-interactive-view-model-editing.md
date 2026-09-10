@@ -2,30 +2,19 @@
 
 ## Context
 
-We considered how CBD Support can support a solo Event Storming workflow. The intended workflow is not a standalone sticky-note editor. Event Storming elements are expressed through the CML-backed object model, while Event Storming View is used to inspect and reason about the result.
-
-This raised a broader question: current views are mainly reference/review surfaces, but model development also needs an intentional editing interaction.
+CBD Support should support solo model development through reference views without turning each view into an independent editor. Event Storming is the initial end-to-end case, and Actor Goal List is added as an intent-oriented stakeholder projection that can precede it.
 
 ## Decision: View / Review / Edit
-
-Introduce editing as a distinct interaction responsibility alongside View and Review.
 
 - **View** reads a projection.
 - **Review** evaluates model quality and reports findings.
 - **Edit** intentionally develops candidate model state through semantic operations.
 
-The normal UI remains a reference view. When editing is requested, an **Update Palette** is exposed over/in the context of that view.
-
-The palette supports two complementary usage styles:
-
-1. direct semantic commands for known operations such as adding a Mono/Koto or Event;
-2. conversational instructions for compound or exploratory changes.
-
-These are not separate mutation implementations. Both are translated into common model-edit operations handled by CBD Support services.
+The normal UI remains a reference view. Editing exposes an Update Palette with direct semantic commands and conversational instructions. Both use common Model Edit Service operations.
 
 ## Decision: provisional update -> View confirmation -> approval
 
-Editing must not directly commit each operation to canonical CML. The agreed lifecycle is:
+Editing must not directly commit each operation to canonical CML.
 
 ```text
 Edit Request
@@ -38,74 +27,46 @@ Edit Request
   -> Canonical Object Model / CML
 ```
 
-A user should be able to accumulate multiple provisional edits during an exploratory modeling session and then confirm the resulting model through the relevant View. Approval is therefore normally associated with the exact accumulated candidate revision/hash rather than demanded after every small modeling operation.
+Multiple provisional edits can be accumulated during a modeling session. Candidate state must be visibly distinguishable from canonical state. ChatGPT or Codex may construct/refine the candidate but do not gain implicit canonical commit authority.
 
-The candidate/provisional state must be visibly distinguishable from canonical state. Rejection or abandonment of the candidate must leave canonical CML unchanged.
+## Actor Goal List addition
 
-This applies equally to direct UI commands and AI-driven editing. ChatGPT or Codex may help construct and refine a candidate model, but this does not grant them implicit authority to promote it to canonical source.
+Actor Goal List is now part of the Phase 9 communication/analysis view family and participates in Phase 11 editing.
 
-## Service boundary
+```text
+Actor
+  -> Goal
+      -> Use Case
+          -> Mono-Koto context
+          -> Event Storming behavior
+```
 
-CBD Support will provide a Model Edit Service over candidate object-model state. UI and AI clients should invoke semantic operations rather than directly rewriting CML text.
+Actor identity remains owned/shared by Use Case semantics. Goal captures stakeholder intent and is linked to realizing Use Cases where supported by model/evidence; Goal and Use Case are not automatically identical.
 
-This boundary allows validation, stable identity handling, semantic diff, traceability, review consequences, candidate revision identity, and approval/canonical-source rules to remain centralized.
+The interactive architecture should allow direct or AI-assisted provisional operations such as adding/refining a Goal and linking it to a Use Case. The result is inspected through Candidate Actor Goal List View before approval.
 
-Canonical promotion is distinct from candidate editing and must pass the Phase 9/10 governance boundary.
+This creates a useful solo-modeling progression:
+
+```text
+Actor Goal List
+  -> clarify Actor goals
+  -> connect goals to Use Cases
+  -> inspect Mono-Koto conceptual context
+  -> expand selected intent into Event Storming behavior
+```
+
+Because all are projections of the same candidate object model, changes can be checked across views rather than transformed through a one-way analysis pipeline.
+
+Review can detect missing Goal realization, Use Cases without clear Goal motivation, or important goals without Event Storming behavioral coverage. Such findings remain diagnostics until explicitly handed to Edit.
 
 ## External AI as an editing palette
 
-The editing-palette concept is broader than CBD Support's own UI. ChatGPT and Codex can act as external Model Editing Clients through Plugin/MCP integration.
-
-This is desirable because an external AI may have access, when authorized, to additional useful context such as BoK/glossary material, GitHub repository contents, design documents, implementation code, tests, and the active reasoning conversation.
-
-CBD Support should therefore expose semantic read/edit capabilities rather than trying to own all AI reasoning itself. ChatGPT/Codex are clients of the same model-edit boundary as the direct Update Palette.
-
-## Solo Event Storming workflow
-
-The representative workflow becomes:
-
-```text
-Canonical CML / Object Model
-          |
-          v
-Event Storming View
-          |
-    exploratory editing
-          |
-          +--> direct Update Palette
-          +--> conversational instruction
-          +--> ChatGPT/Codex via Plugin/MCP
-                         |
-                         v
-                 Model Edit Service
-                         |
-                         v
-                Candidate Object Model
-                         |
-                         v
-             Candidate Event Storming View
-                 + Semantic Diff / Review
-                         |
-                  user confirmation
-                         |
-                exact-state approval
-                         |
-                canonical change gate
-                         |
-                         v
-                 Canonical CML update
-```
-
-Event Storming is the initial validation scenario, not a special editing architecture. The same mechanism is intended for Mono-Koto Analysis, Workflow, Entity/Event, Structure, StateMachine, and other views.
-
-## Review relationship
-
-Review findings may provide context to an edit action (for example, "this Event has no triggering Command" -> Fix), but Review never implicitly changes the model. A fix changes candidate state first, and the resulting projection is confirmed before approval and canonical promotion.
+ChatGPT and Codex can act as external Model Editing Clients through Plugin/MCP. They can use additional authorized context while CBD Support owns semantic candidate mutation, validation, candidate identity, and the approval/canonical-source boundary.
 
 ## Planning consequence
 
-Phase 11 **Interactive View and Model Editing** must explicitly implement candidate editing as distinct from canonical mutation. Direct UI, built-in chat, ChatGPT Plugin/MCP, and Codex MCP are alternative Model Editing Clients over a shared Model Edit Service. The central interaction contract is now:
+Phase 11 must include Actor Goal List in direct-edit operations and cross-view validation. Solo Event Storming should be able to start from Actor -> Goal -> Use Case context. The common interaction contract remains:
 
 **provisional edit -> candidate View confirmation -> exact-state approval -> canonical promotion**.
 
-Detailed design direction is recorded in `docs/notes/interactive-view-model-editing.md`.
+Projection-specific details are recorded in `docs/notes/actor-goal-list-view.md`; general editing details are in `docs/notes/interactive-view-model-editing.md`.

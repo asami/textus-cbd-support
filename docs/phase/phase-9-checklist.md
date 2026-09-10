@@ -69,28 +69,56 @@ typed `DEV-P9-01B-CML-001` development candidate remains OPEN with
 
 ## P9-10: Canonical composition plan
 
-- [ ] Implement one typed transient plan that retains exact evidence and a
+- [x] Implement one typed transient plan that retains exact evidence and a
   disposition for every admitted required capability.
 
 ## P9-11: Deterministic coverage projection
 
-- [ ] Implement deterministic selected, alternative, gap, and unresolved
+- [x] Implement deterministic selected, alternative, gap, and unresolved
   coverage without changing catalog facts or retrieval selection behavior.
 
 ## P9-12: Human decision admission
 
-- [ ] Implement explicit human-decision admission for selection and proposal
+- [x] Implement explicit human-decision admission for selection and proposal
   promotion, retaining rationale and provenance.
 
 ## P9-13: Advisory-provider contract
 
-- [ ] Define and implement a versioned attributable semantic/AI-provider
+- [x] Define and implement a versioned attributable semantic/AI-provider
   contract whose suggestions cannot replace evidence or a human decision.
 
 ## P9-14: Composition executable specifications
 
-- [ ] Add Given/When/Then specifications for complete coverage, alternatives,
+- [x] Add Given/When/Then specifications for complete coverage, alternatives,
   gaps, conflicts, proposals, unavailable providers, and unapproved decisions.
+
+### Stage 9.2 accepted evidence record
+
+Stage 9.2 is CLOSED from the accepted evidence for P9-10 through P9-14. The
+promoted composition design/specification contracts are
+[`docs/design/application-component-composition-model.md`](../design/application-component-composition-model.md)
+and
+[`docs/spec/application-component-composition-model-contract.md`](../spec/application-component-composition-model-contract.md).
+The runtime/source executable specification is
+[`ApplicationComponentCompositionPlan`](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/ApplicationComponentCompositionPlan.scala)
+with
+[`ApplicationComponentCompositionPlanSpec`](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/ApplicationComponentCompositionPlanSpec.scala).
+
+Focused validation `P9-10A-SBT-002` passed with one suite, two tests passed,
+and zero failures; later accepted focused validations `P9-13B-SBT-002` and
+`P9-14A-SBT-001` passed, with P9-14A retaining one suite, 20 tests passed,
+and zero failures. The accepted P9-13B focused re-review
+`phase-9-p9-13b-cpb-001-focused-rereview` and the P9-14A step-review
+disposition `phase-9-p9-14a-step-lightweight-review` record no Current
+Boundary Blockers.
+
+Immutable journal materialization bundles
+`journal-materialization-sha256-b3673cfaee557238c4813a813a7b51aace4c6bdaa76502f8538b0366df1c9f80`
+and
+`journal-materialization-sha256-f3a22cb199ec49edc0f13caf7a0fb57d59f7ac85ed42b02404ba0819e7bbf1c1`
+are recorded in the chronological Stage 9.2 journal. `DEV-P9-01B-CML-001`
+remains OPEN. The historical `HYG-P9-12B-SPEC-STRUCTURE` record is preserved;
+its P9-14A structural remedy is complete.
 
 ## P9-20: Component Dashboard projection contract
 

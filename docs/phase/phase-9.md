@@ -3,7 +3,8 @@
 Stage Status:
 - Current status: OPEN
 - Completed stage: Stage 9.1 (P9-01 through P9-06) — CLOSED.
-- Current step: Stage 9.2 (P9-10 through P9-14) — NEXT / NOT STARTED.
+- Completed stage: Stage 9.2 (P9-10 through P9-14) — CLOSED.
+- Later Phase 9 work: P9-20 onward — NOT STARTED.
 - Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
@@ -348,7 +349,8 @@ design/specification promotion before implementation.
 
 Checklist basis: `P9-10` through `P9-14`.
 
-Status: NEXT / NOT STARTED.
+Status: CLOSED from the accepted evidence recorded in
+`phase-9-checklist.md`.
 
 Implement the typed transient plan, deterministic coverage projection, explicit
 human decision admission, advisory-provider limitations, and executable

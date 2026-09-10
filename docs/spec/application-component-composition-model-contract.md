@@ -143,9 +143,9 @@ Component fact or application dependency.
 ### Gap
 
 `Gap` is a reviewable record that the current admitted evidence does not
-establish coverage for a `RequiredCapability`, including an explicit absence,
-unavailable provider, missing metadata, or a limitation that prevents a
-stronger claim. Its purpose is to make unsupported responsibility visible.
+establish coverage for a `RequiredCapability`, including no linked admitted
+evidence or linked evidence whose absence is explicit. Its purpose is to make
+unsupported responsibility visible.
 
 Its stable identity identifies the uncovered capability and the bounded
 projection context. Its provenance identifies the evidence searched or
@@ -159,17 +159,19 @@ reviewed.
 ### ComponentProposal
 
 `ComponentProposal` is an attributable provider or other admitted proposal for
-an existing Component candidate or a proposed component responsibility when
-current evidence is insufficient for an established Component fact. Its
-purpose is to preserve a reviewable suggestion and its rationale without
-collapsing suggestion into truth.
+an existing Component whose exact target is independently established by linked
+evidence. Its purpose is to preserve a reviewable suggestion and its rationale
+without collapsing suggestion into truth. A suggestion for a not-yet-established
+Component or responsibility is outside this transient Phase 9 input boundary:
+it is not an admitted `ComponentProposal` and produces no proposal outcome,
+evidence, selection, or catalog truth.
 
 Its stable identity identifies the proposal and its proposal scope. Its
 provenance identifies the proposing provider or actor, provider version or
-request context when supplied, supporting `ComponentEvidence`, and
-limitations. A proposal may carry a reference to an exact existing Component
-only when that identity is independently established by catalog evidence; a
-proposal alone cannot create that identity.
+request context when supplied, considered linked `ComponentEvidence`, and
+limitations. Its exact existing Component target MUST be independently
+established by that evidence; a proposal alone cannot create or mutate that
+identity.
 
 A `ComponentProposal` is never an existing catalog Component fact, selection,
 canonical ranking, CML mutation, or application-generation instruction. An
@@ -205,12 +207,12 @@ its `RequiredCapability` in the current projection. The outcome vocabulary is:
   decision, never an inference from evidence or ordering.
 - **alternative:** one or more attributable candidate/evidence paths remain
   in competition and no applicable decision admits one as selected.
-- **gap:** the current evidence does not establish coverage and the reason is
-  an explicit absence, missing/limited evidence, or unavailable source.
+- **gap:** no linked evidence is admitted, or every linked evidence record
+  declares an explicit absence.
 - **proposal:** an attributable `ComponentProposal` is available for review,
   but no applicable decision has promoted it. A proposal may be shown beside a
   gap or unresolved limitation; it is not silently selected.
-- **unresolved:** conflict, ambiguity, authorization/redaction, malformed or
+- **unresolved:** conflict, ambiguity, redaction, malformed or
   stale evidence, decomposition uncertainty, or another limitation prevents a
   truthful stronger outcome.
 
@@ -220,6 +222,142 @@ the required `HumanDecision` can expose a selected disposition, and that
 decision must remain visible beside the outcome. A proposal, candidate,
 alternative, Dashboard link, Discovery result, provider suggestion, or CML
 record cannot substitute for it.
+
+## P9-11 deterministic coverage-classification contract
+
+P9-11 classifies each `RequiredCapability` only from the typed structural
+fields of its linked `ComponentEvidence`: evidence presence, `absenceReason`,
+`redactionReason`, `limitations`, and asserted `componentId`. The rules are
+evaluated in the listed precedence; no later rule overrides an earlier one.
+`RequiredCapability` input order and each capability's linked evidence input
+order are retained for accounting and navigation only. They are not a
+classification or selection key.
+
+| Precedence | Deterministic structural rule |
+| --- | --- |
+| 1 | No linked admitted `ComponentEvidence` for a `RequiredCapability` produces `gap` with an explicit no-evidence reason. |
+| 2 | When every linked `ComponentEvidence` has an explicit `absenceReason`, the capability produces `gap` while retaining the ordered evidence IDs and explicit absence reasons. |
+| 3 | When any linked evidence has `redactionReason`, nonempty `limitations`, no asserted `componentId`, or explicit-absence evidence mixed with non-absence evidence, the capability produces `unresolved` while retaining every evidence identity and condition. No stronger outcome may hide that limitation or ambiguity. |
+| 4 | Otherwise, when all linked evidence has an asserted exact `componentId` and no preceding gap/unresolved predicate applies, the capability produces `alternative`. The candidate/evidence identities retain input evidence order and are not ranked or selected. |
+| 5 | `selected` has no P9-11 producer and remains invalid without P9-12's explicit, in-scope `HumanDecision`. `proposal` has no P9-11 producer and remains P9-13 provider work. |
+| 6 | availability and authorization value strings remain preserved, attributable data. P9-11 does not parse, normalize, or infer semantic authority from their contents. |
+
+### P9-11B required executable matrix
+
+P9-11B MUST cover the following classifier behavior without changing the
+authority boundary above:
+
+- no linked evidence produces `gap` with the explicit no-evidence reason;
+- all explicit-absence evidence produces `gap` and retains ordered evidence
+  IDs and absence reasons;
+- ordered exact asserted candidates produce `alternative` and retain input
+  evidence order without ranking or selection;
+- redacted, limited, componentless, and mixed absence/non-absence evidence
+  produces `unresolved` and retains every evidence identity and condition; and
+- `selected` never emerges from evidence; it requires the in-scope
+  `HumanDecision` owned by P9-12.
+
+## P9-12 human-decision admission contract
+
+P9-12 admits `selected` only as a transient projection of a valid
+`HumanDecision` for an existing Component. This Slice does not construct a
+`ComponentProposal`, select a provider, or execute proposal promotion; P9-13
+owns provider/proposal construction and promotion execution.
+
+The decision-admission record retains the `HumanDecision` stable identity,
+human actor and provenance, exact `ApplicationIntent`, `RequiredCapability`,
+and `CoverageDisposition` scope, target existing `componentId`, considered
+evidence identities, rationale, and every explicit condition, disagreement,
+or limitation. Decision time, revision, and source context remain attributable
+when supplied. A valid decision MUST have this exact admitted scope and an
+unambiguous target `componentId` asserted by at least one linked, admitted
+`ComponentEvidence` for that `RequiredCapability`; the matching evidence
+identity MUST be among the decision's considered evidence. A missing or
+mismatched scope, target, linked evidence, or considered-evidence relationship
+is invalid and MUST NOT emit `selected`.
+
+When the decision is valid, the projection may expose `selected` for its
+addressed disposition and retains the decision identity, human provenance,
+target, matching evidence identity, all linked evidence identities and
+conditions, and the decision's rationale and conditions. `selected` changes
+neither catalog truth nor source authority, and it does not erase P9-11
+evidence, absence, redaction, limitation, availability, or authorization
+attribution. When there is no valid decision, including when the decision is
+invalid, the projection MUST preserve the P9-11 deterministic disposition and
+MUST NOT infer a fallback selection.
+
+No source value, input or presentation order, name, provider output or score,
+or Component, Dashboard, Discovery, or CML navigation link substitutes for a
+valid `HumanDecision`. P9-12 does not mutate evidence, catalog metadata,
+provider state, CML, application state, or a source authority, and it does not
+create persistence, approval history, API, transport, Dashboard, or execution
+behavior.
+
+### P9-12B required executable matrix
+
+P9-12B MUST cover the following decision-admission behavior without changing
+P9-11 structural classification or the P9-13 proposal/provider boundary:
+
+- a valid exact-scope decision whose existing `componentId` matches linked,
+  admitted considered evidence produces `selected` and retains the decision,
+  evidence, and condition attribution;
+- no decision preserves the P9-11 disposition without a selected result;
+- a decision with a missing or mismatched scope, target, linked evidence, or
+  considered-evidence relationship is invalid, produces no `selected`, and
+  preserves the P9-11 disposition;
+- source values, order, names, provider output or score, and navigation links
+  cannot produce `selected` without a valid decision; and
+- a proposal or provider result cannot produce `selected` in P9-12; its
+  construction and promotion execution remain P9-13 work.
+
+## P9-13 advisory-provider and proposal contract
+
+`AdvisoryProviderContract` is a versioned, attributable declaration for an
+advisory provider. It retains a stable provider identity, contract version,
+provider provenance, typed provider availability, and every supplied
+limitation. Availability is explicit typed input; no availability value string
+is parsed, normalized, or inferred into authority.
+
+`ComponentProposal` is a provider-attributed, version-matching suggestion for
+one exact `ApplicationIntent` and `RequiredCapability` scope. It retains a
+stable proposal identity, the target existing `Component` identity, provider
+rationale and provenance, considered evidence identities, conditions, and
+limitations. A proposal cannot create a catalog fact or evidence.
+
+A proposal is admitted only when its provider is known and typed available,
+its version matches that provider contract, its intent and capability scope
+are exact, all considered evidence is known and linked to that capability,
+and at least one considered linked evidence record asserts its exact existing
+target `Component`. Invalid, duplicate, unknown, unavailable, or
+provider/proposal-version-mismatched input is a typed admission failure and
+MUST preserve the P9-11/P9-12 projection.
+
+For an unselected capability with one or more admitted proposals, the primary
+outcome may be `proposal`. That outcome retains the P9-11 structural baseline
+and every proposal, provider, evidence, condition, and limitation identity in
+input order. It neither ranks nor selects competing proposals, and it does not
+hide the retained P9-11 gap, alternative, or unresolved accounting.
+
+A valid P9-12 `HumanDecision` remains the sole selected authority. It may
+explicitly name an admitted exact-scope proposal so that promotion attribution
+is visible, but the target Component MUST still meet P9-12's evidence-backed
+existing-Component admission. An absent or invalid decision never promotes a
+proposal.
+
+No provider suggestion, availability, provider type or name, score,
+input/presentation order, source, navigation, CML, or Dashboard link
+substitutes for evidence or a `HumanDecision`. The P9-13 model is transient
+and read-only: it defines no provider call, persistence, provider-state change,
+catalog/source/CML mutation, API, Dashboard, build, generation, publication,
+or execution.
+
+### P9-13B required focused executable coverage
+
+P9-13B MUST cover valid attributable proposal preservation,
+version/provider/scope/evidence rejection, typed unavailable-provider
+preservation, non-ranking multiple proposals, and explicit
+`HumanDecision`-only promotion. P9-14 owns the complete cross-outcome
+specification matrix and structural grouping remediation.
 
 ## Transient read-only composition projection
 

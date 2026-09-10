@@ -67,7 +67,7 @@ final class MonoKotoProjectionSpec
         )
 
         When("the reverse source order is projected")
-        val result = MonoKotoProjection.create(component, Vector(kotozulu, kotoalpha, monozulu, monoalpha))
+        val result = MonoKotoProjection.create(_context(), component, Vector(kotozulu, kotoalpha, monozulu, monoalpha))
 
         Then("the fixed kind sequence and identity keys, not labels or input order, assemble one-to-many Mono and Koto aggregations")
         result.toOption.toVector.flatMap(_.subjects.map(_.sourceSubject.id)) shouldBe
@@ -152,7 +152,7 @@ final class MonoKotoProjectionSpec
 
         forAll(permutedsubjectsgenerator) { permutedsubjects =>
           When("a generated source permutation is projected")
-          val result = MonoKotoProjection.create(component, permutedsubjects.toVector)
+          val result = MonoKotoProjection.create(_context(), component, permutedsubjects.toVector)
 
           Then("identity-first ordering remains Mono then Koto for subjects and references")
           result.toOption.toVector.flatMap(_.subjects.map(_.sourceSubject.id)) shouldBe expectedsubjectids
@@ -194,7 +194,7 @@ final class MonoKotoProjectionSpec
         )
 
         When("the bounded source is projected")
-        val result = MonoKotoProjection.create(component, Vector(conditionedkoto, limitedkoto, absentmono))
+        val result = MonoKotoProjection.create(_context(), component, Vector(conditionedkoto, limitedkoto, absentmono))
 
         Then("both zero-membership conditions remain explicit rather than inferred and every source condition remains available in the projected values")
         result.isRight shouldBe true
@@ -242,7 +242,7 @@ final class MonoKotoProjectionSpec
         )
 
         When("the exact Component subject is projected")
-        val result = MonoKotoProjection.create(component, Vector(subject))
+        val result = MonoKotoProjection.create(_context(), component, Vector(subject))
 
         Then("only usable implemented targets are retained and the unavailable navigation does not remove any reference source value")
         result.toOption.toVector.flatMap(_.subjects.flatMap(_.navigationTarget)) shouldBe Vector(subjecttarget)
@@ -295,11 +295,11 @@ final class MonoKotoProjectionSpec
         )
 
         When("each malformed boundary tuple is admitted")
-        val blankcomponentresult = MonoKotoProjection.create(_component(" "), Vector(validmono.copy(component = _component(" "))))
-        val blankresult = MonoKotoProjection.create(component, Vector(blanksubject))
-        val duplicateresult = MonoKotoProjection.create(component, Vector(validmono, validmono))
-        val outofscoperesult = MonoKotoProjection.create(component, Vector(outofscope))
-        val incompatibleresult = MonoKotoProjection.create(component, Vector(incompatible))
+        val blankcomponentresult = MonoKotoProjection.create(_context(), _component(" "), Vector(validmono.copy(component = _component(" "))))
+        val blankresult = MonoKotoProjection.create(_context(), component, Vector(blanksubject))
+        val duplicateresult = MonoKotoProjection.create(_context(), component, Vector(validmono, validmono))
+        val outofscoperesult = MonoKotoProjection.create(_context(), component, Vector(outofscope))
+        val incompatibleresult = MonoKotoProjection.create(_context(), component, Vector(incompatible))
 
         Then("every malformed tuple returns MonoKotoProjectionFailure instead of any partial subject collection")
         Vector(blankcomponentresult, blankresult, duplicateresult, outofscoperesult, incompatibleresult).map(_.isLeft) shouldBe
@@ -354,8 +354,8 @@ final class MonoKotoProjectionSpec
         )
 
         When("the exact target and the look-alike target are admitted")
-        val result = MonoKotoProjection.create(component, Vector(subject))
-        val looseidentityresult = MonoKotoProjection.create(component, Vector(subject.copy(references = Vector(looseidentity))))
+        val result = MonoKotoProjection.create(_context(), component, Vector(subject))
+        val looseidentityresult = MonoKotoProjection.create(_context(), component, Vector(subject.copy(references = Vector(looseidentity))))
 
         Then("the projection retains supplied source and target values verbatim and rejects an identity reconstructed from a label-like value")
         result.toOption.toVector.flatMap(_.subjects.map(_.sourceSubject.attribution)) shouldBe Vector(subjectattribution)
@@ -368,8 +368,37 @@ final class MonoKotoProjectionSpec
           "Mono-Koto reference 'aggregate-order-label' navigation target must retain its exact semantic target identity."
         )
       }
+
+      "retain one explicit bounded CCDM context and reject blank context without a partial projection" in {
+        Given("one admitted Mono subject with a valid bounded context and a manually blank context")
+        val component = _component("textus-order")
+        val context = _context("textus-order-ccdm")
+        val subject = _subject(
+          "mono-order",
+          component,
+          "mono-order",
+          Mono,
+          "Order",
+          Vector(_reference("aggregate-order", component, "aggregate-order", StructuralDomain))
+        )
+
+        When("the same admitted values are projected with the valid and blank contexts")
+        val validresult = MonoKotoProjection.create(context, component, Vector(subject))
+        val blankresult = MonoKotoProjection.create(_context(" "), component, Vector(subject))
+
+        Then("the exact valid context is retained and blank context returns only a typed failure")
+        validresult.toOption.map(_.context) shouldBe Some(context)
+        blankresult.isLeft shouldBe true
+        blankresult.toOption shouldBe empty
+        blankresult.left.toOption.toVector.flatMap(_.violations) should contain(
+          "Mono-Koto Projection bounded CCDM context identity must not be blank."
+        )
+      }
     }
   }
+
+  private def _context(contextid: String = "textus-order-ccdm"): MonoKotoProjectionContextIdentity =
+    MonoKotoProjectionContextIdentity(contextid)
 
   private def _component(componentid: String): ComponentDashboardComponentIdentity =
     ComponentDashboardComponentIdentity(componentid)

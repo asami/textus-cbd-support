@@ -152,6 +152,7 @@ final class MonoKotoWebOverviewSpec
           Vector(_reference("koto-order-reference", component, "command-order", BehavioralTemporal))
         )
         val projection = MonoKotoProjection(
+          _context(),
           component,
           Vector(
             MonoKotoProjectedSubject(
@@ -414,6 +415,7 @@ final class MonoKotoWebOverviewSpec
           navigationTarget = Some(_navigation("aggregate-other", component))
         )
         val mismatchedprojection = MonoKotoProjection(
+          _context(),
           component,
           Vector(
             MonoKotoProjectedSubject(
@@ -457,10 +459,12 @@ final class MonoKotoWebOverviewSpec
         val projection = _projection(component, Vector(subject))
         val presentation = _presentation("mono-order", "aggregate-order", component, "aggregate-order", "contains", "Order")
         val subjectcomponentmismatchprojection = MonoKotoProjection(
+          _context(),
           component,
           Vector(MonoKotoProjectedSubject(subject.copy(component = othercomponent), Vector.empty, None))
         )
         val referencecomponentmismatchprojection = MonoKotoProjection(
+          _context(),
           component,
           Vector(
             MonoKotoProjectedSubject(
@@ -542,8 +546,39 @@ final class MonoKotoWebOverviewSpec
           "Mono-Koto reference 'aggregate-order' is outside subject 'mono-order' exact Component scope."
         )
       }
+
+      "reject a manually constructed projection with blank bounded CCDM context without a partial overview" in {
+        Given("one otherwise valid projected Mono subject whose manually constructed projection carries blank context")
+        val component = _component("textus-order")
+        val subject = _subject(
+          "mono-order",
+          component,
+          "mono-order",
+          Mono,
+          "Order",
+          Vector(_reference("aggregate-order", component, "aggregate-order", StructuralDomain))
+        )
+        val admittedprojection = _projection(component, Vector(subject))
+        val malformedprojection = MonoKotoProjection(_context(" "), component, admittedprojection.subjects)
+        val presentations = Vector(
+          _presentation("mono-order", "aggregate-order", component, "aggregate-order", "contains", "Order")
+        )
+
+        When("the exact Web entry receives the manually malformed projection")
+        val result = MonoKotoWebOverview.create(_web_entry(component), malformedprojection, presentations)
+
+        Then("the direct integrity gate rejects the blank context without constructing a substitute overview")
+        result.isLeft shouldBe true
+        result.toOption shouldBe empty
+        result.left.toOption.toVector.flatMap(_.violations) should contain(
+          "Mono-Koto Projection bounded CCDM context identity must not be blank."
+        )
+      }
     }
   }
+
+  private def _context(contextid: String = "textus-order-ccdm"): MonoKotoProjectionContextIdentity =
+    MonoKotoProjectionContextIdentity(contextid)
 
   private def _component(componentid: String): ComponentDashboardComponentIdentity =
     ComponentDashboardComponentIdentity(componentid)
@@ -558,7 +593,7 @@ final class MonoKotoWebOverviewSpec
     component: ComponentDashboardComponentIdentity,
     subjects: Vector[MonoKotoProjectionSubject]
   ): MonoKotoProjection =
-    MonoKotoProjection.create(component, subjects).toOption.get
+    MonoKotoProjection.create(_context(), component, subjects).toOption.get
 
   private def _attribution(sourceid: String): ComponentDashboardSourceAttribution =
     ComponentDashboardSourceAttribution(sourceid, s"$sourceid-authority", s"$sourceid:locator")

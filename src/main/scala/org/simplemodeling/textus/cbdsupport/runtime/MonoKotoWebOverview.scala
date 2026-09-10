@@ -83,6 +83,7 @@ object MonoKotoWebOverview {
     projection: MonoKotoProjection,
     violations: scala.collection.mutable.Builder[String, Vector[String]]
   ): Unit = {
+    _require_nonblank(projection.context.value, "Mono-Koto Projection bounded CCDM context identity", violations)
     val projectedsubjects = projection.subjects
     _duplicate_ids(projectedsubjects.map(_.sourceSubject.id)).foreach { id =>
       violations += s"Duplicate Mono-Koto subject identity '$id'."

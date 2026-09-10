@@ -56,20 +56,25 @@ final case class MonoKotoProjectedSubject(
   navigationTarget: Option[ComponentDashboardNavigationTarget]
 )
 
+final case class MonoKotoProjectionContextIdentity(value: String)
+
 final case class MonoKotoProjectionFailure(violations: Vector[String])
 
 final case class MonoKotoProjection(
+  context: MonoKotoProjectionContextIdentity,
   component: ComponentDashboardComponentIdentity,
   subjects: Vector[MonoKotoProjectedSubject]
 )
 
 object MonoKotoProjection {
   def create(
+    context: MonoKotoProjectionContextIdentity,
     component: ComponentDashboardComponentIdentity,
     subjects: Vector[MonoKotoProjectionSubject]
   ): Either[MonoKotoProjectionFailure, MonoKotoProjection] = {
     val violations = Vector.newBuilder[String]
 
+    _validate_context(context, violations)
     _validate_component(component, violations)
     _validate_duplicate_subject_ids(subjects, violations)
     _validate_duplicate_subject_semantic_target_ids(subjects, violations)
@@ -81,6 +86,7 @@ object MonoKotoProjection {
     else
       Right(
         MonoKotoProjection(
+          context,
           component,
           _order_subjects(subjects).map { subject =>
             MonoKotoProjectedSubject(
@@ -94,6 +100,12 @@ object MonoKotoProjection {
         )
       )
   }
+
+  private def _validate_context(
+    context: MonoKotoProjectionContextIdentity,
+    violations: scala.collection.mutable.Builder[String, Vector[String]]
+  ): Unit =
+    _require_nonblank(context.value, "Mono-Koto Projection bounded CCDM context identity", violations)
 
   private def _validate_component(
     component: ComponentDashboardComponentIdentity,

@@ -6,13 +6,13 @@ We considered how CBD Support can support a solo Event Storming workflow. The in
 
 This raised a broader question: current views are mainly reference/review surfaces, but model development also needs an intentional editing interaction.
 
-## Decision
+## Decision: View / Review / Edit
 
 Introduce editing as a distinct interaction responsibility alongside View and Review.
 
 - **View** reads a projection.
 - **Review** evaluates model quality and reports findings.
-- **Edit** intentionally changes the canonical object model through semantic operations.
+- **Edit** intentionally develops candidate model state through semantic operations.
 
 The normal UI remains a reference view. When editing is requested, an **Update Palette** is exposed over/in the context of that view.
 
@@ -23,11 +23,34 @@ The palette supports two complementary usage styles:
 
 These are not separate mutation implementations. Both are translated into common model-edit operations handled by CBD Support services.
 
+## Decision: provisional update -> View confirmation -> approval
+
+Editing must not directly commit each operation to canonical CML. The agreed lifecycle is:
+
+```text
+Edit Request
+  -> Provisional Update
+  -> Candidate Object Model
+  -> View / Semantic Diff / Review
+  -> User Confirmation
+  -> Approval for exact candidate state
+  -> canonical change gate
+  -> Canonical Object Model / CML
+```
+
+A user should be able to accumulate multiple provisional edits during an exploratory modeling session and then confirm the resulting model through the relevant View. Approval is therefore normally associated with the exact accumulated candidate revision/hash rather than demanded after every small modeling operation.
+
+The candidate/provisional state must be visibly distinguishable from canonical state. Rejection or abandonment of the candidate must leave canonical CML unchanged.
+
+This applies equally to direct UI commands and AI-driven editing. ChatGPT or Codex may help construct and refine a candidate model, but this does not grant them implicit authority to promote it to canonical source.
+
 ## Service boundary
 
-CBD Support will provide a Model Edit Service over the canonical object model. UI and AI clients should invoke semantic operations rather than directly rewriting CML text.
+CBD Support will provide a Model Edit Service over candidate object-model state. UI and AI clients should invoke semantic operations rather than directly rewriting CML text.
 
-This boundary allows validation, stable identity handling, semantic diff, traceability, review consequences, and approval/canonical-source rules to remain centralized.
+This boundary allows validation, stable identity handling, semantic diff, traceability, review consequences, candidate revision identity, and approval/canonical-source rules to remain centralized.
+
+Canonical promotion is distinct from candidate editing and must pass the Phase 9/10 governance boundary.
 
 ## External AI as an editing palette
 
@@ -42,39 +65,47 @@ CBD Support should therefore expose semantic read/edit capabilities rather than 
 The representative workflow becomes:
 
 ```text
-CML / Canonical Object Model
+Canonical CML / Object Model
           |
           v
 Event Storming View
           |
-    user explores model
+    exploratory editing
           |
-          +--> direct Update Palette command
-          |
+          +--> direct Update Palette
           +--> conversational instruction
-          |
           +--> ChatGPT/Codex via Plugin/MCP
                          |
                          v
                  Model Edit Service
                          |
                          v
-                 Object Model update
-                         |
-                 CML / projection refresh
+                Candidate Object Model
                          |
                          v
-                 Event Storming View
+             Candidate Event Storming View
+                 + Semantic Diff / Review
+                         |
+                  user confirmation
+                         |
+                exact-state approval
+                         |
+                canonical change gate
+                         |
+                         v
+                 Canonical CML update
 ```
 
 Event Storming is the initial validation scenario, not a special editing architecture. The same mechanism is intended for Mono-Koto Analysis, Workflow, Entity/Event, Structure, StateMachine, and other views.
 
 ## Review relationship
 
-Review findings may provide context to an edit action (for example, "this Event has no triggering Command" -> Fix), but Review never implicitly changes the model. Edit remains explicit and continues to respect Phase 9 candidate/semantic-diff rules and Phase 10 approval, integrity, continuation, and canonical-source gates.
+Review findings may provide context to an edit action (for example, "this Event has no triggering Command" -> Fix), but Review never implicitly changes the model. A fix changes candidate state first, and the resulting projection is confirmed before approval and canonical promotion.
 
 ## Planning consequence
 
-Create Phase 11 for **Interactive View and Model Editing** after the Phase 9/10 foundations. Phase 11 should treat direct UI, built-in chat, ChatGPT Plugin/MCP, and Codex MCP as alternative Model Editing Clients over a shared Model Edit Service.
+Phase 11 **Interactive View and Model Editing** must explicitly implement candidate editing as distinct from canonical mutation. Direct UI, built-in chat, ChatGPT Plugin/MCP, and Codex MCP are alternative Model Editing Clients over a shared Model Edit Service. The central interaction contract is now:
+
+**provisional edit -> candidate View confirmation -> exact-state approval -> canonical promotion**.
 
 Detailed design direction is recorded in `docs/notes/interactive-view-model-editing.md`.

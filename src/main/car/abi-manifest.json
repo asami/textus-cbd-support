@@ -132,6 +132,10 @@
       ],
       "entities": [
         {
+          "name": "SimpleEntity",
+          "fields": []
+        },
+        {
           "name": "ReviewDiagnosis",
           "fields": []
         },
@@ -149,6 +153,10 @@
         },
         {
           "name": "ReviewAttestationSnapshot",
+          "fields": []
+        },
+        {
+          "name": "ReviewRetentionEvent",
           "fields": []
         }
       ]

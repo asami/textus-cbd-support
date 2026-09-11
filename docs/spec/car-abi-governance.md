@@ -3,21 +3,18 @@
 ## Authority and Scope
 
 The CAR ABI is the component contract recorded by
-`cozy.car.abi-manifest.v1`; JVM class-file ABI is not the primary compatibility
+`cozy.car.abi-manifest.v2`; JVM class-file ABI is not the primary compatibility
 surface. The current source-managed manifest is
 `src/main/car/abi-manifest.json`. Its operation names, kinds, inputs, and
 outputs must match the generated `cozy.cml.model-metadata.v1` surface from
 `src/main/cozy/textus-cbd-support.cml`, and the built CAR must embed that
 manifest unchanged.
 
-The current `0.1.0-SNAPSHOT` manifest exports the `textus-cbd-support`
-component and ten operations: seven read-only `CbdRetrieval` operations,
-private-to-MCP `refreshCatalog`, and private-to-MCP `startReview` and
-`cancelReview`. `getReviewRun` is the only Review operation in the current
-MCP-ready service; the two Review commands are isolated in `CbdReviewAdmin`.
-MCP readiness is a runtime publication policy; it does not remove an operation
-from the CAR ABI. The component currently exports no CML entities and declares
-no component ABI dependencies.
+The current `0.1.0-SNAPSHOT` manifest defines the
+`org.simplemodeling.textus` / `CbdSupport` component identity. It exports
+nineteen operations and seven CML entities, and declares no component ABI
+dependencies. MCP readiness is a runtime publication policy; it does not
+remove an operation from the CAR ABI.
 
 ## Baseline Lifecycle
 

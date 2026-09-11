@@ -12,7 +12,7 @@ exists.
 - Java 21
 - sbt 1.9.7 or later
 - Cozy/sbt-cozy `0.3.4-SNAPSHOT` development environment
-- CNCF `0.5.2-SNAPSHOT`
+- CNCF `0.5.3-SNAPSHOT`
 - Network access to simplemodeling.org or one configured component catalog
 
 ## First Success
@@ -115,7 +115,7 @@ published snapshot CARs from the local CAR repository and does not run SBT.
 From the CBD Support project root, run:
 
 ```bash
-CNCF_VERSION=0.5.2-SNAPSHOT scripts/test/check-cbd-sie-sar.sh
+CNCF_VERSION=0.5.3-SNAPSHOT scripts/test/check-cbd-sie-sar.sh
 ```
 
 The command resolves four locally published snapshot CARs, creates a temporary
@@ -129,7 +129,7 @@ server and temporary SAR is removed on exit.
 
 Set `TEXTUS_SCRAPER_ROOT`, `TEXTUS_SIE_ROOT`, and `TEXTUS_BOK_ROOT` to override the corresponding project roots when needed; set `CNCF_RUNTIME_DEV_DIR` when using a local CNCF runtime checkout.
 
-Before starting the runtime probe, the command checks the selected `CNCF_VERSION` against `project.yaml` and `docs/spec/runtime-compatibility-matrix.json`. The current candidate is `0.5.2-SNAPSHOT`; the excluded set is empty and every unlisted version is unassessed. A successful final marker records whether the runtime came from a resolved coordinate or development directory, plus its revision and worktree state when Git evidence is available.
+Before starting the runtime probe, the command checks the selected `CNCF_VERSION` against `project.yaml` and `docs/spec/runtime-compatibility-matrix.json`. The current candidate is `0.5.3-SNAPSHOT`; the excluded set is empty and every unlisted version is unassessed. A successful final marker records whether the runtime came from a resolved coordinate or development directory, plus its revision and worktree state when Git evidence is available.
 
 The baseline profile additionally serves repository-owned fixtures and ingests
 their BoK glossary into the temporary in-memory SIE. Its live source-aware

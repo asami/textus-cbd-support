@@ -71,7 +71,7 @@ def _validate(manifestpath: Path, metadatapath: Path, archivepath: Path) -> None
     manifest = _read_json(manifestpath)
     metadata = _read_json(metadatapath)
     _require(
-        manifest.get("format") == "cozy.car.abi-manifest.v1",
+        manifest.get("format") == "cozy.car.abi-manifest.v2",
         "Unsupported current CAR ABI manifest format",
     )
     _require(
@@ -79,14 +79,19 @@ def _validate(manifestpath: Path, metadatapath: Path, archivepath: Path) -> None
         "Unsupported CML model metadata schema",
     )
 
-    car = manifest.get("car", {})
+    component = manifest.get("component", {})
     abi = manifest.get("abi", {})
     exports = abi.get("exports", {})
-    _require(isinstance(car.get("name"), str) and car.get("name"), "CAR ABI name is missing")
-    _require(isinstance(car.get("version"), str) and car.get("version"), "CAR ABI version is missing")
+    _require(
+        isinstance(component.get("namespace"), str) and component.get("namespace"),
+        "CAR ABI component namespace is missing",
+    )
+    _require(isinstance(component.get("id"), str) and component.get("id"), "CAR ABI component ID is missing")
+    _require(isinstance(component.get("version"), str) and component.get("version"), "CAR ABI version is missing")
     _require(abi.get("version") == 1, "Unsupported CAR ABI surface version")
     _require(
-        exports.get("components") == [{"name": car["name"]}],
+        exports.get("components")
+        == [{"namespace": component["namespace"], "id": component["id"]}],
         "Current ABI component export does not match the CAR identity",
     )
 
@@ -107,7 +112,7 @@ def _validate(manifestpath: Path, metadatapath: Path, archivepath: Path) -> None
     _require(packaged == manifest, "Packaged CAR ABI manifest differs from the source-managed current manifest")
     print(
         "CAR_ABI_SURFACE_OK "
-        f"component={car['name']} version={car['version']} "
+        f"component={component['namespace']}/{component['id']} version={component['version']} "
         f"operations={len(expectedoperations)} entities={len(expectedentities)}"
     )
     print(f"CAR_ABI_PACKAGE_MATCH_OK archive={archivepath.name}")

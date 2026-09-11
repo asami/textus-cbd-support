@@ -113,11 +113,15 @@ mutation; CML and Git remain the canonical design and acceptance authorities.
 
 ## Current Priority
 
-Phases 1 through 8 are complete. Phase 9 is OPEN and establishes the semantic,
+Phases 1 through 9 are complete. Phase 9 established the semantic,
 projection, candidate-design, and semantic-diff contracts consumed by planned
-Phase 10. Phase 10 is planned under DEV-CBD-002 and must not pull durability or
-approval-lifecycle concerns back into Phase 9 before the predecessor contracts
-are accepted.
+Phase 10. Its Stage 9.7 cross-view feedback and evidence-integration work
+(P9-60 through P9-63), plus the Stage 9.8 validation, documentation, and
+deferred-work accounting work (P9-70 through P9-72), are accepted. P9-73's
+full-review finding was repaired, focused re-review is clean, and the final CAR
+lint and full SBT suite passed. Phase 10 is planned under DEV-CBD-002 and must
+not pull durability or approval-lifecycle concerns back into the closed Phase 9
+boundary.
 
 The detailed historical completion evidence for Phases 1 through 8 remains in
 their phase ledgers and journals. Phase 9 and Phase 10 planning is authoritative
@@ -128,7 +132,7 @@ in `docs/phase/phase-9.md`, `docs/phase/phase-9-checklist.md`,
 
 | ID | Source | Development item | Disposition | Target | Status |
 | --- | --- | --- | --- | --- | --- |
-| DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions; Phase 9 also establishes the Canonical Component Design Model and stakeholder/engineering projection architecture without turning inference into fact. | ACTIVE_PHASE_WORK | Phase 9 | OPEN |
+| DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions; Phase 9 also establishes the Canonical Component Design Model and stakeholder/engineering projection architecture without turning inference into fact. | ACCEPTED_PHASE_WORK | Phase 9 | CLOSED |
 | DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Phase 9 semantic state, Use Case Realization, candidate design, semantic diff, and CML projection work. | ACTIVE_PHASE_WORK | Phase 10 | PLANNED |
 
 ### 9.1 Use Case-driven component composition and Dashboard

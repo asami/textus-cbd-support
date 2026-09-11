@@ -327,49 +327,108 @@ Entity-only counterpart cannot admit an Event assertion. The established
 
 ## P9-60: Analysis-to-design impact projection
 
-- [ ] Given a stakeholder-facing Mono-Koto or Use Case correction/proposal,
+- [x] Given a stakeholder-facing Mono-Koto or Use Case correction/proposal,
   identify affected Entity, Event, Structure, Workflow, StateMachine, and
   canonical-source locations without directly mutating canonical main-branch
   source.
 
 ## P9-61: Candidate design and semantic diff integration
 
-- [ ] Connect analysis-view proposals to the existing proposed-CML,
+- [x] Connect analysis-view proposals to the existing proposed-CML,
   Candidate Component Design Model, semantic Design Diff, candidate Review,
   and Git-governed acceptance loop where CML owns the affected design.
 
 ## P9-62: Lifecycle and unified evidence integration
 
-- [ ] Present declared composition/aggregation/association semantics beside
+- [x] Present declared composition/aggregation/association semantics beside
   available runtime and Review evidence and integrate Usage/Discovery,
   Operation, and Quality/Review projections without changing their canonical
   owners or conclusions.
 
 ## P9-63: Composition-to-Dashboard cross-surface navigation
 
-- [ ] Allow an admitted composition candidate to link to an exact Component
+- [x] Allow an admitted composition candidate to link to an exact Component
   Dashboard entry and its model projections without converting that candidate
   into selection or fact.
 
+### Stage 9.7 accepted evidence record
+
+Stage 9.7 is CLOSED from the committed and accepted P9-60 through P9-63
+steps. The accepted documentation/implementation pairs are
+`3d7e648` / `7dc0bba` (analysis-to-design impact projection), `1281a88` /
+`e0e8a09` (candidate design and semantic-diff integration), `0f9c1e1` /
+`e44e4ce` (lifecycle and unified evidence), and `9a0abe9` / `71f42f1`
+(composition-to-Dashboard navigation).
+
+The executable specifications `AnalysisDesignImpactProjectionSpec`,
+`CandidateDesignSemanticDiffIntegrationSpec`,
+`LifecycleUnifiedEvidenceIntegrationSpec`, and
+`CompositionDashboardCrossSurfaceNavigationSpec` passed their final focused
+validations with respectively four, eight, eight, and six successful tests and
+zero failures. Their accepted focused-review/re-review identities have no
+remaining Current Boundary Blocker; P9-61B's repair re-review retained only
+`HYG-P9-61B-SCALA-VERSION-HEADERS` as nonblocking hygiene. P9-62A and P9-63A
+also retained clean static/document preflights after their bounded repairs.
+
+The Stage keeps the declared authority boundary: analysis feedback, candidate
+design, lifecycle evidence, and Dashboard navigation remain transient,
+caller-admitted projections. They do not create a catalog fact or selection,
+mutate canonical CML, or start Phase 10 durability work. The chronological
+cross-stage and P9-70 record is
+[`2026-09-11-phase-9-p9-70-validation-and-continuation-accounting.md`](../journal/2026/09/2026-09-11-phase-9-p9-70-validation-and-continuation-accounting.md).
+
 ## P9-70: Validation and compatibility
 
-- [ ] Run selected executable, static, ABI, integration, representative SAR,
+- [x] Run selected executable, static, ABI, integration, representative SAR,
   projection-consistency, and navigation validation appropriate to the admitted
   implementation boundary.
 
 ## P9-71: Documentation record
 
-- [ ] Synchronize design, specification, CML, README/reference material,
+- [x] Synchronize design, specification, CML, README/reference material,
   strategy, Phase ledger, model-view notes, and journals with accepted
   implementation evidence.
 
 ## P9-72: Deferred-work accounting
 
-- [ ] Record persistence, approval-history, continuation, unavailable upstream
+- [x] Record persistence, approval-history, continuation, unavailable upstream
   semantic metadata, and successor work under DEV-CBD-002 or explicit successor
   authority.
 
+### Stage 9.8 accepted evidence record through P9-72
+
+P9-70 through P9-72 are accepted from the P9-70 validation set and the
+Phase-bound focused re-review disposition
+`review-disposition-sha256-7e0d1abd0b747105fc0940332e2ce5e5116c9be093c0db8c076a6760250379a3`.
+The validation, documentation synchronization, V1-to-V2 binding migration, and
+nonblocking-work disposition are recorded chronologically in
+[`2026-09-11-phase-9-p9-70-validation-and-continuation-accounting.md`](../journal/2026/09/2026-09-11-phase-9-p9-70-validation-and-continuation-accounting.md).
+
+The carried-forward hygiene is explicitly limited to
+`HYG-P9-20A-CAR-ABI-BASELINE`, `HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT`,
+`HYG-P9-53B-UNUSED-MAPPING-PARAM`, `HYG-P9-61B-SCALA-VERSION-HEADERS`, and
+`HYG-P9-70-USER-GUIDE-COZY-COORDINATE-001`. `DEV-CBD-002` remains planned
+successor work in Phase 10. None authorizes a Phase 9 behavior change.
+
 ## P9-73: Final review and closure
 
-- [ ] Complete final review, commit validated work, and close Phase 9 only
+- [x] Complete final review, commit validated work, and close Phase 9 only
   after every required item is checked or explicitly relocated.
+
+### P9-73 release-candidate review evidence
+
+The mandatory full Phase review recorded as
+`review-disposition-sha256-c451e18db336d7e5ffd75afb33e561ddc1a0240e46c8ee70f0d3e3f6d5227a19`
+found `CB-P9-73-RUNTIME-ACCEPTANCE-STATUS-001`: the runtime compatibility
+matrix still described the accepted P9-70 representative-SAR evidence as
+pending. The bounded repair changed only the JSON and Markdown runtime-matrix
+acceptance status and passed the static runtime check and CAR lint.
+
+The required focused re-review recorded as
+`review-disposition-sha256-f093e95ed73714ca9ac7f67673891ca42bf74f0266e219deb70d98d1e9059587`
+accepted the repair without a Current Boundary Blocker. Final post-closure CAR
+lint passed with the two already-recorded nonblocking warnings only. The one
+final full suite, `P9-73-SBT-001`, passed 457 tests in 100 suites with zero
+failures and emitted its terminal `lock=released` marker. This release commit
+therefore closes Phase 9; Phase 10 remains planned successor work and is not
+started by this closure.

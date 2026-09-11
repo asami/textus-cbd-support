@@ -24,7 +24,7 @@ order, collision absence, and source ownership. It skips the three
 policy-narrowing profiles. Running without `--profile` remains the complete
 four-profile matrix.
 
-The check uses CNCF `0.5.2-SNAPSHOT` by default and does not run SBT. For each
+The check uses CNCF `0.5.3-SNAPSHOT` by default and does not run SBT. For each
 profile it creates a temporary `component.d` containing a descriptor-only SAR;
 CNCF resolves its four components from the local CAR repository. The test
 starts one owned loopback server, verifies the

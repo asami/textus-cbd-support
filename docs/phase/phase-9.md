@@ -1,14 +1,16 @@
 # Phase 9 - Evidence-Backed Component Composition and Dashboard
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Completed stage: Stage 9.1 (P9-01 through P9-06) — CLOSED.
 - Completed stage: Stage 9.2 (P9-10 through P9-14) — CLOSED.
 - Completed stage: Stage 9.3 (P9-20 through P9-23) — CLOSED.
 - Completed stage: Stage 9.4 (P9-30 through P9-33) — CLOSED.
 - Completed stage: Stage 9.5 (P9-40 through P9-43) — CLOSED.
 - Completed stage: Stage 9.6 (P9-50 through P9-53) — CLOSED.
-- Later Phase 9 work: P9-60 onward — NOT STARTED.
+- Completed stage: Stage 9.7 (P9-60 through P9-63) — CLOSED.
+- Completed stage: Stage 9.8 (P9-70 through P9-73 validation and closure) —
+  CLOSED.
 - Successor: Phase 10 - Durable Model Development and Continuation
 - Owner: Textus CBD Support development
 - Update rule: Update this block only after reproducible evidence is recorded
@@ -407,6 +409,12 @@ navigation. Do not reconstruct missing semantics from names or diagram layout.
 
 ### Stage 9.7: Cross-view feedback and evidence integration
 
+Stage Status:
+- Current status: CLOSED
+- Accepted checklist evidence: P9-60 through P9-63
+- Completion record: `phase-9-checklist.md`, Stage 9.7 accepted evidence
+  record
+
 Checklist basis: `P9-60` through `P9-63`.
 
 Connect analysis and engineering projections, identify detailed-model impact of
@@ -418,8 +426,15 @@ do not persist the continuation package here.
 ### Stage 9.8: Validation and closure
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Owner: Textus CBD Support development
+- Accepted checklist evidence: P9-70 through P9-73
+- P9-73 review evidence: full review finding
+  `CB-P9-73-RUNTIME-ACCEPTANCE-STATUS-001` was repaired and the focused
+  re-review accepted the result without a Current Boundary Blocker.
+- Final validation: post-closure CAR lint passed with two carried-forward
+  nonblocking warnings, and `P9-73-SBT-001` passed 457 tests in 100 suites
+  with zero failures and a released shared SBT lock.
 - Update rule: completion is recorded only by `phase-9-checklist.md` with
   reproducible evidence.
 
@@ -427,8 +442,9 @@ Checklist basis: `P9-70` through `P9-73`.
 
 Run proportionate validation, synchronize the documentation record, account for
 deferred work, and close only after final review and every ledger item is
-complete or explicitly relocated. Closure records Phase 10 as the successor for
-DEV-CBD-002 durability and continuation work.
+complete or explicitly relocated. The accepted P9-73 release commit closes this
+Phase and records Phase 10 as the successor for DEV-CBD-002 durability and
+continuation work.
 
 ## Cross-project dependencies
 

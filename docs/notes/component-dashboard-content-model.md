@@ -1,7 +1,7 @@
 # Component Dashboard Content Model
 
 Date: 2026-09-07
-Updated: 2026-09-10
+Updated: 2026-09-20
 
 ## Context
 
@@ -20,6 +20,16 @@ From Content View the user can navigate to DomainModel View and Use Case View.
 ## DomainModel View
 
 DomainModel View distinguishes static and dynamic perspectives while preserving navigation among them.
+
+### Primary model-navigation axes
+
+The Model Viewer is organized around three primary axes:
+
+- **Aggregate View** — the write/update and consistency-boundary perspective over Entities, Commands, Events, and StateMachines;
+- **View (Read Model) View** — the read/projection perspective over source Entities/Aggregates, Queries, joins, projection structure, and freshness/version evidence;
+- **Workflow View** — the process/progression perspective over StateMachines, Actions, participants derived through Use Cases, Operations, Events, and SubWorkflows.
+
+Entity, Structure, Classification, StateMachine, Use Case, Event, and Traceability remain first-class drill-down or cross-cutting projections. The three axes are navigation anchors, not new semantic owners.
 
 ### Static Model
 
@@ -111,7 +121,12 @@ Content -> DomainModel -> Workflow -> Flowchart / StateMachine View
 Content -> Use Case -> Workflow -> affected StateMachine -> Entity
 Entity -> StateMachine -> Workflow -> Use Case -> Actor
 Workflow -> related Use Cases -> human Actors
+Aggregate <-> Event <-> View
+Workflow -> Operation/Command -> Aggregate
+Workflow -> Query -> View
 ```
+
+Where stable model/runtime identities and authorized destinations exist, CBD Support should link from its Aggregate/View/Workflow Designed Model projection to the corresponding CNCF Dashboard Observed Model projection. CNCF should provide the reverse link. Missing or ambiguous mappings remain explicit and are never reconstructed from names or layout.
 
 This makes the Dashboard a component knowledge page rather than a management console or API reference.
 

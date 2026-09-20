@@ -74,6 +74,18 @@ This checklist is the authoritative Phase 9 state ledger. Each item remains unch
 ## P9-43: Static cross-view navigation
 - [ ] Preserve canonical identity across Mono-Koto, Entity, Structure, and Classification projections so a user can move between overview and detailed static semantics without name-based reconstruction.
 
+## P9-44: Aggregate View
+- [ ] Implement Aggregate as the write/update and consistency-boundary navigation axis, including Aggregate Root, constituent/composed/referenced Entities, Commands, Events, transaction boundary, related StateMachines, and related Workflows from attributable metadata.
+
+## P9-45: View (Read Model) View
+- [ ] Implement View as the read/projection navigation axis, including source Entities/Aggregates, Queries, joins, projection structure, read-model role, and available freshness/version evidence without inferring missing projection semantics.
+
+## P9-46: Aggregate/View/Workflow model navigation
+- [ ] Organize the engineering Model Viewer around Aggregate, View (Read Model), and Workflow; preserve canonical cross-links for Aggregate -> Event -> View, Workflow -> Operation/Command -> Aggregate, and Workflow -> Query -> View where authoritative metadata exists.
+
+## P9-47: Designed/Observed model navigation
+- [ ] Provide stable bidirectional links between CBD Support Aggregate/View/Workflow Designed Model projections and CNCF Dashboard Observed Model projections where authoritative runtime mapping and authorization permit; expose unavailable or ambiguous mapping explicitly.
+
 ## P9-50: Event Model contract
 - [ ] Normalize and project Command/Event identities, cause, consequence, affected domain elements, generated state effects, and attribution without treating every Koto as a single Event.
 

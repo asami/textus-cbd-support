@@ -30,12 +30,16 @@ Canonical CML + admitted attributable evidence + terminology/BoK
 Communication / Analysis       Static projections   Dynamic projections
         |                            |                  |
         +-- Actor Goal List          +-- Entity         +-- Event
-        +-- Mono-Koto                +-- Structure      +-- Workflow
-        +-- Use Case                 +-- Classification +-- Flowchart
-        +-- Event Storming                               +-- StateMachine
+        +-- Mono-Koto                +-- Structure      +-- Aggregate
+        +-- Use Case                 +-- Classification +-- View (Read Model)
+        +-- Event Storming                               +-- Workflow
+                                                       +-- Flowchart
+                                                       +-- StateMachine
 ```
 
 A view is a projection of shared semantics, not an independently authoritative model. A model element may appear differently in several views.
+
+The Model Viewer uses **Aggregate / View (Read Model) / Workflow** as its three primary navigation axes: write/consistency, read/projection, and process/progression. Entity, Structure, Classification, Event, StateMachine, Use Case, and Traceability remain drill-down and cross-cutting projections.
 
 ## Communication / Analysis semantics
 
@@ -119,8 +123,10 @@ Phase 9 must:
 5. implement Event Storming as a cross-model behavioral projection using admitted Actor, Goal/Use Case context, Command, Entity/Aggregate, Event, Workflow, external-system, and Query/View semantics;
 6. derive Actor semantics normally from Use Case and never create a parallel Actor identity for Actor Goal List;
 7. implement stable forward/reverse navigation among Actor/Goal, Use Case, terminology, Mono/Koto, Event Storming, Entity/Event, Workflow, and StateMachine semantics;
-8. keep Workflow faithful while permitting an explicitly non-faithful/simplified Flowchart projection for communication; and
-9. route stakeholder-facing edits through semantic proposal and Git-governed design acceptance.
+8. organize the engineering Model Viewer around Aggregate, View (Read Model), and Workflow without treating supporting projections as subordinate semantic facts;
+9. preserve stable bidirectional Designed Model / Observed Model navigation with the CNCF Dashboard where authoritative mapping exists;
+10. keep Workflow faithful while permitting an explicitly non-faithful/simplified Flowchart projection for communication; and
+11. route stakeholder-facing edits through semantic proposal and Git-governed design acceptance.
 
 The existing composition, Dashboard, evidence, candidate-design, Phase 10 handoff, Usage, Operation, Quality/Review, and validation responsibilities remain unchanged.
 
@@ -142,9 +148,9 @@ Implement deterministic Component Dashboard Content and authorized Web entry fro
 
 Implement Actor Goal List, Mono-Koto, Use Case, and Event Storming. Actor Goal List provides Actor -> Goal -> Use Case intent navigation; Mono-Koto acts as terminology bridge; Event Storming acts as cross-model behavioral overview. Provide stable cross-navigation and expose ambiguity/missing semantics rather than synthesizing completeness.
 
-### Stage 9.5: Static engineering projections
+### Stage 9.5: Static and CQRS engineering projections
 
-Implement Entity, Structure, and Classification from published normalized metadata, preserving identity, ownership, lifecycle, cardinality, navigability, generalization, trait, and powertype semantics.
+Implement Entity, Structure, Classification, Aggregate, and View (Read Model) from published normalized metadata. Preserve identity, ownership, lifecycle, cardinality, navigability, generalization, trait, powertype, write/consistency boundaries, read sources, Queries, joins, and projection roles.
 
 ### Stage 9.6: Dynamic engineering projections
 
@@ -162,7 +168,7 @@ Run proportionate validation, synchronize documentation, account for deferred wo
 
 Cozy Phase 54 owns machine-readable semantic component metadata required by Entity, Structure, Classification, Event, Workflow, StateMachine, Use Case, and related projections. Actor Goal List may require explicit Actor/Goal/Use-Case trace metadata; Mono-Koto/Event Storming may require additional semantic grouping, terminology-link, Actor, Command/Event, policy/reaction, external-system, and Query/View metadata. Missing contracts must be recorded as upstream gaps rather than inferred locally.
 
-CNCF Phase 72 owns runtime lifecycle semantics and attributable runtime evidence. CNCF runtime events/workflow evidence may enrich Event Storming and other projections only as attributable evidence; CNCF does not own stakeholder presentation or terminology projection.
+CNCF Phase 72 owns runtime lifecycle semantics and attributable runtime evidence. CNCF Phase 87 owns the corresponding Aggregate/View/Workflow Observed Model navigation and cross-links to this Designed Model surface. CNCF runtime events/workflow evidence may enrich Event Storming and other projections only as attributable evidence; CNCF does not own stakeholder presentation or terminology projection.
 
 Phase 10 consumes the accepted Phase 9 semantic/model contracts for durability and continuation.
 

@@ -677,13 +677,13 @@ final class ReviewDiagnosisPersistenceSpec
     val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
     val collection =
       org.simplemodeling.textus.cbdsupport.entity.ReviewDiagnosis.collectionId
-    org.simplemodeling.model.datatype.EntityId(
+    _value(org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
       collection.major,
       collection.minor,
       collection,
-      timestamp = Some(org.goldenport.id.UniversalId.StableTimestamp),
-      entropy = Some(key)
-    )
+      org.goldenport.id.UniversalId.StableTimestamp,
+      key
+    ))
   }
 
   private def _snapshot_id(
@@ -698,13 +698,13 @@ final class ReviewDiagnosisPersistenceSpec
         .nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8))
         .toString
         .replace("-", "")
-    org.simplemodeling.model.datatype.EntityId(
+    _value(org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
       collection.major,
       collection.minor,
       collection,
-      timestamp = Some(org.goldenport.id.UniversalId.StableTimestamp),
-      entropy = Some(key)
-    )
+      org.goldenport.id.UniversalId.StableTimestamp,
+      key
+    ))
   }
 
   private def _value[A](consequence: Consequence[A]): A = consequence match {

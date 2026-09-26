@@ -205,11 +205,12 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   ) extends ActionCall.Core.Holder with ActionCallEntityStorePart {
     def admit(plan: CarReviewExecutionPlan): ExecUowM[CarReviewDiagnosisAdmission] =
       for {
-        existing <- entity_load_option_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
+        diagnosisid <- exec_from(_diagnosis_id(plan))
+        existing <- entity_load_option_internal[ReviewDiagnosisEntity](diagnosisid)
         admission <- existing match {
           case Some(_) =>
             for {
-              snapshot <- entity_load_snapshot_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
+              snapshot <- entity_load_snapshot_internal[ReviewDiagnosisEntity](diagnosisid)
               result <- _admission_from_snapshot(snapshot, plan)
             } yield result
           case None =>
@@ -334,22 +335,22 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             case Left(code) =>
               Consequence.operationInvalid(code)
             case Right(document) =>
-              ReviewRunSnapshotCreate.Builder()
-                .withDiagnosis_id(diagnosisid)
-                .withReview_id(EntityReviewId(plan.request.reviewId.value))
-                .withState(EntityReviewRunState("admitted"))
-                .withProfile(EntityReviewProfile(plan.request.profile.value))
-                .withRun_document(_json_document(document))
-                .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
-                .buildC()
-                .map(_.copy(
-                  id = Some(_snapshot_id(
+              for {
+                snapshot <- ReviewRunSnapshotCreate.Builder()
+                  .withDiagnosis_id(diagnosisid)
+                  .withReview_id(EntityReviewId(plan.request.reviewId.value))
+                  .withState(EntityReviewRunState("admitted"))
+                  .withProfile(EntityReviewProfile(plan.request.profile.value))
+                  .withRun_document(_json_document(document))
+                  .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
+                  .buildC()
+                snapshotid <- _snapshot_id(
                     "successor",
                     diagnosisid,
                     plan.request.reviewId.value,
                     ReviewRunSnapshotCreate.collectionId
-                  ))
-                ))
+                  )
+              } yield snapshot.copy(id = Some(snapshotid))
           }
       }
 
@@ -384,7 +385,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         documents <- exec_from(encoded)
         diagnosis <- _existing_diagnosis(plan)
         _ <- exec_from(_validate_owner(owner, diagnosis, plan, response))
-        diagnosisid = _diagnosis_id(plan)
+        diagnosisid <- exec_from(_diagnosis_id(plan))
         target <- exec_from(_target_snapshot(diagnosisid, plan))
         run <- exec_from(_run_snapshot(diagnosisid, plan, response, documents.runDocument))
         report <- exec_from(_report_snapshot(diagnosisid, response, documents.reportDocument))
@@ -412,18 +413,26 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       for {
         current <- _existing_diagnosis(plan)
         _ <- exec_from(_validate_terminal_owner(owner, current, plan))
-        diagnosisid = _diagnosis_id(plan)
-        run <- exec_from(ReviewRunSnapshotCreate.Builder()
-          .withDiagnosis_id(diagnosisid)
-          .withReview_id(EntityReviewId(plan.request.reviewId.value))
-          .withState(EntityReviewRunState(state.value))
-          .withProfile(EntityReviewProfile(plan.request.profile.value))
-          .withRun_document(_json_document(runDocument))
-          .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
-          .buildC().map(_.copy(
-          id = Some(_snapshot_id(s"terminal-${state.value}", diagnosisid, plan.request.reviewId.value, ReviewRunSnapshotCreate.collectionId)),
+        diagnosisid <- exec_from(_diagnosis_id(plan))
+        run <- exec_from(for {
+          snapshot <- ReviewRunSnapshotCreate.Builder()
+            .withDiagnosis_id(diagnosisid)
+            .withReview_id(EntityReviewId(plan.request.reviewId.value))
+            .withState(EntityReviewRunState(state.value))
+            .withProfile(EntityReviewProfile(plan.request.profile.value))
+            .withRun_document(_json_document(runDocument))
+            .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
+            .buildC()
+          snapshotid <- _snapshot_id(
+            s"terminal-${state.value}",
+            diagnosisid,
+            plan.request.reviewId.value,
+            ReviewRunSnapshotCreate.collectionId
+          )
+        } yield snapshot.copy(
+          id = Some(snapshotid),
           completed_at = Some(EntityReviewInstant(completedAt.value))
-        )))
+        ))
         _ <- entity_create_internal(run)
         _ <- _update_diagnosis(diagnosisid, _terminal_update(state, completedAt))
       } yield ()
@@ -467,11 +476,13 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
         .withProfile(EntityReviewProfile(plan.request.profile.value))
         .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
-        .buildC().map(
-        _.copy(
-          id = Some(_diagnosis_id(plan)),
-          active_review_id = Some(EntityReviewId(plan.request.reviewId.value))
-        )
+        .buildC().flatMap(
+        candidate => _diagnosis_id(plan).map { diagnosisid =>
+          candidate.copy(
+            id = Some(diagnosisid),
+            active_review_id = Some(EntityReviewId(plan.request.reviewId.value))
+          )
+        }
       )
 
     private final case class CompletionDocuments(
@@ -536,7 +547,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     private def _existing_diagnosis(
       plan: CarReviewExecutionPlan
     ): ExecUowM[ReviewDiagnosisEntity] =
-      entity_load_internal[ReviewDiagnosisEntity](_diagnosis_id(plan))
+      for {
+        diagnosisid <- exec_from(_diagnosis_id(plan))
+        diagnosis <- entity_load_internal[ReviewDiagnosisEntity](diagnosisid)
+      } yield diagnosis
 
     private def _validate_owner(
       owner: CarReviewDiagnosisAdmission.Owner,
@@ -572,11 +586,15 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withComponent_name(EntityComponentName(plan.request.target.name))
         .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
         .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
-        .buildC().map(_.copy(
-        id = Some(_snapshot_id("target", id, plan.request.target.digest.value, ReviewTargetSnapshotCreate.collectionId)),
-        organization = plan.request.target.organization.map(EntityComponentOrganization.apply),
-        component_version = plan.request.target.version.map(value => org.simplemodeling.textus.cbdsupport.value.ReviewVersion(value.value))
-      ))
+        .buildC().flatMap { snapshot =>
+          _snapshot_id("target", id, plan.request.target.digest.value, ReviewTargetSnapshotCreate.collectionId).map { snapshotid =>
+            snapshot.copy(
+              id = Some(snapshotid),
+              organization = plan.request.target.organization.map(EntityComponentOrganization.apply),
+              component_version = plan.request.target.version.map(value => org.simplemodeling.textus.cbdsupport.value.ReviewVersion(value.value))
+            )
+          }
+        }
 
     private def _run_snapshot(id: org.simplemodeling.model.datatype.EntityId, plan: CarReviewExecutionPlan, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewRunSnapshotCreate] =
       ReviewRunSnapshotCreate.Builder()
@@ -586,10 +604,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withProfile(EntityReviewProfile(response.report.profile.value))
         .withRun_document(_json_document(document))
         .withStarted_at(EntityReviewInstant(response.report.execution.startedAt.value))
-        .buildC().map(_.copy(
-        id = Some(_snapshot_id("run", id, response.report.reviewId.value, ReviewRunSnapshotCreate.collectionId)),
-        completed_at = Some(EntityReviewInstant(response.report.execution.completedAt.value))
-      ))
+        .buildC().flatMap { snapshot =>
+          _snapshot_id("run", id, response.report.reviewId.value, ReviewRunSnapshotCreate.collectionId).map { snapshotid =>
+            snapshot.copy(
+              id = Some(snapshotid),
+              completed_at = Some(EntityReviewInstant(response.report.execution.completedAt.value))
+            )
+          }
+        }
 
     private def _report_snapshot(id: org.simplemodeling.model.datatype.EntityId, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewReportSnapshotCreate] =
       ReviewReportSnapshotCreate.Builder()
@@ -600,9 +622,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withReport_digest(EntityReviewDigest(response.report.reportDigest.value))
         .withReport_document(_json_document(document))
         .withCreated_at(EntityReviewInstant(response.report.createdAt.value))
-        .buildC().map(_.copy(
-        id = Some(_snapshot_id("report", id, response.report.reportId.value, ReviewReportSnapshotCreate.collectionId))
-      ))
+        .buildC().flatMap { snapshot =>
+          _snapshot_id("report", id, response.report.reportId.value, ReviewReportSnapshotCreate.collectionId).map { snapshotid =>
+            snapshot.copy(id = Some(snapshotid))
+          }
+        }
 
     private def _attestation_snapshot(id: org.simplemodeling.model.datatype.EntityId, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewAttestationSnapshotCreate] =
       ReviewAttestationSnapshotCreate.Builder()
@@ -612,32 +636,34 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withReport_digest(EntityReviewDigest(response.report.reportDigest.value))
         .withAttestation_document(_json_document(document))
         .withCreated_at(EntityReviewInstant(response.attestation.createdAt.value))
-        .buildC().map(_.copy(
-        id = Some(_snapshot_id("attestation", id, response.attestation.attestationId.value, ReviewAttestationSnapshotCreate.collectionId))
-      ))
+        .buildC().flatMap { snapshot =>
+          _snapshot_id("attestation", id, response.attestation.attestationId.value, ReviewAttestationSnapshotCreate.collectionId).map { snapshotid =>
+            snapshot.copy(id = Some(snapshotid))
+          }
+        }
 
-    private def _diagnosis_id(plan: CarReviewExecutionPlan): org.simplemodeling.model.datatype.EntityId = {
+    private def _diagnosis_id(plan: CarReviewExecutionPlan): Consequence[org.simplemodeling.model.datatype.EntityId] = {
       val seed = s"${plan.reuseKey.definitionId}:${plan.reuseKey.digest.value}"
       val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
       val collection = ReviewDiagnosisEntity.collectionId
-      org.simplemodeling.model.datatype.EntityId(
+      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
         collection.major,
         collection.minor,
         collection,
-        timestamp = Some(UniversalId.StableTimestamp),
-        entropy = Some(key)
+        UniversalId.StableTimestamp,
+        key
       )
     }
 
-    private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): org.simplemodeling.model.datatype.EntityId = {
+    private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): Consequence[org.simplemodeling.model.datatype.EntityId] = {
       val seed = s"${diagnosis.value}:$kind:$identity"
       val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      org.simplemodeling.model.datatype.EntityId(
+      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
         collection.major,
         collection.minor,
         collection,
-        timestamp = Some(UniversalId.StableTimestamp),
-        entropy = Some(key)
+        UniversalId.StableTimestamp,
+        key
       )
     }
 
@@ -664,17 +690,21 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         case "completed" =>
           (diagnosis.active_review_id, diagnosis.report_id, diagnosis.report_digest) match {
             case (Some(reviewid), Some(reportid), Some(reportdigest)) =>
-              org.goldenport.Consequence.success(CarReviewDiagnosisAdmission.Reused(
-                _diagnosis_id(plan).print,
-                ReviewId(reviewid.value),
-                ReviewReportId(reportid.value),
-                ReviewDigest(reportdigest.value)
-              ))
+              _diagnosis_id(plan).map { diagnosisid =>
+                CarReviewDiagnosisAdmission.Reused(
+                  diagnosisid.print,
+                  ReviewId(reviewid.value),
+                  ReviewReportId(reportid.value),
+                  ReviewDigest(reportdigest.value)
+                )
+              }
             case _ => org.goldenport.Consequence.operationInvalid("review-diagnosis-completed-binding-missing")
           }
         case "claimed" | "queued" | "running" | "cancelling" =>
           diagnosis.active_review_id match {
-            case Some(reviewid) => org.goldenport.Consequence.success(CarReviewDiagnosisAdmission.Joined(_diagnosis_id(plan).print, ReviewId(reviewid.value)))
+            case Some(reviewid) => _diagnosis_id(plan).map { diagnosisid =>
+              CarReviewDiagnosisAdmission.Joined(diagnosisid.print, ReviewId(reviewid.value))
+            }
             case None => org.goldenport.Consequence.operationInvalid("review-diagnosis-active-run-missing")
           }
         case _ => org.goldenport.Consequence.operationInvalid("review-diagnosis-not-reusable")
@@ -839,11 +869,15 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withRecord_digest(EntityReviewDigest(report.report_digest.value))
         .withTarget_digest(EntityReviewDigest(diagnosis.target_digest.value))
         .withEffective_at(EntityReviewInstant(effectiveat.value))
-        .buildC().map(_.copy(
-        id = Some(_retention_event_id("retention-expired-report", diagnosis.id, report.id.value, effectiveat)),
-        report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
-        report_digest = Some(EntityReviewDigest(report.report_digest.value))
-      ))
+        .buildC().flatMap { event =>
+          _retention_event_id("retention-expired-report", diagnosis.id, report.id.value, effectiveat).map { eventid =>
+            event.copy(
+              id = Some(eventid),
+              report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
+              report_digest = Some(EntityReviewDigest(report.report_digest.value))
+            )
+          }
+        }
 
     private def _expire_attestations(
       attestations: Vector[ReviewAttestationSnapshotEntity],
@@ -862,13 +896,18 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             .withRecord_digest(EntityReviewDigest(attestation.report_digest.value))
             .withTarget_digest(EntityReviewDigest(diagnosis.target_digest.value))
             .withEffective_at(EntityReviewInstant(effectiveat.value))
-            .buildC().map(_.copy(
-            id = Some(_retention_event_id("retention-expired-attestation", diagnosis.id, attestation.id.value, effectiveat)),
-            report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
-            report_digest = Some(EntityReviewDigest(report.report_digest.value))
-          )))
+            .buildC().flatMap { value =>
+              _retention_event_id("retention-expired-attestation", diagnosis.id, attestation.id.value, effectiveat).map { eventid =>
+                value.copy(
+                  id = Some(eventid),
+                  report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
+                  report_digest = Some(EntityReviewDigest(report.report_digest.value))
+                )
+              }
+            })
           _ <- entity_create_internal(event)
-          _ <- entity_delete(_history_snapshot_id("attestation", diagnosis.id, report.attestation_id.value, ReviewAttestationSnapshotCreate.collectionId))
+          snapshotid <- exec_from(_history_snapshot_id("attestation", diagnosis.id, report.attestation_id.value, ReviewAttestationSnapshotCreate.collectionId))
+          _ <- entity_delete(snapshotid)
         } yield ()
       }
 
@@ -877,16 +916,16 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       diagnosis: org.simplemodeling.model.datatype.EntityId,
       recordid: String,
       effectiveat: ReviewInstant
-    ): org.simplemodeling.model.datatype.EntityId = {
+    ): Consequence[org.simplemodeling.model.datatype.EntityId] = {
       val seed = s"${diagnosis.value}:$kind:$recordid:${effectiveat.value}"
       val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
       val collection = ReviewRetentionEventCreate.collectionId
-      org.simplemodeling.model.datatype.EntityId(
+      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
         collection.major,
         collection.minor,
         collection,
-        timestamp = Some(UniversalId.StableTimestamp),
-        entropy = Some(key)
+        UniversalId.StableTimestamp,
+        key
       )
     }
 
@@ -895,15 +934,15 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       diagnosis: org.simplemodeling.model.datatype.EntityId,
       identity: String,
       collection: org.simplemodeling.model.datatype.EntityCollectionId
-    ): org.simplemodeling.model.datatype.EntityId = {
+    ): Consequence[org.simplemodeling.model.datatype.EntityId] = {
       val seed = s"${diagnosis.value}:$kind:$identity"
       val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      org.simplemodeling.model.datatype.EntityId(
+      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
         collection.major,
         collection.minor,
         collection,
-        timestamp = Some(UniversalId.StableTimestamp),
-        entropy = Some(key)
+        UniversalId.StableTimestamp,
+        key
       )
     }
 

@@ -1,8 +1,6 @@
 package org.simplemodeling.textus.cbdsupport.impl
 
-import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.util.UUID
 
 import cats.syntax.all.*
 import org.goldenport.Consequence
@@ -24,7 +22,6 @@ import org.goldenport.cncf.entity.{
 import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeQuery, ResourceTreeReference}
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.configuration.Configuration
-import org.goldenport.id.UniversalId
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
@@ -47,7 +44,8 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
 /*
  * @since   Jul. 14, 2026
  *  version Jul. 26, 2026
- * @version Aug. 15, 2026
+ *  version Aug. 15, 2026
+ * @version Sep. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -642,30 +640,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           }
         }
 
-    private def _diagnosis_id(plan: CarReviewExecutionPlan): Consequence[org.simplemodeling.model.datatype.EntityId] = {
-      val seed = s"${plan.reuseKey.definitionId}:${plan.reuseKey.digest.value}"
-      val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      val collection = ReviewDiagnosisEntity.collectionId
-      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
-        collection.major,
-        collection.minor,
-        collection,
-        UniversalId.StableTimestamp,
-        key
-      )
-    }
+    private def _diagnosis_id(plan: CarReviewExecutionPlan): Consequence[org.simplemodeling.model.datatype.EntityId] =
+      ReviewDiagnosisIdentity._diagnosis_id(plan)
 
-    private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): Consequence[org.simplemodeling.model.datatype.EntityId] = {
-      val seed = s"${diagnosis.value}:$kind:$identity"
-      val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
-        collection.major,
-        collection.minor,
-        collection,
-        UniversalId.StableTimestamp,
-        key
-      )
-    }
+    private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): Consequence[org.simplemodeling.model.datatype.EntityId] =
+      ReviewDiagnosisIdentity._snapshot_id(kind, diagnosis, identity, collection)
 
     private def _admission_from(
       result: org.goldenport.cncf.entity.EntityStore.EntityClaimResult[ReviewDiagnosisCreate, ReviewDiagnosisEntity],
@@ -916,35 +895,16 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       diagnosis: org.simplemodeling.model.datatype.EntityId,
       recordid: String,
       effectiveat: ReviewInstant
-    ): Consequence[org.simplemodeling.model.datatype.EntityId] = {
-      val seed = s"${diagnosis.value}:$kind:$recordid:${effectiveat.value}"
-      val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      val collection = ReviewRetentionEventCreate.collectionId
-      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
-        collection.major,
-        collection.minor,
-        collection,
-        UniversalId.StableTimestamp,
-        key
-      )
-    }
+    ): Consequence[org.simplemodeling.model.datatype.EntityId] =
+      ReviewDiagnosisIdentity._retention_event_id(kind, diagnosis, recordid, effectiveat)
 
     private def _history_snapshot_id(
       kind: String,
       diagnosis: org.simplemodeling.model.datatype.EntityId,
       identity: String,
       collection: org.simplemodeling.model.datatype.EntityCollectionId
-    ): Consequence[org.simplemodeling.model.datatype.EntityId] = {
-      val seed = s"${diagnosis.value}:$kind:$identity"
-      val key = "d" + UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString.replace("-", "")
-      org.simplemodeling.model.datatype.EntityId.bridgeFromParts(
-        collection.major,
-        collection.minor,
-        collection,
-        UniversalId.StableTimestamp,
-        key
-      )
-    }
+    ): Consequence[org.simplemodeling.model.datatype.EntityId] =
+      ReviewDiagnosisIdentity._history_snapshot_id(kind, diagnosis, identity, collection)
 
     private def _expiry_update(effectiveat: ReviewInstant): ReviewDiagnosisUpdate =
       _diagnosis_update(

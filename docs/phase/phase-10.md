@@ -1,132 +1,40 @@
-# Phase 10 - Durable Model Development and Continuation
+# Phase 10 - Internal-model Package and Integrity
 
 Stage Status:
-- Current status: OPEN
-- Predecessor: Phase 9 - Evidence-Backed Component Composition and Dashboard
+- Current status: CLOSED
+- Predecessor: Phase 9
+- Successor: Phase 10.1
 - Development item: DEV-CBD-002
-- Current step: begin only after Phase 9 establishes accepted canonical-model,
-  projection, candidate-design, and semantic-diff contracts required by this
-  phase.
+- Current step: P10-STEP-01 and P10-STEP-02 are accepted; the Phase 10 contract is released to Phase 10.1.
 - Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
+- Update rule: completion is recorded only by `phase-10-checklist.md` with reproducible evidence.
 
-## Purpose
+Phase 10 is the retained first child of the applied split. It owns P10-01–P10-04: source-root separation, package identity/schema, manifest inventory, and fail-closed integrity.
 
-Phase 10 makes the model-development work established by Phase 9 durable,
-reviewable, resumable, and safely applicable to canonical CML.
+The accepted P10-01--P10-03 contract is recorded in
+[`internal-model-package.md`](../design/internal-model-package.md) and
+[`internal-model-package-contract.md`](../spec/internal-model-package-contract.md).
+P10-04 provides its fail-closed executable proof. Checklist completion remains
+governed solely by `phase-10-checklist.md`.
 
-Phase 9 establishes how CBD Support acquires an attributable Canonical Component
-Design Model and projects it into stakeholder and engineering views such as
-Mono-Koto, Use Case, Entity, Structure, Classification, Event, Workflow, and
-StateMachine. It also establishes candidate design, semantic diff, review, and
-Git-governed acceptance boundaries.
+## Sequence-wide purpose and authority
 
-Phase 10 does not replace those contracts. It adds a project-owned continuation
-boundary so that a reviewed modeling workflow can be stopped, committed,
-transferred to another process or developer, rehydrated, checked for drift, and
-continued without relying on chat history, provider session state, disposable
-`target/` output, or an available CBD Support database.
+The Phase 10–10.7 sequence makes Phase 9 model-development work durable,
+reviewable, resumable, and safely applicable to canonical CML. Phase 9 owns the
+Canonical Component Design Model, its stakeholder and engineering projections,
+candidate design, semantic diff, review, and Git-governed acceptance boundaries.
+The sequence persists those identities and semantics; it must not create a
+second Entity/Event/Workflow or Mono-Koto model, nor a storage-only
+interpretation. Rehydration must reconstruct the identities needed by Phase 9
+projections or report an explicit incompatibility or gap.
 
-The provisional project source root is:
-
-```text
-src/main/internal-model/
-```
-
-## Phase 9 to Phase 10 continuity
-
-The intended lifecycle is:
-
-```text
-Canonical CML + admitted evidence
-              |
-              v
-Canonical Component Design Model             Phase 9
-              |
-     +--------+---------+
-     |                  |
- stakeholder views   engineering views
- Mono-Koto / UseCase  Entity / Event / Structure /
-                      Classification / Workflow /
-                      StateMachine
-     |                  |
-     +--------+---------+
-              v
- stakeholder/design feedback
-              v
-Candidate Design Model
-              v
-Semantic Diff + Candidate Review
-              |
--------------- durable handoff ----------------------
-              |
-              v
-Internal Model Package                        Phase 10
-  - source snapshots
-  - selected realization/model state
-  - decisions and open issues
-  - candidate CML projection
-  - approval bound to exact content hash
-  - validation evidence
-  - continuation cursor
-              |
-              v
-rehydrated Canonical Component Design Model
-              |
-              +--> same Phase 9 projections
-              |
-              v
-approved CML change gate
-              v
-Git-governed canonical-source change
-```
-
-The continuity rule is that Phase 10 persists identities and semantics already
-established by Phase 9. It must not invent a second Entity/Event/Workflow model,
-a second Mono-Koto model, or a storage-only interpretation of the design.
-Rehydration must reconstruct the same semantic identities needed by Phase 9
-projections, or report an explicit incompatibility/gap.
-
-## Storage layers
-
-Phase 10 retains the three-layer direction recorded by DEV-CBD-002.
-
-### Project-owned source
-
-`src/main/internal-model/` is the portable continuation package intentionally
-versioned with the project. It contains the minimum complete semantic state,
-source basis, decisions, approval, validation, and continuation information
-required to resume work.
-
-### CBD Support retained state
-
-CBD Support may retain richer review runs, alternatives, proposals, semantic
-diffs, evidence references, collaboration history, and supersession history.
-This is an audit/collaboration store, not the sole resume authority.
-
-### Disposable working output
-
-`target/cbd-support/` contains reproducible caches, tentative extraction output,
-previews, and other non-authoritative working artifacts.
-
-## Integrity and authority principles
-
-- CML remains canonical where the design is CML-owned.
-- An internal model is not authoritative merely because it is committed.
-- Stable identities and exact content hashes bind decisions and approvals.
-- The package fails closed when required artifacts or hashes are missing or
-  inconsistent.
-- Source snapshots preserve the semantic basis of a decision but do not replace
-  live canonical sources.
-- Drift is detected and surfaced; it is never silently rebased.
-- Human approval is bound to an exact model/projection revision and hash.
-- No skill or CBD Support operation may apply a CML mutation without applicable
-  approval for the exact candidate state.
-- Provider output remains attributable evidence/proposal and cannot become a
-  human decision implicitly.
-
-## Provisional package roles
+The project-owned continuation root is provisionally
+`src/main/internal-model/`. It must support stopping, committing, transferring,
+and resuming the selected work in another process or developer's checkout
+without relying on chat/provider history, `target/`, or an available CBD
+Support database. The root `manifest.yaml` name and its V1 canonical
+serialization are fixed by the Phase 10 design/spec contract. Artifact content
+schemas and semantic realization of the following roles remain later-phase work:
 
 ```text
 src/main/internal-model/
@@ -147,200 +55,94 @@ src/main/internal-model/
       validation.yaml
 ```
 
-Exact names and serialization are finalized only through Phase 10 design/spec
-work. The semantic roles are the starting contract.
+## Sequence-wide storage and integrity boundaries
 
-## Scope
+- Project-owned `src/main/internal-model/` is the portable, versioned minimum
+  complete continuation package: semantic state, source basis, decisions,
+  approval, validation, and cursor.
+- CBD Support retained state may hold richer review runs, alternatives,
+  proposals, semantic diffs, evidence, collaboration, and supersession history.
+  It is an audit/collaboration store, not the sole resume authority.
+- `target/cbd-support/` holds disposable caches, tentative extraction output,
+  previews, and other non-authoritative working artifacts.
+- CML remains canonical where the design is CML-owned. An internal model is not
+  authoritative merely because it is committed.
+- Stable identities and exact content hashes bind decisions and approvals.
+  Required artifacts and hashes fail closed when missing or inconsistent.
+- Source snapshots preserve a decision's semantic basis but do not replace live
+  canonical sources. Drift is surfaced, never silently rebased.
+- Human approval binds the exact model and projection revision/hash. Neither a
+  skill nor CBD Support may mutate CML without applicable approval for that
+  exact candidate state.
+- Provider output is attributable evidence or proposal, never implicit human
+  approval or a reconstructed decision.
 
-1. Promote the stable DEV-CBD-002 package, identity, integrity, lifecycle, and
-   source-root direction into design and specification.
-2. Define self-contained source snapshots with provenance and freshness checks.
-3. Persist selected realization/design state using Phase 9 semantic identities
-   and traceability rather than a parallel storage-only metamodel.
-4. Persist human decisions, relevant rejected alternatives, assumptions, and
-   blocking/non-blocking open issues.
-5. Persist candidate CML projection and semantic-diff identity without treating
-   the projection as permission to mutate canonical source.
-6. Bind review and human approval to exact content hashes and define
-   supersession/invalidation behavior.
-7. Define `resume.yaml` as a derived continuation cursor with current stage,
-   last completed action, next permitted action, blockers, preconditions, and
-   acceptance criteria.
-8. Rehydrate a fresh CBD Support process from the package and reconstruct the
-   semantic state required by the Phase 9 projection architecture.
-9. Detect live Scenario, model, glossary/BoK, CML baseline, mapping-rule, and
-   projection drift and invalidate stale decisions/approvals explicitly.
-10. Gate skill-applied CML changes on exact applicable approval, then validate
-    the resulting design through the normal Cozy/CBD Support path.
-11. Integrate project-owned continuation state with richer CBD Support retained
-    history without making retained state mandatory for resume.
-12. Guarantee build, runtime, CAR/SAR publication, ordinary CML transformation,
-    and public documentation exclusion unless an explicit approved workflow
-    selects the internal model.
+## Sequence-wide non-goals and dependencies
+
+The split does not replace Phase 9 projection/view contracts, make the internal
+model a second canonical design source, reconstruct missing decisions from chat,
+Git history, names, or provider output, automatically approve semantic changes
+or CML mutations, publish raw prompts/responses or sensitive provider payloads
+into project source by default, require retained state for resume, or accept
+stale approval after semantic or baseline drift. The internal model is excluded
+by default from runtime packaging, public APIs, ordinary CML generation,
+documentation publication, and CAR/SAR artifacts; Phase 10.6 owns proof of
+that exclusion.
+
+Phase 9 supplies admitted semantic metadata and canonical-source behavior.
+Missing Cozy or CNCF contracts remain explicit upstream gaps, not license for
+local semantic reconstruction. Any dedicated CML-application skill must
+preserve the exact approval/hash gate and Phase 9 Git-governed acceptance
+policy. The terminal Phase 10.7 acceptance scenario validates this full loop.
+
+Planning sources: `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md`,
+`docs/phase/phase-9.md`, `docs/phase/phase-9-checklist.md`,
+`docs/journal/2026/09/2026-09-09-mono-koto-analysis-view.md`, and
+`docs/journal/2026/09/2026-09-03-cml-design-improvement-pull-request-loop.md`
+when present in synchronized journal history.
+
+## Closure boundary
+
+P10-STEP-01 committed the source-root, package-identity, manifest-inventory,
+canonical-byte, and digest contract as `f9582ed`. P10-STEP-02 committed the
+project-bound fail-closed validator and executable specifications as `09dee8f`.
+The Phase full review and focused closure re-review accepted the final bounded
+identity-helper extraction without changing Review persistence semantics.
+The final repository-full test and CAR-lint receipts are bound to the distinct
+Phase release commit; the release does not claim approval, rehydration, CML
+mutation, or Phase 10.1 execution. The accepted contract is the frozen input
+to Phase 10.1.
 
 ## Non-goals
 
-- Replacing Phase 9 projection/view contracts with stored copies.
-- Making `src/main/internal-model/` a second canonical design source.
-- Reconstructing missing decisions from chat, Git history, naming heuristics, or
-  provider output.
-- Automatically approving semantic changes or CML mutations.
-- Publishing raw prompts/responses or sensitive provider payloads into project
-  source by default.
-- Requiring CBD Support retained state merely to resume current selected work.
-- Treating a stale approval as applicable after semantic or baseline drift.
+All later original Phase 10 groups belong exclusively to their named successor. No Phase creates a parallel semantic model or changes canonical CML outside its explicitly owned approval-gate boundary.
 
-## Stages
+## Phase Plan Gate: PROCEED
 
-Each Stage is intended to remain a focused work slice. Split a checklist item
-before implementation when it cannot reasonably remain within the project's
-normal approximately six-hour phase/subphase work unit.
+- target: calibrated expected duration centered on 6h; allowed ceiling 8h
+- estimate_calibration: no comparable planned/actual Phase 10 evidence; the original focused Stage is the bounded estimate basis.
+- planning_demand: protected-decision
+- recommended_parent_profile: gpt-5.6-terra / xhigh
+- profile_cost_role: expensive reasoning kernel
+- expensive_reasoning_kernel: package identity, schema compatibility, and fail-closed integrity decisions.
+- frozen_profile_transition_handoff: none
+- parent_reasoning_mode_policy: standard
+- estimated_at_recommended_profile: 360 minutes expected; 300–420 minute uncertainty range; target fit yes; ceiling fit yes.
+- incoming_semantic_handoffs: []
+- merge_attempts_for_every_sub_4h_child: none
+- rebalance_attempts_for_every_sub_5h_child: none
+- adjacent_merge_structural_rejection_evidence: every adjacent merge is 720 expected minutes and exceeds the 480-minute ceiling; profile cost was not used.
+- profile_cost_only_rejection_forbidden: true
+- short_child_basis: none
+- overhead_tradeoff: an accepted release makes this contract independently reusable and reviewable by the next child.
+- agent_reasoning_mode_policy: default standard
+- runtime_suitability: re-evaluate in the Phase execution task
+- source: applied split from Phase 10
 
-### Stage 10.1: Package and integrity contract
+## Applied split record — 2026-09-11
 
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
+Apply-mode invocation: `$cncf-split-phase Phase 10`. The verified pre-goal entry result was `SPLIT_REQUIRED` with `time-bound`, 2,880 expected minutes, a 4,320-minute conservative upper bound, 360-minute target, and 480-minute ceiling. Source goal/status: `none / no-goal-pre-entry`.
 
-Checklist basis: `P10-01` through `P10-04`.
+The applied order is `10`, `10.1`, `10.2`, `10.3`, `10.4`, `10.5`, `10.6`, and `10.7`. Every original item was OPEN; no completed history, accepted evidence, or journal record moved. Each child owns one original Stage and hands off only its accepted release. Every adjacent merge is 720 expected minutes and exceeds the ceiling; no profile-cost-only rejection was used.
 
-Freeze source-root role, manifest, package identity/revision, schema version,
-artifact inventory, hashes, and fail-closed integrity behavior.
-
-### Stage 10.2: Source snapshots and freshness
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-10` through `P10-13`.
-
-Define Scenario, model-context, glossary/BoK, and CML-baseline snapshots with
-canonical provenance and deterministic drift/freshness checks.
-
-### Stage 10.3: Durable semantic state and traceability
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-20` through `P10-23`.
-
-Persist selected realization/design state, Phase 9 semantic identities, trace
-links, decisions, alternatives, assumptions, and open issues without creating a
-parallel semantic model.
-
-### Stage 10.4: CML projection, review, and approval
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-30` through `P10-34`.
-
-Persist candidate CML projection and semantic diff, bind review/approval to exact
-hashes, and define supersession and invalidation.
-
-### Stage 10.5: Continuation and rehydration
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-40` through `P10-44`.
-
-Implement the continuation cursor and prove that a fresh CBD Support process can
-reconstruct the current semantic state and Phase 9 views without previous
-session state.
-
-### Stage 10.6: Drift and CML change gate
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-50` through `P10-54`.
-
-Detect drift, calculate invalidation, enforce exact approval before mutation,
-and validate approved CML changes through canonical tooling.
-
-### Stage 10.7: Retained-state and security integration
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-60` through `P10-63`.
-
-Integrate richer CBD Support history, redaction/sensitive-data policy, MCP/API
-boundaries, and build/publication exclusion without weakening project-local
-resume independence.
-
-### Stage 10.8: End-to-end validation and closure
-
-Stage Status:
-- Current status: OPEN
-- Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-10-checklist.md` with
-  reproducible evidence.
-
-Checklist basis: `P10-70` through `P10-73`.
-
-Prove the complete Phase 9 -> durable handoff -> Phase 10 resume -> approved
-CML change -> Phase 9 re-projection loop, synchronize documentation, and close
-only after all ledger items are complete or explicitly relocated.
-
-## Acceptance scenario
-
-The representative closure scenario is:
-
-```text
-Use Case / Mono-Koto stakeholder review
-  -> Phase 9 Candidate Design Model
-  -> Entity/Event/Workflow/StateMachine impact
-  -> Semantic Diff
-  -> project-local internal-model package
-  -> process/session termination
-  -> fresh CBD Support process
-  -> package integrity and freshness validation
-  -> same selected semantic state and Phase 9 projections
-  -> human approval for exact candidate hash
-  -> approved CML change
-  -> Cozy generation/validation
-  -> CBD Support re-analysis and Review
-  -> updated Phase 9 projections
-```
-
-The phase is not complete unless this loop is reproducible without relying on
-the original AI/provider session.
-
-## Planning sources
-
-- `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md`
-- `docs/phase/phase-9.md`
-- `docs/phase/phase-9-checklist.md`
-- `docs/journal/2026/09/2026-09-09-mono-koto-analysis-view.md`
-- `docs/journal/2026/09/2026-09-03-cml-design-improvement-pull-request-loop.md`
-  when present under the synchronized journal history.
-
-## Cross-project dependencies
-
-Phase 10 consumes the semantic metadata and canonical-source behavior admitted
-by Phase 9. Missing Cozy or CNCF contracts remain explicit upstream gaps and do
-not authorize local semantic reconstruction. Any dedicated skill that applies
-approved CML changes must preserve the approval/hash gate defined here and the
-Git-governed acceptance policy established by Phase 9.
+Terra/xhigh owns unresolved package, semantic-identity, approval/CML-gate, and API/security kernels (10, 10.2, 10.3, 10.5, 10.6). Terra/high owns bounded snapshot, rehydration, and closure work (10.1, 10.4, 10.7).

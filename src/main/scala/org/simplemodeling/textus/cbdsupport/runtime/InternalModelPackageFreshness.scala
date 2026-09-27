@@ -1,10 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
-import java.nio.channels.Channels
-import java.nio.file.attribute.BasicFileAttributeView
-import java.nio.file.{AccessDeniedException, Files, LinkOption, NoSuchFileException, Path, SecureDirectoryStream, StandardOpenOption}
+import java.nio.file.{AccessDeniedException, Path}
 
-import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 
 import com.sun.jna.Platform
@@ -175,35 +172,8 @@ private[runtime] object InternalModelPackageFreshness {
     _cml_target(projectroot, projectrelativepath) match {
       case Left(result) => result
       case Right(physicalroot) =>
-        _read_cml_from_secure_provider(physicalroot, projectrelativepath) match {
-          case Some(result) => result
-          case None if Platform.isMac => _read_cml_natively(physicalroot, projectrelativepath)
-          case None => CmlReadResult.Malformed("CML current target cannot be read safely")
-        }
-    }
-
-  private def _read_cml_from_secure_provider(
-    physicalroot: Path,
-    projectrelativepath: String
-  ): Option[CmlReadResult] =
-    try {
-      val stream = Files.newDirectoryStream(Path.of("/"))
-      try {
-        stream match {
-          case secure: SecureDirectoryStream[?] =>
-            val components = physicalroot.iterator.asScala.toVector ++ projectrelativepath.split("/", -1).toVector.map(component => Path.of(component))
-            Some(_read_cml_from_directory(secure.asInstanceOf[SecureDirectoryStream[Path]], components))
-          case _ => None
-        }
-      } finally {
-        stream.close()
-      }
-    } catch {
-      case _: UnsupportedOperationException => None
-      case _: NoSuchFileException => Some(CmlReadResult.Unavailable("CML current target is absent"))
-      case _: AccessDeniedException => Some(CmlReadResult.Unauthorized("CML current target cannot be read"))
-      case _: SecurityException => Some(CmlReadResult.Unauthorized("CML current target cannot be read"))
-      case NonFatal(_) => Some(CmlReadResult.Malformed("CML current target cannot be read safely"))
+        if Platform.isMac then _read_cml_natively(physicalroot, projectrelativepath)
+        else CmlReadResult.Malformed("native CML safe reader is unsupported on this platform")
     }
 
   private def _read_cml_natively(physicalroot: Path, projectrelativepath: String): CmlReadResult =
@@ -212,31 +182,6 @@ private[runtime] object InternalModelPackageFreshness {
       case NativeCmlFileReader.Result.Unavailable(reason) => CmlReadResult.Unavailable(reason)
       case NativeCmlFileReader.Result.Unauthorized(reason) => CmlReadResult.Unauthorized(reason)
       case NativeCmlFileReader.Result.Malformed(reason) => CmlReadResult.Malformed(reason)
-    }
-
-  private def _read_cml_from_directory(
-    directory: SecureDirectoryStream[Path],
-    components: Vector[Path]
-  ): CmlReadResult =
-    components match {
-      case Vector(target) =>
-        val attributes = directory.getFileAttributeView(target, classOf[BasicFileAttributeView], LinkOption.NOFOLLOW_LINKS).readAttributes()
-        if attributes.isSymbolicLink || !attributes.isRegularFile then CmlReadResult.Malformed("CML current target must be a regular file")
-        else {
-          val options = java.util.Set.of[java.nio.file.OpenOption](StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)
-          val channel = directory.newByteChannel(target, options)
-          try {
-            val input = Channels.newInputStream(channel)
-            try CmlReadResult.Read(input.readAllBytes().toVector)
-            finally input.close()
-          }
-          finally channel.close()
-        }
-      case directoryname +: remaining =>
-        val child = directory.newDirectoryStream(directoryname, LinkOption.NOFOLLOW_LINKS)
-        try _read_cml_from_directory(child, remaining)
-        finally child.close()
-      case _ => CmlReadResult.Malformed("CML current target path is unsafe")
     }
 
   private def _cml_target(projectroot: Path, projectrelativepath: String): Either[CmlReadResult, Path] =

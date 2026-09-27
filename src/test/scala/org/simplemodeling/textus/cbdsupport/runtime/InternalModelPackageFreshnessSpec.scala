@@ -7,6 +7,7 @@ import java.util.Base64
 
 import scala.jdk.CollectionConverters.*
 
+import com.sun.jna.{Library, Native, Platform}
 import io.circe.{Json, JsonObject, Printer}
 import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
@@ -24,6 +25,10 @@ final class InternalModelPackageFreshnessSpec
     with Matchers
     with GivenWhenThen
     with ScalaCheckPropertyChecks {
+
+  private trait DarwinTestLibC extends Library {
+    def mkfifo(pathname: String, mode: Int): Int
+  }
 
   private val _printer = Printer.noSpacesSortKeys
   private val _project_yaml = """project:
@@ -369,6 +374,48 @@ final class InternalModelPackageFreshnessSpec
         } finally _delete_tree(outside)
       }
 
+      "fail closed without raw-byte evidence when a regular current target is replaced by a FIFO before the next owner check" in {
+        Given("a CML baseline and a regular source-owner current target")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"), _cml_raw)
+        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
+
+        _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current.cml" -> _cml_raw)) { root =>
+          if (Platform.isMac) {
+            When("the source owner checks the regular current target")
+            val before = _report(InternalModelPackageFreshness.check(root, Map(
+              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            )))
+
+            Then("the initial package-entry observation remains unchanged")
+            _freshness(before.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+
+            Given("the current target is deterministically replaced by a FIFO before the next owner check")
+            val target = root.resolve("models/current.cml")
+            Files.delete(target)
+            _darwin_libc.mkfifo(target.toString, 0x1a4) shouldBe 0
+
+            When("the source owner repeats the package-entry CML check")
+            val after = _report(InternalModelPackageFreshness.check(root, Map(
+              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            )))
+
+            Then("the final nonregular descriptor is malformed without a blocking read or retained raw bytes")
+            _freshness(after.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+            _freshness(after.entries.head).observedRawBytesSha256 shouldBe None
+            after.toString should not include "entity Customer"
+          } else {
+            When("the source owner requests the CML check on a platform without the descriptor-safe reader")
+            val after = _report(InternalModelPackageFreshness.check(root, Map(
+              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            )))
+
+            Then("the package entry remains fail-closed without raw-byte evidence")
+            _freshness(after.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+            _freshness(after.entries.head).observedRawBytesSha256 shouldBe None
+          }
+        }
+      }
+
       "read the source-owner target through the physical root for equal and drifted CML bytes without retaining payloads" in {
         Given("a CML baseline whose recorded path is not the owner-supplied equal current target")
         val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"), _cml_raw)
@@ -602,6 +649,8 @@ final class InternalModelPackageFreshnessSpec
 
   private def _sha256(bytes: Array[Byte]): String =
     "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
+
+  private lazy val _darwin_libc: DarwinTestLibC = Native.load("c", classOf[DarwinTestLibC])
 
   private def _with_fixture(
     manifest: String,

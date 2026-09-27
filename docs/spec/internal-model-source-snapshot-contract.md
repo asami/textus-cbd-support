@@ -344,18 +344,17 @@ directory. The entry preserves the supplied absolute normalized root without
 resolving arbitrary ancestors. Before descriptor descent it rewrites only the
 current macOS system aliases `/var` to `/private/var` and `/tmp` to
 `/private/tmp`, and only when each alias currently has exactly that target. A
-capable `SecureDirectoryStream` provider starts from `/`, descends every
-root-and target-directory component with `NOFOLLOW_LINKS`, and opens the final
-target by a no-follow relative channel; an arbitrary symbolic ancestor or
-final component is rejected. On macOS where that provider is
-unavailable, the internal Darwin adapter uses the declared
-`net.java.dev.jna:jna:5.13.0` dependency lazily and only on that platform. It
-requires the Darwin LP64 ABI, acquires `/`, descends the normalized root and
-target by descriptor using no-follow directory opens, opens the final target
-with no-follow, close-on-exec, nonblocking read flags, verifies its `fstat`
-regular-file type before consuming bytes, and closes every descriptor. An
-unsupported provider or platform, incompatible ABI, or native-read failure is
-fail-closed; it SHALL NOT fall back to pathname check-then-open reading.
+generic `SecureDirectoryStream` can protect directory traversal but cannot
+prove the final opened object's type before a potentially blocking byte read,
+so it is not a package-entry CML byte reader. On macOS, every package-entry
+CML read uses the internal Darwin adapter and the declared
+`net.java.dev.jna:jna:5.13.0` dependency lazily. It requires the Darwin LP64
+ABI, acquires `/`, descends the normalized root and target by descriptor using
+no-follow directory opens, opens the final target with no-follow,
+close-on-exec, nonblocking read flags, verifies its `fstat` regular-file type
+before consuming bytes, and closes every descriptor. Any unsupported platform,
+incompatible ABI, or native-read failure is fail-closed; it SHALL NOT fall back
+to generic secure-directory or pathname check-then-open reading.
 
 ## 10. Structural outcomes and freshness boundary
 

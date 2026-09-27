@@ -180,19 +180,18 @@ containment below a non-symbolic project root and a final regular file, and
 preserves the supplied absolute normalized root without resolving arbitrary
 ancestors. Before descriptor descent it rewrites only the current macOS system
 aliases `/var` to `/private/var` and `/tmp` to `/private/tmp`, and only when
-each alias currently has exactly that target. A capable `SecureDirectoryStream`
-provider starts at `/`, descends root and target-directory components with
-no-follow links, and opens the final target through a no-follow relative
-channel; an arbitrary symbolic ancestor or final component is rejected. If
-that provider is unavailable on
-macOS, the internal Darwin LP64 adapter loads the declared JNA 5.13.0 core
-dependency lazily, acquires `/`, descends normalized-root and target components
-by no-follow directory descriptors, opens the final target with no-follow,
-close-on-exec, and nonblocking read flags, checks its `fstat` regular-file type
-before byte consumption, retries only interrupted safe calls, and closes every
-descriptor while preserving the initial outcome. An unsupported provider or
+each alias currently has exactly that target. Generic secure-directory traversal
+can protect component descent, but its final relative channel cannot prove the
+opened object's regular-file type before a potentially blocking byte read. It
+therefore is not a package-entry CML byte reader. On macOS, the internal Darwin
+LP64 adapter is used for every package-entry CML read. It loads the declared
+JNA 5.13.0 core dependency lazily, acquires `/`, descends normalized-root and
+target components by no-follow directory descriptors, opens the final target
+with no-follow, close-on-exec, and nonblocking read flags, checks its `fstat`
+regular-file type before byte consumption, retries only interrupted safe calls,
+and closes every descriptor while preserving the initial outcome. An unsupported
 platform, incompatible ABI, or native failure remains fail-closed; there is no
-pathname check-then-open fallback.
+generic secure-directory or pathname check-then-open fallback.
 
 Its only outputs are the existing typed availability state or the bytes and
 source-owner metadata passed to the pure comparator. The recorded CML basis

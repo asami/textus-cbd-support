@@ -1,7 +1,7 @@
 # Phase 10.1 - Source Snapshots and Freshness
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Predecessor: Phase 10
 - Successor: Phase 10.2
 - Development item: DEV-CBD-002

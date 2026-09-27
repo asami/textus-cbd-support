@@ -117,6 +117,89 @@ fact and definition must be retained in a source-attributed artifact. An
 unknown target set, omitted source, unresolved unavailable basis, or unbaselined
 target leaves the candidate incomplete.
 
+## Deterministic freshness comparison
+
+P10-13 adds only a supplied-byte, supplied-observation comparison seam. It
+first validates the entire closed canonical V1 snapshot, including all four
+basis shapes and the CML Base64/length/raw-hash relationship, so that an
+invalid baseline cannot gain meaning from a live source. That malformed
+baseline outcome has precedence over an unavailable, unauthorized, malformed,
+or ambiguous live observation.
+
+For a valid baseline, one `Observed` value carries source-owned authority,
+identity, explicit optional revision, and immutable exact raw bytes. The
+comparison derives only the raw-byte SHA-256; it does not use a locator as an
+access route or equality substitute. It retains all differences across source
+authority, identity, revision including null/value transitions, and digest.
+For CML, the observed safe project-relative path, byte length, and exact raw
+bytes are also compared with the recorded read-only baseline. A non-CML source
+cannot attach a CML path, and a CML comparison cannot proceed from a missing or
+unsafe current path.
+
+The report exposes status, source identity/provenance metadata, digests,
+sorted dimension names, CML paths, and a non-byte-bearing evidence reason. It
+does not carry the Scenario, model-context, glossary/BoK, or CML payloads, a
+locator, or a credential. `Unavailable`, `Unauthorized`, `Malformed`, and
+`AmbiguousOrConflicting` remain separate report states. `Changed` reports
+detected divergence only; Phase 10.5 remains the owner of invalidation,
+reconciliation, approval, and any canonical CML application.
+
+This seam is deliberately pure. It does not open a project, inspect the
+filesystem, contact a provider, choose an authority, mutate a snapshot, apply
+CML, expose a route, or retain lifecycle state.
+
+## Package freshness orchestration
+
+P10-13 adds a deliberately narrow package entry around that unchanged pure
+seam. It requests source-snapshot entries only from the one completed
+project-bound manifest validation pass. The validator has already established
+the closed manifest inventory, regular-file boundary, and every artifact digest
+before exposing manifest-order entries; present entries carry the exact
+verified bytes and optional absence carries no bytes. This avoids a competing
+manifest parser, inventory walk, or integrity authority.
+
+The entry returns one result for every manifest `source-snapshot` entry in that
+same order. The caller/source owner supplies inputs keyed by artifact identity,
+so input-map insertion order has no semantic effect. Unknown or non-source IDs
+are rejected rather than interpreted. A present baseline without an input is
+explicitly unavailable. An optional absent baseline is `MissingBaseline`, does
+not invoke a source owner or CML reader, and is not turned into a synthetic
+zero-byte baseline. Empty source-snapshot inventory is an empty report only;
+the manifest's syntactic closure still does not establish semantic completeness.
+
+Scenario, model-context, and glossary/BoK retain the existing closed caller
+observation family. CML separates the observed request because a caller must
+not inject CML bytes: its source owner supplies authority, identity, optional
+revision, and the current project-relative path, while the entry reads that one
+target under the consuming project root. Supplying an ordinary observed value
+for CML, or a CML request for another snapshot kind, is malformed. Non-observed
+CML statuses remain explicit and do not trigger a file read.
+
+The CML reader first rejects unsafe paths and symbolic components, requires
+containment below a non-symbolic project root and a final regular file, and
+preserves the supplied absolute normalized root without resolving arbitrary
+ancestors. Before descriptor descent it rewrites only the current macOS system
+aliases `/var` to `/private/var` and `/tmp` to `/private/tmp`, and only when
+each alias currently has exactly that target. A capable `SecureDirectoryStream`
+provider starts at `/`, descends root and target-directory components with
+no-follow links, and opens the final target through a no-follow relative
+channel; an arbitrary symbolic ancestor or final component is rejected. If
+that provider is unavailable on
+macOS, the internal Darwin LP64 adapter loads the declared JNA 5.13.0 core
+dependency lazily, acquires `/`, descends normalized-root and target components
+by no-follow directory descriptors, opens the final target with no-follow,
+close-on-exec, and nonblocking read flags, checks its `fstat` regular-file type
+before byte consumption, retries only interrupted safe calls, and closes every
+descriptor while preserving the initial outcome. An unsupported provider or
+platform, incompatible ABI, or native failure remains fail-closed; there is no
+pathname check-then-open fallback.
+
+Its only outputs are the existing typed availability state or the bytes and
+source-owner metadata passed to the pure comparator. The recorded CML basis
+path and source locator are never read authority. Changed target paths remain
+comparison evidence even where their bytes are equal. The report contains no
+raw bytes, locator, or credential.
+
 ## Failure and lifecycle separation
 
 Canonical byte and structural failures stop source-snapshot admission rather
@@ -139,9 +222,11 @@ or unchanged observations without ranking sources or deciding their disposition.
 Phase 10.5 separately decides whether detected drift invalidates, can be
 reconciled, or can ever precede an approved canonical CML application.
 
-This P10-10--P10-12 design deliberately does not create a parser, validator,
-live comparator, runtime, API, retained-state record, CML mutation, approval
-mechanism, or new-file absence baseline. It is the static source-snapshot basis
-for Phase 10.1, whose checklist and status remain
+This P10-10--P10-12 design deliberately did not create a parser, validator, or
+live comparator. P10-13 adds the pure supplied-byte/supplied-observation
+comparator and its validated package orchestration described above; it does not
+add a transport runtime, retained-state record, CML mutation, approval
+mechanism, automatic adoption, or new-file absence baseline. It is the
+source-snapshot basis for Phase 10.1, whose checklist and status remain
 [OPEN](../phase/phase-10.1-checklist.md) until the complete Phase evidence is
 recorded.

@@ -22,15 +22,25 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
  * @version Sep. 27, 2026
  * @author  ASAMI, Tomoharu
  */
+private[runtime] final case class InternalModelVerifiedSourceSnapshot(
+  artifactId: String,
+  packageRelativePath: String,
+  required: Boolean,
+  bytes: Option[Vector[Byte]]
+)
+
 /** Validates the closed, project-bound V1 internal-model package structure. */
 object InternalModelPackageValidator {
   private final case class Artifact(
     id: String,
+    role: String,
     path: String,
     required: Boolean,
     sha256: String,
     dependencies: Vector[String]
   )
+
+  private final case class VerifiedArtifact(artifact: Artifact, bytes: Option[Vector[Byte]])
 
   private val _manifest_fields = Set(
     "artifacts", "lifecycleState", "packageDigest", "packageId", "projectId", "projectNamespace", "revision", "schemaVersion"
@@ -51,7 +61,14 @@ object InternalModelPackageValidator {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
-  private def _validate(projectroot: Path): Either[String, Unit] =
+  private[runtime] def verifiedSourceSnapshots(projectRoot: Path): Consequence[Vector[InternalModelVerifiedSourceSnapshot]] =
+    try {
+      _validate(projectRoot).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  private def _validate(projectroot: Path): Either[String, Vector[InternalModelVerifiedSourceSnapshot]] =
     for {
       root <- _project_root(projectroot)
       identity <- _project_identity(root)
@@ -61,8 +78,8 @@ object InternalModelPackageValidator {
       artifacts <- _artifacts(manifest, identity)
       _ <- _package_digest(manifest)
       _ <- _inventory_order(artifacts)
-      _ <- _filesystem_inventory(packageroot, artifacts)
-    } yield ()
+      verified <- _filesystem_inventory(packageroot, artifacts)
+    } yield verified
 
   private def _project_root(projectroot: Path): Either[String, Path] = {
     val root = projectroot.toAbsolutePath.normalize
@@ -187,7 +204,7 @@ object InternalModelPackageValidator {
       _ <- Either.cond(dependencies.forall(_is_token), (), s"artifact $id dependsOn contains an invalid token")
       _ <- _unique(dependencies, s"artifact $id dependencies")
       _ <- Either.cond(dependencies == dependencies.sorted, (), s"artifact $id dependencies are not in canonical order")
-    } yield Artifact(id, path, required, digest, dependencies)
+    } yield Artifact(id, role, path, required, digest, dependencies)
 
   private def _package_digest(root: JsonObject): Either[String, Unit] =
     _string(root, "packageDigest").flatMap { declared =>
@@ -223,18 +240,24 @@ object InternalModelPackageValidator {
     _loop_(remaining, Vector.empty)
   }
 
-  private def _filesystem_inventory(packageroot: Path, artifacts: Vector[Artifact]): Either[String, Unit] =
+  private def _filesystem_inventory(packageroot: Path, artifacts: Vector[Artifact]): Either[String, Vector[InternalModelVerifiedSourceSnapshot]] =
     for {
       actualpaths <- _walk_regular_paths(packageroot)
       listedpaths = artifacts.map(_.path).toSet
       unlisted = actualpaths -- listedpaths
       _ <- Either.cond(unlisted.isEmpty, (), s"internal-model package contains unlisted files: ${unlisted.toVector.sorted.mkString(", ")}")
-      _ <- artifacts.foldLeft[Either[String, Unit]](Right(())) { (result, artifact) =>
-        result.flatMap(_ => _artifact_file(packageroot, actualpaths, artifact))
+      verified <- artifacts.foldLeft[Either[String, Vector[VerifiedArtifact]]](Right(Vector.empty)) { (result, artifact) =>
+        for {
+          collected <- result
+          entry <- _artifact_file(packageroot, actualpaths, artifact)
+        } yield collected :+ entry
       }
-      present = artifacts.filter(artifact => actualpaths.contains(artifact.path)).map(_.id).toSet
+      present = verified.collect { case VerifiedArtifact(artifact, Some(_)) => artifact.id }.toSet
       _ <- _present_dependencies(artifacts, present)
-    } yield ()
+    } yield verified.collect {
+      case VerifiedArtifact(artifact, bytes) if artifact.role == "source-snapshot" =>
+        InternalModelVerifiedSourceSnapshot(artifact.id, artifact.path, artifact.required, bytes)
+    }
 
   private def _walk_regular_paths(packageroot: Path): Either[String, Set[String]] =
     try {
@@ -281,16 +304,17 @@ object InternalModelPackageValidator {
       case NonFatal(_) => Left("internal-model package inventory cannot be read")
     }
 
-  private def _artifact_file(packageroot: Path, actualpaths: Set[String], artifact: Artifact): Either[String, Unit] =
+  private def _artifact_file(packageroot: Path, actualpaths: Set[String], artifact: Artifact): Either[String, VerifiedArtifact] =
     if !actualpaths.contains(artifact.path) then
-      Either.cond(!artifact.required, (), s"required artifact ${artifact.id} is absent")
+      if !artifact.required then Right(VerifiedArtifact(artifact, None))
+      else Left(s"required artifact ${artifact.id} is absent")
     else {
       val path = packageroot.resolve(artifact.path).normalize
       for {
         _ <- Either.cond(path.startsWith(packageroot), (), s"artifact ${artifact.id} escapes the package root")
         bytes <- _regular_bytes(path, s"artifact ${artifact.id}")
         _ <- Either.cond(_sha256(bytes) == artifact.sha256, (), s"artifact ${artifact.id} raw-byte digest does not match")
-      } yield ()
+      } yield VerifiedArtifact(artifact, Some(bytes.toVector))
     }
 
   private def _present_dependencies(artifacts: Vector[Artifact], present: Set[String]): Either[String, Unit] =

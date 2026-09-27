@@ -260,6 +260,28 @@ final class InternalModelPackageValidatorSpec
         }
       }
 
+      "return only verified source-snapshot entries in manifest order with exact present bytes and explicit optional absence" in {
+        Given("a closed manifest containing present source snapshots, one non-source artifact, and one absent optional source snapshot")
+        val alphabytes = "snapshot alpha\n".getBytes(StandardCharsets.UTF_8)
+        val decisionbytes = "decision\n".getBytes(StandardCharsets.UTF_8)
+        val optionalbytes = "snapshot optional\n".getBytes(StandardCharsets.UTF_8)
+        val alpha = _artifact("snapshot-alpha", "snapshots/alpha.json", required = true, alphabytes, role = "source-snapshot")
+        val decision = _artifact("decision", "decision.json", required = true, decisionbytes, Vector("snapshot-alpha"))
+        val optional = _artifact("snapshot-optional", "snapshots/optional.json", required = false, optionalbytes, role = "source-snapshot")
+
+        _with_fixture(_manifest(Vector(alpha, decision, optional)), Map("snapshots/alpha.json" -> alphabytes, "decision.json" -> decisionbytes)) { root =>
+          When("the existing project-bound validation pass exposes its verified source-snapshot inventory")
+          val result = InternalModelPackageValidator.verifiedSourceSnapshots(root)
+
+          Then("manifest order, role filtering, exact immutable bytes, and optional absence are retained without weakening validation")
+          result.isSuccess shouldBe true
+          result.toOption.map(_.map(entry => (entry.artifactId, entry.packageRelativePath, entry.required, entry.bytes))) shouldBe Some(Vector(
+            ("snapshot-alpha", "snapshots/alpha.json", true, Some(alphabytes.toVector)),
+            ("snapshot-optional", "snapshots/optional.json", false, None)
+          ))
+        }
+      }
+
       "reject optional-presence dependency, raw artifact digest, and package-digest mismatches" in {
         Given("canonical manifests whose integrity claims do not match their package contents")
         val alphabytes = "alpha\n".getBytes(StandardCharsets.UTF_8)

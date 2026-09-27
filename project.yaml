@@ -21,6 +21,7 @@ build:
   dependencies:
     compile:
       - "org.goldenport::goldenport-cncf:0.5.3-SNAPSHOT"
+      - "net.java.dev.jna:jna:5.13.0"
     test:
       - "org.scalatest::scalatest:3.2.19"
       - "org.scalatestplus::scalacheck-1-18:3.2.19.0"

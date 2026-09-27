@@ -33,8 +33,16 @@ development-item=DEV-CBD-002
 
 ## P10-13: Snapshot freshness checks
 
-- [ ] Implement deterministic comparison of live Scenario, model, glossary/BoK,
-  and CML sources with recorded baselines and surface drift without silent rebase.
+- [x] Implement deterministic comparison of source-owner-supplied Scenario,
+  model-context, and glossary/BoK observations, plus the project-owned current
+  CML file, with every selected recorded baseline; surface unchanged, changed,
+  unavailable, unauthorized, malformed, and ambiguous/conflicting outcomes
+  without silent rebase or CML mutation. Evidence: the package-wide checker and
+  executable specifications in `src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/`
+  and `src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/`;
+  `P10.1-STEP-02-SBT-010` (45/45 focused tests, lock released); complete-Step
+  review `PHASE-10.1-P10.1-STEP-02-P10-13-step-protected-focused-01` with
+  accepted disposition `27cbb3f6796be9c821b77feb6d0f82ef900cc9de71dc9997a6ef3f16286ca7c8`.
 
 ## Closure
 

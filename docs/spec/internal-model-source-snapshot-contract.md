@@ -8,9 +8,9 @@ updated_at: 2026-09-27
 
 This is the normative V1 contract for an internal-model source-snapshot
 artifact. It defines one common envelope and the closed Scenario,
-model-context, glossary/BoK, and CML-baseline bases for P10-10--P10-12.
-P10-13 owns the later executable freshness comparison; it is not implemented
-by this document.
+model-context, glossary/BoK, and CML-baseline bases for P10-10--P10-12. P10-13
+defines the deterministic pure freshness comparison of one supplied V1
+snapshot with one source-owned live observation.
 
 The [Internal-model Package Contract](internal-model-package-contract.md)
 remains authoritative for the package boundary, artifact inventory, and
@@ -238,15 +238,126 @@ snapshot artifact IDs through the Phase 10 manifest `dependsOn` relation. This
 is a prerequisite only: P10-10--P10-12 do not implement the later Phase 10.3
 or Phase 10.4 realization/projection decisions.
 
-P10-13 later compares every artifact's source `authority`, `identity`,
-source-owned `revision` when available, and exact raw-source hash against its
-own live source. For CML it also compares the declared project-relative target
-path and raw bytes or absence. A locator alone is never equality evidence. The
+P10-13 compares every artifact's source `authority`, `identity`, source-owned
+`revision` when available, and exact raw-source hash against its own live
+source. For CML it also compares the declared project-relative target path and
+raw bytes or absence. A locator alone is never equality evidence. The
 comparator distinguishes changed, unavailable, unauthorized, malformed,
 ambiguous/conflicting, and unchanged observations, but it does not select a
 source, silently rebase a candidate, apply CML, or decide drift disposition.
 
-## 9. Structural outcomes and freshness boundary
+## 9. P10-13 deterministic freshness comparison
+
+`InternalModelSourceSnapshotFreshness.compare` accepts supplied snapshot bytes
+and exactly one `InternalModelLiveSourceObservation`. It is a pure comparison:
+it performs no network access, project or CML file read, file write, source
+ranking, CML application, package-state update, approval, or drift
+disposition. The caller supplies the live observation under that source's own
+authority; the comparator neither derives an observation from a locator nor
+manufactures missing source evidence.
+
+Before considering the observation, the comparator SHALL validate the complete
+V1 snapshot contract in sections 2--7. It SHALL reject malformed UTF-8/JSON,
+duplicate or unknown members, noncanonical bytes, wrong schema or kind, closed
+source/basis violations, non-normalized content or definition text,
+noncanonical ordering/duplication, and invalid CML path, Base64, length, or
+raw digest. A malformed baseline takes precedence over every live observation
+variant. The comparator SHALL not repair, normalize, reserialize, or otherwise
+turn an invalid supplied snapshot into an accepted baseline.
+
+The closed live-observation family has one `Observed` form and distinct
+`Unavailable`, `Unauthorized`, `Malformed`, and `AmbiguousOrConflicting`
+forms. `Observed` retains source-owned authority and identity, an explicit
+optional revision, immutable exact raw bytes, and an optional
+project-relative CML target path. Its source authority and identity and any
+present revision are nonempty; its raw bytes are never replaced by a locator or
+inferred value. A non-CML observation SHALL NOT claim a CML target path. A CML
+observation SHALL supply one safe current project-relative CML path and its
+exact current raw bytes. The other forms preserve their own nonempty evidence
+reason or ambiguity and never invent an `Observed` value.
+
+The immutable freshness report contains a closed status vocabulary of
+`Unchanged`, `Changed`, `Unavailable`, `Unauthorized`, `Malformed`, and
+`AmbiguousOrConflicting`; optional snapshot kind; baseline and observed source
+authority, identity, and revision; baseline and observed raw-byte SHA-256;
+sorted changed-dimension names; optional baseline/current CML paths; and an
+optional non-byte-bearing evidence reason. It SHALL NOT retain or expose raw
+Scenario, model-context, glossary/BoK, or CML content, a source locator, or a
+credential.
+
+For an `Observed` value, comparison SHALL retain every difference rather than
+short-circuiting. It compares `source.authority`, `source.identity`,
+`source.revision` including null/value transitions, and `source.sha256` over
+the exact current raw bytes. For a CML baseline it additionally compares
+`basis.projectRelativePath`, `basis.byteLength`, and the exact decoded
+`basis.rawBytesBase64` bytes. A same raw hash with changed identity or path is
+still `Changed`; a same hash is never a substitute for exact CML byte equality.
+The changed-dimension names are lexicographically sorted and `Unchanged` is
+returned only when their set is empty. `Unavailable`, `Unauthorized`,
+`Malformed`, and `AmbiguousOrConflicting` retain their distinct status rather
+than being treated as unchanged. Their reason is evidence only, never an
+approval, source selection, or drift disposition.
+
+### Package-wide checked inventory
+
+The package-wide freshness entry SHALL obtain its inventory only from the
+Phase 10 manifest validator's one successful project-bound structural,
+filesystem, and digest-validation pass. That pass returns the manifest-order
+`source-snapshot` entries only: each present entry carries the exact verified
+serialized bytes used for its artifact digest check, and an absent optional
+entry carries no bytes. A consumer SHALL NOT reparse the manifest, rebuild an
+inventory from paths, or perform a second integrity authority pass.
+
+The entry accepts the consuming project root and one caller/source-owner input
+per `source-snapshot` artifact ID. Unknown IDs and IDs for non-source artifacts
+are rejected. A present baseline with no input yields that snapshot's
+`Unavailable` freshness report; an absent optional baseline yields the distinct
+`MissingBaseline` package result and performs no source or CML read. A package
+with no `source-snapshot` entries returns an empty deterministic report. It
+does not thereby claim semantic completeness, source freshness, approval, or
+safe application.
+
+For Scenario, model-context, and glossary/BoK entries, the caller supplies the
+closed P10-13 observation family. For CML, a caller-supplied `Observed` value
+with raw bytes is not accepted: the source owner instead supplies authority,
+identity, explicit optional revision, and the current project-relative target
+path. `Unavailable`, `Unauthorized`, `Malformed`, and
+`AmbiguousOrConflicting` remain explicit CML observation states. A CML request
+against a non-CML baseline, or an ordinary supplied `Observed` value against a
+CML baseline, produces `Malformed` rather than selecting or reading a source.
+Malformed baseline bytes retain precedence over every input form.
+
+Before a CML read, the entry SHALL require the current source-owner target path
+to be nonempty and safe under the consuming-project root: no absolute,
+dot/dotdot, backslash, control, or whitespace segment; no symbolic link in an
+existing component; no root escape; and a final regular file only. It reads the
+final file's exact bytes without following its final symlink. A missing target
+is `Unavailable`; denied access is `Unauthorized`; an unsafe, symbolic,
+nonregular, or otherwise unreadable-safe target is `Malformed`. The recorded
+baseline `basis.projectRelativePath` and provenance `locator` are comparison
+evidence only and SHALL NOT discover or authorize the live target. Only the
+captured bytes and source-owner metadata reach the pure comparator, whose
+report never exposes those bytes, a locator, or credentials.
+
+The consuming-project root's final component SHALL first be a non-symbolic
+directory. The entry preserves the supplied absolute normalized root without
+resolving arbitrary ancestors. Before descriptor descent it rewrites only the
+current macOS system aliases `/var` to `/private/var` and `/tmp` to
+`/private/tmp`, and only when each alias currently has exactly that target. A
+capable `SecureDirectoryStream` provider starts from `/`, descends every
+root-and target-directory component with `NOFOLLOW_LINKS`, and opens the final
+target by a no-follow relative channel; an arbitrary symbolic ancestor or
+final component is rejected. On macOS where that provider is
+unavailable, the internal Darwin adapter uses the declared
+`net.java.dev.jna:jna:5.13.0` dependency lazily and only on that platform. It
+requires the Darwin LP64 ABI, acquires `/`, descends the normalized root and
+target by descriptor using no-follow directory opens, opens the final target
+with no-follow, close-on-exec, nonblocking read flags, verifies its `fstat`
+regular-file type before consuming bytes, and closes every descriptor. An
+unsupported provider or platform, incompatible ABI, or native-read failure is
+fail-closed; it SHALL NOT fall back to pathname check-then-open reading.
+
+## 10. Structural outcomes and freshness boundary
 
 Structural validation is fail-closed. The following are observable rejected
 outcomes, and no validator or consumer may repair an input into acceptance:
@@ -267,15 +378,21 @@ actually uses, and CML safety additionally needs an exact present-file baseline.
 None of these properties proves freshness, semantic approval, CML authority,
 or repository acceptance.
 
-## 10. Approval and Phase boundaries
+## 11. Approval and Phase boundaries
 
 P10-10 captures Scenario schema and provenance; P10-11 captures model-context
 and glossary/BoK bases; P10-12 captures read-only exact CML baselines; and
-P10-13 later adds deterministic freshness checking. This document neither
-creates a live comparator nor writes CML. Later Phase 10 work owns durable
-semantic state, rehydration, review, approval, and validation. Phase 10.5 alone
-owns drift policy, invalidation/reconciliation, human approval, and any
-canonical CML application boundary.
+P10-13 defines the deterministic supplied-observation comparison in section 9.
+The pure comparison performs no live source fetch, package-wide enumeration,
+source ranking, snapshot or CML write, approval, or drift disposition. The
+P10-13 package entry adds only the validated-inventory orchestration and
+project-bound current CML read specified above; its internal local filesystem
+adapters do not add a remote source adapter, transport, credential, retained
+state, write, or automatic adoption.
+Later Phase 10 work owns durable semantic state, rehydration, review, approval,
+and validation.
+Phase 10.5 alone owns drift policy, invalidation/reconciliation, human approval,
+and any canonical CML application boundary.
 
 Accordingly, baseline review inputs CB-CBD-001 through CB-CBD-004 are preserved
 as follows: freshness is detected separately from drift disposition; this

@@ -19,7 +19,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 27, 2026
+ * @version Sep. 28, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelVerifiedSourceSnapshot(
@@ -27,6 +27,20 @@ private[runtime] final case class InternalModelVerifiedSourceSnapshot(
   packageRelativePath: String,
   required: Boolean,
   bytes: Option[Vector[Byte]]
+)
+
+private[runtime] final case class InternalModelVerifiedRealization(
+  artifactId: String,
+  role: String,
+  packageRelativePath: String,
+  required: Boolean,
+  dependencies: Vector[String],
+  bytes: Vector[Byte]
+)
+
+private[runtime] final case class InternalModelVerifiedRealizationPackage(
+  realization: InternalModelVerifiedRealization,
+  sourceSnapshots: Vector[InternalModelVerifiedSourceSnapshot]
 )
 
 /** Validates the closed, project-bound V1 internal-model package structure. */
@@ -63,12 +77,19 @@ object InternalModelPackageValidator {
 
   private[runtime] def verifiedSourceSnapshots(projectRoot: Path): Consequence[Vector[InternalModelVerifiedSourceSnapshot]] =
     try {
-      _validate(projectRoot).fold(Consequence.operationInvalid, Consequence.success)
+      _validate(projectRoot).map(_source_snapshots).fold(Consequence.operationInvalid, Consequence.success)
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
-  private def _validate(projectroot: Path): Either[String, Vector[InternalModelVerifiedSourceSnapshot]] =
+  private[runtime] def verifiedPresentRealization(projectRoot: Path): Consequence[InternalModelVerifiedRealizationPackage] =
+    try {
+      _validate(projectRoot).flatMap(_present_realization).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  private def _validate(projectroot: Path): Either[String, Vector[VerifiedArtifact]] =
     for {
       root <- _project_root(projectroot)
       identity <- _project_identity(root)
@@ -240,7 +261,7 @@ object InternalModelPackageValidator {
     _loop_(remaining, Vector.empty)
   }
 
-  private def _filesystem_inventory(packageroot: Path, artifacts: Vector[Artifact]): Either[String, Vector[InternalModelVerifiedSourceSnapshot]] =
+  private def _filesystem_inventory(packageroot: Path, artifacts: Vector[Artifact]): Either[String, Vector[VerifiedArtifact]] =
     for {
       actualpaths <- _walk_regular_paths(packageroot)
       listedpaths = artifacts.map(_.path).toSet
@@ -254,10 +275,32 @@ object InternalModelPackageValidator {
       }
       present = verified.collect { case VerifiedArtifact(artifact, Some(_)) => artifact.id }.toSet
       _ <- _present_dependencies(artifacts, present)
-    } yield verified.collect {
+    } yield verified
+
+  private def _source_snapshots(verified: Vector[VerifiedArtifact]): Vector[InternalModelVerifiedSourceSnapshot] =
+    verified.collect {
       case VerifiedArtifact(artifact, bytes) if artifact.role == "source-snapshot" =>
         InternalModelVerifiedSourceSnapshot(artifact.id, artifact.path, artifact.required, bytes)
     }
+
+  private def _present_realization(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedRealizationPackage] = {
+    val realizations = verified.collect {
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "realization" =>
+        InternalModelVerifiedRealization(
+          artifactId = artifact.id,
+          role = artifact.role,
+          packageRelativePath = artifact.path,
+          required = artifact.required,
+          dependencies = artifact.dependencies,
+          bytes = bytes
+        )
+    }
+    realizations match {
+      case Vector(realization) => Right(InternalModelVerifiedRealizationPackage(realization, _source_snapshots(verified)))
+      case Vector() => Left("internal-model package has no present realization artifact")
+      case _ => Left("internal-model package has multiple present realization artifacts")
+    }
+  }
 
   private def _walk_regular_paths(packageroot: Path): Either[String, Set[String]] =
     try {

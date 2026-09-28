@@ -46,9 +46,19 @@ development-item=DEV-CBD-002
 
 ## P10-23: Open-issue record
 
-- [ ] Persist unresolved questions, evidence/options, decision role, impact, and
+- Current status: ACCEPTED (this Step acceptance commit).
+
+- [x] Persist unresolved questions, evidence/options, decision role, impact, and
   whether each issue blocks semantic approval, projection, application, or
   validation.
+  Evidence: accepted [open-issue record contract](../spec/internal-model-open-issue-record-contract.md)
+  and [design](../design/internal-model-open-issue-records.md); executable
+  `InternalModelOpenIssueRecordValidatorSpec`; complete A+B Step review
+  `PHASE-10.2-P10-23-STEP-REVIEW-01`, with the sole specification-hierarchy
+  blocker closed by cycle-1 parent-verified M0 repair waiver. Fresh focused
+  representative validation 14/14 PASS and package/realization/projection/decision
+  accumulator 54/54 PASS on the repaired tree. Acceptance boundary:
+  `PHASE-10.2-P10-23-STEP-ACCEPTANCE-001`.
 
 ## Closure
 

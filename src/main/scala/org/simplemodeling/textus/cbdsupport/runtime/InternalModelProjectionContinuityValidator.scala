@@ -82,7 +82,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
     target: BindingTarget,
     attribution: ComponentDashboardSourceAttribution,
     condition: ComponentDashboardCondition,
-    sequenceKey: Option[String]
+    sequencekey: Option[String]
   )
 
   private val _ordered_roles = Set(
@@ -236,7 +236,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
   ): Either[String, ComponentDashboardSourceAttribution] = {
     val allassertions = _canonical_assertions(realization, target) ++ _enrichment_assertions(realization, target)
     val conditionreferences = realization.conditions.filter(condition => record.conditionIds.contains(condition.conditionId)).map(_.sourceReferenceId)
-    val referenceids = if profile == "ccdm-projection-binding-v1" then allassertions.map(_.sourceReferenceId) ++ conditionreferences else {
+    val referenceids = if record.recordKind == "gap" then conditionreferences else if profile == "ccdm-projection-binding-v1" then allassertions.map(_.sourceReferenceId) ++ conditionreferences else {
       val witness = target match {
         case _: ElementTarget => s"kind:${record.viewRole}"
         case _: RelationshipTarget => s"role:${record.viewRole}"
@@ -245,9 +245,10 @@ private[runtime] object InternalModelProjectionContinuityValidator {
     }
     for {
       _ <- Either.cond(
-        if profile == "ccdm-projection-binding-v1" then referenceids.nonEmpty && referenceids.distinct.size == 1 else referenceids.size == 1,
+        if record.recordKind == "gap" then referenceids.size == 1 else if profile == "ccdm-projection-binding-v1" then referenceids.nonEmpty && referenceids.distinct.size == 1 else referenceids.size == 1,
         (),
-        if profile == "ccdm-projection-binding-v1" then s"projection binding record ${record.semanticIdentity} would select a hidden source winner"
+        if record.recordKind == "gap" then s"projection binding gap ${record.semanticIdentity} must have exactly one condition source"
+        else if profile == "ccdm-projection-binding-v1" then s"projection binding record ${record.semanticIdentity} would select a hidden source winner"
         else s"projection binding record ${record.semanticIdentity} must have exactly one direct canonical role witness"
       )
       reference <- realization.sourceReferences.find(_.referenceId == referenceids.head).toRight(s"projection binding record ${record.semanticIdentity} names an unknown source reference")
@@ -350,10 +351,43 @@ private[runtime] object InternalModelProjectionContinuityValidator {
 
   private def _id(value: String): ComponentDashboardSemanticTargetIdentity = ComponentDashboardSemanticTargetIdentity(value)
 
+  private def _mono_koto_owners(records: Vector[BoundRecord], family: String): Either[String, Unit] =
+    _relationships(records, family).foldLeft[Either[String, Unit]](Right(())) { (result, relation) =>
+      for {
+        _ <- result
+        relationship <- relation.target match { case RelationshipTarget(value) => Right(value); case _ => Left("Mono-Koto reference must be a relationship") }
+        owner <- _elements(records, family).filter(_.target.identity == relationship.sourceElementIdentity) match {
+          case Vector(value) => Right(value)
+          case Vector() => Left(s"Mono-Koto reference ${relationship.identity} has no retained selected owner")
+          case _ => Left(s"Mono-Koto reference ${relationship.identity} has ambiguous retained selected owners")
+        }
+        expectedrole <- relation.record.viewRole match {
+          case "StructuralDomain" => Right("Mono")
+          case "BehavioralTemporal" => Right("Koto")
+          case _ => Left(s"Mono-Koto reference ${relationship.identity} has an unsupported role")
+        }
+        _ <- Either.cond(owner.record.viewRole == expectedrole, (), s"Mono-Koto reference ${relationship.identity} has an incompatible retained selected owner")
+      } yield ()
+    }
+
+  private def _entity_metadata_owners(records: Vector[BoundRecord], family: String): Either[String, Unit] =
+    _relationships(records, family).foldLeft[Either[String, Unit]](Right(())) { (result, relation) =>
+      for {
+        _ <- result
+        relationship <- relation.target match { case RelationshipTarget(value) => Right(value); case _ => Left("Entity Model metadata must be a relationship") }
+        _ <- _elements(records, family).filter(record => record.target.identity == relationship.sourceElementIdentity && Set("EntityModelEntity", "EntityModelValue", "EntityModelAggregate").contains(record.record.viewRole)) match {
+          case Vector(_) => Right(())
+          case Vector() => Left(s"Entity Model metadata ${relationship.identity} has no retained selected Entity Model owner")
+          case _ => Left(s"Entity Model metadata ${relationship.identity} has ambiguous retained selected Entity Model owners")
+        }
+      } yield ()
+    }
+
   private def _mono_koto(realization: InternalModelSemanticRealization, records: Vector[BoundRecord]): Either[String, MonoKotoProjection] = {
     val family = "MonoKotoProjection"
     for {
       _ <- Either.cond(_gaps(records, family).isEmpty, (), "Mono-Koto projection cannot represent a gap without a new DTO contract")
+      _ <- _mono_koto_owners(records, family)
       subjects <- _elements(records, family).foldLeft[Either[String, Vector[MonoKotoProjectionSubject]]](Right(Vector.empty)) { (result, record) =>
         for {
           collected <- result
@@ -425,7 +459,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
               present <- stepsresult
               steprecord = entry._1
               step = entry._2
-              sequence <- steprecord.sequenceKey.toRight(s"Use Case flow step ${step.identity} lacks source-owned sequence")
+              sequence <- steprecord.sequencekey.toRight(s"Use Case flow step ${step.identity} lacks source-owned sequence")
             } yield present :+ UseCaseCommunicationFlowStep(step.identity, _component(realization), _id(step.targetElementIdentity), _id(step.identity), sequence, steprecord.attribution, steprecord.condition, None, None)
           }
           _ <- Either.cond(flowsteps.map(_.sequenceKey).distinct.size == flowsteps.size, (), s"Use Case flow ${flow.identity} has duplicate source-owned step sequence keys")
@@ -438,6 +472,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
   private def _entity(realization: InternalModelSemanticRealization, records: Vector[BoundRecord]): Either[String, EntityModelProjection] = {
     val family = "EntityModelProjection"
     for {
+      _ <- _entity_metadata_owners(records, family)
       subjects <- _elements(records, family).foldLeft[Either[String, Vector[EntityModelProjectionSubject]]](Right(Vector.empty)) { (result, record) =>
         for {
           collected <- result
@@ -646,7 +681,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
           _ <- Either.cond(owner.record.viewRole == "WorkflowProjectionWorkflow", (), s"Workflow flow ${relationship.identity} owner is not a retained Workflow subject")
           source <- _element_record(records, family, relationship.sourceElementIdentity)
           target <- _element_record(records, family, relationship.targetElementIdentity)
-          sequence <- record.sequenceKey.toRight(s"Workflow flow ${relationship.identity} lacks source-owned sequence")
+          sequence <- record.sequencekey.toRight(s"Workflow flow ${relationship.identity} lacks source-owned sequence")
         } yield collected :+ WorkflowProjectionFlow(
           relationship.identity,
           _component(realization),

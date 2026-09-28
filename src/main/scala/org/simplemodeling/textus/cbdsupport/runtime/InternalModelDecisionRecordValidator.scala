@@ -66,12 +66,12 @@ private[runtime] object InternalModelDecisionRecordValidator {
     for {
       _ <- Either.cond(record.basis.scope == ledgerscope, (), s"decision record ${record.decisionIdentity} basis scope does not equal ledger scope")
       _ <- Either.cond(
-        (current && record.basis.status == "current") || (!current && record.basis.status == "historical-unverified"),
+        (current && record.basis.status == InternalModelDecisionBasisStatus.Current) || (!current && record.basis.status == InternalModelDecisionBasisStatus.HistoricalUnverified),
         (),
         s"decision record ${record.decisionIdentity} basis status does not match its exact current basis"
       )
-      _ <- Either.cond(!current || record.state == "superseded" || record.state == "accepted", (), s"decision record ${record.decisionIdentity} current state is invalid")
-      _ <- Either.cond(current || record.state == "superseded", (), s"decision record ${record.decisionIdentity} historical basis must be superseded")
+      _ <- Either.cond(!current || record.state == InternalModelDecisionState.Superseded || record.state == InternalModelDecisionState.Accepted, (), s"decision record ${record.decisionIdentity} current state is invalid")
+      _ <- Either.cond(current || record.state == InternalModelDecisionState.Superseded, (), s"decision record ${record.decisionIdentity} historical basis must be superseded")
       _ <- if current then _current_record(record, realization) else Right(())
     } yield ()
   }
@@ -118,7 +118,7 @@ private[runtime] object InternalModelDecisionRecordValidator {
     realization: InternalModelSemanticRealization
   ): Either[String, Unit] =
     evidence.kind match {
-      case "realization-source" =>
+      case InternalModelDecisionEvidenceKind.RealizationSource =>
         for {
           referenceid <- evidence.sourceReferenceId.toRight(s"decision record $decisionidentity evidence ${evidence.evidenceIdentity} lacks a realization source reference")
           reference <- realization.sourceReferences.find(_.referenceId == referenceid).toRight(s"decision record $decisionidentity evidence ${evidence.evidenceIdentity} names an unknown current source reference")
@@ -126,9 +126,8 @@ private[runtime] object InternalModelDecisionRecordValidator {
           expectedconditions = realization.conditions.filter(_.sourceReferenceId == referenceid).map(_.conditionId)
           _ <- Either.cond(evidence.conditionIds == expectedconditions, (), s"decision record $decisionidentity evidence ${evidence.evidenceIdentity} hides or changes source limitations")
         } yield ()
-      case "external-human" | "provider-proposal" | "external-other" =>
+      case InternalModelDecisionEvidenceKind.ExternalHuman | InternalModelDecisionEvidenceKind.ProviderProposal | InternalModelDecisionEvidenceKind.ExternalOther =>
         Either.cond(evidence.sourceReferenceId.isEmpty && evidence.conditionIds.isEmpty, (), s"decision record $decisionidentity external evidence must not link realization sources or conditions")
-      case _ => Left(s"decision record $decisionidentity evidence ${evidence.evidenceIdentity} has an invalid kind")
     }
 
   private def _chain(records: Vector[InternalModelDecisionRecord]): Either[String, Unit] = {
@@ -140,9 +139,8 @@ private[runtime] object InternalModelDecisionRecordValidator {
           _ <- _predecessor(record, byid)
           successors = records.filter(_.supersedes.contains(record.decisionIdentity))
           _ <- record.state match {
-            case "superseded" => Either.cond(successors.size == 1, (), s"superseded decision ${record.decisionIdentity} must have exactly one successor")
-            case "accepted" => Either.cond(successors.isEmpty, (), s"accepted decision ${record.decisionIdentity} must not have a successor")
-            case _ => Left(s"decision record ${record.decisionIdentity} has an invalid state")
+            case InternalModelDecisionState.Superseded => Either.cond(successors.size == 1, (), s"superseded decision ${record.decisionIdentity} must have exactly one successor")
+            case InternalModelDecisionState.Accepted => Either.cond(successors.isEmpty, (), s"accepted decision ${record.decisionIdentity} must not have a successor")
           }
           _ <- Either.cond(!_has_cycle(record, byid), (), s"decision record ${record.decisionIdentity} has a supersession cycle")
         } yield ()
@@ -150,7 +148,7 @@ private[runtime] object InternalModelDecisionRecordValidator {
       _ <- records.map(_.topicIdentity).distinct.foldLeft[Either[String, Unit]](Right(())) { (result, topic) =>
         for {
           _ <- result
-          terminal = records.filter(record => record.topicIdentity == topic && record.state == "accepted")
+          terminal = records.filter(record => record.topicIdentity == topic && record.state == InternalModelDecisionState.Accepted)
           _ <- Either.cond(terminal.size == 1, (), s"decision topic $topic must have exactly one accepted terminal")
         } yield ()
       }

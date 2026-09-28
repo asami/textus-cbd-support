@@ -90,6 +90,53 @@ final class InternalModelSemanticRealizationValidatorSpec
       }
     }
 
+    "bind assertion content to its selected Component and projection context witness" in {
+      Given("a canonically ordered model-context snapshot with a foreign Component/context fact sharing the local target and anchor")
+      val foreign = _fact("element", "e-customer", "anchor-customer", "Foreign Customer content", Vector.empty).mapObject(
+        _.add("componentIdentity", Json.fromString("component-before")).add("projectionContextIdentity", Json.fromString("context-before"))
+      )
+
+      _with_fixture(_realization(), additionalfacts = Vector(foreign)) { root =>
+        When("the canonical and enrichment lanes resolve their source witness in the selected realization scope")
+        val result = InternalModelSemanticRealizationValidator.validate(root)
+
+        Then("the exact local witness remains authoritative and the foreign content cannot be borrowed")
+        result.isSuccess shouldBe true
+      }
+    }
+
+    "reject foreign witness content independently in canonical and enrichment assertion lanes" in {
+      Given("foreign-before-local facts sharing the selected target and anchor across both supported realization profiles")
+      val foreigncontent = "Foreign Customer content"
+      val foreign = _fact("element", "e-customer", "anchor-customer", foreigncontent, Vector.empty).mapObject(
+        _.add("componentIdentity", Json.fromString("component-before")).add("projectionContextIdentity", Json.fromString("context-before"))
+      )
+
+      forAll(Gen.oneOf("ccdm-realization-v1", "ccdm-realization-v2")) { profile =>
+        _with_fixture(_realization(profilevalue = profile), additionalfacts = Vector(foreign)) { root =>
+          When("both assertion lanes retain the selected local witness content")
+          val local = InternalModelSemanticRealizationValidator.validate(root)
+
+          Then("the local content admits under the unchanged profile")
+          local.isSuccess shouldBe true
+        }
+        _with_fixture(_realization(profilevalue = profile, customercontent = foreigncontent), additionalfacts = Vector(foreign)) { root =>
+          When("only the canonical assertion borrows the foreign content")
+          val canonicalborrow = InternalModelSemanticRealizationValidator.validate(root)
+
+          Then("canonical admission rejects the foreign-scope witness")
+          canonicalborrow.isSuccess shouldBe false
+        }
+        _with_fixture(_realization(profilevalue = profile, enrichmentcontent = foreigncontent), additionalfacts = Vector(foreign)) { root =>
+          When("only the enrichment assertion borrows the foreign content")
+          val enrichmentborrow = InternalModelSemanticRealizationValidator.validate(root)
+
+          Then("enrichment admission rejects the foreign-scope witness")
+          enrichmentborrow.isSuccess shouldBe false
+        }
+      }
+    }
+
     "retain unchanged V1 profile/version bytes and reject a V2-only assertion field" in {
       Given("a V1 realization with its closed V1 assertion shape and the same V1 realization with an added association field")
       val v1 = _realization()
@@ -339,6 +386,8 @@ final class InternalModelSemanticRealizationValidatorSpec
     enrichmentid: String = "z-enrichment",
     includecondition: Boolean = true,
     sourcehash: String = _sha256(_model_raw),
+    customercontent: String = "Customer is a party",
+    enrichmentcontent: String = "Customer is a party",
     customerlabel: String = "Customer",
     usecaselabel: String = "Place order",
     successor: Option[Json] = None,
@@ -367,7 +416,7 @@ final class InternalModelSemanticRealizationValidatorSpec
     val relationshipconditions = if includecondition then Vector("c-limitation") else Vector.empty
     val conditions = if includecondition then Vector(_condition("c-limitation", "limitation", "relationship", "r-uses", "ref-relationship", "source limitation")) else Vector.empty
     val canonical = Vector(
-      _assertion("a-customer", "element", customeridentity, "ref-customer", "Customer is a party", Vector.empty, None, v2 || v1associationfield),
+      _assertion("a-customer", "element", customeridentity, "ref-customer", customercontent, Vector.empty, None, v2 || v1associationfield),
       _assertion("a-relationship", "relationship", "r-uses", "ref-relationship", "Use case uses Customer", relationshipconditions, None, v2 || v1associationfield),
       _assertion("a-usecase", "element", "e-usecase", "ref-usecase", "Place an order", Vector.empty, None, v2 || v1associationfield)
     ) ++ associations.map(association =>
@@ -386,7 +435,7 @@ final class InternalModelSemanticRealizationValidatorSpec
     ) else Vector.empty) ++ (if includerelatedrelationship then Vector(
       _assertion("a-related", "relationship", "r-related", "ref-related", "Related relationship", Vector.empty, None, v2 || v1associationfield)
     ) else Vector.empty)
-    val enrichment = Vector(_assertion(enrichmentid, "element", customeridentity, "ref-customer", "Customer is a party", Vector.empty, enrichmentassociation.map(_association), v2 || v1associationfield))
+    val enrichment = Vector(_assertion(enrichmentid, "element", customeridentity, "ref-customer", enrichmentcontent, Vector.empty, enrichmentassociation.map(_association), v2 || v1associationfield))
     val elements = Vector(
       _element(customeridentity, "customer", customerlabel, Vector("a-customer"), Vector(enrichmentid), Vector.empty),
       _element("e-usecase", "use-case", usecaselabel, Vector("a-usecase"), Vector.empty, Vector.empty)
@@ -420,7 +469,8 @@ final class InternalModelSemanticRealizationValidatorSpec
   private def _source_snapshot(
     associations: Vector[FixtureAssociation] = Vector.empty,
     includerelatedrelationship: Boolean = false,
-    includerolewitness: Boolean = false
+    includerolewitness: Boolean = false,
+    additionalfacts: Vector[Json] = Vector.empty
   ): Array[Byte] = {
     val facts = Vector(
       _fact("element", "e-customer", "anchor-customer", "Customer is a party", Vector.empty),
@@ -433,7 +483,7 @@ final class InternalModelSemanticRealizationValidatorSpec
     ) else Vector.empty) ++ (if includerelatedrelationship then Vector(
       _fact("relationship", "r-related", "anchor-related", "Related relationship", Vector.empty)
     ) else Vector.empty)
-    val sortedfacts = facts.sortBy { fact =>
+    val sortedfacts = (facts ++ additionalfacts).sortBy { fact =>
       val objectvalue = fact.asObject.get
       (
         objectvalue("componentIdentity").flatMap(_.asString).getOrElse(""),
@@ -563,9 +613,10 @@ final class InternalModelSemanticRealizationValidatorSpec
     unrelatedsnapshot: Option[Array[Byte]] = None,
     associations: Vector[FixtureAssociation] = Vector.empty,
     includerelatedrelationship: Boolean = false,
-    includerolewitness: Boolean = false
+    includerolewitness: Boolean = false,
+    additionalfacts: Vector[Json] = Vector.empty
   )(f: Path => Unit): Unit = {
-    val snapshot = _source_snapshot(associations, includerelatedrelationship, includerolewitness)
+    val snapshot = _source_snapshot(associations, includerelatedrelationship, includerolewitness, additionalfacts)
     val sourceartifact = _artifact("snapshot-model", "snapshots/model.json", "source-snapshot", snapshot, Vector.empty)
     val realizationartifact = _artifact("realization-main", "realizations/main.json", "realization", realization, dependencies)
     val unrelatedartifact = unrelatedsnapshot.map(bytes => _artifact("snapshot-unrelated", "snapshots/unrelated.json", "source-snapshot", bytes, Vector.empty)).toVector

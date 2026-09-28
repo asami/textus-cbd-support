@@ -84,8 +84,8 @@ private[runtime] object InternalModelDecisionRecordCodec {
       _ <- _closed_fields(objectvalue, _record_fields, s"decision record $index")
       decisionidentity <- _nonblank_string(objectvalue, "decisionIdentity", s"decision record $index")
       topicidentity <- _nonblank_string(objectvalue, "topicIdentity", s"decision record $decisionidentity")
-      state <- _nonblank_string(objectvalue, "state", s"decision record $decisionidentity")
-      _ <- Either.cond(Set("accepted", "superseded").contains(state), (), s"decision record $decisionidentity state is invalid")
+      statetoken <- _nonblank_string(objectvalue, "state", s"decision record $decisionidentity")
+      state <- InternalModelDecisionState.fromToken(statetoken).toRight(s"decision record $decisionidentity state is invalid")
       actorvalue <- objectvalue("actor").toRight(s"decision record $decisionidentity actor is missing")
       actor <- _actor(actorvalue, s"decision record $decisionidentity actor")
       provenancevalue <- objectvalue("provenance").toRight(s"decision record $decisionidentity provenance is missing")
@@ -166,14 +166,14 @@ private[runtime] object InternalModelDecisionRecordCodec {
       objectvalue <- _object(value, s"decision record $decisionidentity evidence $index")
       _ <- _closed_fields(objectvalue, _evidence_fields, s"decision record $decisionidentity evidence $index")
       identity <- _nonblank_string(objectvalue, "evidenceIdentity", s"decision record $decisionidentity evidence $index")
-      kind <- _nonblank_string(objectvalue, "kind", s"decision record $decisionidentity evidence $identity")
-      _ <- Either.cond(Set("realization-source", "external-human", "provider-proposal", "external-other").contains(kind), (), s"decision record $decisionidentity evidence $identity kind is invalid")
+      kindtoken <- _nonblank_string(objectvalue, "kind", s"decision record $decisionidentity evidence $identity")
+      kind <- InternalModelDecisionEvidenceKind.fromToken(kindtoken).toRight(s"decision record $decisionidentity evidence $identity kind is invalid")
       sourcevalue <- objectvalue("source").toRight(s"decision record $decisionidentity evidence $identity source is missing")
       source <- _source(sourcevalue, s"decision record $decisionidentity evidence $identity source", None)
       referenceid <- _nullable_nonblank_string(objectvalue, "sourceReferenceId", s"decision record $decisionidentity evidence $identity")
       conditionids <- _sorted_strings(objectvalue, "conditionIds", s"decision record $decisionidentity evidence $identity")
       _ <- kind match {
-        case "realization-source" => Either.cond(referenceid.nonEmpty, (), s"decision record $decisionidentity evidence $identity realization-source needs sourceReferenceId")
+        case InternalModelDecisionEvidenceKind.RealizationSource => Either.cond(referenceid.nonEmpty, (), s"decision record $decisionidentity evidence $identity realization-source needs sourceReferenceId")
         case _ => Either.cond(referenceid.isEmpty && conditionids.isEmpty, (), s"decision record $decisionidentity evidence $identity external evidence must not link realization conditions")
       }
       conditions <- _prose(objectvalue, "conditions", s"decision record $decisionidentity evidence $identity")
@@ -210,8 +210,8 @@ private[runtime] object InternalModelDecisionRecordCodec {
       sha256 <- _nonblank_string(objectvalue, "sha256", label)
       _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
       scope <- _scope(objectvalue, label)
-      status <- _nonblank_string(objectvalue, "status", label)
-      _ <- Either.cond(Set("current", "historical-unverified").contains(status), (), s"$label status is invalid")
+      statustoken <- _nonblank_string(objectvalue, "status", label)
+      status <- InternalModelDecisionBasisStatus.fromToken(statustoken).toRight(s"$label status is invalid")
     } yield InternalModelDecisionBasis(artifactid, identity, sha256, scope, status)
 
   private def _scope(objectvalue: JsonObject, label: String): Either[String, InternalModelSemanticScope] =
@@ -280,7 +280,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       "realizationConditionIds" -> Json.fromValues(_sort_strings(record.realizationConditionIds).map(Json.fromString)),
       "rejectedAlternatives" -> Json.fromValues(_sort_alternatives(record.rejectedAlternatives).map(_alternative_json)),
       "selectedChoice" -> _choice_json(record.selectedChoice),
-      "state" -> Json.fromString(record.state),
+      "state" -> Json.fromString(record.state.token),
       "supersedes" -> record.supersedes.map(Json.fromString).getOrElse(Json.Null),
       "topicIdentity" -> Json.fromString(record.topicIdentity)
     )
@@ -309,7 +309,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       "conditionIds" -> Json.fromValues(_sort_strings(evidence.conditionIds).map(Json.fromString)),
       "conditions" -> Json.fromValues(evidence.conditions.map(Json.fromString)),
       "evidenceIdentity" -> Json.fromString(evidence.evidenceIdentity),
-      "kind" -> Json.fromString(evidence.kind),
+      "kind" -> Json.fromString(evidence.kind.token),
       "limitations" -> Json.fromValues(evidence.limitations.map(Json.fromString)),
       "source" -> _source_json(evidence.source),
       "sourceReferenceId" -> evidence.sourceReferenceId.map(Json.fromString).getOrElse(Json.Null)
@@ -328,7 +328,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       "realizationIdentity" -> Json.fromString(basis.realizationIdentity),
       "scope" -> _scope_json(basis.scope),
       "sha256" -> Json.fromString(basis.sha256),
-      "status" -> Json.fromString(basis.status)
+      "status" -> Json.fromString(basis.status.token)
     )
 
   private def _scope_json(scope: InternalModelSemanticScope): Json =

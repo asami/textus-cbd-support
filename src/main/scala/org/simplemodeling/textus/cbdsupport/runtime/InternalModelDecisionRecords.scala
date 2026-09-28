@@ -17,9 +17,38 @@ private[runtime] final case class InternalModelDecisionChoice(
   description: String
 )
 
+private[runtime] enum InternalModelDecisionState(val token: String) {
+  case Accepted extends InternalModelDecisionState("accepted")
+  case Superseded extends InternalModelDecisionState("superseded")
+}
+
+private[runtime] object InternalModelDecisionState {
+  def fromToken(token: String): Option[InternalModelDecisionState] = values.find(_.token == token)
+}
+
+private[runtime] enum InternalModelDecisionEvidenceKind(val token: String) {
+  case RealizationSource extends InternalModelDecisionEvidenceKind("realization-source")
+  case ExternalHuman extends InternalModelDecisionEvidenceKind("external-human")
+  case ProviderProposal extends InternalModelDecisionEvidenceKind("provider-proposal")
+  case ExternalOther extends InternalModelDecisionEvidenceKind("external-other")
+}
+
+private[runtime] object InternalModelDecisionEvidenceKind {
+  def fromToken(token: String): Option[InternalModelDecisionEvidenceKind] = values.find(_.token == token)
+}
+
+private[runtime] enum InternalModelDecisionBasisStatus(val token: String) {
+  case Current extends InternalModelDecisionBasisStatus("current")
+  case HistoricalUnverified extends InternalModelDecisionBasisStatus("historical-unverified")
+}
+
+private[runtime] object InternalModelDecisionBasisStatus {
+  def fromToken(token: String): Option[InternalModelDecisionBasisStatus] = values.find(_.token == token)
+}
+
 private[runtime] final case class InternalModelDecisionEvidence(
   evidenceIdentity: String,
-  kind: String,
+  kind: InternalModelDecisionEvidenceKind,
   source: InternalModelSemanticSource,
   sourceReferenceId: Option[String],
   conditionIds: Vector[String],
@@ -38,13 +67,13 @@ private[runtime] final case class InternalModelDecisionBasis(
   realizationIdentity: String,
   sha256: String,
   scope: InternalModelSemanticScope,
-  status: String
+  status: InternalModelDecisionBasisStatus
 )
 
 private[runtime] final case class InternalModelDecisionRecord(
   decisionIdentity: String,
   topicIdentity: String,
-  state: String,
+  state: InternalModelDecisionState,
   actor: InternalModelDecisionActor,
   provenance: InternalModelSemanticSource,
   selectedChoice: InternalModelDecisionChoice,

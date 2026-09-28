@@ -64,7 +64,7 @@ final class InternalModelDecisionRecordValidatorSpec
       val first = base.records.head.copy(
         decisionIdentity = "decision-topic-a-old",
         topicIdentity = "topic-a",
-        state = "superseded",
+        state = InternalModelDecisionState.Superseded,
         selectedChoice = InternalModelDecisionChoice("choice-a-old", "Earlier alternative"),
         rejectedAlternatives = Vector(InternalModelDecisionAlternative("choice-a-new", "A later explicit human selection", "The earlier decision retained this option as rejected")),
         assumptions = Vector.empty,
@@ -109,11 +109,11 @@ final class InternalModelDecisionRecordValidatorSpec
       val old = base.records.head.copy(
         decisionIdentity = "decision-old",
         topicIdentity = "topic-history",
-        state = "superseded",
+        state = InternalModelDecisionState.Superseded,
         affectedTargets = Vector(InternalModelSemanticTarget("element", "e-removed")),
-        consideredEvidence = Vector(InternalModelDecisionEvidence("e-old", "realization-source", _source, Some("ref-removed"), Vector("c-removed"), Vector("old condition"), Vector("old limitation"))),
+        consideredEvidence = Vector(InternalModelDecisionEvidence("e-old", InternalModelDecisionEvidenceKind.RealizationSource, _source, Some("ref-removed"), Vector("c-removed"), Vector("old condition"), Vector("old limitation"))),
         realizationConditionIds = Vector("c-removed"),
-        basis = InternalModelDecisionBasis("realization-old", "realization-old", "sha256:" + ("2" * 64), _scope, "historical-unverified"),
+        basis = InternalModelDecisionBasis("realization-old", "realization-old", "sha256:" + ("2" * 64), _scope, InternalModelDecisionBasisStatus.HistoricalUnverified),
         supersedes = None
       )
       val current = base.records.head.copy(
@@ -130,8 +130,8 @@ final class InternalModelDecisionRecordValidatorSpec
         Then("the current terminal is admitted while the old record is retained without historical lookup, retargeting, or current-basis promotion")
         result.isSuccess shouldBe true
         result.toOption.map(_.ledger.records.map(record => (record.decisionIdentity, record.basis.status, record.affectedTargets.head.semanticIdentity))) shouldBe Some(Vector(
-          ("decision-current", "current", "e-customer"),
-          ("decision-old", "historical-unverified", "e-removed")
+          ("decision-current", InternalModelDecisionBasisStatus.Current, "e-customer"),
+          ("decision-old", InternalModelDecisionBasisStatus.HistoricalUnverified, "e-removed")
         ))
       }
     }
@@ -163,15 +163,15 @@ final class InternalModelDecisionRecordValidatorSpec
       val badcurrent = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(sha256 = "sha256:" + ("f" * 64)))))
       val hiddencondition = base.copy(records = Vector(base.records.head.copy(realizationConditionIds = Vector.empty)))
       val hiddensourcecondition = base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-        if evidence.kind == "realization-source" then evidence.copy(conditionIds = Vector.empty) else evidence
+        if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(conditionIds = Vector.empty) else evidence
       })))
       val changedsource = base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-        if evidence.kind == "realization-source" then evidence.copy(source = evidence.source.copy(identity = "other-source")) else evidence
+        if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(identity = "other-source")) else evidence
       })))
       val provideractor = base.copy(records = Vector(base.records.head.copy(actor = InternalModelDecisionActor("provider", "provider-1", "provider"))))
-      val historicalterminal = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(status = "historical-unverified"))))
+      val historicalterminal = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(status = InternalModelDecisionBasisStatus.HistoricalUnverified))))
       val fork = base.copy(records = Vector(
-        base.records.head.copy(decisionIdentity = "decision-root", topicIdentity = "topic-fork", state = "superseded"),
+        base.records.head.copy(decisionIdentity = "decision-root", topicIdentity = "topic-fork", state = InternalModelDecisionState.Superseded),
         base.records.head.copy(decisionIdentity = "decision-left", topicIdentity = "topic-fork", supersedes = Some("decision-root")),
         base.records.head.copy(decisionIdentity = "decision-right", topicIdentity = "topic-fork", supersedes = Some("decision-root"))
       ))
@@ -190,8 +190,8 @@ final class InternalModelDecisionRecordValidatorSpec
       val oldcurrent = base.records.head.copy(
         decisionIdentity = "decision-old-current",
         topicIdentity = "topic-old-current",
-        state = "superseded",
-        basis = base.records.head.basis.copy(sha256 = "sha256:" + ("2" * 64), status = "current")
+        state = InternalModelDecisionState.Superseded,
+        basis = base.records.head.basis.copy(sha256 = "sha256:" + ("2" * 64), status = InternalModelDecisionBasisStatus.Current)
       )
       val oldcurrentterminal = base.records.head.copy(
         decisionIdentity = "decision-old-current-terminal",
@@ -213,17 +213,17 @@ final class InternalModelDecisionRecordValidatorSpec
 
       val sourcefieldmutations = Vector(
         base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-          if evidence.kind == "realization-source" then evidence.copy(source = evidence.source.copy(authority = "other-authority")) else evidence
+          if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(authority = "other-authority")) else evidence
         }))),
         changedsource,
         base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-          if evidence.kind == "realization-source" then evidence.copy(source = evidence.source.copy(locator = Some("other-locator"))) else evidence
+          if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(locator = Some("other-locator"))) else evidence
         }))),
         base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-          if evidence.kind == "realization-source" then evidence.copy(source = evidence.source.copy(revision = Some("other-revision"))) else evidence
+          if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(revision = Some("other-revision"))) else evidence
         }))),
         base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-          if evidence.kind == "realization-source" then evidence.copy(source = evidence.source.copy(sha256 = "sha256:" + ("e" * 64))) else evidence
+          if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(sha256 = "sha256:" + ("e" * 64))) else evidence
         })))
       )
       sourcefieldmutations.foreach { ledger =>
@@ -305,7 +305,6 @@ final class InternalModelDecisionRecordValidatorSpec
       val invalidcodec = Vector(
         base.copy(ledgerIdentity = ""),
         base.copy(records = Vector.empty),
-        base.copy(records = Vector(record.copy(state = "implicit"))),
         base.copy(records = Vector(record.copy(actor = record.actor.copy(identity = " ")))),
         base.copy(records = Vector(record.copy(actor = record.actor.copy(role = "")))),
         base.copy(records = Vector(record.copy(provenance = record.provenance.copy(identity = "")))),
@@ -316,9 +315,8 @@ final class InternalModelDecisionRecordValidatorSpec
         base.copy(records = Vector(record.copy(consideredEvidence = record.consideredEvidence :+ record.consideredEvidence.head))),
         base.copy(records = Vector(record.copy(rejectedAlternatives = record.rejectedAlternatives :+ record.rejectedAlternatives.head))),
         base.copy(records = Vector(record.copy(rejectedAlternatives = Vector(InternalModelDecisionAlternative("choice-primary", "colliding", "not distinct"))))),
-        base.copy(records = Vector(record.copy(basis = record.basis.copy(status = "unrecognized")))),
         base.copy(records = Vector(record.copy(consideredEvidence = record.consideredEvidence.map { evidence =>
-          if evidence.kind == "external-human" then evidence.copy(sourceReferenceId = Some("ref-relationship"), conditionIds = Vector("c-limitation")) else evidence
+        if evidence.kind == InternalModelDecisionEvidenceKind.ExternalHuman then evidence.copy(sourceReferenceId = Some("ref-relationship"), conditionIds = Vector("c-limitation")) else evidence
         })))
       )
       invalidcodec.foreach { ledger =>
@@ -330,15 +328,28 @@ final class InternalModelDecisionRecordValidatorSpec
         result.isLeft shouldBe true
       }
 
+      val rawunsupportedtokens = Vector(
+        _canonical(_update_record(base, _.add("state", Json.fromString("implicit")))),
+        _canonical(_update_record_child(base, "basis", _.add("status", Json.fromString("unrecognized")))),
+        _canonical(_update_evidence_entry(base, 0, _.add("kind", Json.fromString("unrecognized-evidence"))))
+      )
+      rawunsupportedtokens.foreach { bytes =>
+        When("a raw decision wire token falls outside one of the closed typed domains")
+        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision("decision-main", "decision", "decision.json", true, Vector.empty, bytes.toVector))
+
+        Then("the decoder rejects the unsupported token without widening the retained enum domain")
+        result.isLeft shouldBe true
+      }
+
       val badartifact = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationArtifactId = "other-realization"))))
       val badidentity = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationIdentity = "other-identity"))))
       val badscope = base.copy(records = Vector(record.copy(basis = record.basis.copy(scope = _scope.copy(componentIdentity = "other-component")))))
       val unknowntarget = base.copy(records = Vector(record.copy(affectedTargets = Vector(InternalModelSemanticTarget("element", "e-missing")))))
       val unknowncondition = base.copy(records = Vector(record.copy(realizationConditionIds = Vector("c-missing"))))
       val unknownsource = base.copy(records = Vector(record.copy(consideredEvidence = record.consideredEvidence.map { evidence =>
-        if evidence.kind == "realization-source" then evidence.copy(sourceReferenceId = Some("ref-missing"), conditionIds = Vector.empty) else evidence
+        if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(sourceReferenceId = Some("ref-missing"), conditionIds = Vector.empty) else evidence
       })))
-      val supersededterminal = base.copy(records = Vector(record.copy(state = "superseded")))
+      val supersededterminal = base.copy(records = Vector(record.copy(state = InternalModelDecisionState.Superseded)))
       val dangling = base.copy(records = Vector(record.copy(supersedes = Some("decision-missing"))))
       val self = base.copy(records = Vector(record.copy(supersedes = Some("decision-current"))))
       val acceptedwithsuccessor = base.copy(records = Vector(
@@ -350,12 +361,12 @@ final class InternalModelDecisionRecordValidatorSpec
         record.copy(decisionIdentity = "decision-two", topicIdentity = "topic-terminal")
       ))
       val cycle = base.copy(records = Vector(
-        record.copy(decisionIdentity = "decision-cycle-a", topicIdentity = "topic-cycle", state = "superseded", supersedes = Some("decision-cycle-b")),
-        record.copy(decisionIdentity = "decision-cycle-b", topicIdentity = "topic-cycle", state = "superseded", supersedes = Some("decision-cycle-a")),
+        record.copy(decisionIdentity = "decision-cycle-a", topicIdentity = "topic-cycle", state = InternalModelDecisionState.Superseded, supersedes = Some("decision-cycle-b")),
+        record.copy(decisionIdentity = "decision-cycle-b", topicIdentity = "topic-cycle", state = InternalModelDecisionState.Superseded, supersedes = Some("decision-cycle-a")),
         record.copy(decisionIdentity = "decision-cycle-terminal", topicIdentity = "topic-cycle")
       ))
       val cross = base.copy(records = Vector(
-        record.copy(decisionIdentity = "decision-topic-a", topicIdentity = "topic-a", state = "superseded"),
+        record.copy(decisionIdentity = "decision-topic-a", topicIdentity = "topic-a", state = InternalModelDecisionState.Superseded),
         record.copy(decisionIdentity = "decision-topic-b", topicIdentity = "topic-b", supersedes = Some("decision-topic-a"))
       ))
       val ledgerscopemismatch = base.copy(scope = _scope.copy(componentIdentity = "other-component"))
@@ -450,9 +461,6 @@ final class InternalModelDecisionRecordValidatorSpec
 
       val unsupportedschema = base.copy(schemaVersion = "2.0")
       val unsupportedactor = base.copy(records = Vector(base.records.head.copy(actor = base.records.head.actor.copy(kind = "provider"))))
-      val supportedevidence = base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-        if evidence.evidenceIdentity == "e-external" then evidence.copy(kind = "provider") else evidence
-      })))
       val unsupportedtarget = base.copy(records = Vector(base.records.head.copy(affectedTargets = Vector(InternalModelSemanticTarget("other", "e-customer"), base.records.head.affectedTargets(1)))))
       val providerprovenance = base.copy(records = Vector(base.records.head.copy(provenance = base.records.head.provenance.copy(authority = "provider"))))
       val blankactoridentity = base.copy(records = Vector(base.records.head.copy(actor = base.records.head.actor.copy(identity = ""))))
@@ -469,12 +477,11 @@ final class InternalModelDecisionRecordValidatorSpec
       val duplicatedecision = base.copy(records = Vector(base.records.head, base.records.head.copy(topicIdentity = "topic-other")))
       val duplicatecondition = base.copy(records = Vector(base.records.head.copy(realizationConditionIds = Vector("c-limitation", "c-limitation"))))
       val duplicateevidencecondition = base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-        if evidence.kind == "realization-source" then evidence.copy(conditionIds = Vector("c-limitation", "c-limitation")) else evidence
+        if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(conditionIds = Vector("c-limitation", "c-limitation")) else evidence
       })))
       val canonicalmutations = Vector(
         "unsupported schemaVersion" -> unsupportedschema,
         "unsupported actor kind" -> unsupportedactor,
-        "unsupported evidence kind" -> supportedevidence,
         "unsupported target kind" -> unsupportedtarget,
         "provider provenance authority" -> providerprovenance,
         "blank actor identity" -> blankactoridentity,
@@ -499,6 +506,14 @@ final class InternalModelDecisionRecordValidatorSpec
         Then("the codec rejects the typed candidate rather than allowing encoding to become admission")
         result.isLeft shouldBe true
       }
+
+      Given("a canonical decision ledger whose external evidence kind is changed to the invalid legacy provider wire token")
+      val rawproviderevidence = _canonical(_update_evidence_entry(base, 0, _.add("kind", Json.fromString("provider"))))
+      When("the raw canonical JSON decision bytes are decoded")
+      val rawproviderresult = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = rawproviderevidence.toVector))
+
+      Then("the invalid provider token is rejected without manufacturing a typed enum case")
+      rawproviderresult.isLeft shouldBe true
 
       val rawbase = base.copy(records = Vector(
         base.records.head.copy(decisionIdentity = "decision-a", topicIdentity = "topic-a"),
@@ -590,7 +605,7 @@ final class InternalModelDecisionRecordValidatorSpec
 
       forAll(propertyinput) { case (token, rationale, choicedescription, alternativedescription, rejectionrationale, prose, recordorder, targetorder, evidenceorder, alternativeorder, conditionorder, sourceconditionorder) =>
         val sourceevidence = base.records.head.consideredEvidence.map { evidence =>
-          if evidence.kind == "realization-source" then evidence.copy(conditionIds = sourceconditionorder.map(index => Vector("c-limitation", "c-source-secondary")(index))) else evidence
+          if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(conditionIds = sourceconditionorder.map(index => Vector("c-limitation", "c-source-secondary")(index))) else evidence
         }
         val logicalrecords = Vector(
           base.records.head.copy(
@@ -645,16 +660,16 @@ final class InternalModelDecisionRecordValidatorSpec
     val record = InternalModelDecisionRecord(
       "decision-current",
       "topic-current",
-      "accepted",
+      InternalModelDecisionState.Accepted,
       InternalModelDecisionActor("human", "architect-1", "component architect"),
       _provenance,
       InternalModelDecisionChoice("choice-primary", "Keep the source-backed relationship"),
       "利用者の根拠と制約を保持する",
       Vector(InternalModelSemanticTarget("element", "e-customer"), InternalModelSemanticTarget("relationship", "r-uses")),
       Vector(
-        InternalModelDecisionEvidence("e-external", "external-human", InternalModelSemanticSource("external-human", "external-1", None, None, "sha256:" + ("3" * 64)), None, Vector.empty, Vector("external condition"), Vector("external limitation")),
-        InternalModelDecisionEvidence("e-provider", "provider-proposal", InternalModelSemanticSource("provider", "provider-1", Some("provider/result"), None, "sha256:" + ("4" * 64)), None, Vector.empty, Vector.empty, Vector("proposal limitation")),
-        InternalModelDecisionEvidence("e-realization", "realization-source", _source, Some("ref-relationship"), Vector("c-limitation", "c-source-secondary"), Vector("source condition", "source condition duplicate", "source condition duplicate"), Vector("source limitation", "source limitation duplicate"))
+        InternalModelDecisionEvidence("e-external", InternalModelDecisionEvidenceKind.ExternalHuman, InternalModelSemanticSource("external-human", "external-1", None, None, "sha256:" + ("3" * 64)), None, Vector.empty, Vector("external condition"), Vector("external limitation")),
+        InternalModelDecisionEvidence("e-provider", InternalModelDecisionEvidenceKind.ProviderProposal, InternalModelSemanticSource("provider", "provider-1", Some("provider/result"), None, "sha256:" + ("4" * 64)), None, Vector.empty, Vector.empty, Vector("proposal limitation")),
+        InternalModelDecisionEvidence("e-realization", InternalModelDecisionEvidenceKind.RealizationSource, _source, Some("ref-relationship"), Vector("c-limitation", "c-source-secondary"), Vector("source condition", "source condition duplicate", "source condition duplicate"), Vector("source limitation", "source limitation duplicate"))
       ),
       Vector("assumption retained in supplied order", "assumption duplicate", "assumption duplicate"),
       Vector("decision condition", "decision condition second", "decision condition second"),
@@ -664,7 +679,7 @@ final class InternalModelDecisionRecordValidatorSpec
         InternalModelDecisionAlternative("choice-alternative", "Use an unbacked relationship", "It lacks the exact selected source witness"),
         InternalModelDecisionAlternative("choice-secondary", "Use a separately sourced relationship", "It is not the selected source-backed choice")
       ),
-      InternalModelDecisionBasis("realization-main", "realization-order", _sha256(realization), _scope, "current"),
+      InternalModelDecisionBasis("realization-main", "realization-order", _sha256(realization), _scope, InternalModelDecisionBasisStatus.Current),
       None
     )
     InternalModelDecisionLedger("ccdm-decision-records-v1", "1.0", "ledger-order", _scope, Vector(record), Vector.empty)

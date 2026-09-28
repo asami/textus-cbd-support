@@ -115,10 +115,10 @@ private[runtime] final case class InternalModelSemanticRealization(
 /** Validates one selected, manifest-bound P10-20B semantic realization without side effects. */
 private[runtime] object InternalModelSemanticRealizationValidator {
   private final case class SnapshotWitness(
-    componentIdentity: String,
-    projectionContextIdentity: String,
+    componentidentity: String,
+    projectioncontextidentity: String,
     target: InternalModelSemanticTarget,
-    sourceAnchor: String,
+    sourceanchor: String,
     content: String,
     limitations: Vector[String]
   )
@@ -529,8 +529,8 @@ private[runtime] object InternalModelSemanticRealizationValidator {
       _ <- _selected_use_case(scope, elements)
       _ <- _relationship_endpoints(relationships, elements)
       _ <- _source_reference_targets(references, targetset)
-      _ <- _assertion_links(canonical, snapshots, sourcebyid, conditionbyid, targetset, "canonical")
-      _ <- _assertion_links(enrichment, snapshots, sourcebyid, conditionbyid, targetset, "enrichment")
+      _ <- _assertion_links(canonical, snapshots, sourcebyid, conditionbyid, targetset, scope, "canonical")
+      _ <- _assertion_links(enrichment, snapshots, sourcebyid, conditionbyid, targetset, scope, "enrichment")
       _ <- _association_links(profile, canonical, enrichment, relationships, sourcebyid, targetset)
       _ <- _condition_links(conditions, sourcebyid, targetset)
       _ <- _structural_links(elements, relationships, canonical, enrichment, conditions)
@@ -602,6 +602,7 @@ private[runtime] object InternalModelSemanticRealizationValidator {
     references: Map[String, InternalModelSemanticSourceReference],
     conditions: Map[String, InternalModelSemanticCondition],
     targets: Set[InternalModelSemanticTarget],
+    scope: InternalModelSemanticScope,
     lane: String
   ): Either[String, Unit] =
     _first_failure(assertions.iterator.map { assertion =>
@@ -612,7 +613,12 @@ private[runtime] object InternalModelSemanticRealizationValidator {
         assertedtarget <- reference.target.toRight(s"$lane assertion ${assertion.assertionId} source reference must carry its semantic target")
         _ <- Either.cond(assertedtarget == target, (), s"$lane assertion ${assertion.assertionId} source reference target does not match its semantic identity")
         snapshot <- snapshots.get(reference.snapshotArtifactId).toRight(s"$lane assertion ${assertion.assertionId} does not name a source snapshot")
-        witness <- snapshot.witnesses.find(witness => witness.target == target && witness.sourceAnchor == reference.sourceAnchor).toRight(s"$lane assertion ${assertion.assertionId} has no exact source witness")
+        witness <- snapshot.witnesses.find(witness =>
+          witness.componentidentity == scope.componentIdentity &&
+            witness.projectioncontextidentity == scope.projectionContextIdentity &&
+            witness.target == target &&
+            witness.sourceanchor == reference.sourceAnchor
+        ).toRight(s"$lane assertion ${assertion.assertionId} has no exact source witness")
         _ <- Either.cond(witness.content == assertion.content, (), s"$lane assertion ${assertion.assertionId} content does not match its exact source basis")
         _ <- Either.cond(assertion.conditionIds.forall(conditions.contains), (), s"$lane assertion ${assertion.assertionId} has an unknown condition")
         _ <- Either.cond(assertion.conditionIds.forall(id => {
@@ -706,10 +712,10 @@ private[runtime] object InternalModelSemanticRealizationValidator {
           for {
             snapshot <- snapshots.get(reference.snapshotArtifactId).toRight(s"source reference ${reference.referenceId} does not name a snapshot")
             witness <- snapshot.witnesses.find(witness =>
-              witness.componentIdentity == scope.componentIdentity &&
-                witness.projectionContextIdentity == scope.projectionContextIdentity &&
+              witness.componentidentity == scope.componentIdentity &&
+                witness.projectioncontextidentity == scope.projectionContextIdentity &&
                 witness.target == target &&
-                witness.sourceAnchor == reference.sourceAnchor
+                witness.sourceanchor == reference.sourceAnchor
             ).toRight(s"source reference ${reference.referenceId} does not have an exact source witness")
             _ <- Either.cond(
               witness.limitations.forall(limitation => conditions.exists(condition =>
@@ -755,7 +761,7 @@ private[runtime] object InternalModelSemanticRealizationValidator {
       sourcevalue <- root("source").toRight(s"source-snapshot artifact $artifactid source is missing")
       source <- _source(sourcevalue, s"source-snapshot artifact $artifactid source")
       witnesses <- _snapshot_witnesses(kind, root, artifactid)
-    } yield Snapshot(source, witnesses, witnesses.map(_.sourceAnchor).toSet ++ _snapshot_anchors(kind, root))
+    } yield Snapshot(source, witnesses, witnesses.map(_.sourceanchor).toSet ++ _snapshot_anchors(kind, root))
 
   private def _snapshot_witnesses(kind: String, root: JsonObject, artifactid: String): Either[String, Vector[SnapshotWitness]] =
     kind match {
@@ -824,10 +830,10 @@ private[runtime] object InternalModelSemanticRealizationValidator {
     target match {
       case Some(expected) =>
         val witness = snapshot.witnesses.find(witness =>
-          witness.componentIdentity == scope.componentIdentity &&
-            witness.projectionContextIdentity == scope.projectionContextIdentity &&
+          witness.componentidentity == scope.componentIdentity &&
+            witness.projectioncontextidentity == scope.projectionContextIdentity &&
             witness.target == expected &&
-            witness.sourceAnchor == sourceanchor
+            witness.sourceanchor == sourceanchor
         )
         witness match {
           case Some(_) => Right(())

@@ -10,5 +10,12 @@ planned sequence.
 - [Phase 10.1](phase-10.1.md) — closed source-snapshot and freshness contract;
   see the [Phase 10.1 checklist](phase-10.1-checklist.md) for acceptance evidence.
 
-Phase 10.2 and later remain separate planned work and are not started by the
-Phase 10.1 release.
+- [Phase 10.2](phase-10.2.md) — closed durable semantic state, projection
+  continuity, decisions/alternatives, and open-issue records;
+  see the [Phase 10.2 checklist](phase-10.2-checklist.md) for the validated
+  release binding and acceptance evidence.
+
+Phase 10.3 and later remain separate not-started work. Their existing
+uncommitted plans and the shared Strategy are preserved; this release does
+not execute them or claim their acceptance. Shared Strategy synchronization
+is deferred; the named Phase/checklist remain canonical completion authority.

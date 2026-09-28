@@ -1,6 +1,6 @@
 # Phase 10.2 Checklist: Durable Semantic State and Traceability
 
-Status: OPEN
+Status: CLOSED
 phase=[Phase 10.2](phase-10.2.md)
 predecessor=[Phase 10.1](phase-10.1.md)
 successor=[Phase 10.3](phase-10.3.md)
@@ -62,4 +62,22 @@ development-item=DEV-CBD-002
 
 ## Closure
 
-- [ ] Release the accepted Phase 10.2 contract to Phase 10.3.
+- [x] Release the accepted Phase 10.2 contract to Phase 10.3.
+  Release-tree candidate: authoritative only after the distinct validated
+  release commit bearing `Phase-Closure-Binding: PHASE-10.2` and its verified
+  closure receipt. Required final coverage: current-tree CAR lint and the
+  complete `sbt --batch test` receipt `P10.2-PHASE-RELEASE-FULL-001`.
+  The one epoch-1 full review `PHASE-10.2-FULL-REVIEW-01` and both focused
+  semantic repair reviews are retained; all five original blocker lineages
+  are closed. The final local-helper rename is accepted by the nonrecursive
+  M0 waiver `PHASE-10.2-PHASE-REPAIR3-MCR-AMENDED-CLOSURE-01`, not another
+  full review. Exact Hygiene record: `HYG-P10.2-FULL-001` in the
+  [canonical follow-up journal](../journal/2026/09/2026-09-28-phase-10.2-hygiene-follow-up.md).
+  No Development Candidate records or successor execution are included.
+
+### Accepted Step commit identities
+
+- P10-20: `fb3716d071692fb9e2540b7459ce0a5d31113c97`.
+- P10-21: `6cd751408a3185ff33c7325c3f035545cbab3878`.
+- P10-22: `3a68f4c3f649b747442f874a015228923af91b67`.
+- P10-23: `62807518784b8f18e3c54ff17e519893f5d8d773`.

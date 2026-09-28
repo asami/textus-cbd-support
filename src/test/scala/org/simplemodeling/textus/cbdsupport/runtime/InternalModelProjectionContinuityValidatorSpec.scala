@@ -34,7 +34,7 @@ final class InternalModelProjectionContinuityValidatorSpec
     target: String,
     associations: Vector[FixtureAssociation] = Vector.empty,
     sequence: Option[String] = None,
-    conditionIds: Vector[String] = Vector.empty
+    conditionids: Vector[String] = Vector.empty
   )
 
   private val _printer = Printer.noSpacesSortKeys
@@ -88,33 +88,114 @@ final class InternalModelProjectionContinuityValidatorSpec
           "ccdm-realization-v2",
           "ccdm-projection-binding-v2",
           _binding("display-one").toVector
-        ))
+      ))
+      }
+    }
+
+    "retain exact IdentityMetadata for admitted Value and Aggregate subjects" in {
+      Vector("EntityModelValue", "EntityModelAggregate").foreach { entityrole =>
+        Given(s"a coherent V2 source snapshot, realization, binding, and manifest for an admitted $entityrole subject with direct IdentityMetadata")
+        _with_fixture(s"metadata-$entityrole", entityrole = entityrole) { root =>
+          When("the package is admitted through the projection-continuity entry point")
+          val result = InternalModelProjectionContinuityValidator.validate(root)
+
+          Then("the exact subject role, identity, metadata owner, source attribution, and canonical binding bytes are retained")
+          val expectedrole = if entityrole == "EntityModelValue" then EntityModelValue else EntityModelAggregate
+          withClue(result.show) {
+            result.toOption.map { value =>
+              value.entityModel.subjects.map { subject =>
+                (
+                  subject.sourceSubject.role,
+                  subject.sourceSubject.semanticTargetId.value,
+                  subject.sourceSubject.attribution.sourceLocator,
+                  subject.metadata.map(metadata => (
+                    metadata.sourceMetadata.semanticSubjectId.value,
+                    metadata.sourceMetadata.semanticTargetId.value,
+                    metadata.sourceMetadata.semanticRelationshipId.value,
+                    metadata.sourceMetadata.attribution.sourceLocator
+                  )),
+                  value.binding.canonicalBytes == InternalModelProjectionContinuityValidator.encode(value.binding)
+                )
+              }
+            } shouldBe Some(Vector((
+              expectedrole,
+              "e-entity",
+              s"anchor-e-entity-kind-$entityrole",
+              Vector(("e-entity", "e-entity", "r-entity-metadata", "anchor-r-entity-metadata-role-IdentityMetadata")),
+              true
+            )))
+          }
+        }
       }
     }
 
     "preserve opaque identities when labels and canonical-input encounter order vary" in {
       Given("generated nonempty labels and independently reversed pre-canonical fixture input for the same ledger")
-      forAll(Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)) { label =>
-        _with_fixture(label, reverseinputs = true) { reversedroot =>
-          _with_fixture(label, reverseinputs = false) { orderedroot =>
+      forAll(Gen.oneOf("EntityModelEntity", "EntityModelValue", "EntityModelAggregate"), Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)) { (entityrole, label) =>
+        _with_fixture(label, reverseinputs = true, entityrole = entityrole) { reversedroot =>
+          _with_fixture(label, reverseinputs = false, entityrole = entityrole) { orderedroot =>
             When("labels and pre-canonical encounter order differ while the persisted bytes remain canonical")
             val reversed = InternalModelProjectionContinuityValidator.validate(reversedroot)
             val ordered = InternalModelProjectionContinuityValidator.validate(orderedroot)
 
-            Then("the eight projection identities, nested sequence key, direct V2 source anchor, and suppressed navigation stay exact")
+            Then("the eight projection identities, exact Entity Model metadata owner, nested sequence key, direct V2 source anchor, and suppressed navigation stay exact")
             (for {
               left <- reversed.toOption
               right <- ordered.toOption
             } yield (
               left.monoKoto.subjects.map(_.sourceSubject.semanticTargetId.value).sorted,
+              left.entityModel.subjects.map(subject => (
+                subject.sourceSubject.role,
+                subject.sourceSubject.semanticTargetId.value,
+                subject.metadata.map(metadata => (
+                  metadata.sourceMetadata.semanticSubjectId.value,
+                  metadata.sourceMetadata.semanticTargetId.value,
+                  metadata.sourceMetadata.semanticRelationshipId.value,
+                  metadata.sourceMetadata.attribution.sourceLocator
+                )),
+                subject.sourceSubject.attribution.sourceLocator
+              )),
+              left.entityModel.subjects.map(_.sourceSubject.role) == right.entityModel.subjects.map(_.sourceSubject.role),
               left.useCaseCommunication.subjects.head.sourceSubject.flows.head.steps.head.sequenceKey,
               left.workflow.flows.head.sourceFlow.attribution.sourceLocator,
               left.stateMachine.transitions.head.forwardNavigationTarget,
               left.binding.canonicalBytes == right.binding.canonicalBytes
-            )) shouldBe Some((Vector("e-koto", "e-mono"), "step-1", "anchor-r-workflow-flow-role-WorkflowProjectionFlowRelation", None, true))
+            )) shouldBe Some((
+              Vector("e-koto", "e-mono"),
+              Vector((
+                if entityrole == "EntityModelEntity" then EntityModelEntity else if entityrole == "EntityModelValue" then EntityModelValue else EntityModelAggregate,
+                "e-entity",
+                Vector(("e-entity", "e-entity", "r-entity-metadata", "anchor-r-entity-metadata-role-IdentityMetadata")),
+                s"anchor-e-entity-kind-$entityrole"
+              )),
+              true,
+              "step-1",
+              "anchor-r-workflow-flow-role-WorkflowProjectionFlowRelation",
+              None,
+              true
+            ))
           }
         }
       }
+    }
+
+    "reject selected nested relationships whose exact retained owner is absent" in {
+      Given("an otherwise valid all-eight V2 handoff with selected Mono-Koto or Entity metadata relationships but no matching selected source subject")
+      When("projection reconstruction consumes the selected nested relationship records")
+      val missingmono = _with_rejected_fixture() { root =>
+        _replace_projection(root, _binding_bytes(_update_binding_view(_binding_json(_binding("display-one")), "MonoKotoProjection")(_.filterNot(_.hcursor.get[String]("semanticIdentity").toOption.contains("e-mono")))))
+      }
+      val missingentity = _with_rejected_fixture() { root =>
+        _replace_projection(root, _binding_bytes(_update_binding_view(_binding_json(_binding("display-one")), "EntityModelProjection")(_.filterNot(_.hcursor.get[String]("semanticIdentity").toOption.contains("e-entity")))))
+      }
+      val emptyowners = _with_rejected_fixture() { root =>
+        _replace_projection(root, _binding_bytes(_update_binding_view(_binding_json(_binding("display-one")), "MonoKotoProjection")(_.filterNot(_.hcursor.get[String]("recordKind").toOption.contains("element")))))
+      }
+      val incompatiblemono = _with_rejected_fixture() { root =>
+        _replace_projection(root, _binding_bytes(_update_binding_record(_binding_json(_binding("display-one")), "MonoKotoProjection", "e-mono")(_.add("viewRole", Json.fromString("Koto")))))
+      }
+      Then("missing or empty selected owners reject rather than silently dropping nested values")
+      Vector(missingmono, missingentity, emptyowners, incompatiblemono) shouldBe Vector(true, true, true, true)
     }
 
     "admit the closed V1 pairing without recasting it as V2" in {
@@ -453,16 +534,41 @@ final class InternalModelProjectionContinuityValidatorSpec
         }
       }
     }
+
+    "attribute unasserted Entity gaps only to their sole condition source within each profile's normal-record rule" in {
+      Given("closed V1/V2 fixtures whose selected normal Entity role and gap condition use the profile-admitted source matrix")
+      Vector("ccdm-projection-binding-v1", "ccdm-projection-binding-v2").foreach { profile =>
+        _with_distinct_gap_fixture(profile) { root =>
+          When("a codec-supported EntityModelValue gap is reconstructed without a canonical EntityModelValue role assertion")
+          val result = InternalModelProjectionContinuityValidator.validate(root)
+
+          Then("the normal subject and representable gap retain their profile-admitted source attribution and exact bounded gap identity")
+          val normalsource = if profile == "ccdm-projection-binding-v1" then "anchor-e-entity-gap-condition" else "anchor-e-entity-role-source-a"
+          withClue(s"$profile: ${result.show}") {
+            result.toOption.map(value => (value.entityModel.subjects.map(_.sourceSubject.attribution.sourceLocator), value.entityModel.gaps.map(gap => (gap.sourceGap.attribution.sourceLocator, gap.sourceGap.affectedSemanticTargetId.map(_.value), gap.sourceGap.boundedFieldOrScope)), value.binding.canonicalBytes == InternalModelProjectionContinuityValidator.encode(value.binding))) shouldBe
+              Some((Vector(normalsource), Vector(("anchor-e-entity-gap-condition", Some("e-entity"), "entity-gap")), true))
+          }
+        }
+      }
+      Given("a V1 fixture that selects the normal Entity source A while retaining distinct condition source B")
+      _with_distinct_gap_fixture("ccdm-projection-binding-v1", v1distinct = true) { root =>
+        When("V1 normal-record attribution would aggregate the selected canonical source A and condition source B")
+        val result = InternalModelProjectionContinuityValidator.validate(root)
+
+        Then("the existing hidden-source-winner invariant rejects the distinct normal V1 sources")
+        result.isSuccess shouldBe false
+      }
+    }
   }
 
-  private def _elements(label: String, reverseinputs: Boolean = false): Vector[FixtureElement] = {
+  private def _elements(label: String, reverseinputs: Boolean = false, entityrole: String = "EntityModelEntity"): Vector[FixtureElement] = {
     val values = Vector(
     FixtureElement("e-mono", "Mono", Some("Mono")),
     FixtureElement("e-koto", "Koto", Some("Koto")),
     FixtureElement("e-usecase", "use-case", Some("use-case")),
     FixtureElement("e-flow", "use-case-flow", None),
     FixtureElement("e-step", "use-case-flow-step", None),
-    FixtureElement("e-entity", "EntityModelEntity", Some("EntityModelEntity")),
+    FixtureElement("e-entity", entityrole, Some(entityrole)),
     FixtureElement("e-command", "EventModelCommand", Some("EventModelCommand")),
     FixtureElement("e-event", "EventModelEvent", Some("EventModelEvent")),
     FixtureElement("e-dimension", "ClassificationPowertypeDimension", Some("ClassificationPowertypeDimension")),
@@ -522,9 +628,10 @@ final class InternalModelProjectionContinuityValidatorSpec
     statemachineowners: Vector[String] = Vector("e-state-machine"),
     duplicateflowtarget: Boolean = false,
     duplicatesteptarget: Boolean = false,
-    stepsource: String = "e-flow"
+    stepsource: String = "e-flow",
+    entityrole: String = "EntityModelEntity"
   ): Array[Byte] = {
-    val elements = _elements(label, reverseinputs)
+    val elements = _elements(label, reverseinputs, entityrole)
     val relationships = _relationships(workflowowner, eventtarget, workflowconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource)
     val facts = (elements.map(element => ("element", element.identity, s"kind:${element.kind}")) ++ relationships.flatMap { relationship =>
       Vector(("relationship", relationship.identity, s"role:${relationship.role}")) ++
@@ -544,7 +651,7 @@ final class InternalModelProjectionContinuityValidatorSpec
     val conditions = (workflowconditions.zipWithIndex.map { case (detail, index) =>
       _condition(s"c-r-workflow-flow-$index", "conflict", "relationship", "r-workflow-flow", "ref-r-workflow-flow-role-WorkflowProjectionFlowRelation", detail)
     } ++ entityconditions.zipWithIndex.map { case (detail, index) =>
-      _condition(s"c-e-entity-$index", "conflict", "element", "e-entity", "ref-e-entity-kind-EntityModelEntity", detail)
+      _condition(s"c-e-entity-$index", "conflict", "element", "e-entity", s"ref-e-entity-kind-${_token(entityrole)}", detail)
     }).sortBy(_.hcursor.get[String]("conditionId").toOption.get)
     _canonical(Json.obj(
       "canonicalAssertions" -> Json.fromValues(assertions),
@@ -579,22 +686,23 @@ final class InternalModelProjectionContinuityValidatorSpec
     statemachineowners: Vector[String] = Vector("e-state-machine"),
     duplicateflowtarget: Boolean = false,
     duplicatesteptarget: Boolean = false,
-    stepsource: String = "e-flow"
+    stepsource: String = "e-flow",
+    entityrole: String = "EntityModelEntity"
   ): Array[Byte] = {
-    val elements = _elements(label, reverseinputs)
+    val elements = _elements(label, reverseinputs, entityrole)
     val relationships = _relationships(workflowowner, eventtarget, workflowconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource)
-    def assertionids(identity: String): Vector[String] = {
+    def _assertion_ids_(identity: String): Vector[String] = {
       val relation = relationships.find(_.identity == identity)
       relation match {
         case Some(value) => (Vector(s"a-$identity-${_token(s"role:${value.role}")}") ++ value.associations.map(association => s"a-$identity-${_token(s"association:${association.role}:${association.kind}:${association.identity}")}") ++ value.sequence.toVector.map(entry => s"a-$identity-${_token(s"sequence-key:$entry")}")).sorted
         case None => elements.find(_.identity == identity).toVector.map(element => s"a-$identity-${_token(s"kind:${element.kind}")}")
       }
     }
-    def record(kind: String, identity: String, role: String): Json = {
+    def _record_(kind: String, identity: String, role: String): Json = {
       val boundrole = roleoverride.collect { case (targetidentity, replacement) if targetidentity == identity => replacement }.getOrElse(role)
-      val conditionids = relationships.find(_.identity == identity).map(_.conditionIds).getOrElse(if identity == "e-entity" then entityconditions.indices.map(index => s"c-e-entity-$index").toVector else Vector.empty)
+      val conditionids = relationships.find(_.identity == identity).map(_.conditionids).getOrElse(if identity == "e-entity" then entityconditions.indices.map(index => s"c-e-entity-$index").toVector else Vector.empty)
       Json.obj(
-        "canonicalAssertionIds" -> Json.fromValues(assertionids(identity).map(Json.fromString)),
+        "canonicalAssertionIds" -> Json.fromValues(_assertion_ids_(identity).map(Json.fromString)),
         "conditionIds" -> Json.fromValues(conditionids.map(Json.fromString)),
         "enrichmentAssertionIds" -> Json.arr(),
         "recordKind" -> Json.fromString(kind),
@@ -606,7 +714,7 @@ final class InternalModelProjectionContinuityValidatorSpec
         "viewRole" -> Json.fromString(boundrole)
       )
     }
-    def gaprecord(identity: String, role: String, field: String): Json = Json.obj(
+    def _gap_record_(identity: String, role: String, field: String): Json = Json.obj(
       "canonicalAssertionIds" -> Json.arr(),
       "conditionIds" -> Json.fromValues(entityconditions.indices.map(index => Json.fromString(s"c-e-entity-$index"))),
       "enrichmentAssertionIds" -> Json.arr(),
@@ -616,9 +724,9 @@ final class InternalModelProjectionContinuityValidatorSpec
       "sequenceAssertionId" -> Json.Null,
       "viewRole" -> Json.fromString(role)
     )
-    def view(family: String, entries: Vector[(String, String, String)]): Json = Json.obj(
+    def _view_(family: String, entries: Vector[(String, String, String)]): Json = Json.obj(
       "family" -> Json.fromString(family),
-      "records" -> Json.fromValues(entries.map { case (kind, identity, role) => record(kind, identity, role) }.sortBy(value => (value.hcursor.get[String]("recordKind").toOption.get, value.hcursor.get[String]("semanticIdentity").toOption.get, value.hcursor.get[String]("viewRole").toOption.get)))
+      "records" -> Json.fromValues(entries.map { case (kind, identity, role) => _record_(kind, identity, role) }.sortBy(value => (value.hcursor.get[String]("recordKind").toOption.get, value.hcursor.get[String]("semanticIdentity").toOption.get, value.hcursor.get[String]("viewRole").toOption.get)))
     )
     _canonical(Json.obj(
       "profile" -> Json.fromString(profile),
@@ -626,16 +734,16 @@ final class InternalModelProjectionContinuityValidatorSpec
       "schemaVersion" -> Json.fromString(schema),
       "scope" -> Json.obj("componentIdentity" -> Json.fromString("component-all-eight"), "projectionContextIdentity" -> Json.fromString("context-all-eight"), "selectedUseCaseElementIdentity" -> Json.fromString("e-usecase")),
       "views" -> Json.fromValues(Vector(
-        view("MonoKotoProjection", Vector(("element", "e-mono", "Mono"), ("element", "e-koto", "Koto"), ("relationship", "r-mono-domain", "StructuralDomain"), ("relationship", "r-koto-temporal", "BehavioralTemporal"))),
-        view("UseCaseCommunicationProjection", Vector(("element", "e-usecase", "use-case"), ("relationship", "r-usecase-actor", "Actor"), ("relationship", "r-usecase-flow", "UseCaseCommunicationFlow"), ("relationship", "r-usecase-step", "UseCaseCommunicationFlowStep")) ++
+        _view_("MonoKotoProjection", Vector(("element", "e-mono", "Mono"), ("element", "e-koto", "Koto"), ("relationship", "r-mono-domain", "StructuralDomain"), ("relationship", "r-koto-temporal", "BehavioralTemporal"))),
+        _view_("UseCaseCommunicationProjection", Vector(("element", "e-usecase", "use-case"), ("relationship", "r-usecase-actor", "Actor"), ("relationship", "r-usecase-flow", "UseCaseCommunicationFlow"), ("relationship", "r-usecase-step", "UseCaseCommunicationFlowStep")) ++
           (if duplicateflowtarget then Vector(("relationship", "r-usecase-flow-duplicate", "UseCaseCommunicationFlow")) else Vector.empty) ++
           (if duplicatesteptarget then Vector(("relationship", "r-usecase-step-duplicate", "UseCaseCommunicationFlowStep")) else Vector.empty)),
-        Json.obj("family" -> Json.fromString("EntityModelProjection"), "records" -> Json.fromValues((Vector(record("element", "e-entity", "EntityModelEntity"), record("relationship", "r-entity-metadata", "IdentityMetadata")) ++ entitygap.toVector.map(field => gaprecord("e-entity", "EntityModelEntity", field))).sortBy(value => (value.hcursor.get[String]("recordKind").toOption.get, value.hcursor.get[String]("semanticIdentity").toOption.get, value.hcursor.get[String]("viewRole").toOption.get)))),
-        view("EventModelProjection", Vector(("element", "e-command", "EventModelCommand"), ("element", "e-event", "EventModelEvent"), ("relationship", "r-event-cause", "EventModelCausalAssertion"))),
-        view("StructureViewProjection", Vector(("relationship", "r-structure", "StructureAssociation"), ("relationship", "r-structure-assertion", "Cardinality"))),
-        view("ClassificationViewProjection", Vector(("element", "e-dimension", "ClassificationPowertypeDimension"), ("relationship", "r-classification", "ClassificationGeneralization"), ("relationship", "r-classification-assertion", "ClassificationDimensionValue"))),
-        view("WorkflowProjection", Vector(("element", "e-workflow", "WorkflowProjectionWorkflow"), ("element", "e-activity", "WorkflowProjectionActivity"), ("relationship", "r-workflow-flow", "WorkflowProjectionFlowRelation"))),
-        view("StateMachineProjection", Vector(("element", "e-state-machine", "StateMachineProjectionStateMachine"), ("element", "e-state-a", "StateMachineProjectionState"), ("element", "e-state-b", "StateMachineProjectionState"), ("element", "e-trigger", "StateMachineProjectionTrigger"), ("relationship", "r-state-transition", "StateMachineProjectionTransitionRelation"), ("relationship", "r-state-adjunct", "StateMachineProjectionTransitionAdjunctRelation")))
+        Json.obj("family" -> Json.fromString("EntityModelProjection"), "records" -> Json.fromValues((Vector(_record_("element", "e-entity", entityrole), _record_("relationship", "r-entity-metadata", "IdentityMetadata")) ++ entitygap.toVector.map(field => _gap_record_("e-entity", "EntityModelEntity", field))).sortBy(value => (value.hcursor.get[String]("recordKind").toOption.get, value.hcursor.get[String]("semanticIdentity").toOption.get, value.hcursor.get[String]("viewRole").toOption.get)))),
+        _view_("EventModelProjection", Vector(("element", "e-command", "EventModelCommand"), ("element", "e-event", "EventModelEvent"), ("relationship", "r-event-cause", "EventModelCausalAssertion"))),
+        _view_("StructureViewProjection", Vector(("relationship", "r-structure", "StructureAssociation"), ("relationship", "r-structure-assertion", "Cardinality"))),
+        _view_("ClassificationViewProjection", Vector(("element", "e-dimension", "ClassificationPowertypeDimension"), ("relationship", "r-classification", "ClassificationGeneralization"), ("relationship", "r-classification-assertion", "ClassificationDimensionValue"))),
+        _view_("WorkflowProjection", Vector(("element", "e-workflow", "WorkflowProjectionWorkflow"), ("element", "e-activity", "WorkflowProjectionActivity"), ("relationship", "r-workflow-flow", "WorkflowProjectionFlowRelation"))),
+        _view_("StateMachineProjection", Vector(("element", "e-state-machine", "StateMachineProjectionStateMachine"), ("element", "e-state-a", "StateMachineProjectionState"), ("element", "e-state-b", "StateMachineProjectionState"), ("element", "e-trigger", "StateMachineProjectionTrigger"), ("relationship", "r-state-transition", "StateMachineProjectionTransitionRelation"), ("relationship", "r-state-adjunct", "StateMachineProjectionTransitionAdjunctRelation")))
       ))
     ))
   }
@@ -651,9 +759,10 @@ final class InternalModelProjectionContinuityValidatorSpec
     statemachineowners: Vector[String] = Vector("e-state-machine"),
     duplicateflowtarget: Boolean = false,
     duplicatesteptarget: Boolean = false,
-    stepsource: String = "e-flow"
+    stepsource: String = "e-flow",
+    entityrole: String = "EntityModelEntity"
   ): Array[Byte] = {
-    val facts = (_elements(label, reverseinputs).map(element => ("element", element.identity, s"kind:${element.kind}")) ++ _relationships(workflowowner, eventtarget, workflowconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource).flatMap { relationship =>
+    val facts = (_elements(label, reverseinputs, entityrole).map(element => ("element", element.identity, s"kind:${element.kind}")) ++ _relationships(workflowowner, eventtarget, workflowconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource).flatMap { relationship =>
       Vector(("relationship", relationship.identity, s"role:${relationship.role}")) ++
         relationship.associations.map(association => ("relationship", relationship.identity, s"association:${association.role}:${association.kind}:${association.identity}")) ++
         relationship.sequence.toVector.map(value => ("relationship", relationship.identity, s"sequence-key:$value"))
@@ -724,7 +833,7 @@ final class InternalModelProjectionContinuityValidatorSpec
   private def _relationship(value: FixtureRelationship, canonicalids: Vector[String]): Json =
     Json.obj(
       "canonicalAssertionIds" -> Json.fromValues(canonicalids.map(Json.fromString)),
-      "conditionIds" -> Json.fromValues(value.conditionIds.map(Json.fromString)),
+      "conditionIds" -> Json.fromValues(value.conditionids.map(Json.fromString)),
       "direction" -> Json.fromString("source-to-target"),
       "enrichmentAssertionIds" -> Json.arr(),
       "identity" -> Json.fromString(value.identity),
@@ -746,11 +855,12 @@ final class InternalModelProjectionContinuityValidatorSpec
     statemachineowners: Vector[String] = Vector("e-state-machine"),
     duplicateflowtarget: Boolean = false,
     duplicatesteptarget: Boolean = false,
-    stepsource: String = "e-flow"
+    stepsource: String = "e-flow",
+    entityrole: String = "EntityModelEntity"
   )(f: Path => Unit): Unit = {
-    val snapshot = _snapshot(label, workflowowner, eventtarget, workflowconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource)
-    val realization = _realization(label, workflowowner, eventtarget, workflowconditions, entityconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource)
-    val binding = _binding(label, workflowowner = workflowowner, eventtarget = eventtarget, workflowconditions = workflowconditions, entityconditions = entityconditions, reverseinputs = reverseinputs, structureowners = structureowners, classificationowners = classificationowners, statemachineowners = statemachineowners, duplicateflowtarget = duplicateflowtarget, duplicatesteptarget = duplicatesteptarget, stepsource = stepsource)
+    val snapshot = _snapshot(label, workflowowner, eventtarget, workflowconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource, entityrole)
+    val realization = _realization(label, workflowowner, eventtarget, workflowconditions, entityconditions, reverseinputs, structureowners, classificationowners, statemachineowners, duplicateflowtarget, duplicatesteptarget, stepsource, entityrole)
+    val binding = _binding(label, workflowowner = workflowowner, eventtarget = eventtarget, workflowconditions = workflowconditions, entityconditions = entityconditions, reverseinputs = reverseinputs, structureowners = structureowners, classificationowners = classificationowners, statemachineowners = statemachineowners, duplicateflowtarget = duplicateflowtarget, duplicatesteptarget = duplicatesteptarget, stepsource = stepsource, entityrole = entityrole)
     val artifacts = Vector(
       _artifact("snapshot-model", "snapshots/model.json", "source-snapshot", snapshot, Vector.empty),
       _artifact("realization-main", "realizations/main.json", "realization", realization, Vector("snapshot-model")),
@@ -937,6 +1047,65 @@ final class InternalModelProjectionContinuityValidatorSpec
     _write(root.resolve("src/main/internal-model/manifest.yaml"), _manifest(artifacts))
   }
 
+  private def _with_distinct_gap_fixture(profile: String, v1distinct: Boolean = false)(f: Path => Unit): Unit = {
+    val v2 = profile == "ccdm-projection-binding-v2"
+    val normalsourceb = !v2 && !v1distinct
+    val realizationprofile = if v2 then "ccdm-realization-v2" else "ccdm-realization-v1"
+    val schemaversion = if v2 then "2.0" else "1.0"
+    val _assertion_ = (id: String, kind: String, identity: String, reference: String, content: String) =>
+      if v2 then _assertion(id, kind, identity, reference, content, None) else _v1_assertion(id, kind, identity, reference, content)
+    val snapshot = _canonical(Json.obj(
+      "basis" -> Json.obj("contextIdentity" -> Json.fromString("model-context"), "facts" -> Json.fromValues(Vector(
+        _fact("element", "e-mono", "anchor-e-mono-kind-Mono", "kind:Mono"),
+        _fact("element", "e-usecase", "anchor-e-usecase-kind-use-case", "kind:use-case"),
+        _fact("relationship", "r-mono-domain", "anchor-r-mono-domain-role-StructuralDomain", "role:StructuralDomain"),
+        _fact("element", "e-entity", "anchor-e-entity-role-source-a", "kind:EntityModelEntity"),
+        _fact("element", "e-entity", "anchor-e-entity-gap-condition", if normalsourceb then "kind:EntityModelEntity" else "gap condition basis")
+      ).sortBy(value => (value.hcursor.get[String]("semanticIdentityKind").toOption.getOrElse(""), value.hcursor.get[String]("semanticIdentity").toOption.getOrElse(""), value.hcursor.get[String]("sourceAnchor").toOption.getOrElse(""))))), "schemaVersion" -> Json.fromString("1.0"), "snapshotKind" -> Json.fromString("model-context"), "source" -> _source
+    ))
+    val assertions = Vector(
+      _assertion_("a-e-mono-kind-Mono", "element", "e-mono", "ref-e-mono-kind-Mono", "kind:Mono"),
+      _assertion_("a-e-usecase-kind-use-case", "element", "e-usecase", "ref-e-usecase-kind-use-case", "kind:use-case"),
+      _assertion_("a-r-mono-domain-role-StructuralDomain", "relationship", "r-mono-domain", "ref-r-mono-domain-role-StructuralDomain", "role:StructuralDomain"),
+      _assertion_("a-e-entity-role", "element", "e-entity", if normalsourceb then "ref-e-entity-gap-condition" else "ref-e-entity-role-source-a", "kind:EntityModelEntity")
+    )
+    val references = Vector(
+      _reference("ref-e-mono-kind-Mono", "element", "e-mono", "anchor-e-mono-kind-Mono"),
+      _reference("ref-e-usecase-kind-use-case", "element", "e-usecase", "anchor-e-usecase-kind-use-case"),
+      _reference("ref-r-mono-domain-role-StructuralDomain", "relationship", "r-mono-domain", "anchor-r-mono-domain-role-StructuralDomain"),
+      _reference("ref-e-entity-role-source-a", "element", "e-entity", "anchor-e-entity-role-source-a"),
+      _reference("ref-e-entity-gap-condition", "element", "e-entity", "anchor-e-entity-gap-condition")
+    ).filter(reference => v2 || v1distinct || !reference.hcursor.get[String]("referenceId").toOption.contains("ref-e-entity-role-source-a")).sortBy(_.noSpaces)
+    val realization = _canonical(Json.obj(
+      "canonicalAssertions" -> Json.fromValues(assertions.sortBy(_.noSpaces)),
+      "conditions" -> Json.arr(_condition("c-e-entity-gap", "conflict", "element", "e-entity", "ref-e-entity-gap-condition", "entity-gap")),
+      "elements" -> Json.fromValues(Vector(_element("e-mono", "Mono", "Mono", Vector("a-e-mono-kind-Mono")), _element("e-usecase", "use-case", "Use case", Vector("a-e-usecase-kind-use-case")), _element("e-entity", "EntityModelEntity", "Entity", Vector("a-e-entity-role"), Vector("c-e-entity-gap"))).sortBy(_.noSpaces)),
+      "enrichmentAssertions" -> Json.arr(), "profile" -> Json.fromString(realizationprofile), "realizationIdentity" -> Json.fromString("realization-distinct-gap"),
+      "relationships" -> Json.arr(_relationship(FixtureRelationship("r-mono-domain", "StructuralDomain", "e-mono", "e-usecase"), Vector("a-r-mono-domain-role-StructuralDomain"))),
+      "schemaVersion" -> Json.fromString(schemaversion), "scope" -> Json.obj("componentIdentity" -> Json.fromString("component-all-eight"), "projectionContextIdentity" -> Json.fromString("context-all-eight"), "selectedUseCaseElementIdentity" -> Json.fromString("e-usecase")),
+      "sourceReferences" -> Json.fromValues(references), "successorLinks" -> Json.arr(), "traceability" -> Json.obj("consumedSnapshotArtifactIds" -> Json.arr(Json.fromString("snapshot-model")))
+    ))
+    def _record_(kind: String, identity: String, role: String, assertions: Vector[String] = Vector.empty, conditions: Vector[String] = Vector.empty, field: Option[String] = None): Json = Json.obj(
+      "canonicalAssertionIds" -> Json.fromValues(assertions.map(Json.fromString)), "conditionIds" -> Json.fromValues(conditions.map(Json.fromString)), "enrichmentAssertionIds" -> Json.arr(), "recordKind" -> Json.fromString(kind), "semanticIdentity" -> Json.fromString(identity), "sequenceAssertionId" -> Json.Null, "viewRole" -> Json.fromString(role)
+    ).mapObject(objectvalue => field.map(value => objectvalue.add("requestedFieldOrScope", Json.fromString(value))).getOrElse(objectvalue))
+    val families = Vector(
+      "MonoKotoProjection" -> Vector(_record_("element", "e-mono", "Mono", Vector("a-e-mono-kind-Mono")), _record_("relationship", "r-mono-domain", "StructuralDomain", Vector("a-r-mono-domain-role-StructuralDomain"))),
+      "UseCaseCommunicationProjection" -> Vector(_record_("element", "e-usecase", "use-case", Vector("a-e-usecase-kind-use-case"))),
+      "EntityModelProjection" -> Vector(_record_("element", "e-entity", "EntityModelEntity", Vector("a-e-entity-role"), Vector("c-e-entity-gap")), _record_("gap", "e-entity", "EntityModelValue", conditions = Vector("c-e-entity-gap"), field = Some("entity-gap"))),
+      "EventModelProjection" -> Vector.empty[Json], "StructureViewProjection" -> Vector.empty[Json], "ClassificationViewProjection" -> Vector.empty[Json], "WorkflowProjection" -> Vector.empty[Json], "StateMachineProjection" -> Vector.empty[Json]
+    )
+    val binding = _canonical(Json.obj("profile" -> Json.fromString(profile), "realizationArtifactId" -> Json.fromString("realization-main"), "schemaVersion" -> Json.fromString(schemaversion), "scope" -> Json.obj("componentIdentity" -> Json.fromString("component-all-eight"), "projectionContextIdentity" -> Json.fromString("context-all-eight"), "selectedUseCaseElementIdentity" -> Json.fromString("e-usecase")), "views" -> Json.fromValues(families.map { case (family, records) => Json.obj("family" -> Json.fromString(family), "records" -> Json.fromValues(records)) })))
+    val root = Files.createTempDirectory("internal-model-distinct-gap-")
+    try {
+      _write(root.resolve("project.yaml"), "project:\n  namespace: org.example\n  id: continuity-sample\n".getBytes(StandardCharsets.UTF_8))
+      _write(root.resolve("src/main/internal-model/manifest.yaml"), _manifest(Vector(_artifact("snapshot-model", "snapshots/model.json", "source-snapshot", snapshot, Vector.empty), _artifact("realization-main", "realizations/main.json", "realization", realization, Vector("snapshot-model")), _artifact("projection-main", "projections/main.json", "projection", binding, Vector("realization-main")))))
+      _write(root.resolve("src/main/internal-model/snapshots/model.json"), snapshot)
+      _write(root.resolve("src/main/internal-model/realizations/main.json"), realization)
+      _write(root.resolve("src/main/internal-model/projections/main.json"), binding)
+      f(root)
+    } finally _delete_tree(root)
+  }
+
   private def _with_v1_fixture(hiddenwinner: Boolean = false)(f: Path => Unit): Unit = {
     val snapshot = _v1_snapshot(hiddenwinner)
     val realization = _v1_realization(hiddenwinner)
@@ -1008,7 +1177,7 @@ final class InternalModelProjectionContinuityValidatorSpec
   }
 
   private def _v1_binding(hiddenwinner: Boolean = false): Array[Byte] = {
-    def record(kind: String, identity: String, role: String, assertions: Vector[String], enrichment: Vector[String] = Vector.empty): Json = Json.obj(
+    def _record_(kind: String, identity: String, role: String, assertions: Vector[String], enrichment: Vector[String] = Vector.empty): Json = Json.obj(
       "canonicalAssertionIds" -> Json.fromValues(assertions.map(Json.fromString)),
       "conditionIds" -> Json.arr(),
       "enrichmentAssertionIds" -> Json.fromValues(enrichment.map(Json.fromString)),
@@ -1018,8 +1187,8 @@ final class InternalModelProjectionContinuityValidatorSpec
       "viewRole" -> Json.fromString(role)
     )
     val families = Vector(
-      "MonoKotoProjection" -> Vector(record("element", "e-mono", "Mono", Vector("a-e-mono-kind-Mono"), if hiddenwinner then Vector("z-e-mono-kind-Mono-alternate") else Vector.empty), record("relationship", "r-mono-domain", "StructuralDomain", Vector("a-r-mono-domain-role-StructuralDomain"))),
-      "UseCaseCommunicationProjection" -> Vector(record("element", "e-usecase", "use-case", Vector("a-e-usecase-kind-use-case"))),
+      "MonoKotoProjection" -> Vector(_record_("element", "e-mono", "Mono", Vector("a-e-mono-kind-Mono"), if hiddenwinner then Vector("z-e-mono-kind-Mono-alternate") else Vector.empty), _record_("relationship", "r-mono-domain", "StructuralDomain", Vector("a-r-mono-domain-role-StructuralDomain"))),
+      "UseCaseCommunicationProjection" -> Vector(_record_("element", "e-usecase", "use-case", Vector("a-e-usecase-kind-use-case"))),
       "EntityModelProjection" -> Vector.empty[Json],
       "EventModelProjection" -> Vector.empty[Json],
       "StructureViewProjection" -> Vector.empty[Json],

@@ -48,7 +48,14 @@ private[runtime] final case class InternalModelSemanticAssertion(
   semanticIdentity: String,
   sourceReferenceId: String,
   content: String,
-  conditionIds: Vector[String]
+  conditionIds: Vector[String],
+  association: Option[InternalModelSemanticAssociation]
+)
+
+private[runtime] final case class InternalModelSemanticAssociation(
+  associationRole: String,
+  relatedSemanticIdentity: String,
+  relatedSemanticIdentityKind: String
 )
 
 private[runtime] final case class InternalModelSemanticCondition(
@@ -90,6 +97,8 @@ private[runtime] final case class InternalModelSemanticSuccessorLink(
 )
 
 private[runtime] final case class InternalModelSemanticRealization(
+  profile: String,
+  schemaVersion: String,
   realizationIdentity: String,
   scope: InternalModelSemanticScope,
   canonicalAssertions: Vector[InternalModelSemanticAssertion],
@@ -128,7 +137,9 @@ private[runtime] object InternalModelSemanticRealizationValidator {
   private val _source_fields = Set("authority", "identity", "locator", "revision", "sha256")
   private val _source_reference_fields = Set("referenceId", "snapshotArtifactId", "source", "sourceAnchor", "target")
   private val _target_fields = Set("semanticIdentity", "semanticIdentityKind")
-  private val _assertion_fields = Set("assertionId", "conditionIds", "content", "semanticIdentity", "semanticIdentityKind", "sourceReferenceId")
+  private val _assertion_v1_fields = Set("assertionId", "conditionIds", "content", "semanticIdentity", "semanticIdentityKind", "sourceReferenceId")
+  private val _assertion_v2_fields = _assertion_v1_fields + "association"
+  private val _association_fields = Set("associationRole", "relatedSemanticIdentity", "relatedSemanticIdentityKind")
   private val _condition_fields = Set("affectedIdentity", "affectedKind", "conditionId", "detail", "kind", "sourceReferenceId")
   private val _element_fields = Set("canonicalAssertionIds", "conditionIds", "enrichmentAssertionIds", "identity", "kind", "label")
   private val _relationship_fields = Set(
@@ -142,6 +153,13 @@ private[runtime] object InternalModelSemanticRealizationValidator {
     "absence", "ambiguity", "conflict", "authorization-redaction", "availability-staleness", "malformed", "limitation"
   )
   private val _directions = Set("source-to-target", "target-to-source", "undirected")
+  private val _association_role_kinds = Map(
+    "owner" -> Set("element", "relationship"),
+    "subject" -> Set("element"),
+    "affected-relationship" -> Set("relationship"),
+    "affected-subject" -> Set("element"),
+    "affected-endpoint" -> Set("element")
+  )
   private val _digest_pattern = "sha256:[0-9a-f]{64}".r
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
   private val _canonical_printer = Printer.noSpacesSortKeys
@@ -149,14 +167,21 @@ private[runtime] object InternalModelSemanticRealizationValidator {
   def validate(projectRoot: java.nio.file.Path): Consequence[InternalModelSemanticRealization] =
     try {
       InternalModelPackageValidator.verifiedPresentRealization(projectRoot).flatMap { handoff =>
-        _realization(handoff).fold(Consequence.operationInvalid, Consequence.success)
+        validateVerified(handoff)
       }
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model semantic realization validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
+  private[runtime] def validateVerified(handoff: InternalModelVerifiedRealizationPackage): Consequence[InternalModelSemanticRealization] =
+    try {
+      _realization(handoff).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model semantic realization validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
   private[runtime] def encode(realization: InternalModelSemanticRealization): Vector[Byte] =
-    _encode_realization(realization).toVector
+    InternalModelSemanticRealizationEncoder.encode(realization).toVector
 
   private def _realization(handoff: InternalModelVerifiedRealizationPackage): Either[String, InternalModelSemanticRealization] =
     for {
@@ -167,7 +192,7 @@ private[runtime] object InternalModelSemanticRealizationValidator {
       json <- _json_parser.parse(content).left.map(_ => "realization bytes must be valid JSON without duplicate members")
       root <- json.asObject.toRight("realization root must be an object")
       canonical = _canonical_bytes(json)
-      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "realization bytes are not canonical V1 JSON")
+      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "realization bytes are not canonical JSON")
       snapshots <- _snapshots(handoff.sourceSnapshots, handoff.realization.dependencies)
       realization <- _root(root, canonical.toVector, handoff.realization, snapshots)
     } yield realization
@@ -181,20 +206,20 @@ private[runtime] object InternalModelSemanticRealizationValidator {
     for {
       _ <- _closed_fields(root, _root_fields, "realization root")
       schema <- _string(root, "schemaVersion", "realization root")
-      _ <- Either.cond(schema == "1.0", (), "realization schemaVersion must be 1.0")
       profile <- _string(root, "profile", "realization root")
-      _ <- Either.cond(profile == "ccdm-realization-v1", (), "realization profile is unsupported")
+      _ <- _profile_version(profile, schema)
       realizationidentity <- _nonempty_string(root, "realizationIdentity", "realization root")
       scope <- _scope(root)
       references <- _source_references(root, scope, snapshots)
-      canonical <- _assertions(root, "canonicalAssertions")
-      enrichment <- _assertions(root, "enrichmentAssertions")
+      canonical <- _assertions(root, "canonicalAssertions", profile)
+      enrichment <- _assertions(root, "enrichmentAssertions", profile)
       conditions <- _conditions(root)
       elements <- _elements(root)
       relationships <- _relationships(root)
       successors <- _successor_links(root)
       consumedids <- _traceability(root)
       _ <- _invariants(
+        profile,
         scope,
         manifest,
         snapshots,
@@ -208,6 +233,8 @@ private[runtime] object InternalModelSemanticRealizationValidator {
         consumedids
       )
       candidate = InternalModelSemanticRealization(
+        profile = profile,
+        schemaVersion = schema,
         realizationIdentity = realizationidentity,
         scope = scope,
         canonicalAssertions = canonical,
@@ -220,106 +247,16 @@ private[runtime] object InternalModelSemanticRealizationValidator {
         consumedSnapshotArtifactIds = consumedids,
         canonicalBytes = Vector.empty
       )
-      encoded = _encode_realization(candidate).toVector
+      encoded = InternalModelSemanticRealizationEncoder.encode(candidate).toVector
       _ <- Either.cond(encoded == canonicalbytes, (), "typed realization re-encoding does not match supplied canonical bytes")
     } yield candidate.copy(canonicalBytes = encoded)
 
-  private def _encode_realization(realization: InternalModelSemanticRealization): Array[Byte] =
-    _canonical_bytes(Json.obj(
-      "canonicalAssertions" -> Json.fromValues(realization.canonicalAssertions.map(_assertion_json)),
-      "conditions" -> Json.fromValues(realization.conditions.map(_condition_json)),
-      "elements" -> Json.fromValues(realization.elements.map(_element_json)),
-      "enrichmentAssertions" -> Json.fromValues(realization.enrichmentAssertions.map(_assertion_json)),
-      "profile" -> Json.fromString("ccdm-realization-v1"),
-      "realizationIdentity" -> Json.fromString(realization.realizationIdentity),
-      "relationships" -> Json.fromValues(realization.relationships.map(_relationship_json)),
-      "schemaVersion" -> Json.fromString("1.0"),
-      "scope" -> Json.obj(
-        "componentIdentity" -> Json.fromString(realization.scope.componentIdentity),
-        "projectionContextIdentity" -> Json.fromString(realization.scope.projectionContextIdentity),
-        "selectedUseCaseElementIdentity" -> Json.fromString(realization.scope.selectedUseCaseElementIdentity)
-      ),
-      "sourceReferences" -> Json.fromValues(realization.sourceReferences.map(_source_reference_json)),
-      "successorLinks" -> Json.fromValues(realization.successorLinks.map(_successor_link_json)),
-      "traceability" -> Json.obj(
-        "consumedSnapshotArtifactIds" -> Json.fromValues(realization.consumedSnapshotArtifactIds.map(Json.fromString))
-      )
-    ))
-
-  private def _assertion_json(assertion: InternalModelSemanticAssertion): Json =
-    Json.obj(
-      "assertionId" -> Json.fromString(assertion.assertionId),
-      "conditionIds" -> Json.fromValues(assertion.conditionIds.map(Json.fromString)),
-      "content" -> Json.fromString(assertion.content),
-      "semanticIdentity" -> Json.fromString(assertion.semanticIdentity),
-      "semanticIdentityKind" -> Json.fromString(assertion.semanticIdentityKind),
-      "sourceReferenceId" -> Json.fromString(assertion.sourceReferenceId)
-    )
-
-  private def _condition_json(condition: InternalModelSemanticCondition): Json =
-    Json.obj(
-      "affectedIdentity" -> Json.fromString(condition.affectedIdentity),
-      "affectedKind" -> Json.fromString(condition.affectedKind),
-      "conditionId" -> Json.fromString(condition.conditionId),
-      "detail" -> Json.fromString(condition.detail),
-      "kind" -> Json.fromString(condition.kind),
-      "sourceReferenceId" -> Json.fromString(condition.sourceReferenceId)
-    )
-
-  private def _element_json(element: InternalModelSemanticElement): Json =
-    Json.obj(
-      "canonicalAssertionIds" -> Json.fromValues(element.canonicalAssertionIds.map(Json.fromString)),
-      "conditionIds" -> Json.fromValues(element.conditionIds.map(Json.fromString)),
-      "enrichmentAssertionIds" -> Json.fromValues(element.enrichmentAssertionIds.map(Json.fromString)),
-      "identity" -> Json.fromString(element.identity),
-      "kind" -> Json.fromString(element.kind),
-      "label" -> Json.fromString(element.label)
-    )
-
-  private def _relationship_json(relationship: InternalModelSemanticRelationship): Json =
-    Json.obj(
-      "canonicalAssertionIds" -> Json.fromValues(relationship.canonicalAssertionIds.map(Json.fromString)),
-      "conditionIds" -> Json.fromValues(relationship.conditionIds.map(Json.fromString)),
-      "direction" -> Json.fromString(relationship.direction),
-      "enrichmentAssertionIds" -> Json.fromValues(relationship.enrichmentAssertionIds.map(Json.fromString)),
-      "identity" -> Json.fromString(relationship.identity),
-      "label" -> Json.fromString(relationship.label),
-      "role" -> Json.fromString(relationship.role),
-      "sourceElementIdentity" -> Json.fromString(relationship.sourceElementIdentity),
-      "targetElementIdentity" -> Json.fromString(relationship.targetElementIdentity)
-    )
-
-  private def _source_reference_json(reference: InternalModelSemanticSourceReference): Json =
-    Json.obj(
-      "referenceId" -> Json.fromString(reference.referenceId),
-      "snapshotArtifactId" -> Json.fromString(reference.snapshotArtifactId),
-      "source" -> _source_json(reference.source),
-      "sourceAnchor" -> Json.fromString(reference.sourceAnchor),
-      "target" -> reference.target.map(_target_json).getOrElse(Json.Null)
-    )
-
-  private def _source_json(source: InternalModelSemanticSource): Json =
-    Json.obj(
-      "authority" -> Json.fromString(source.authority),
-      "identity" -> Json.fromString(source.identity),
-      "locator" -> source.locator.map(Json.fromString).getOrElse(Json.Null),
-      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null),
-      "sha256" -> Json.fromString(source.sha256)
-    )
-
-  private def _target_json(target: InternalModelSemanticTarget): Json =
-    Json.obj(
-      "semanticIdentity" -> Json.fromString(target.semanticIdentity),
-      "semanticIdentityKind" -> Json.fromString(target.semanticIdentityKind)
-    )
-
-  private def _successor_link_json(link: InternalModelSemanticSuccessorLink): Json =
-    Json.obj(
-      "priorIdentity" -> Json.fromString(link.priorIdentity),
-      "priorKind" -> Json.fromString(link.priorKind),
-      "sourceReferenceId" -> Json.fromString(link.sourceReferenceId),
-      "successorIdentity" -> Json.fromString(link.successorIdentity),
-      "successorKind" -> Json.fromString(link.successorKind)
+  private def _profile_version(profile: String, schema: String): Either[String, Unit] =
+    Either.cond(
+      (profile == "ccdm-realization-v1" && schema == "1.0") ||
+        (profile == "ccdm-realization-v2" && schema == "2.0"),
+      (),
+      "realization profile and schemaVersion are unsupported"
     )
 
   private def _scope(root: JsonObject): Either[String, InternalModelSemanticScope] =
@@ -395,29 +332,57 @@ private[runtime] object InternalModelSemanticRealizationValidator {
       _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
     } yield InternalModelSemanticSource(authority, identity, locator, revision, sha256)
 
-  private def _assertions(root: JsonObject, key: String): Either[String, Vector[InternalModelSemanticAssertion]] =
+  private def _assertions(root: JsonObject, key: String, profile: String): Either[String, Vector[InternalModelSemanticAssertion]] =
     for {
       values <- _array(root, key, "realization root")
       assertions <- values.zipWithIndex.foldLeft[Either[String, Vector[InternalModelSemanticAssertion]]](Right(Vector.empty)) { case (result, (value, index)) =>
         for {
           collected <- result
-          assertion <- _assertion(value, key, index)
+          assertion <- _assertion(value, key, index, profile)
         } yield collected :+ assertion
       }
       _ <- _strictly_sorted(assertions.map(assertion => Vector(assertion.assertionId)), key)
     } yield assertions
 
-  private def _assertion(value: Json, lane: String, index: Int): Either[String, InternalModelSemanticAssertion] =
+  private def _assertion(value: Json, lane: String, index: Int, profile: String): Either[String, InternalModelSemanticAssertion] =
     for {
       objectvalue <- _object(value, s"$lane assertion $index")
-      _ <- _closed_fields(objectvalue, _assertion_fields, s"$lane assertion $index")
+      _ <- _closed_fields(objectvalue, _assertion_fields(profile), s"$lane assertion $index")
       assertionid <- _nonempty_string(objectvalue, "assertionId", s"$lane assertion $index")
       kind <- _semantic_identity_kind(objectvalue, "semanticIdentityKind", s"$lane assertion $index")
       identity <- _nonempty_string(objectvalue, "semanticIdentity", s"$lane assertion $index")
       referenceid <- _nonempty_string(objectvalue, "sourceReferenceId", s"$lane assertion $index")
       content <- _nonempty_string(objectvalue, "content", s"$lane assertion $index")
       conditionids <- _sorted_strings(objectvalue, "conditionIds", s"$lane assertion $index")
-    } yield InternalModelSemanticAssertion(assertionid, kind, identity, referenceid, content, conditionids)
+      association <- _nullable_association(objectvalue, s"$lane assertion $index", profile)
+      _ <- Either.cond(lane == "canonicalAssertions" || association.isEmpty, (), s"$lane assertion $index must not carry an association")
+    } yield InternalModelSemanticAssertion(assertionid, kind, identity, referenceid, content, conditionids, association)
+
+  private def _assertion_fields(profile: String): Set[String] =
+    if profile == "ccdm-realization-v2" then _assertion_v2_fields else _assertion_v1_fields
+
+  private def _nullable_association(
+    objectvalue: JsonObject,
+    label: String,
+    profile: String
+  ): Either[String, Option[InternalModelSemanticAssociation]] =
+    if profile == "ccdm-realization-v2" then {
+      objectvalue("association") match {
+        case Some(value) if value.isNull => Right(None)
+        case Some(value) => _association(value, s"$label association").map(Some(_))
+        case None => Left(s"$label association is missing")
+      }
+    } else
+      Right(None)
+
+  private def _association(value: Json, label: String): Either[String, InternalModelSemanticAssociation] =
+    for {
+      objectvalue <- _object(value, label)
+      _ <- _closed_fields(objectvalue, _association_fields, label)
+      role <- _nonempty_string(objectvalue, "associationRole", label)
+      identity <- _nonempty_string(objectvalue, "relatedSemanticIdentity", label)
+      kind <- _semantic_identity_kind(objectvalue, "relatedSemanticIdentityKind", label)
+    } yield InternalModelSemanticAssociation(role, identity, kind)
 
   private def _conditions(root: JsonObject): Either[String, Vector[InternalModelSemanticCondition]] =
     for {
@@ -529,6 +494,7 @@ private[runtime] object InternalModelSemanticRealizationValidator {
     } yield consumed
 
   private def _invariants(
+    profile: String,
     scope: InternalModelSemanticScope,
     manifest: InternalModelVerifiedRealization,
     snapshots: Map[String, Snapshot],
@@ -565,10 +531,41 @@ private[runtime] object InternalModelSemanticRealizationValidator {
       _ <- _source_reference_targets(references, targetset)
       _ <- _assertion_links(canonical, snapshots, sourcebyid, conditionbyid, targetset, "canonical")
       _ <- _assertion_links(enrichment, snapshots, sourcebyid, conditionbyid, targetset, "enrichment")
+      _ <- _association_links(profile, canonical, enrichment, relationships, sourcebyid, targetset)
       _ <- _condition_links(conditions, sourcebyid, targetset)
       _ <- _structural_links(elements, relationships, canonical, enrichment, conditions)
       _ <- _successor_links(successors, sourcebyid, targetset)
       _ <- _snapshot_limitations(scope, snapshots, references, conditions)
+    } yield ()
+  }
+
+  private def _association_links(
+    profile: String,
+    canonical: Vector[InternalModelSemanticAssertion],
+    enrichment: Vector[InternalModelSemanticAssertion],
+    relationships: Vector[InternalModelSemanticRelationship],
+    references: Map[String, InternalModelSemanticSourceReference],
+    targets: Set[InternalModelSemanticTarget]
+  ): Either[String, Unit] = {
+    val associations = canonical.flatMap(assertion => assertion.association.map(association => assertion -> association))
+    val associationroles = associations.map { case (assertion, association) => (assertion.semanticIdentity, association.associationRole) }
+    for {
+      _ <- Either.cond(profile == "ccdm-realization-v2" || associations.isEmpty, (), "V1 assertions must not carry associations")
+      _ <- Either.cond(enrichment.forall(_.association.isEmpty), (), "enrichment assertions must not carry associations")
+      _ <- Either.cond(associationroles.distinct.size == associationroles.size, (), "association roles must be unique for each asserting relationship")
+      _ <- _first_failure(associations.iterator.map { case (assertion, association) =>
+        val assertingtarget = InternalModelSemanticTarget(assertion.semanticIdentityKind, assertion.semanticIdentity)
+        val relatedtarget = InternalModelSemanticTarget(association.relatedSemanticIdentityKind, association.relatedSemanticIdentity)
+        for {
+          _ <- Either.cond(assertingtarget.semanticIdentityKind == "relationship" && relationships.exists(_.identity == assertingtarget.semanticIdentity), (), s"association assertion ${assertion.assertionId} must target an existing relationship")
+          admittedkinds <- _association_role_kinds.get(association.associationRole).toRight(s"association assertion ${assertion.assertionId} associationRole is invalid")
+          _ <- Either.cond(admittedkinds.contains(relatedtarget.semanticIdentityKind), (), s"association assertion ${assertion.assertionId} related target kind is invalid for its associationRole")
+          _ <- Either.cond(targets.contains(relatedtarget), (), s"association assertion ${assertion.assertionId} related target is unknown or cross-scope")
+          reference <- references.get(assertion.sourceReferenceId).toRight(s"association assertion ${assertion.assertionId} has an unknown source reference")
+          _ <- Either.cond(reference.target.contains(assertingtarget), (), s"association assertion ${assertion.assertionId} source reference must target its asserting relationship")
+          _ <- Either.cond(assertion.content == s"association:${association.associationRole}:${association.relatedSemanticIdentityKind}:${association.relatedSemanticIdentity}", (), s"association assertion ${assertion.assertionId} content is not its exact association witness")
+        } yield ()
+      })
     } yield ()
   }
 

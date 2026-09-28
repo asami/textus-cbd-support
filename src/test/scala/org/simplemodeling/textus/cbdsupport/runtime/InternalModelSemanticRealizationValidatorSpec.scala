@@ -24,6 +24,17 @@ final class InternalModelSemanticRealizationValidatorSpec
     with GivenWhenThen
     with ScalaCheckPropertyChecks {
 
+  private final case class FixtureAssociation(
+    assertionid: String,
+    role: String,
+    relatedidentity: String,
+    relatedkind: String,
+    referenceid: String,
+    referenceanchor: String,
+    factanchor: String,
+    assertioncontent: Option[String] = None
+  )
+
   private val _printer = Printer.noSpacesSortKeys
   private val _model_raw = "model source bytes\n".getBytes(StandardCharsets.UTF_8)
   private val _source = Json.obj(
@@ -76,6 +87,55 @@ final class InternalModelSemanticRealizationValidatorSpec
 
         Then("the unrelated snapshot remains structurally inventory-checked but is not semantically parsed or allowed to reject this realization")
         result.isSuccess shouldBe true
+      }
+    }
+
+    "retain unchanged V1 profile/version bytes and reject a V2-only assertion field" in {
+      Given("a V1 realization with its closed V1 assertion shape and the same V1 realization with an added association field")
+      val v1 = _realization()
+      val v1withassociation = _realization(v1associationfield = true)
+
+      _with_fixture(v1) { acceptedroot =>
+        When("the closed V1 candidate is admitted")
+        val accepted = InternalModelSemanticRealizationValidator.validate(acceptedroot)
+
+        Then("its preserved profile and schema version re-encode to the original V1 bytes")
+        accepted.toOption.map(candidate => (candidate.profile, candidate.schemaVersion, InternalModelSemanticRealizationValidator.encode(candidate))) shouldBe
+          Some(("ccdm-realization-v1", "1.0", v1.toVector))
+      }
+      _with_fixture(v1withassociation) { rejectedroot =>
+        When("a V2-only association field is supplied under the V1 profile")
+        val rejected = InternalModelSemanticRealizationValidator.validate(rejectedroot)
+
+        Then("the V1 candidate is rejected without a profile fallback or migration")
+        rejected.isSuccess shouldBe false
+      }
+    }
+
+    "admit V2 associations with distinct exact source anchors for element and relationship targets" in {
+      Given("two V2 realizations whose relationship association facts are separately source-backed on their asserting relationship")
+      val elementassociation = FixtureAssociation(
+        "a-association-owner-element", "owner", "e-customer", "element",
+        "ref-association-owner-element", "anchor-association-owner-element", "anchor-association-owner-element"
+      )
+      val relationshipassociation = FixtureAssociation(
+        "a-association-owner-relationship", "owner", "r-related", "relationship",
+        "ref-association-owner-relationship", "anchor-association-owner-relationship", "anchor-association-owner-relationship"
+      )
+      val cases = Vector(
+        (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(elementassociation), includerolewitness = true), Vector(elementassociation), false),
+        (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(relationshipassociation), includerelatedrelationship = true, includerolewitness = true), Vector(relationshipassociation), true)
+      )
+
+      forAll(Gen.oneOf(cases)) { case (realization, associations, includerelatedrelationship) =>
+        _with_fixture(realization, associations = associations, includerelatedrelationship = includerelatedrelationship, includerolewitness = true) { root =>
+          When("the V2 source-backed association is admitted with its own reference and source-owned anchor")
+          val result = InternalModelSemanticRealizationValidator.validate(root)
+
+          Then("the candidate preserves the explicit V2 profile and exact typed association rather than inferring it from relationship endpoints")
+          result.toOption.map(candidate => (candidate.profile, candidate.schemaVersion, candidate.canonicalAssertions.flatMap(_.association), InternalModelSemanticRealizationValidator.encode(candidate))) shouldBe
+            Some(("ccdm-realization-v2", "2.0", associations.map(association => InternalModelSemanticAssociation(association.role, association.relatedidentity, association.relatedkind)), realization.toVector))
+        }
       }
     }
 
@@ -134,9 +194,99 @@ final class InternalModelSemanticRealizationValidatorSpec
       }
     }
 
+    "fail closed for malformed or non-unique V2 association claims" which {
+      "reject unknown and cross-scope related identities, invalid role/kind combinations, and enrichment promotion" in {
+        Given("V2 association claims that are not an in-scope typed canonical relationship assertion")
+        val unknown = FixtureAssociation(
+          "a-association-unknown", "owner", "e-unknown", "element",
+          "ref-association-unknown", "anchor-association-unknown", "anchor-association-unknown"
+        )
+        val crossscope = FixtureAssociation(
+          "a-association-cross-scope", "owner", "e-other-context", "element",
+          "ref-association-cross-scope", "anchor-association-cross-scope", "anchor-association-cross-scope"
+        )
+        val invalidrole = FixtureAssociation(
+          "a-association-invalid-role", "unknown-role", "e-customer", "element",
+          "ref-association-invalid-role", "anchor-association-invalid-role", "anchor-association-invalid-role"
+        )
+        val invalidkind = FixtureAssociation(
+          "a-association-invalid-kind", "subject", "r-uses", "relationship",
+          "ref-association-invalid-kind", "anchor-association-invalid-kind", "anchor-association-invalid-kind"
+        )
+        val unknownkind = FixtureAssociation(
+          "a-association-unknown-kind", "owner", "e-customer", "unknown-kind",
+          "ref-association-unknown-kind", "anchor-association-unknown-kind", "anchor-association-unknown-kind"
+        )
+        val enrichment = FixtureAssociation(
+          "z-enrichment", "owner", "e-customer", "element",
+          "ref-customer", "anchor-customer", "anchor-customer"
+        )
+        val cases = Vector(
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(unknown)), Vector(unknown), false),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(crossscope)), Vector(crossscope), false),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(invalidrole)), Vector(invalidrole), false),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(invalidkind)), Vector(invalidkind), false),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(unknownkind)), Vector(unknownkind), false),
+          (_realization(profilevalue = "ccdm-realization-v2", enrichmentassociation = Some(enrichment)), Vector(enrichment), false)
+        )
+
+        forAll(Gen.oneOf(cases)) { case (realization, associations, includerelatedrelationship) =>
+          _with_fixture(realization, associations = associations, includerelatedrelationship = includerelatedrelationship) { root =>
+            When("the candidate supplies an unresolved, incompatible, or enrichment association")
+            val result = InternalModelSemanticRealizationValidator.validate(root)
+
+            Then("admission rejects it without promoting evidence, crossing scope, or choosing a typed target")
+            result.isSuccess shouldBe false
+          }
+        }
+      }
+
+      "reject duplicate or conflicting role claims and association content or anchor mismatches" in {
+        Given("V2 relationship associations that reuse one role or no longer match their exact selected source witness")
+        val owner = FixtureAssociation(
+          "a-association-owner", "owner", "e-customer", "element",
+          "ref-association-owner", "anchor-association-owner", "anchor-association-owner"
+        )
+        val conflictingowner = FixtureAssociation(
+          "a-association-owner-conflict", "owner", "e-usecase", "element",
+          "ref-association-owner-conflict", "anchor-association-owner-conflict", "anchor-association-owner-conflict"
+        )
+        val duplicateowner = owner.copy(
+          assertionid = "a-association-owner-duplicate",
+          referenceid = "ref-association-owner-duplicate",
+          referenceanchor = "anchor-association-owner-duplicate",
+          factanchor = "anchor-association-owner-duplicate"
+        )
+        val wrongcontent = FixtureAssociation(
+          "a-association-wrong-content", "owner", "e-customer", "element",
+          "ref-association-wrong-content", "anchor-association-wrong-content", "anchor-association-wrong-content", Some("association:owner:element:forged")
+        )
+        val wronganchor = FixtureAssociation(
+          "a-association-wrong-anchor", "owner", "e-customer", "element",
+          "ref-association-wrong-anchor", "anchor-association-not-owned", "anchor-association-owner"
+        )
+        val cases = Vector(
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(owner, duplicateowner)), Vector(owner, duplicateowner)),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(owner, conflictingowner)), Vector(owner, conflictingowner)),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(wrongcontent)), Vector(wrongcontent)),
+          (_realization(profilevalue = "ccdm-realization-v2", associations = Vector(wronganchor)), Vector(wronganchor))
+        )
+
+        forAll(Gen.oneOf(cases)) { case (realization, associations) =>
+          _with_fixture(realization, associations = associations) { root =>
+            When("the same asserting relationship has duplicate/conflicting role claims or a source content/anchor mismatch")
+            val result = InternalModelSemanticRealizationValidator.validate(root)
+
+            Then("admission rejects the candidate rather than selecting an association or repairing its witness")
+            result.isSuccess shouldBe false
+          }
+        }
+      }
+    }
+
     "preserve opaque semantic identity while allowing presentation variation" which {
-      "accept generated label changes but reject generated identity and anchor changes" in {
-        Given("generated nonempty presentation labels, semantic ID suffixes, and source-anchor suffixes")
+      "accept generated V2 label changes but reject generated V2 association identity and anchor changes" in {
+        Given("generated nonempty presentation labels, semantic ID suffixes, and source-anchor suffixes for a V2 source-backed association")
         val generated = for {
           label <- Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)
           identitysuffix <- Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)
@@ -144,25 +294,31 @@ final class InternalModelSemanticRealizationValidatorSpec
         } yield (label, identitysuffix, anchorsuffix)
 
         forAll(generated) { case (label, identitysuffix, anchorsuffix) =>
-          _with_fixture(_realization(customerlabel = label, usecaselabel = label.reverse)) { acceptedroot =>
-            When("only explanatory labels vary under the same exact source identity")
+          val association = FixtureAssociation(
+            "a-association-owner", "owner", "e-customer", "element",
+            "ref-association-owner", "anchor-association-owner", "anchor-association-owner"
+          )
+          _with_fixture(_realization(profilevalue = "ccdm-realization-v2", customerlabel = label, usecaselabel = label.reverse, associations = Vector(association)), associations = Vector(association)) { acceptedroot =>
+            When("only explanatory labels vary under the same exact V2 source-backed association")
             val accepted = InternalModelSemanticRealizationValidator.validate(acceptedroot)
 
-            Then("presentation variation does not replace opaque semantic identity")
+            Then("presentation variation does not replace the opaque associated identity")
             accepted.isSuccess shouldBe true
           }
-          _with_fixture(_realization(customeridentity = "e-customer-" + identitysuffix)) { identityroot =>
-            When("a generated semantic identity no longer matches the source-owned snapshot witness")
+          val changedassociation = association.copy(relatedidentity = "e-customer-" + identitysuffix)
+          _with_fixture(_realization(profilevalue = "ccdm-realization-v2", associations = Vector(changedassociation)), associations = Vector(changedassociation)) { identityroot =>
+            When("a generated associated identity no longer resolves in the retained realization scope")
             val rejected = InternalModelSemanticRealizationValidator.validate(identityroot)
 
-            Then("the changed identity is rejected rather than reconstructed from its label")
+            Then("the changed association identity is rejected rather than reconstructed from its label")
             rejected.isSuccess shouldBe false
           }
-          _with_fixture(_realization(customeranchor = "anchor-customer-" + anchorsuffix)) { anchorroot =>
-            When("a generated source anchor is not source-owned by the selected snapshot")
+          val changedanchorassociation = association.copy(referenceanchor = "anchor-association-owner-" + anchorsuffix)
+          _with_fixture(_realization(profilevalue = "ccdm-realization-v2", associations = Vector(changedanchorassociation)), associations = Vector(changedanchorassociation)) { anchorroot =>
+            When("a generated association source anchor is not source-owned by the selected snapshot")
             val rejected = InternalModelSemanticRealizationValidator.validate(anchorroot)
 
-            Then("the changed anchor is rejected without path or hash inference")
+            Then("the changed association anchor is rejected without path or hash inference")
             rejected.isSuccess shouldBe false
           }
         }
@@ -172,6 +328,7 @@ final class InternalModelSemanticRealizationValidatorSpec
 
   private def _realization(
     profilevalue: String = "ccdm-realization-v1",
+    schemaversion: String = "",
     contextidentity: String = "context-order",
     customeridentity: String = "e-customer",
     customeranchor: String = "anchor-customer",
@@ -185,28 +342,60 @@ final class InternalModelSemanticRealizationValidatorSpec
     customerlabel: String = "Customer",
     usecaselabel: String = "Place order",
     successor: Option[Json] = None,
-    successortargetless: Boolean = false
+    successortargetless: Boolean = false,
+    associations: Vector[FixtureAssociation] = Vector.empty,
+    enrichmentassociation: Option[FixtureAssociation] = None,
+    includerelatedrelationship: Boolean = false,
+    includerolewitness: Boolean = false,
+    v1associationfield: Boolean = false
   ): Array[Byte] = {
+    val v2 = profilevalue == "ccdm-realization-v2"
+    val schema = if schemaversion.nonEmpty then schemaversion else if v2 then "2.0" else "1.0"
+    val associationids = associations.map(_.assertionid).sorted
     val initialreferences = Vector(
       _reference("ref-customer", customerreferencekind, customeridentity, customeranchor, sourcehash),
       _reference("ref-relationship", "relationship", "r-uses", "anchor-relationship", sourcehash),
       _reference("ref-usecase", "element", "e-usecase", "anchor-usecase", sourcehash)
     )
+    val associationreferences = associations.map(association =>
+      _reference(association.referenceid, "relationship", "r-uses", association.referenceanchor, sourcehash)
+    )
+    val rolewitnessreferences = if includerolewitness then Vector(_reference("ref-role", "relationship", "r-uses", "anchor-role", sourcehash)) else Vector.empty
+    val relatedreferences = if includerelatedrelationship then Vector(_reference("ref-related", "relationship", "r-related", "anchor-related", sourcehash)) else Vector.empty
     val successorreferences = if successortargetless then Vector(_targetless_reference("ref-successor", "anchor-customer", sourcehash)) else Vector.empty
-    val references = (initialreferences ++ successorreferences).sortBy(_.noSpaces)
+    val references = (initialreferences ++ associationreferences ++ rolewitnessreferences ++ relatedreferences ++ successorreferences).sortBy(_.noSpaces)
     val relationshipconditions = if includecondition then Vector("c-limitation") else Vector.empty
     val conditions = if includecondition then Vector(_condition("c-limitation", "limitation", "relationship", "r-uses", "ref-relationship", "source limitation")) else Vector.empty
     val canonical = Vector(
-      _assertion("a-customer", "element", customeridentity, "ref-customer", "Customer is a party", Vector.empty),
-      _assertion("a-relationship", "relationship", "r-uses", "ref-relationship", "Use case uses Customer", relationshipconditions),
-      _assertion("a-usecase", "element", "e-usecase", "ref-usecase", "Place an order", Vector.empty)
-    )
-    val enrichment = Vector(_assertion(enrichmentid, "element", customeridentity, "ref-customer", "Customer is a party", Vector.empty))
+      _assertion("a-customer", "element", customeridentity, "ref-customer", "Customer is a party", Vector.empty, None, v2 || v1associationfield),
+      _assertion("a-relationship", "relationship", "r-uses", "ref-relationship", "Use case uses Customer", relationshipconditions, None, v2 || v1associationfield),
+      _assertion("a-usecase", "element", "e-usecase", "ref-usecase", "Place an order", Vector.empty, None, v2 || v1associationfield)
+    ) ++ associations.map(association =>
+      _assertion(
+        association.assertionid,
+        "relationship",
+        "r-uses",
+        association.referenceid,
+        association.assertioncontent.getOrElse(_association_content(association)),
+        Vector.empty,
+        Some(_association(association)),
+        v2 || v1associationfield
+      )
+    ) ++ (if includerolewitness then Vector(
+      _assertion("a-role", "relationship", "r-uses", "ref-role", "role:uses", Vector.empty, None, v2 || v1associationfield)
+    ) else Vector.empty) ++ (if includerelatedrelationship then Vector(
+      _assertion("a-related", "relationship", "r-related", "ref-related", "Related relationship", Vector.empty, None, v2 || v1associationfield)
+    ) else Vector.empty)
+    val enrichment = Vector(_assertion(enrichmentid, "element", customeridentity, "ref-customer", "Customer is a party", Vector.empty, enrichmentassociation.map(_association), v2 || v1associationfield))
     val elements = Vector(
       _element(customeridentity, "customer", customerlabel, Vector("a-customer"), Vector(enrichmentid), Vector.empty),
       _element("e-usecase", "use-case", usecaselabel, Vector("a-usecase"), Vector.empty, Vector.empty)
     ).sortBy(_.noSpaces)
-    val relationships = Vector(_relationship("r-uses", "uses", "e-usecase", relationshiptarget, rolevalue, directionvalue, Vector("a-relationship"), Vector.empty, relationshipconditions))
+    val relationships = (Vector(
+      _relationship("r-uses", "uses", "e-usecase", relationshiptarget, rolevalue, directionvalue, (Vector("a-relationship") ++ associationids ++ (if includerolewitness then Vector("a-role") else Vector.empty)).sorted, Vector.empty, relationshipconditions)
+    ) ++ (if includerelatedrelationship then Vector(
+      _relationship("r-related", "related", "e-usecase", customeridentity, "related", "source-to-target", Vector("a-related"), Vector.empty, Vector.empty)
+    ) else Vector.empty)).sortBy(_.hcursor.get[String]("identity").getOrElse(""))
     val links = successor.toVector
     _canonical(Json.obj(
       "canonicalAssertions" -> Json.fromValues(canonical.sortBy(_.noSpaces)),
@@ -216,7 +405,7 @@ final class InternalModelSemanticRealizationValidatorSpec
       "profile" -> Json.fromString(profilevalue),
       "realizationIdentity" -> Json.fromString("realization-order"),
       "relationships" -> Json.fromValues(relationships),
-      "schemaVersion" -> Json.fromString("1.0"),
+      "schemaVersion" -> Json.fromString(schema),
       "scope" -> Json.obj(
         "componentIdentity" -> Json.fromString("component-order"),
         "projectionContextIdentity" -> Json.fromString(contextidentity),
@@ -228,20 +417,42 @@ final class InternalModelSemanticRealizationValidatorSpec
     ))
   }
 
-  private def _source_snapshot: Array[Byte] =
+  private def _source_snapshot(
+    associations: Vector[FixtureAssociation] = Vector.empty,
+    includerelatedrelationship: Boolean = false,
+    includerolewitness: Boolean = false
+  ): Array[Byte] = {
+    val facts = Vector(
+      _fact("element", "e-customer", "anchor-customer", "Customer is a party", Vector.empty),
+      _fact("element", "e-usecase", "anchor-usecase", "Place an order", Vector.empty),
+      _fact("relationship", "r-uses", "anchor-relationship", "Use case uses Customer", Vector("source limitation"))
+    ) ++ associations.map(association =>
+      _fact("relationship", "r-uses", association.factanchor, _association_content(association), Vector.empty)
+    ) ++ (if includerolewitness then Vector(
+      _fact("relationship", "r-uses", "anchor-role", "role:uses", Vector.empty)
+    ) else Vector.empty) ++ (if includerelatedrelationship then Vector(
+      _fact("relationship", "r-related", "anchor-related", "Related relationship", Vector.empty)
+    ) else Vector.empty)
+    val sortedfacts = facts.sortBy { fact =>
+      val objectvalue = fact.asObject.get
+      (
+        objectvalue("componentIdentity").flatMap(_.asString).getOrElse(""),
+        objectvalue("projectionContextIdentity").flatMap(_.asString).getOrElse(""),
+        objectvalue("semanticIdentityKind").flatMap(_.asString).getOrElse(""),
+        objectvalue("semanticIdentity").flatMap(_.asString).getOrElse(""),
+        objectvalue("sourceAnchor").flatMap(_.asString).getOrElse("")
+      )
+    }
     _canonical(Json.obj(
       "basis" -> Json.obj(
         "contextIdentity" -> Json.fromString("model-context"),
-        "facts" -> Json.fromValues(Vector(
-          _fact("element", "e-customer", "anchor-customer", "Customer is a party", Vector.empty),
-          _fact("element", "e-usecase", "anchor-usecase", "Place an order", Vector.empty),
-          _fact("relationship", "r-uses", "anchor-relationship", "Use case uses Customer", Vector("source limitation"))
-        ))
+        "facts" -> Json.fromValues(sortedfacts)
       ),
       "schemaVersion" -> Json.fromString("1.0"),
       "snapshotKind" -> Json.fromString("model-context"),
       "source" -> _source
     ))
+  }
 
   private def _fact(kindvalue: String, identity: String, anchor: String, content: String, limitations: Vector[String]): Json =
     Json.obj(
@@ -272,8 +483,17 @@ final class InternalModelSemanticRealizationValidatorSpec
       "target" -> Json.Null
     )
 
-  private def _assertion(assertionid: String, kindvalue: String, identity: String, referenceid: String, content: String, conditionids: Vector[String]): Json =
-    Json.obj(
+  private def _assertion(
+    assertionid: String,
+    kindvalue: String,
+    identity: String,
+    referenceid: String,
+    content: String,
+    conditionids: Vector[String],
+    association: Option[Json] = None,
+    includeassociation: Boolean = false
+  ): Json = {
+    val fields = Vector(
       "assertionId" -> Json.fromString(assertionid),
       "conditionIds" -> Json.fromValues(conditionids.map(Json.fromString)),
       "content" -> Json.fromString(content),
@@ -281,6 +501,19 @@ final class InternalModelSemanticRealizationValidatorSpec
       "semanticIdentityKind" -> Json.fromString(kindvalue),
       "sourceReferenceId" -> Json.fromString(referenceid)
     )
+    val associationfields = if includeassociation then fields :+ ("association" -> association.getOrElse(Json.Null)) else fields
+    Json.obj(associationfields*)
+  }
+
+  private def _association(association: FixtureAssociation): Json =
+    Json.obj(
+      "associationRole" -> Json.fromString(association.role),
+      "relatedSemanticIdentity" -> Json.fromString(association.relatedidentity),
+      "relatedSemanticIdentityKind" -> Json.fromString(association.relatedkind)
+    )
+
+  private def _association_content(association: FixtureAssociation): String =
+    s"association:${association.role}:${association.relatedkind}:${association.relatedidentity}"
 
   private def _condition(conditionid: String, kindvalue: String, affectedkind: String, affectedidentity: String, referenceid: String, detail: String): Json =
     Json.obj(
@@ -327,9 +560,12 @@ final class InternalModelSemanticRealizationValidatorSpec
   private def _with_fixture(
     realization: Array[Byte],
     dependencies: Vector[String] = Vector("snapshot-model"),
-    unrelatedsnapshot: Option[Array[Byte]] = None
+    unrelatedsnapshot: Option[Array[Byte]] = None,
+    associations: Vector[FixtureAssociation] = Vector.empty,
+    includerelatedrelationship: Boolean = false,
+    includerolewitness: Boolean = false
   )(f: Path => Unit): Unit = {
-    val snapshot = _source_snapshot
+    val snapshot = _source_snapshot(associations, includerelatedrelationship, includerolewitness)
     val sourceartifact = _artifact("snapshot-model", "snapshots/model.json", "source-snapshot", snapshot, Vector.empty)
     val realizationartifact = _artifact("realization-main", "realizations/main.json", "realization", realization, dependencies)
     val unrelatedartifact = unrelatedsnapshot.map(bytes => _artifact("snapshot-unrelated", "snapshots/unrelated.json", "source-snapshot", bytes, Vector.empty)).toVector

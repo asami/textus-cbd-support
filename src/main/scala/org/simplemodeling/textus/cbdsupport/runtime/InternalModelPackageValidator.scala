@@ -43,6 +43,20 @@ private[runtime] final case class InternalModelVerifiedRealizationPackage(
   sourceSnapshots: Vector[InternalModelVerifiedSourceSnapshot]
 )
 
+private[runtime] final case class InternalModelVerifiedProjection(
+  artifactId: String,
+  role: String,
+  packageRelativePath: String,
+  required: Boolean,
+  dependencies: Vector[String],
+  bytes: Vector[Byte]
+)
+
+private[runtime] final case class InternalModelVerifiedProjectionContinuityPackage(
+  realizationPackage: InternalModelVerifiedRealizationPackage,
+  projection: InternalModelVerifiedProjection
+)
+
 /** Validates the closed, project-bound V1 internal-model package structure. */
 object InternalModelPackageValidator {
   private final case class Artifact(
@@ -85,6 +99,13 @@ object InternalModelPackageValidator {
   private[runtime] def verifiedPresentRealization(projectRoot: Path): Consequence[InternalModelVerifiedRealizationPackage] =
     try {
       _validate(projectRoot).flatMap(_present_realization).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  private[runtime] def verifiedProjectionContinuity(projectRoot: Path): Consequence[InternalModelVerifiedProjectionContinuityPackage] =
+    try {
+      _validate(projectRoot).flatMap(_projection_continuity).fold(Consequence.operationInvalid, Consequence.success)
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
@@ -299,6 +320,36 @@ object InternalModelPackageValidator {
       case Vector(realization) => Right(InternalModelVerifiedRealizationPackage(realization, _source_snapshots(verified)))
       case Vector() => Left("internal-model package has no present realization artifact")
       case _ => Left("internal-model package has multiple present realization artifacts")
+    }
+  }
+
+  private def _projection_continuity(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedProjectionContinuityPackage] =
+    for {
+      realizationpackage <- _present_realization(verified)
+      projection <- _present_projection(verified)
+      _ <- Either.cond(
+        projection.dependencies.contains(realizationpackage.realization.artifactId),
+        (),
+        "present projection artifact must depend on the selected realization artifact"
+      )
+    } yield InternalModelVerifiedProjectionContinuityPackage(realizationpackage, projection)
+
+  private def _present_projection(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedProjection] = {
+    val projections = verified.collect {
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "projection" =>
+        InternalModelVerifiedProjection(
+          artifactId = artifact.id,
+          role = artifact.role,
+          packageRelativePath = artifact.path,
+          required = artifact.required,
+          dependencies = artifact.dependencies,
+          bytes = bytes
+        )
+    }
+    projections match {
+      case Vector(projection) => Right(projection)
+      case Vector() => Left("internal-model package has no present projection artifact")
+      case _ => Left("internal-model package has multiple present projection artifacts")
     }
   }
 

@@ -1,18 +1,21 @@
 ---
-status: draft
+status: accepted
 decision_scope: P10-20A--P10-20B
 updated_at: 2026-09-28
 ---
 
 # Internal-model Semantic Realization Design
 
-This design explains the durable-recording boundary established by the
+This accepted P10-20 design explains the durable-recording boundary established by the
 [Internal-model Semantic Realization
 Contract](../spec/internal-model-semantic-realization-contract.md). That
 contract is normative. The package envelope remains owned by the
 [Internal-model Package Contract](../spec/internal-model-package-contract.md),
 and semantic meaning remains owned by the Phase 9 [Canonical Component Design
 Model Contract](../spec/canonical-component-design-model-contract.md).
+The P10-20 Step contract was accepted at commit
+`fb3716d071692fb9e2540b7459ce0a5d31113c97`; P10-21 proof and Phase closure
+remain pending.
 
 ## Purpose: retain the CCDM, do not model it again
 
@@ -73,7 +76,7 @@ The arrows preserve traceability, not authority transfer. A snapshot anchor is
 neither a credential nor permission to read a source, and a realization digest
 is not a replacement for source authority.
 
-## P10-20B read-only admission path
+## P10-20B read-only admission path and P10-21B2A V2 extension
 
 The executable path deliberately has one filesystem/inventory authority pass:
 
@@ -99,6 +102,34 @@ on this path.
 This is a bounded structural/source-basis proof. It neither establishes a
 human decision, live-source freshness, Git acceptance, safe CML application,
 complete rehydration, nor P10-21 reconstruction of all eight projections.
+
+P10-21B2A extends that same admission path with an explicit
+`ccdm-realization-v2` / `schemaVersion="2.0"` profile. It does not reinterpret
+the accepted `ccdm-realization-v1` / `schemaVersion="1.0"` bytes: the parser
+retains the admitted profile/version and the encoder emits it again exactly.
+V2 keeps the closed root schema and adds one required `association` field to
+every assertion object. Ordinary assertions record `null`; a canonical
+relationship assertion may record one closed, typed source-backed association.
+An enrichment assertion always records `null`.
+
+The V2 association is deliberately an assertion detail rather than a new CCDM
+model. Its relationship target asserts a directional relation to one retained
+element or relationship identity. The closed role vocabulary fixes whether the
+related target is an element or relationship, and one asserting relationship
+cannot carry duplicate or competing claims for the same role. The exact source
+reference still targets the asserting relationship, while the exact selected
+snapshot fact has the literal association content. This lets role, sequence,
+and association assertions retain different source-owned anchors when the
+source provides different facts. No view, label, CML path, endpoint pair,
+enrichment record, or serialized order gains authority as a substitute.
+
+The fixed compatibility is intentionally small: `owner` names an element or
+relationship; `subject`, `affected-subject`, and `affected-endpoint` name an
+element; and `affected-relationship` names a relationship. It is a persisted
+source-attribution constraint, not a conversion or ownership rule for Phase 9
+objects. The realization therefore retains the complete association assertion
+and source reference in its evidence ledger without transferring CCDM or
+source authority to this package.
 
 ## Two assertion lanes and one condition ledger
 

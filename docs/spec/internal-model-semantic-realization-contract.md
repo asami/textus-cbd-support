@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 decision_scope: P10-20A--P10-20B
 updated_at: 2026-09-28
 ---
@@ -16,9 +16,11 @@ envelope, inventory, dependencies, and exact-byte digest remain governed by the
 remains authoritative for the meaning of every semantic identity, source fact,
 and projection.
 
-P10-20B fixes the V1 artifact-byte grammar and read-only executable admission
-proof below. P10-21 owns the later projection proof. This draft does not claim
-Step or Phase acceptance.
+P10-20B fixed the V1 artifact-byte grammar and read-only executable admission
+proof below. P10-21B2A adds the explicitly versioned V2 association form while
+retaining that V1 form unchanged. The P10-20 Step contract was accepted at commit
+`fb3716d071692fb9e2540b7459ce0a5d31113c97`. P10-21 proof and Phase closure
+remain pending.
 
 ## 1. Scope and authority
 
@@ -42,7 +44,7 @@ live-source freshness, Git acceptance, or proof of complete rehydration. A
 manifest role, artifact digest, or structural admission SHALL NOT be treated as
 any of those claims.
 
-## 2. P10-20B canonical JSON V1 and read-only admission
+## 2. Canonical JSON V1/V2 and read-only admission
 
 The realization is UTF-8 canonical JSON: no BOM, duplicate member,
 insignificant whitespace, or trailing byte after exactly one LF is admitted.
@@ -142,6 +144,45 @@ the canonical source asserts. Enrichment may describe, qualify, or expose a
 limitation of that assertion only with its own source attribution; it SHALL NOT
 silently overwrite a canonical assertion or become canonical because it is
 newer, more detailed, available, plausible, or convenient.
+
+### Explicit V2 source-backed associations
+
+`ccdm-realization-v2` has `schemaVersion="2.0"` and retains the exact closed
+root key set, scope, source-reference, structural-link, condition, successor,
+traceability, sorting, canonical-byte, and package-dependency rules of V1. A
+V2 assertion object has exactly the V1 fields plus `association`. It is JSON
+`null` for an ordinary assertion. A non-null value is a closed object with
+exactly `associationRole`, `relatedSemanticIdentity`, and
+`relatedSemanticIdentityKind`. The related kind is exactly `element` or
+`relationship`; the related identity is an exact retained identity in the same
+Component and projection context. It is never a label, endpoint inference,
+path, view copy, source hash, or newly allocated identity.
+
+Only a canonical assertion whose own exact target is an existing relationship
+may carry a non-null association. An enrichment assertion has
+`association=null` and cannot promote an association claim. The closed role
+vocabulary and related-target compatibility are:
+
+| `associationRole` | Admitted related kind |
+| --- | --- |
+| `owner` | `element` or `relationship` |
+| `subject` | `element` |
+| `affected-relationship` | `relationship` |
+| `affected-subject` | `element` |
+| `affected-endpoint` | `element` |
+
+For one asserting relationship and one role there is at most one admitted
+association claim. A duplicate or a claim to a different related identity
+rejects; the realization never selects one. The assertion's source reference
+must itself target that asserting relationship, and its exact selected
+source-snapshot witness content must be byte-for-byte
+`association:<associationRole>:<relatedSemanticIdentityKind>:<relatedSemanticIdentity>`.
+The existing source-reference target/anchor and witness checks apply without
+relaxation. CML paths, labels, endpoint pairs, enrichment, view content, or
+content hashes are not association witnesses. A separate supplied
+`role:<token>` or `sequence-key:<key>` canonical witness retains its own exact
+source reference and source-owned anchor; it need not share an association
+anchor or reference.
 
 ## 4. Identity, relationship, and replacement invariants
 
@@ -257,16 +298,20 @@ provenance cannot be resolved; or a replacement is silently represented as the
 prior identity. For a `cml-baseline`, a bounded file path is not a substitute
 for an unavailable assertion-level source-owned anchor.
 
-P10-20B defines the recognizable `ccdm-realization-v1` content profile/version
-and canonical byte encoding. A consumer that does not recognize that
-profile/version, cannot apply
-these logical invariants, or cannot resolve its manifest/snapshot basis SHALL
-reject the realization rather than interpreting it through a fallback,
-label-based migration, or storage-specific default. Compatible evolution may
-add only explicitly versioned semantics while preserving Phase 9 identity,
-authority, no-hidden-winner, and raw-byte-binding invariants. It SHALL NOT
-reinterpret a prior realization from provider/chat history or an inferred view
-copy.
+P10-20B defines the recognizable `ccdm-realization-v1` / `schemaVersion="1.0"`
+content profile/version and canonical byte encoding. Its assertion objects have
+exactly the V1 field set and reject `association`; accepted V1 bytes therefore
+parse and re-encode unchanged. P10-21B2A defines the separate recognizable
+`ccdm-realization-v2` / `schemaVersion="2.0"` form in section 2. A consumer
+retains the admitted pair and re-encodes that exact version; it does not infer
+or migrate between V1 and V2. A consumer that does not recognize the pair,
+cannot apply these logical invariants, or cannot resolve its manifest/snapshot
+basis SHALL reject the realization rather than interpreting it through a
+fallback, label-based migration, or storage-specific default. Compatible
+evolution may add only explicitly versioned semantics while preserving Phase 9
+identity, authority, no-hidden-winner, and raw-byte-binding invariants. It
+SHALL NOT reinterpret a prior realization from provider/chat history or an
+inferred view copy.
 
 ## 8. Continuity and phase boundaries
 

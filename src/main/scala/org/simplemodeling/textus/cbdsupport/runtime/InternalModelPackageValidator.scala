@@ -57,6 +57,20 @@ private[runtime] final case class InternalModelVerifiedProjectionContinuityPacka
   projection: InternalModelVerifiedProjection
 )
 
+private[runtime] final case class InternalModelVerifiedDecision(
+  artifactId: String,
+  role: String,
+  packageRelativePath: String,
+  required: Boolean,
+  dependencies: Vector[String],
+  bytes: Vector[Byte]
+)
+
+private[runtime] final case class InternalModelVerifiedDecisionPackage(
+  realizationPackage: InternalModelVerifiedRealizationPackage,
+  decision: InternalModelVerifiedDecision
+)
+
 /** Validates the closed, project-bound V1 internal-model package structure. */
 object InternalModelPackageValidator {
   private final case class Artifact(
@@ -106,6 +120,13 @@ object InternalModelPackageValidator {
   private[runtime] def verifiedProjectionContinuity(projectRoot: Path): Consequence[InternalModelVerifiedProjectionContinuityPackage] =
     try {
       _validate(projectRoot).flatMap(_projection_continuity).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  private[runtime] def verifiedDecisionRecords(projectRoot: Path): Consequence[InternalModelVerifiedDecisionPackage] =
+    try {
+      _validate(projectRoot).flatMap(_decision_records).fold(Consequence.operationInvalid, Consequence.success)
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
@@ -334,6 +355,17 @@ object InternalModelPackageValidator {
       )
     } yield InternalModelVerifiedProjectionContinuityPackage(realizationpackage, projection)
 
+  private def _decision_records(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecisionPackage] =
+    for {
+      realizationpackage <- _present_realization(verified)
+      decision <- _present_decision(verified)
+      _ <- Either.cond(
+        decision.dependencies.contains(realizationpackage.realization.artifactId),
+        (),
+        "present decision artifact must depend on the selected realization artifact"
+      )
+    } yield InternalModelVerifiedDecisionPackage(realizationpackage, decision)
+
   private def _present_projection(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedProjection] = {
     val projections = verified.collect {
       case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "projection" =>
@@ -350,6 +382,25 @@ object InternalModelPackageValidator {
       case Vector(projection) => Right(projection)
       case Vector() => Left("internal-model package has no present projection artifact")
       case _ => Left("internal-model package has multiple present projection artifacts")
+    }
+  }
+
+  private def _present_decision(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecision] = {
+    val decisions = verified.collect {
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "decision" =>
+        InternalModelVerifiedDecision(
+          artifactId = artifact.id,
+          role = artifact.role,
+          packageRelativePath = artifact.path,
+          required = artifact.required,
+          dependencies = artifact.dependencies,
+          bytes = bytes
+        )
+    }
+    decisions match {
+      case Vector(decision) => Right(decision)
+      case Vector() => Left("internal-model package has no present decision artifact")
+      case _ => Left("internal-model package has multiple present decision artifacts")
     }
   }
 

@@ -32,8 +32,17 @@ development-item=DEV-CBD-002
 
 ## P10-22: Decision and alternative record
 
-- [ ] Persist accepted decisions, rationale, accountable actor, affected
+- Current status: ACCEPTED (this Step acceptance commit).
+
+- [x] Persist accepted decisions, rationale, accountable actor, affected
   identities, relevant rejected alternatives, assumptions, and supersession.
+  Evidence: accepted [decision record contract](../spec/internal-model-decision-record-contract.md)
+  and [design](../design/internal-model-decision-records.md); executable
+  `InternalModelDecisionRecordValidatorSpec`; complete A+B Step review
+  `PHASE-10.2-P10-22-STEP-REVIEW-01` with `PASS` disposition; focused
+  representative validation 10/10 PASS and package/realization/projection
+  accumulator 44/44 PASS. Acceptance boundary:
+  `PHASE-10.2-P10-22-STEP-ACCEPTANCE-001`.
 
 ## P10-23: Open-issue record
 

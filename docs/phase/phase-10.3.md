@@ -72,6 +72,23 @@ this checklist projection; an uncommitted projection alone does not prove
 Step closure. No provider execution or human approval is claimed.
 P10-30/P10-31 remain accepted; P10-33/P10-34 and Phase closure remain OPEN.
 
+## Current P10-33A acceptance handoff
+
+P10-33A defines the accepted [human approval contract](../spec/internal-model-candidate-human-approval-contract.md)
+and [design](../design/internal-model-candidate-human-approval.md), with a
+package-private durable record, strict canonical codec, same-capture explicit
+approval/review selection, and executable specification. The representative
+specification passed 16/16; the complete twelve-suite affected-consumer
+accumulator passed 184/184. Independent complete-Step review
+`PHASE-10.3-P10-33-STEP-REVIEW-01` identified `CPB-P10-33-001` (Unicode-blank
+approval text). The exact codec/spec repair passed independent focused closure
+`PHASE-10.3-P10-33-FOCUSED-REREVIEW-01`, closing that sole blocker with no new
+findings. The local commit carrying `Step-Acceptance: P10-33` records the exact
+nine-path acceptance boundary and this checklist projection; an uncommitted
+projection alone does not prove Step closure. No actual human approval,
+lifecycle applicability, CML authority, or Phase release is claimed.
+P10-34 and Phase closure remain OPEN.
+
 ## Closure boundary
 
 Close only with reproducible evidence for its own checklist. Release the accepted Phase 10.3 contract as the frozen input to Phase 10.4.

@@ -201,6 +201,18 @@ object InternalModelPackageValidator {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
+  /** Captures one carrier and explicitly composes its selected review and approval artifacts. */
+  private[runtime] def verifiedCandidateHumanApproval(
+    projectRoot: Path,
+    approvalArtifactId: String,
+    reviewArtifactId: String
+  ): Consequence[InternalModelVerifiedCandidateHumanApprovalPackage] =
+    try {
+      _captured_package(projectRoot).flatMap(_candidate_human_approval(_, approvalArtifactId, reviewArtifactId)).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
   /**
    * Reconstructs an exact historical V1 package solely from supplied manifest
    * bytes and the already captured carrier; this method never touches paths.
@@ -595,6 +607,17 @@ object InternalModelPackageValidator {
       review <- _selected_validation(captured.artifacts, reviewartifactid)
     } yield InternalModelVerifiedCandidateReviewBindingPackage(captured.context, semanticdiff, review)
 
+  private def _candidate_human_approval(
+    captured: CapturedPackage,
+    approvalartifactid: String,
+    reviewartifactid: String
+  ): Either[String, InternalModelVerifiedCandidateHumanApprovalPackage] =
+    for {
+      _ <- Either.cond(approvalartifactid.trim.nonEmpty, (), "selected approval artifact ID must be nonblank")
+      review <- _candidate_review_binding(captured, reviewartifactid)
+      approval <- _selected_approval(captured.artifacts, approvalartifactid, reviewartifactid)
+    } yield InternalModelVerifiedCandidateHumanApprovalPackage(review, approval)
+
   private def _selected_validation(
     verified: Vector[VerifiedArtifact],
     reviewartifactid: String
@@ -606,6 +629,21 @@ object InternalModelPackageValidator {
       case Vector(VerifiedArtifact(_, None)) => Left("selected review artifact is absent")
       case Vector() => Left("selected review artifact is not present in captured package inventory")
       case _ => Left("selected review artifact ID is ambiguous")
+    }
+
+  private def _selected_approval(
+    verified: Vector[VerifiedArtifact],
+    approvalartifactid: String,
+    reviewartifactid: String
+  ): Either[String, InternalModelVerifiedProjection] =
+    verified.filter(_.artifact.id == approvalartifactid) match {
+      case Vector(VerifiedArtifact(artifact, Some(bytes))) if artifact.role == "approval" && artifact.dependencies == Vector(reviewartifactid) =>
+        Right(InternalModelVerifiedProjection(artifact.id, artifact.role, artifact.path, artifact.required, artifact.dependencies, bytes))
+      case Vector(VerifiedArtifact(artifact, Some(_))) if artifact.role != "approval" => Left("selected approval artifact role must be approval")
+      case Vector(VerifiedArtifact(_, Some(_))) => Left("selected approval artifact dependencies must equal exactly the selected review artifact ID")
+      case Vector(VerifiedArtifact(_, None)) => Left("selected approval artifact is absent")
+      case Vector() => Left("selected approval artifact is not present in captured package inventory")
+      case _ => Left("selected approval artifact ID is ambiguous")
     }
 
   private def _decision_records(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecisionPackage] =

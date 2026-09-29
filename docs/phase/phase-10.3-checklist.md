@@ -96,8 +96,38 @@ Stage Status:
 
 ## P10-33: Human approval artifact
 
-- [ ] Define separate approval records bound to exact candidate identity,
+Stage Status:
+- Current status: DONE
+- Owner: Textus CBD Support development
+- Update rule: based on this P10-33 checklist item plus frozen focused validation, independent Step review, and local commit carrying `Step-Acceptance: P10-33`.
+
+- [x] Define separate approval records bound to exact candidate identity,
   revision/hash, accountable human, decision, rationale, and unresolved items.
+
+P10-33A accepted [contract](../spec/internal-model-candidate-human-approval-contract.md),
+[design](../design/internal-model-candidate-human-approval.md), package-private
+record/codec/one-capture validator, and executable specification.
+
+Acceptance evidence:
+- Representative: `Test/testOnly org.simplemodeling.textus.cbdsupport.runtime.InternalModelCandidateHumanApprovalValidatorSpec`, 16/16 passed.
+- Accumulator: 184/184 passed across `InternalModelCandidateHumanApprovalValidatorSpec`,
+  `InternalModelCandidateReviewBindingValidatorSpec`, `InternalModelSemanticDiffValidatorSpec`,
+  `CandidateDesignSemanticDiffIntegrationSpec`, `InternalModelCandidateCmlProjectionValidatorSpec`,
+  `InternalModelPackageValidatorSpec`, `InternalModelSemanticRealizationValidatorSpec`,
+  `InternalModelProjectionContinuityValidatorSpec`, `InternalModelSourceSnapshotFreshnessSpec`,
+  `InternalModelDecisionRecordValidatorSpec`, `InternalModelOpenIssueRecordValidatorSpec`,
+  and `InternalModelPackageFreshnessSpec`, all in `org.simplemodeling.textus.cbdsupport.runtime`.
+  Both serialized SBT invocations completed with the shared lock released.
+- Independent complete-Step protected-focused review:
+  `PHASE-10.3-P10-33-STEP-REVIEW-01`, sole blocker `CPB-P10-33-001`.
+  Independent focused closure `PHASE-10.3-P10-33-FOCUSED-REREVIEW-01` returned
+  PASS, closed that Unicode-blank codec/spec blocker, and found no new blockers.
+- Local acceptance commit: locate `Step-Acceptance: P10-33` in Git history;
+  that commit must contain this ledger and all nine P10-33A owned paths.
+
+This ledger is the acceptance projection included in that exact commit; an
+uncommitted copy alone is not Step closure evidence. No actual human approval,
+P10-34 applicability, CML authority, or Phase closure is claimed.
 
 ## P10-34: Supersession and approval invalidation
 

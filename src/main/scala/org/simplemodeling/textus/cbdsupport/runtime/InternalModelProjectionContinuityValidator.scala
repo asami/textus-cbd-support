@@ -6,7 +6,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Sep. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelProjectionBindingScope(
@@ -92,9 +92,18 @@ private[runtime] object InternalModelProjectionContinuityValidator {
   def validate(projectRoot: java.nio.file.Path): Consequence[InternalModelProjectionContinuity] =
     try {
       InternalModelPackageValidator.verifiedProjectionContinuity(projectRoot).flatMap { handoff =>
-        InternalModelSemanticRealizationValidator.validateVerified(handoff.realizationPackage).flatMap { realization =>
-          _binding(handoff.projection, handoff.realizationPackage.realization.artifactId, realization).flatMap(binding => _construct(realization, binding)).fold(Consequence.operationInvalid, Consequence.success)
-        }
+        validateVerified(handoff)
+      }
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model projection continuity validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  private[runtime] def validateVerified(
+    handoff: InternalModelVerifiedProjectionContinuityPackage
+  ): Consequence[InternalModelProjectionContinuity] =
+    try {
+      InternalModelSemanticRealizationValidator.validateVerified(handoff.realizationPackage).flatMap { realization =>
+        _binding(handoff.projection, handoff.realizationPackage.realization.artifactId, realization).flatMap(binding => _construct(realization, binding)).fold(Consequence.operationInvalid, Consequence.success)
       }
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model projection continuity validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")

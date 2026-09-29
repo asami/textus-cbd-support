@@ -19,7 +19,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 28, 2026
+ * @version Sep. 29, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelVerifiedSourceSnapshot(
@@ -55,6 +55,34 @@ private[runtime] final case class InternalModelVerifiedProjection(
 private[runtime] final case class InternalModelVerifiedProjectionContinuityPackage(
   realizationPackage: InternalModelVerifiedRealizationPackage,
   projection: InternalModelVerifiedProjection
+)
+
+private[runtime] final case class InternalModelVerifiedArtifactContext(
+  artifactId: String,
+  role: String,
+  packageRelativePath: String,
+  required: Boolean,
+  dependencies: Vector[String],
+  sha256: String,
+  present: Boolean
+)
+
+private[runtime] final case class InternalModelVerifiedPackageContext(
+  schemaVersion: String,
+  packageId: String,
+  projectNamespace: String,
+  projectId: String,
+  revision: Long,
+  lifecycleState: String,
+  packageDigest: String,
+  manifestBytes: Vector[Byte],
+  artifacts: Vector[InternalModelVerifiedArtifactContext]
+)
+
+private[runtime] final case class InternalModelVerifiedCandidateCmlProjectionPackage(
+  packageContext: InternalModelVerifiedPackageContext,
+  continuityPackage: InternalModelVerifiedProjectionContinuityPackage,
+  candidate: InternalModelVerifiedProjection
 )
 
 private[runtime] final case class InternalModelVerifiedDecision(
@@ -98,6 +126,11 @@ object InternalModelPackageValidator {
 
   private final case class VerifiedArtifact(artifact: Artifact, bytes: Option[Vector[Byte]])
 
+  private final case class CapturedPackage(
+    context: InternalModelVerifiedPackageContext,
+    artifacts: Vector[VerifiedArtifact]
+  )
+
   private val _manifest_fields = Set(
     "artifacts", "lifecycleState", "packageDigest", "packageId", "projectId", "projectNamespace", "revision", "schemaVersion"
   )
@@ -138,6 +171,13 @@ object InternalModelPackageValidator {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
+  private[runtime] def verifiedCandidateCmlProjection(projectRoot: Path): Consequence[InternalModelVerifiedCandidateCmlProjectionPackage] =
+    try {
+      _captured_package(projectRoot).flatMap(_candidate_cml_projection).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
   private[runtime] def verifiedDecisionRecords(projectRoot: Path): Consequence[InternalModelVerifiedDecisionPackage] =
     try {
       _validate(projectRoot).flatMap(_decision_records).fold(Consequence.operationInvalid, Consequence.success)
@@ -153,6 +193,9 @@ object InternalModelPackageValidator {
     }
 
   private def _validate(projectroot: Path): Either[String, Vector[VerifiedArtifact]] =
+    _captured_package(projectroot).map(_.artifacts)
+
+  private def _captured_package(projectroot: Path): Either[String, CapturedPackage] =
     for {
       root <- _project_root(projectroot)
       identity <- _project_identity(root)
@@ -163,7 +206,8 @@ object InternalModelPackageValidator {
       _ <- _package_digest(manifest)
       _ <- _inventory_order(artifacts)
       verified <- _filesystem_inventory(packageroot, artifacts)
-    } yield verified
+      context <- _package_context(manifestbytes, manifest, verified)
+    } yield CapturedPackage(context, verified)
 
   private def _project_root(projectroot: Path): Either[String, Path] = {
     val root = projectroot.toAbsolutePath.normalize
@@ -271,6 +315,41 @@ object InternalModelPackageValidator {
       _ <- _unique(artifacts.map(_.path), "artifact paths")
     } yield artifacts
 
+  private def _package_context(
+    manifestbytes: Array[Byte],
+    manifest: JsonObject,
+    verified: Vector[VerifiedArtifact]
+  ): Either[String, InternalModelVerifiedPackageContext] =
+    for {
+      schema <- _string(manifest, "schemaVersion")
+      packageid <- _string(manifest, "packageId")
+      namespace <- _string(manifest, "projectNamespace")
+      projectid <- _string(manifest, "projectId")
+      revision <- manifest("revision").flatMap(_.asNumber).flatMap(_.toLong).toRight("manifest revision cannot be captured")
+      lifecycle <- _string(manifest, "lifecycleState")
+      digest <- _string(manifest, "packageDigest")
+    } yield InternalModelVerifiedPackageContext(
+      schemaVersion = schema,
+      packageId = packageid,
+      projectNamespace = namespace,
+      projectId = projectid,
+      revision = revision,
+      lifecycleState = lifecycle,
+      packageDigest = digest,
+      manifestBytes = manifestbytes.toVector,
+      artifacts = verified.map { entry =>
+        InternalModelVerifiedArtifactContext(
+          artifactId = entry.artifact.id,
+          role = entry.artifact.role,
+          packageRelativePath = entry.artifact.path,
+          required = entry.artifact.required,
+          dependencies = entry.artifact.dependencies,
+          sha256 = entry.artifact.sha256,
+          present = entry.bytes.nonEmpty
+        )
+      }
+    )
+
   private def _artifact(value: Json, index: Int): Either[String, Artifact] =
     for {
       objectvalue <- value.asObject.toRight(s"artifact $index must be an object")
@@ -368,13 +447,19 @@ object InternalModelPackageValidator {
   private def _projection_continuity(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedProjectionContinuityPackage] =
     for {
       realizationpackage <- _present_realization(verified)
-      projection <- _present_projection(verified)
+      projection <- _selected_projection(verified, "continuity")
       _ <- Either.cond(
         projection.dependencies.contains(realizationpackage.realization.artifactId),
         (),
         "present projection artifact must depend on the selected realization artifact"
       )
     } yield InternalModelVerifiedProjectionContinuityPackage(realizationpackage, projection)
+
+  private def _candidate_cml_projection(captured: CapturedPackage): Either[String, InternalModelVerifiedCandidateCmlProjectionPackage] =
+    for {
+      continuity <- _projection_continuity(captured.artifacts)
+      candidate <- _selected_projection(captured.artifacts, "candidate")
+    } yield InternalModelVerifiedCandidateCmlProjectionPackage(captured.context, continuity, candidate)
 
   private def _decision_records(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecisionPackage] =
     for {
@@ -398,8 +483,25 @@ object InternalModelPackageValidator {
       )
     } yield InternalModelVerifiedOpenIssuePackage(realizationpackage, openissue)
 
-  private def _present_projection(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedProjection] = {
-    val projections = verified.collect {
+  private def _selected_projection(verified: Vector[VerifiedArtifact], family: String): Either[String, InternalModelVerifiedProjection] =
+    for {
+      projections <- _present_projections(verified)
+      classified <- projections.foldLeft[Either[String, Vector[(String, InternalModelVerifiedProjection)]]](Right(Vector.empty)) { (result, projection) =>
+        for {
+          collected <- result
+          kind <- _projection_family(projection)
+        } yield collected :+ (kind -> projection)
+      }
+      selected = classified.collect { case (`family`, projection) => projection }
+      projection <- selected match {
+        case Vector(value) => Right(value)
+        case Vector() => Left(s"internal-model package has no present $family projection artifact")
+        case _ => Left(s"internal-model package has multiple present $family projection artifacts")
+      }
+    } yield projection
+
+  private def _present_projections(verified: Vector[VerifiedArtifact]): Either[String, Vector[InternalModelVerifiedProjection]] =
+    Right(verified.collect {
       case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "projection" =>
         InternalModelVerifiedProjection(
           artifactId = artifact.id,
@@ -409,13 +511,24 @@ object InternalModelPackageValidator {
           dependencies = artifact.dependencies,
           bytes = bytes
         )
-    }
-    projections match {
-      case Vector(projection) => Right(projection)
-      case Vector() => Left("internal-model package has no present projection artifact")
-      case _ => Left("internal-model package has multiple present projection artifacts")
-    }
-  }
+    })
+
+  private def _projection_family(projection: InternalModelVerifiedProjection): Either[String, String] =
+    for {
+      bytes <- Right(projection.bytes.toArray)
+      _ <- Either.cond(!_has_bom(bytes), (), s"projection artifact ${projection.artifactId} must not contain a UTF-8 byte-order mark")
+      content <- _decode_utf8(bytes, s"projection artifact ${projection.artifactId}")
+      json <- _json_parser.parse(content).left.map(_ => s"projection artifact ${projection.artifactId} must be valid JSON without duplicate members")
+      root <- json.asObject.toRight(s"projection artifact ${projection.artifactId} root must be an object")
+      _ <- Either.cond(Arrays.equals(bytes, _canonical_bytes(json)), (), s"projection artifact ${projection.artifactId} is not canonical JSON")
+      profile <- root("profile").flatMap(_.asString).toRight(s"projection artifact ${projection.artifactId} profile must be a JSON string")
+      schema <- root("schemaVersion").flatMap(_.asString).toRight(s"projection artifact ${projection.artifactId} schemaVersion must be a JSON string")
+      family <- (profile, schema) match {
+        case ("ccdm-projection-binding-v1", "1.0") | ("ccdm-projection-binding-v2", "2.0") => Right("continuity")
+        case ("ccdm-candidate-cml-projection-v1", "1.0") => Right("candidate")
+        case _ => Left(s"projection artifact ${projection.artifactId} has an unknown profile/schemaVersion pair")
+      }
+    } yield family
 
   private def _present_decision(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecision] = {
     val decisions = verified.collect {

@@ -28,13 +28,21 @@ Phase 10.2.
 ## 1. Selected binding and authority
 
 Continuity admission starts with the one verified package inventory/digest pass
-required by the package contract. It selects exactly one present
-`role=projection` artifact and exactly one accepted `role=realization` artifact.
-The projection artifact's manifest `dependsOn` SHALL name that realization;
-the realization continues to name its selected source snapshots. A package may
-remain structurally valid without a projection artifact, but SHALL fail P10-21
-continuity admission. Missing, duplicate, absent, cross-package, or
-non-dependent selections SHALL fail without repair or fallback.
+required by the package contract. It selects exactly one present recognized
+continuity-family `role=projection` artifact and exactly one accepted
+`role=realization` artifact. The continuity family is exactly
+`ccdm-projection-binding-v1` / `"1.0"` or
+`ccdm-projection-binding-v2` / `"2.0"`; one V1-plus-V2 pair is a duplicate
+continuity selection. A recognized candidate-family artifact
+`ccdm-candidate-cml-projection-v1` / `"1.0"` may coexist and is skipped only
+for continuity selection. Every considered projection has canonical JSON bytes
+and a recognized exact profile/version pair; unknown or malformed pairs fail
+closed and are never a fallback. The selected continuity artifact's manifest
+`dependsOn` SHALL name that realization; the realization continues to name its
+selected source snapshots. A package may remain structurally valid without a
+continuity artifact, but SHALL fail P10-21 continuity admission. Missing,
+duplicate, absent, cross-package, or non-dependent selections SHALL fail
+without repair or fallback.
 
 The binding's `realizationArtifactId` SHALL identify that selected realization
 exactly. Its `scope` SHALL equal that realization's exact `componentIdentity`,

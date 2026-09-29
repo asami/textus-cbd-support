@@ -25,12 +25,18 @@ or prove the eight values, close P10-21, or close the Phase.
 ## One pass, one ledger, eight constructors
 
 The package manifest is read once through its verified inventory/digest pass.
-That pass selects one present `role=projection` artifact whose `dependsOn`
-names the selected `role=realization` artifact. The realization already binds
-the accepted source snapshots, exact Component/context/selected-Use-Case scope,
-elements, relationships, assertion lanes, source references, and conditions.
-The projection binding consequently adds only closed references to this one
-ledger.
+That pass selects one present recognized continuity-family `role=projection`
+artifact whose `dependsOn` names the selected `role=realization` artifact. The
+continuity family is exactly the existing V1 or V2 profile/version pair; a V1
+plus V2 pair is duplicate continuity selection. A recognized
+`ccdm-candidate-cml-projection-v1` / `"1.0"` candidate-family artifact may
+coexist and is skipped only for continuity selection. Every considered
+projection must have canonical JSON bytes and a recognized exact pair; unknown
+or malformed pairs fail closed rather than becoming a fallback. The realization
+already binds the accepted source snapshots, exact Component/context/selected-
+Use-Case scope, elements, relationships, assertion lanes, source references,
+and conditions. The projection binding consequently adds only closed references
+to this one ledger.
 
 ```text
 verified package manifest/inventory pass

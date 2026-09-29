@@ -33,7 +33,7 @@ P10-30 closes only after both Slices, focused representative plus accumulator
 validation, independent protected-focused Step review, and a local Step
 acceptance commit. The [P10-30 checklist](phase-10.3-checklist.md) records both
 accepted Slices; its uncommitted projection alone does not prove Step closure.
-P10-32--P10-34 and Phase closure remain OPEN. No candidate human approval or
+P10-33/P10-34 and Phase closure remain OPEN. No candidate human approval or
 canonical CML mutation is claimed.
 
 ## Current P10-31 handoff
@@ -51,8 +51,26 @@ complete-Step review `PHASE-10.3-P10-31-STEP-REVIEW-01` returned PASS with no
 Current Boundary Blockers. The local commit carrying `Step-Acceptance: P10-31`
 records the exact nine-path acceptance boundary and its checklist projection;
 an uncommitted projection alone does not prove Step closure.
-P10-30 remains accepted; P10-32--P10-34 and Phase closure remain OPEN. No
+P10-30 remains accepted; P10-33/P10-34 and Phase closure remain OPEN. No
 candidate human approval, canonical CML mutation, or Phase release is claimed.
+
+## Current P10-32A handoff
+
+P10-32A defines the accepted [durable candidate-review binding
+contract](../spec/internal-model-candidate-review-binding-contract.md) and its
+[design](../design/internal-model-candidate-review-binding.md), together with
+the package-private review values, canonical codec, one-capture historical
+package admission, and [executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelCandidateReviewBindingValidatorSpec.scala).
+The binding preserves the entire reviewed V1 manifest separately from its newer
+carrier and keeps attributed review evidence separate from P10-33 human
+approval. The representative specification passed 15/15; the complete
+eleven-suite affected-consumer accumulator passed 168/168. The independent
+protected-focused complete-Step review `PHASE-10.3-P10-32-STEP-REVIEW-01`
+returned PASS with no Current Boundary Blockers. The local commit carrying
+`Step-Acceptance: P10-32` records the exact nine-path acceptance boundary and
+this checklist projection; an uncommitted projection alone does not prove
+Step closure. No provider execution or human approval is claimed.
+P10-30/P10-31 remain accepted; P10-33/P10-34 and Phase closure remain OPEN.
 
 ## Closure boundary
 

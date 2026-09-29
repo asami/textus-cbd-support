@@ -78,8 +78,21 @@ approval, canonical CML mutation, or Phase release is claimed.
 
 ## P10-32: Review binding
 
-- [ ] Bind candidate review evidence to exact package, realization/design,
-  projection, rules/provider versions, and content hashes.
+Stage Status:
+- Current status: DONE
+- Owner: Textus CBD Support development
+- Acceptance boundary: the local commit carrying `Step-Acceptance: P10-32`
+  records the exact nine-path boundary and this checklist projection. An
+  uncommitted projection alone does not prove Step closure.
+
+- [x] P10-32A: Bind candidate review evidence to the exact complete reviewed
+  package, realization/design, candidate/semantic-diff projections, rules and
+  provider versions/content hashes, target snapshots, and validation evidence.
+  The representative specification passed 15/15 and the complete eleven-suite
+  affected-consumer accumulator passed 168/168. Independent protected-focused
+  complete-Step review `PHASE-10.3-P10-32-STEP-REVIEW-01` returned PASS with no
+  Current Boundary Blockers. Acceptance does not claim human approval or
+  provider execution; P10-33/P10-34 and Phase closure remain OPEN.
 
 ## P10-33: Human approval artifact
 

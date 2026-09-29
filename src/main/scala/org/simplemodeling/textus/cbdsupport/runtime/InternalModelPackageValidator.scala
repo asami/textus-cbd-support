@@ -190,6 +190,50 @@ object InternalModelPackageValidator {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
+  /** Captures the carrier once and selects one explicit validation-role review artifact. */
+  private[runtime] def verifiedCandidateReviewBinding(
+    projectRoot: Path,
+    reviewArtifactId: String
+  ): Consequence[InternalModelVerifiedCandidateReviewBindingPackage] =
+    try {
+      _captured_package(projectRoot).flatMap(_candidate_review_binding(_, reviewArtifactId)).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  /**
+   * Reconstructs an exact historical V1 package solely from supplied manifest
+   * bytes and the already captured carrier; this method never touches paths.
+   */
+  private[runtime] def reviewedPackageContext(
+    reviewedPackageManifestBytes: Vector[Byte],
+    carrier: InternalModelVerifiedCandidateReviewBindingPackage,
+    reviewArtifactId: String
+  ): Either[String, InternalModelVerifiedPackageContext] =
+    for {
+      manifest <- _manifest(reviewedPackageManifestBytes.toArray)
+      artifacts <- _artifacts(manifest, carrier.carrierPackageContext.projectNamespace -> carrier.carrierPackageContext.projectId)
+      _ <- _package_digest(manifest)
+      _ <- _inventory_order(artifacts)
+      packageid <- _string(manifest, "packageId")
+      namespace <- _string(manifest, "projectNamespace")
+      projectid <- _string(manifest, "projectId")
+      _ <- Either.cond(
+        carrier.carrierPackageContext.schemaVersion == "1.0" &&
+          carrier.carrierPackageContext.packageId == packageid &&
+          carrier.carrierPackageContext.projectNamespace == namespace &&
+          carrier.carrierPackageContext.projectId == projectid,
+        (),
+        "reviewed package identity does not equal captured carrier package identity"
+      )
+      revision <- manifest("revision").flatMap(_.asNumber).flatMap(_.toLong).toRight("reviewed package revision cannot be captured")
+      _ <- Either.cond(carrier.carrierPackageContext.revision > revision, (), "carrier package revision must be greater than reviewed package revision")
+      _ <- _reviewed_inventory(artifacts, carrier, reviewArtifactId)
+      verified <- _reviewed_verified_artifacts(artifacts, carrier.carrierPackageContext)
+      _ <- _present_dependencies(artifacts, verified.collect { case VerifiedArtifact(artifact, Some(_)) => artifact.id }.toSet)
+      context <- _package_context(reviewedPackageManifestBytes.toArray, manifest, verified)
+    } yield context
+
   private[runtime] def verifiedDecisionRecords(projectRoot: Path): Consequence[InternalModelVerifiedDecisionPackage] =
     try {
       _validate(projectRoot).flatMap(_decision_records).fold(Consequence.operationInvalid, Consequence.success)
@@ -362,6 +406,68 @@ object InternalModelPackageValidator {
       }
     )
 
+  private def _reviewed_inventory(
+    reviewed: Vector[Artifact],
+    carrier: InternalModelVerifiedCandidateReviewBindingPackage,
+    reviewartifactid: String
+  ): Either[String, Unit] = {
+    val carrierartifacts = carrier.carrierPackageContext.artifacts
+    val reviewedids = reviewed.map(_.id).toSet
+    val reviewedpaths = reviewed.map(_.path).toSet
+    val selected = carrierartifacts.filter(_.artifactId == reviewartifactid)
+    val reviewedchecks = reviewed.foldLeft[Either[String, Unit]](Right(())) { (result, artifact) =>
+      for {
+        _ <- result
+        captured <- carrierartifacts.filter(_.artifactId == artifact.id) match {
+          case Vector(value) => Right(value)
+          case Vector() => Left(s"reviewed artifact ${artifact.id} is absent from captured carrier inventory")
+          case _ => Left(s"reviewed artifact ${artifact.id} is ambiguous in captured carrier inventory")
+        }
+        _ <- Either.cond(_same_artifact(artifact, captured), (), s"reviewed artifact ${artifact.id} does not exactly match captured carrier inventory")
+      } yield ()
+    }
+    for {
+      _ <- reviewedchecks
+      selectedartifact <- selected match {
+        case Vector(value) => Right(value)
+        case Vector() => Left("selected review artifact is absent from captured carrier inventory")
+        case _ => Left("selected review artifact is ambiguous in captured carrier inventory")
+      }
+      _ <- Either.cond(selectedartifact.role == "validation" && selectedartifact.present, (), "selected review artifact must be a present validation-role carrier artifact")
+      _ <- Either.cond(!reviewedids.contains(reviewartifactid) && !reviewedpaths.contains(selectedartifact.packageRelativePath), (), "reviewed package inventory must not contain the selected review artifact")
+      presentreviewed = reviewed.filter { artifact =>
+        carrierartifacts.find(_.artifactId == artifact.id).exists(_.present)
+      }.map(_.id).sorted
+      _ <- Either.cond(selectedartifact.dependencies == presentreviewed, (), "selected review artifact dependencies do not equal all present reviewed package artifact IDs")
+      extras = carrierartifacts.filterNot(artifact => reviewedids.contains(artifact.artifactId))
+      _ <- Either.cond(extras.forall(artifact => artifact.artifactId == reviewartifactid || artifact.role == "approval"), (), "carrier contains a new nonapproval artifact outside the reviewed package inventory")
+    } yield ()
+  }
+
+  private def _reviewed_verified_artifacts(
+    reviewed: Vector[Artifact],
+    carrier: InternalModelVerifiedPackageContext
+  ): Either[String, Vector[VerifiedArtifact]] =
+    reviewed.foldLeft[Either[String, Vector[VerifiedArtifact]]](Right(Vector.empty)) { (result, artifact) =>
+      for {
+        collected <- result
+        captured <- carrier.artifacts.filter(_.artifactId == artifact.id) match {
+          case Vector(value) => Right(value)
+          case Vector() => Left(s"reviewed artifact ${artifact.id} is absent from captured carrier inventory")
+          case _ => Left(s"reviewed artifact ${artifact.id} is ambiguous in captured carrier inventory")
+        }
+        _ <- Either.cond(_same_artifact(artifact, captured), (), s"reviewed artifact ${artifact.id} does not exactly match captured carrier inventory")
+      } yield collected :+ VerifiedArtifact(artifact, Option.when(captured.present)(Vector.empty))
+    }
+
+  private def _same_artifact(artifact: Artifact, captured: InternalModelVerifiedArtifactContext): Boolean =
+    artifact.id == captured.artifactId &&
+      artifact.role == captured.role &&
+      artifact.path == captured.packageRelativePath &&
+      artifact.required == captured.required &&
+      artifact.sha256 == captured.sha256 &&
+      artifact.dependencies == captured.dependencies
+
   private def _artifact(value: Json, index: Int): Either[String, Artifact] =
     for {
       objectvalue <- value.asObject.toRight(s"artifact $index must be an object")
@@ -478,6 +584,29 @@ object InternalModelPackageValidator {
       candidate <- _candidate_cml_projection(captured)
       semanticdiff <- _selected_projection(captured.artifacts, "semantic-diff")
     } yield InternalModelVerifiedSemanticDiffPackage(candidate, semanticdiff)
+
+  private def _candidate_review_binding(
+    captured: CapturedPackage,
+    reviewartifactid: String
+  ): Either[String, InternalModelVerifiedCandidateReviewBindingPackage] =
+    for {
+      _ <- Either.cond(reviewartifactid.trim.nonEmpty, (), "selected review artifact ID must be nonblank")
+      semanticdiff <- _semantic_diff(captured)
+      review <- _selected_validation(captured.artifacts, reviewartifactid)
+    } yield InternalModelVerifiedCandidateReviewBindingPackage(captured.context, semanticdiff, review)
+
+  private def _selected_validation(
+    verified: Vector[VerifiedArtifact],
+    reviewartifactid: String
+  ): Either[String, InternalModelVerifiedProjection] =
+    verified.filter(_.artifact.id == reviewartifactid) match {
+      case Vector(VerifiedArtifact(artifact, Some(bytes))) if artifact.role == "validation" =>
+        Right(InternalModelVerifiedProjection(artifact.id, artifact.role, artifact.path, artifact.required, artifact.dependencies, bytes))
+      case Vector(VerifiedArtifact(_, Some(_))) => Left("selected review artifact role must be validation")
+      case Vector(VerifiedArtifact(_, None)) => Left("selected review artifact is absent")
+      case Vector() => Left("selected review artifact is not present in captured package inventory")
+      case _ => Left("selected review artifact ID is ambiguous")
+    }
 
   private def _decision_records(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecisionPackage] =
     for {

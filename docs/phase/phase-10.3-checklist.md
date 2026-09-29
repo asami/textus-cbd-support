@@ -131,8 +131,35 @@ P10-34 applicability, CML authority, or Phase closure is claimed.
 
 ## P10-34: Supersession and approval invalidation
 
-- [ ] Define deterministic rules for changes-requested, rejected, approved,
+Stage Status:
+- Current status: DONE
+- Owner: Textus CBD Support development
+- Update rule: P10-34 is accepted only after the P10-34A implementation
+  handoff, frozen representative and accumulator validation, independent
+  protected-focused Step review, and a local commit carrying
+  `Step-Acceptance: P10-34`.
+
+- [x] Define deterministic rules for changes-requested, rejected, approved,
   superseded, and invalidated states without mutating the approved model hash.
+
+- [x] P10-34A: Implement the immutable lifecycle/report values, portable
+  supersession codec, pure currentness evaluator, and executable specification
+  from the approval lifecycle contract.
+
+Acceptance evidence:
+- Representative: `Test/testOnly org.simplemodeling.textus.cbdsupport.runtime.InternalModelCandidateApprovalLifecycleSpec`, 22/22 passed.
+- Accumulator: 206/206 passed across the lifecycle specification and its twelve
+  admitted candidate, approval, review, diff, package, source, and continuity
+  consumer specifications. Both serialized SBT invocations terminated with
+  the shared lock released.
+- Independent complete-Step protected-focused review:
+  `PHASE-10.3-P10-34-STEP-REVIEW-01` returned PASS with zero blockers.
+- Local acceptance commit: locate `Step-Acceptance: P10-34` in Git history;
+  that commit must contain this ledger and all eight P10-34A owned paths.
+
+This is the acceptance projection included in that exact commit; an
+uncommitted copy alone is not Step closure evidence. No actual human approval,
+CML write authority, canonical CML mutation, or Phase closure is claimed.
 
 ## Closure
 

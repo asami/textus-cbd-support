@@ -89,6 +89,28 @@ projection alone does not prove Step closure. No actual human approval,
 lifecycle applicability, CML authority, or Phase release is claimed.
 P10-34 and Phase closure remain OPEN.
 
+## Accepted P10-34A approval lifecycle
+
+Stage Status:
+- Current status: DONE
+- Owner: Textus CBD Support development
+- Update rule: acceptance requires the P10-34 checklist evidence and local
+  commit carrying `Step-Acceptance: P10-34`; an uncommitted projection is not
+  acceptance proof.
+
+P10-34A defines the working [approval lifecycle contract](../spec/internal-model-candidate-approval-lifecycle-contract.md)
+and [design](../design/internal-model-candidate-approval-lifecycle.md), together
+with package-private immutable derived states, a strict portable supersession
+link codec, a pure currentness evaluator, and its executable specification.
+The Slice preserves original human-decision history while deriving superseded
+or invalidated applicability only from explicit admitted review/source/link
+evidence. Its representative specification passed 22/22 and the thirteen-suite
+affected-consumer accumulator passed 206/206. Independent protected-focused
+Step review `PHASE-10.3-P10-34-STEP-REVIEW-01` returned PASS with zero blockers.
+The local acceptance boundary is the commit carrying `Step-Acceptance: P10-34`.
+It does not claim actual human authentication or approval, CML authority or
+mutation, Phase full review, or Phase closure. Phase closure remains OPEN.
+
 ## Closure boundary
 
 Close only with reproducible evidence for its own checklist. Release the accepted Phase 10.3 contract as the frozen input to Phase 10.4.

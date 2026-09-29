@@ -85,3 +85,75 @@ AI:
 simplemodelingorgで整理しているModel-up Reviewを具体的に支援する機能と位置付ける。
 
 Model-downは「必要なものが実装されているか」を確認し、Model-up Reviewは「実装されたものは本当に必要だったか」を確認する。textus-cbd-supportは後者について、実装を上位モデルへ投影し、人間が構造的な違和感を発見できるビューを提供する。
+
+
+## 追記: 実装メカニズムの観測と差分
+
+Model-upした構造の違和感に加え、AIが実装時に利用した低レベル機構・外部接触面を定量化すると、過剰実装を早期に発見する手掛かりになる。
+
+背景となった例では、単純なファイル生成処理に対して、AIがファイル排他制御のためにJNAを導入しようとした。JNAやFileLockそのものを禁止するのではなく、「この変更で、なぜそこまで低レベルな機構が増えたのか」を人間が発見できる情報を提供する。
+
+### UnitOfWork / DSL境界
+
+UnitOfWork DSLを通常の実装境界とみなし、DSL経由の操作とDSL外の直接操作を区別して集計する。
+
+- UnitOfWork DSL operation usage count
+- non-DSL operation usage count
+- non-DSLで利用しているAPI / mechanismの一覧
+- DSL / non-DSL比率
+
+non-DSL利用を違反とはしない。必要な実装も存在するため、レビュー対象として可視化する。
+
+### External Surface
+
+Java実装が外界へ接触する機構を、少なくともExternal Library、JDK External I/O / Effect、Low-level / Control Mechanismに分けて分類・集計する。
+
+External Libraryでは、外部ライブラリ数、利用箇所数、新規追加・削除、JNAのようなnative bindingを観測する。
+
+JDK External I/O / EffectではJava標準ライブラリも一括して安全側へ分類せず、File / filesystem、Network / HTTP / socket、Process execution、Environment / system property、Clock / time、Random、Native accessなど外部effectを持つAPIを区別する。String、collection、Math等のlocal/pure寄りの利用とは分離する。
+
+Low-level / Control Mechanismでは、explicit lock / FileLock、Thread / Executor等のconcurrency、synchronization、reflection、dynamic class loading、native access、direct filesystem operation、raw network operation、framework / DSLを迂回する直接操作などを観測候補とする。
+
+### Usage CountとMechanism Count
+
+単純な呼び出し回数だけでは複雑性を捉えられない。同じFiles APIを多数回利用する場合と、Files / FileChannel / FileLock / JNAという複数種類のmechanismを少数回ずつ利用する場合では、後者の方が設計上の意味が大きいことがある。
+
+少なくとも次を分けて観測する。
+
+- External Effect Usage Count
+- External Mechanism Count / diversity
+- External Dependency Count
+- non-DSL Usage Count
+
+AIによる過剰実装では、コード量より先にmechanism diversityやmechanism depthが増える可能性がある。
+
+### Commit Diff / CAR Version Diff
+
+絶対値だけでなく差分を主要なレビュー情報とする。
+
+Commit間では開発中の早期レビューとして、このcommitで増えたDSL外操作、新しい外部ライブラリ、新しいexternal effect、新しいlow-level mechanism、dependency / state / model structureの変化を見る。
+
+CAR Version間ではRelease / Admission時のレビューとして利用する。CARはSubsystem / Subcomponentの意味を持つ配布境界なので、単なるソース差分ではなく「このCARが提供するCapabilityに対して、バージョン間で実装メカニズムがどう変化したか」を確認できる。
+
+例:
+
+| Metric | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| External libraries | 3 | 4 | +1 |
+| File I/O usages | 8 | 14 | +6 |
+| Explicit locks | 0 | 2 | +2 |
+| Native access mechanisms | 0 | 1 | +1 |
+| UnitOfWork DSL usages | 94 | 97 | +3 |
+| Direct external usages | 9 | 18 | +9 |
+
+上位のCapability / Use Caseがほとんど変化していないのに、External Surfaceやlow-level mechanismだけが大きく増えた場合、人間が深掘りすべき強いシグナルになる。
+
+### Model Diffとの統合
+
+最終的にはModel Diff、Capability / Operation Diff、API / DSL Diff、External Surface Diff、Dependency Diff、State / Persistence Diff、Failure / Consequence Diffを組み合わせる。
+
+特に「Model上の変化は小さいがImplementation Mechanismの変化が大きい」という組み合わせを、人間が容易に発見できることを重視する。
+
+これは自動的な異常判定ではない。CBD Supportは差分と構造をreview surfaceとして提示し、人間が「なぜこの変更でJNA、lock、native accessが必要なのか」と問いを立て、その箇所だけAIに説明・影響分析・簡素化案を求められるようにする。
+
+将来的にはCapabilityの変更規模に対するmechanism complexity / external surfaceの増加量を指標化することも検討できるが、初期段階では閾値による自動拒否より、一覧・集計・差分の可視化を優先する。

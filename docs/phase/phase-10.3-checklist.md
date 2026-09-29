@@ -46,8 +46,35 @@ No candidate human approval, canonical CML mutation, or Phase release is claimed
 
 ## P10-31: Durable semantic diff
 
-- [ ] Persist/reconstruct the Phase 9 semantic diff independently of textual Git
-  diff while retaining traceability to exact proposed CML changes.
+Stage Status:
+- Current status: DONE
+- Owner: Textus CBD Support development
+- Update rule: this Step is accepted only with the validation/review evidence
+  below and the local commit carrying `Step-Acceptance: P10-31`.
+
+- [x] Persist/reconstruct the Phase 9 semantic diff independently of textual Git
+  diff while retaining traceability to exact proposed CML changes. P10-31A has
+  accepted [spec](../spec/internal-model-semantic-diff-contract.md),
+  [design](../design/internal-model-semantic-diff.md), values/codec/validator,
+  selector, and [executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiffValidatorSpec.scala).
+
+Acceptance evidence:
+- Representative: `Test/testOnly org.simplemodeling.textus.cbdsupport.runtime.InternalModelSemanticDiffValidatorSpec`, 17/17 passed.
+- Accumulator: 153/153 passed across `InternalModelSemanticDiffValidatorSpec`,
+  `CandidateDesignSemanticDiffIntegrationSpec`, `InternalModelCandidateCmlProjectionValidatorSpec`,
+  `InternalModelPackageValidatorSpec`, `InternalModelSemanticRealizationValidatorSpec`,
+  `InternalModelProjectionContinuityValidatorSpec`, `InternalModelSourceSnapshotFreshnessSpec`,
+  `InternalModelDecisionRecordValidatorSpec`, `InternalModelOpenIssueRecordValidatorSpec`,
+  and `InternalModelPackageFreshnessSpec`, all in `org.simplemodeling.textus.cbdsupport.runtime`.
+  Both serialized SBT invocations completed with the shared lock released.
+- Independent complete-Step protected-focused review:
+  `PHASE-10.3-P10-31-STEP-REVIEW-01`, PASS, no Current Boundary Blockers.
+- Local acceptance commit: locate `Step-Acceptance: P10-31` in Git history;
+  that commit must contain this ledger and all nine P10-31A owned paths.
+
+This ledger is the acceptance projection included in that exact commit; an
+uncommitted copy alone is not Step closure evidence. No candidate human
+approval, canonical CML mutation, or Phase release is claimed.
 
 ## P10-32: Review binding
 

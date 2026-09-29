@@ -85,6 +85,11 @@ private[runtime] final case class InternalModelVerifiedCandidateCmlProjectionPac
   candidate: InternalModelVerifiedProjection
 )
 
+private[runtime] final case class InternalModelVerifiedSemanticDiffPackage(
+  candidatePackage: InternalModelVerifiedCandidateCmlProjectionPackage,
+  semanticDiff: InternalModelVerifiedProjection
+)
+
 private[runtime] final case class InternalModelVerifiedDecision(
   artifactId: String,
   role: String,
@@ -174,6 +179,13 @@ object InternalModelPackageValidator {
   private[runtime] def verifiedCandidateCmlProjection(projectRoot: Path): Consequence[InternalModelVerifiedCandidateCmlProjectionPackage] =
     try {
       _captured_package(projectRoot).flatMap(_candidate_cml_projection).fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  private[runtime] def verifiedSemanticDiff(projectRoot: Path): Consequence[InternalModelVerifiedSemanticDiffPackage] =
+    try {
+      _captured_package(projectRoot).flatMap(_semantic_diff).fold(Consequence.operationInvalid, Consequence.success)
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
@@ -461,6 +473,12 @@ object InternalModelPackageValidator {
       candidate <- _selected_projection(captured.artifacts, "candidate")
     } yield InternalModelVerifiedCandidateCmlProjectionPackage(captured.context, continuity, candidate)
 
+  private def _semantic_diff(captured: CapturedPackage): Either[String, InternalModelVerifiedSemanticDiffPackage] =
+    for {
+      candidate <- _candidate_cml_projection(captured)
+      semanticdiff <- _selected_projection(captured.artifacts, "semantic-diff")
+    } yield InternalModelVerifiedSemanticDiffPackage(candidate, semanticdiff)
+
   private def _decision_records(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecisionPackage] =
     for {
       realizationpackage <- _present_realization(verified)
@@ -526,6 +544,7 @@ object InternalModelPackageValidator {
       family <- (profile, schema) match {
         case ("ccdm-projection-binding-v1", "1.0") | ("ccdm-projection-binding-v2", "2.0") => Right("continuity")
         case ("ccdm-candidate-cml-projection-v1", "1.0") => Right("candidate")
+        case ("ccdm-semantic-diff-v1", "1.0") => Right("semantic-diff")
         case _ => Left(s"projection artifact ${projection.artifactId} has an unknown profile/schemaVersion pair")
       }
     } yield family

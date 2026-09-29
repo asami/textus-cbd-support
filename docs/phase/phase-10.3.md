@@ -33,8 +33,26 @@ P10-30 closes only after both Slices, focused representative plus accumulator
 validation, independent protected-focused Step review, and a local Step
 acceptance commit. The [P10-30 checklist](phase-10.3-checklist.md) records both
 accepted Slices; its uncommitted projection alone does not prove Step closure.
-P10-31--P10-34 and Phase closure remain OPEN. No candidate human approval or
+P10-32--P10-34 and Phase closure remain OPEN. No candidate human approval or
 canonical CML mutation is claimed.
+
+## Current P10-31 handoff
+
+P10-31A defines the accepted [durable semantic-diff
+contract](../spec/internal-model-semantic-diff-contract.md) and its
+[design](../design/internal-model-semantic-diff.md). The coherent slice records
+the [typed values](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiff.scala),
+[canonical codec](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiffCodec.scala),
+[one-pass validator](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiffValidator.scala),
+package selector, and [executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiffValidatorSpec.scala).
+The representative specification passed 17/17; the complete ten-suite
+affected-consumer accumulator passed 153/153. The independent protected-focused
+complete-Step review `PHASE-10.3-P10-31-STEP-REVIEW-01` returned PASS with no
+Current Boundary Blockers. The local commit carrying `Step-Acceptance: P10-31`
+records the exact nine-path acceptance boundary and its checklist projection;
+an uncommitted projection alone does not prove Step closure.
+P10-30 remains accepted; P10-32--P10-34 and Phase closure remain OPEN. No
+candidate human approval, canonical CML mutation, or Phase release is claimed.
 
 ## Closure boundary
 

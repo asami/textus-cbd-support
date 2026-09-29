@@ -354,6 +354,41 @@ final class InternalModelCandidateApprovalLifecycleSpec
         reports.forall { case (artifactid, kind, found, report) => found.contains(artifactid) && report.state == InternalModelCandidateApprovalLifecycleState.Invalidated && report.invalidations.exists(value => value.kind == InternalModelCandidateApprovalInvalidationKind.MissingBaseline && value.artifactId.contains("snapshot-optional")) } shouldBe true
       }
 
+      "order mixed source statuses by closed kind before unsigned UTF-8 artifact ID for every complete input permutation" in {
+        Given("one complete actual capture with earlier-ID CML sources unavailable, later-ID model and scenario sources changed by content, glossary unauthorized, and optional baseline absent")
+        val expected = Vector(
+          InternalModelCandidateApprovalInvalidation(InternalModelCandidateApprovalInvalidationKind.SourceChanged, Some("snapshot-model"), Vector("source.sha256")),
+          InternalModelCandidateApprovalInvalidation(InternalModelCandidateApprovalInvalidationKind.SourceChanged, Some("snapshot-scenario"), Vector("source.sha256")),
+          InternalModelCandidateApprovalInvalidation(InternalModelCandidateApprovalInvalidationKind.SourceUnavailable, Some("snapshot-cml-alpha"), Vector.empty),
+          InternalModelCandidateApprovalInvalidation(InternalModelCandidateApprovalInvalidationKind.SourceUnavailable, Some("snapshot-cml-beta"), Vector.empty),
+          InternalModelCandidateApprovalInvalidation(InternalModelCandidateApprovalInvalidationKind.SourceUnauthorized, Some("snapshot-glossary"), Vector.empty),
+          InternalModelCandidateApprovalInvalidation(InternalModelCandidateApprovalInvalidationKind.MissingBaseline, Some("snapshot-optional"), Vector.empty)
+        )
+        _with_fixture(FixtureOptions(includeoptionalsnapshot = true)) { (root, data) =>
+          val approval = InternalModelCandidateHumanApprovalValidator.validate(root, "approval-main", "review-main", data.executionbasis, data.expected).toOption.get
+          val review = InternalModelCandidateReviewBindingValidator.validate(root, "review-main", data.executionbasis).toOption.get
+          val snapshots = InternalModelPackageValidator.verifiedSourceSnapshots(root).toOption.get
+          val sourceobservations = _unchanged_sources
+            .updated("snapshot-model", _source_dimension_observation("snapshot-model", "content"))
+            .updated("snapshot-scenario", _source_dimension_observation("snapshot-scenario", "content"))
+            .updated("snapshot-cml-alpha", InternalModelLiveSourceObservation.Unavailable("offline"))
+            .updated("snapshot-cml-beta", InternalModelLiveSourceObservation.Unavailable("offline"))
+            .updated("snapshot-glossary", InternalModelLiveSourceObservation.Unauthorized("denied"))
+          val permutations = for {
+            snapshotorder <- Gen.pick(snapshots.size, snapshots)
+            observationorder <- Gen.pick(sourceobservations.size, sourceobservations.toVector)
+          } yield (snapshotorder.toVector, observationorder.toVector)
+          When("the evaluator receives generated complete permutations of the captured snapshots and live-source insertion order")
+          forAll(permutations) { case (snapshotorder, observationorder) =>
+            val report = InternalModelCandidateApprovalLifecycleEvaluator.evaluate(approval, review, data.executionbasis, snapshotorder, Map.from(observationorder), None).toOption.get
+            Then("every permutation yields the exact kind-first and unsigned-ID invalidation vector while retaining the original approval")
+            report.invalidations shouldBe expected
+            report.state shouldBe InternalModelCandidateApprovalLifecycleState.Invalidated
+            report.approval.record.canonicalBytes shouldBe approval.record.canonicalBytes
+          }
+        }
+      }
+
       "retain every source metadata and CML target-path difference independently across the complete captured inventory" in {
         Given("one complete actual capture and independently supplied observations changing authority, identity, revision, or content for every source, plus each CML path")
         val dimensions = _sort_ids(_unchanged_sources.keys.toVector).flatMap { artifactid =>

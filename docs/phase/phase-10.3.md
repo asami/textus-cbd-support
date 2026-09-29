@@ -1,7 +1,7 @@
 # Phase 10.3 - Candidate Projection, Review, and Approval
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED
 - Predecessor: Phase 10.2
 - Successor: Phase 10.4
 - Development item: DEV-CBD-002
@@ -11,6 +11,34 @@ Stage Status:
 Split from Phase 10. It owns P10-30–P10-34: candidate projection, semantic diff, review, approval, supersession, and invalidation.
 
 It inherits the sequence-wide authority and storage boundaries in `phase-10.md`.
+
+## Final release boundary
+
+This is the release-tree candidate. Its CLOSED status becomes authoritative
+only after the distinct validated local release commit carrying
+`Phase-Closure-Binding: PHASE-10.3` and a verified committed closure receipt.
+All five Step acceptance commits are retained. The single epoch-1 Phase review
+`PHASE-10.3-FULL-REVIEW-01` found `CPB-P10-3-FULL-001`; the exact evaluator/spec
+repair passed representative 23/23 and thirteen-suite accumulator 207/207
+validation. Independent focused closure
+`PHASE-10.3-CYCLE1-FOCUSED-REREVIEW-01` returned PASS and closed that sole
+blocker, with no new blockers or scope expansion. Cycle 1 is accepted; no
+second full Phase review was performed.
+
+Final release requires successful current-tree CAR lint and the complete
+`sbt --batch test` receipt `PHASE-10.3-PHASE-RELEASE-FULL-01`. The checklist
+records the accepted Step identities and final commit boundary. The exact
+nonblocking `DEV-P10-30-001` follow-up is preserved in its
+[canonical journal](../journal/2026/09/2026-09-29-phase-10.3-development-candidate-follow-up.md).
+There are no accepted Hygiene entries. The unrelated notes/journal and all
+uncommitted successor plans remain preserved; shared Strategy synchronization
+is deferred. This release executes no successor Phase, grants no actual human
+approval or CML write authority, and mutates no canonical CML.
+
+The handoffs below are historical Step-boundary evidence. Their earlier OPEN
+statements are superseded for Phase status only by this validated release
+boundary and the canonical checklist; their original acceptance facts remain
+unchanged.
 
 ## Current P10-30 handoff
 

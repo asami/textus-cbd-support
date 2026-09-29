@@ -362,6 +362,9 @@ private[runtime] object InternalModelCandidateApprovalLifecycleEvaluator {
             }
         }
       }
+    }.sortWith { (left, right) =>
+      val kindcomparison = left.kind.ordinal.compare(right.kind.ordinal)
+      kindcomparison < 0 || (kindcomparison == 0 && Arrays.compareUnsigned(left.artifactId.get.getBytes(StandardCharsets.UTF_8), right.artifactId.get.getBytes(StandardCharsets.UTF_8)) < 0)
     }
 
   private def _state(

@@ -1,6 +1,6 @@
 # Phase 10.3 Checklist: Candidate Projection, Review, and Approval
 
-Status: IN_PROGRESS
+Status: CLOSED
 phase=[Phase 10.3](phase-10.3.md)
 predecessor=[Phase 10.2](phase-10.2.md)
 successor=[Phase 10.4](phase-10.4.md)
@@ -163,4 +163,31 @@ CML write authority, canonical CML mutation, or Phase closure is claimed.
 
 ## Closure
 
-- [ ] Release the accepted Phase 10.3 contract to Phase 10.4.
+- [x] Release the accepted Phase 10.3 contract to Phase 10.4.
+  Release-tree candidate: authoritative only after the distinct validated
+  local release commit bearing `Phase-Closure-Binding: PHASE-10.3` and its
+  verified committed closure receipt. Required final coverage: current-tree
+  CAR lint and the complete `sbt --batch test` receipt
+  `PHASE-10.3-PHASE-RELEASE-FULL-01`.
+  The sole epoch-1 full review `PHASE-10.3-FULL-REVIEW-01` is retained.
+  Its ordering blocker `CPB-P10-3-FULL-001` is closed by the exact two-file
+  cycle-1 repair and independent focused closure
+  `PHASE-10.3-CYCLE1-FOCUSED-REREVIEW-01`, PASS. The repaired representative
+  specification passed 23/23 and thirteen-suite affected-consumer accumulator
+  passed 207/207 with both serial locks released. No second full review ran.
+  There are no accepted Hygiene entries. Exact Development Candidate
+  `DEV-P10-30-001` is retained in its
+  [canonical follow-up journal](../journal/2026/09/2026-09-29-phase-10.3-development-candidate-follow-up.md).
+  The thirteen unrelated dirty paths, including successor plans and the shared
+  Strategy, remain preserved; Strategy synchronization is deferred.
+  No actual human approval, canonical CML mutation, publication, push, or
+  successor execution is claimed. Earlier Step-boundary OPEN statements above
+  are historical and are superseded only by this release boundary.
+
+### Accepted Step commit identities
+
+- P10-30: `f2a8be95789df96e20bc2f0344c298e70f0d8527`.
+- P10-31: `ebc4099862c8ed3f635e918e65a8f7ce89a755b4`.
+- P10-32: `baff7344f59f8ecbaf922cd5896853cd1fd6d437`.
+- P10-33: `cd6ea13e00cad2c7fff3504160333211d20eaaaa`.
+- P10-34: `91d49f31a1890482d91800ae558c493053ab1892`.

@@ -50,3 +50,24 @@ CBD SupportがEvidence/KPI/Review Contextを準備し、人間または明示的
 これにより、deterministic validation、AI assistance、人間の直感を、それぞれ異なるauthorityを持つものとして共存させる。
 
 今回の方針は、2026-09-29のModel-up差分レビュー構想を一般化したものでもある。Model-up ReviewはHuman-in-the-Loop Reviewの主要なreview surfaceの一つとして位置付ける。
+
+
+## 追跡性を使った抽象モデルレビュー
+
+Human Reviewの通常経路はProgramではなくModelとする。Use Case / Use Case Sliceなどの要求モデルから、Application Capability、Component Capability、Component / Service / Operation、Aggregate / View、Workflow / State Machine、Executable Specification、Program / runtime evidenceまでのtraceabilityをCBD Support上で辿れるようにする。
+
+人間は個々のモデル要素だけでなく、抽象モデル間の関係をレビューする。要求に対して実現構造が過大、責務分割が不自然、特定のAggregateへ無関係なUse Caseが集中、Capabilityから実現への対応が薄い、Executable Specificationは通るが重要な要求との対応が見えない、といった違和感をreview sensorとして利用する。KPI、delta、runtime evidenceも同じモデル空間に重ねる。
+
+Programレベルの通常の正しさは、型とコンパイル、pure functional programming、ADT、Algebra / DSL、Free Monad / Interpreter境界、Executable SpecificationなどのProgramming Harnessへ委ねる。人間がProgramを直接確認するのは、Model-upされたレビュー面で違和感が見つかった後のdrill-down経路とする。
+
+原則:
+
+```text
+機械: 低い抽象度を網羅的に検査
+人間: Model-upされた高い抽象度とtraceabilityをレビュー
+異常: 該当箇所だけ詳細モデル -> Executable Specification -> Programへdrill down
+```
+
+これを **Review Up, Drill Down on Anomaly** と呼ぶ。
+
+人間による行単位のProgram Reviewを通常工程へ戻しすぎると、AIがProgramming Harnessの制約内で実装するという構造とは別の実装判断経路が増え、Harnessの拘束性と再現性を弱める。そのためProgram Reviewは診断上必要な場合に限定する。

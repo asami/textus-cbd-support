@@ -117,3 +117,33 @@ CBD Review prepares the evidence and review context. A human or an explicitly de
 The long-term objective is not "AI reviews the component." It is:
 
 > CBD Support makes the component understandable enough that a human can review it efficiently, with machines doing the measurable and investigative work around that judgment.
+
+
+## Review Up, Drill Down on Anomaly
+
+CBD Support should make the normal human review path model-oriented rather than program-oriented.
+
+The review surface connects requirement and realization abstractions through explicit traceability:
+
+```text
+Use Case / Use Case Slice
+        -> Application Capability
+        -> Component Capability
+        -> Component / Service / Operation
+        -> Aggregate / View
+        -> Workflow / State Machine
+        -> Executable Specification
+        -> Program / Runtime Evidence
+```
+
+The reviewer should normally inspect model-up projections, traceability, deltas, and KPIs at the highest useful abstraction. Relationships across models are themselves review evidence. Missing, unexpectedly dense, weak, or disproportionate relationships can expose problems even when deterministic checks and executable specifications pass.
+
+Programming-level correctness is primarily delegated to the programming harness: types and compilation, pure functional constraints, ADT, Algebra / DSL, Free Monad / Interpreter boundaries, and executable specifications. Human program-level review is an exception path, not the default review surface.
+
+When the reviewer notices an anomaly or discomfort, CBD Support should support progressive drill-down from the abstract model to the related detailed model, executable specification, evidence, and only when useful the relevant program location.
+
+The operational principle is:
+
+> **Review Up, Drill Down on Anomaly.**
+
+This preserves the value of a constrained AI-development environment. Routine line-by-line human code review should not become an alternate implementation authority that bypasses or weakens the harness.

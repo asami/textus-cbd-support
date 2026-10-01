@@ -43,3 +43,15 @@ Useful findings therefore include not only "which AI/model performs better" but 
 cbd-support does not own the resulting Workflow/StateMachine semantics and must not automatically rewrite production control flow from KPI data. It exposes evidence, correlations, patterns and candidate opportunities so a human/Citizen Developer or development workflow can decide what to formalize.
 
 This supports a maturity model in which AI is a bootstrap mechanism for initially ambiguous work. As behavior becomes understood, authoritative state and control move to typed CNCF Workflow/StateMachine/runtime assets while AI remains only where nondeterministic semantic judgment is useful.
+
+
+## Two-role AI usage model
+
+For analysis and review, distinguish two reasons for AI use:
+
+- **Semantic / Intellectual Work**: AI is the intended capability, for example document understanding, semantic extraction/judgment, generation, coding or review. Improvement focuses on quality, evidence, Admission, routing and human oversight.
+- **Exploratory / Bootstrap Execution**: AI temporarily performs work whose process is not yet formalized. Improvement focuses on discovering stable behavior that can be moved to Workflow / StateMachine / rule / deterministic Operation.
+
+cbd-support should make this distinction visible when interpreting AI evidence. A high-quality AI Action is not automatically a formalization candidate if its semantic capability is intrinsically useful. Conversely, a reliable repeated sequence should not remain AI-controlled merely because the model performs it successfully.
+
+This gives progressive formalization a concrete question: **is AI being used here because semantic intelligence is required, or because the software/process has not been formalized yet?** The second category is the primary source of candidates for determinization.

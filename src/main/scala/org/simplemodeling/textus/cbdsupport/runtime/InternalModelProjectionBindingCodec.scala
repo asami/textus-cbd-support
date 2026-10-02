@@ -10,7 +10,7 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 28, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Parses and encodes the closed projection-binding artifact without projection reconstruction. */
@@ -70,6 +70,7 @@ private[runtime] object InternalModelProjectionBindingCodec {
         "projection binding profile/schemaVersion must pair exactly with the selected realization version"
       )
       bindingvalue <- root("bindingReference").toRight("projection bindingReference is missing")
+      _ <- _record_id(bindingvalue, "bindingReference")
       bindingreference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(bindingvalue))
       realizationvalue <- root("realizationArtifactReference").toRight("projection realizationArtifactReference is missing")
       realizationreference <- InternalModelTypedControlCodec.decodeArtifactReference(_json_bytes(realizationvalue))
@@ -199,6 +200,17 @@ private[runtime] object InternalModelProjectionBindingCodec {
 
   private def _object(value: Json, label: String): Either[String, JsonObject] =
     value.asObject.toRight(s"$label must be an object")
+
+  private def _record_id(value: Json, label: String): Either[String, Unit] = {
+    val encoder = StandardCharsets.UTF_8.newEncoder()
+      .onMalformedInput(CodingErrorAction.REPORT)
+      .onUnmappableCharacter(CodingErrorAction.REPORT)
+    for {
+      objectvalue <- _object(value, label)
+      recordid <- objectvalue("recordId").flatMap(_.asString).toRight(s"$label recordId must be a JSON string")
+      _ <- Either.cond(!recordid.isBlank && encoder.canEncode(recordid), (), s"$label recordId must be nonblank valid Unicode")
+    } yield ()
+  }
 
   private def _array(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[Json]] =
     objectvalue(key).flatMap(_.asArray).map(_.toVector).toRight(s"$label $key must be an array")

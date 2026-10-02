@@ -20,7 +20,11 @@ planned sequence.
   see the [Phase 10.3 checklist](phase-10.3-checklist.md) for the distinct
   validated release binding and acceptance evidence.
 
-Phase 10.4 and later remain separate not-started work. Their existing
+- [Phase 10.4](phase-10.4.md) — closed continuation and package-only
+  fresh-process rehydration; see the [Phase 10.4 checklist](phase-10.4-checklist.md)
+  for full validation and the distinct local release binding.
+
+Phase 10.5 and later remain separate not-started work. Their existing
 uncommitted plans and the shared Strategy are preserved; this release does
 not execute them or claim their acceptance. Shared Strategy synchronization
 is deferred; the named Phase/checklist remain canonical completion authority.

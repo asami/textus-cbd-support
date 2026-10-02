@@ -11,7 +11,7 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 29, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Parses and encodes the closed candidate CML projection profile without CML interpretation. */
@@ -40,8 +40,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       root <- json.asObject.toRight("candidate CML projection root must be an object")
       _ <- _closed_fields(root, _root_fields, "candidate CML projection root")
       candidatevalue <- root("candidateReference").toRight("candidateReference is missing")
-      candidatereference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(candidatevalue))
-      _ <- _valid_text(candidatereference.recordId.value, "candidateReference recordId")
+      candidatereference <- _record_reference_value(candidatevalue, "candidateReference")
       modelidentity <- _nonempty_string(root, "candidateModelIdentity", "candidate CML projection root")
       continuityreference <- _artifact_reference(root, "continuityArtifactReference", InternalModelArtifactRole.Projection)
       profile <- _nonempty_string(root, "profile", "candidate CML projection root")
@@ -124,8 +123,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       objectvalue <- _object(value, label)
       _ <- _closed_fields(objectvalue, _content_fields, label)
       referencevalue <- objectvalue("contentReference").toRight(s"$label contentReference is missing")
-      reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(referencevalue))
-      _ <- _valid_text(reference.recordId.value, s"$label contentReference recordId")
+      reference <- _record_reference_value(referencevalue, s"$label contentReference")
       bytelength <- _nonnegative_integer(objectvalue, "byteLength", label)
       encoded <- _string(objectvalue, "rawBytesBase64", label)
       rawbytes <- _decode_base64(encoded, label)
@@ -351,6 +349,15 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
 
   private def _artifact_json(reference: InternalModelArtifactReference): Json =
     Json.obj("artifactId" -> Json.fromString(reference.artifactId.value), "artifactRevision" -> Json.fromLong(reference.artifactRevision.value), "role" -> Json.fromString(reference.role.wireValue))
+
+  private def _record_reference_value(value: Json, label: String): Either[String, InternalModelRecordReference] =
+    for {
+      objectvalue <- _object(value, label)
+      recordid <- _string(objectvalue, "recordId", label)
+      _ <- _valid_text(recordid, s"$label recordId")
+      reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(value))
+      _ <- _valid_text(reference.recordId.value, s"$label recordId")
+    } yield reference
 
   private def _artifact_reference(root: JsonObject, key: String, role: InternalModelArtifactRole): Either[String, InternalModelArtifactReference] =
     for {

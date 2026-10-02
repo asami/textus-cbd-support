@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 29, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelCandidateCmlProjectionValidatorSpec
@@ -324,6 +324,55 @@ final class InternalModelCandidateCmlProjectionValidatorSpec
       decoded.map(_.toOption) shouldBe forms.map(_ => Some(candidate))
       roundtrips shouldBe decoded
       family shouldBe forms.map(_ => (true, false))
+    }
+
+    "reject raw escaped lone surrogates in candidate and proposed content record IDs" in {
+      val candidate = _projection(Vector[Byte](0, -1, 10), "unicode-reference", _cml_beta_raw)
+      val positions = Vector[(String, String => Array[Byte])](
+        "candidateReference" -> (placeholder => _candidate_reference_mutation(candidate)(_.add("recordId", Json.fromString(placeholder)))),
+        "contentReference" -> (placeholder => _content_mutation(candidate)(owner => owner.add("contentReference", owner("contentReference").get.mapObject(_.add("recordId", Json.fromString(placeholder))))))
+      )
+      positions.zipWithIndex.foreach { case ((label, change), index) =>
+        Vector("\\ud800", "\\udfff").foreach { escape =>
+          Given(s"valid candidate JSON with a unique placeholder at $label.recordId")
+          val placeholder = s"unicode-candidate-placeholder-$index"
+          val bytes = _bytes_replace(change(placeholder), "\"" + placeholder + "\"", "\"candidate-" + escape + "\"")
+          When("the raw ASCII surrogate escape reaches the original candidate reference boundary")
+          val result = InternalModelCandidateCmlProjectionCodec.decode(_projection_handoff(bytes))
+          Then("both lone surrogate kinds fail before replacement can create a different valid record ID")
+          result.isLeft shouldBe true
+          result.left.toOption.get should include("recordId must be nonblank valid Unicode")
+        }
+      }
+    }
+
+    "preserve generated paired supplementary escapes in candidate and every proposed content reference" in {
+      forAll(Gen.choose(0x10000, 0x10ffff), Gen.choose(1L, Long.MaxValue)) { (codepoint, revision) =>
+        Given("a supplementary scalar in independent candidate and both content IDs with positive declared revisions")
+        val scalar = new String(Character.toChars(codepoint))
+        val escaped = Character.toChars(codepoint).map(character => f"\\u${character.toInt}%04x").mkString
+        val base = _projection(Vector[Byte](0, -1, 10), "unicode-pair", _cml_beta_raw)
+        val expected = base.copy(candidateReference = _record_reference("candidate-" + scalar, revision), targets = base.targets.zipWithIndex.map { case (target, index) =>
+          target.copy(proposedContent = target.proposedContent.copy(contentReference = _record_reference(s"content-$index-" + scalar, revision)))
+        })
+        val marked = expected.copy(candidateReference = _record_reference("unicode-candidate-pair", revision), targets = expected.targets.zipWithIndex.map { case (target, index) =>
+          target.copy(proposedContent = target.proposedContent.copy(contentReference = _record_reference(s"unicode-content-pair-$index", revision)))
+        })
+        val serialized = new String(InternalModelCandidateCmlProjectionCodec.encode(marked), StandardCharsets.UTF_8)
+        val candidatejson = serialized.replace("\"unicode-candidate-pair\"", "\"candidate-" + escaped + "\"")
+        val contentjson = expected.targets.indices.foldLeft(candidatejson) { (content, index) =>
+          content.replace(s"\"unicode-content-pair-$index\"", s"\"content-$index-" + escaped + "\"")
+        }
+        val bytes = contentjson.getBytes(StandardCharsets.UTF_8)
+        When("paired escapes cross candidate admission and an ordinary semantic writer roundtrip")
+        val result = InternalModelCandidateCmlProjectionCodec.decode(_projection_handoff(bytes))
+        val roundtrip = result.flatMap(value => InternalModelCandidateCmlProjectionCodec.decode(_projection_handoff(InternalModelCandidateCmlProjectionCodec.encode(value))))
+        Then("exact candidate/content identities, revisions, binary bytes and all target semantics remain unchanged")
+        result.toOption shouldBe Some(expected)
+        roundtrip shouldBe result
+        result.toOption.get.candidateReference.recordId.value shouldBe "candidate-" + scalar
+        result.toOption.get.targets.map(_.proposedContent.contentReference.recordId.value) shouldBe expected.targets.indices.map(index => s"content-$index-" + scalar).toVector
+      }
     }
 
     "reject missing malformed bare and old hash-bearing references at every required reference depth" in {

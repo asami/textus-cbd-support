@@ -282,6 +282,31 @@ final class InternalModelContinuationActionGateSpec
     }
 
     "all-present ledgers and source-owned versions" which {
+      "reject raw escaped lone surrogate decision ledger IDs with the original semantic owner diagnostic" in {
+        _with_rich() { (root, data, request) =>
+          val captured = _capture(root)
+          Vector("\\ud800", "\\udfff").foreach { escape =>
+            Given("a complete approved rich capture with a valid decision ledger placeholder and unchanged independent requirements")
+            val marked = _decision_ledger(data).copy(ledgerReference = recordReference("unicode-gate-ledger-placeholder", 223L))
+            val bytes = new String(InternalModelDecisionRecordCodec.encode(marked), StandardCharsets.UTF_8)
+              .replace("\"unicode-gate-ledger-placeholder\"", "\"ledger-" + escape + "\"").getBytes(StandardCharsets.UTF_8).toVector
+            val changed = _bytes_change(captured, "decision-main", bytes)
+            When("the actual continuation gate independently admits the captured malformed decision ledger")
+            val result = InternalModelContinuationActionGate.evaluateVerified(changed, request)
+            Then("the later semantic owner failure is retained as an inconsistent report with no eligible action")
+            result.isSuccess shouldBe true
+            val report = result.toOption.get
+            report.eligibility shouldBe Inconsistent
+            report.action shouldBe None
+            report.decisions shouldBe empty
+            val problems = report.problems.filter(_.kind == SemanticAdmissionFailed)
+            problems.flatMap(_.artifactreference) should contain(artifactReference("decision-main"))
+            problems.exists(_.diagnostic.contains("recordId")) shouldBe true
+            problems.exists(_.diagnostic.contains("Unicode")) shouldBe true
+          }
+        }
+      }
+
       "A8 reject malformed present ledgers and hidden extra blocking issues" in {
         Given("every present decision/open-issue role is in the captured inventory")
         _with_rich() { (root, data, request) =>

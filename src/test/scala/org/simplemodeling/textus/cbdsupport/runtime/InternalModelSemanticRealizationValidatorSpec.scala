@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 28, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelSemanticRealizationValidatorSpec
@@ -411,6 +411,40 @@ final class InternalModelSemanticRealizationValidatorSpec
     }
 
     "explicit logical record revisions" which {
+      "reject raw escaped lone surrogates in the original realization record ID" in {
+        Vector("\\ud800", "\\udfff").foreach { escape =>
+          Given("valid realization JSON with a unique record ID placeholder serialized before the raw escape is inserted")
+          val marked = _mutate(_realization())(_.mapObject(root => root.add("realizationReference", root("realizationReference").get.mapObject(_.add("recordId", Json.fromString("unicode-realization-placeholder"))))))
+          val bytes = new String(marked, StandardCharsets.UTF_8).replace("\"unicode-realization-placeholder\"", "\"realization-" + escape + "\"").getBytes(StandardCharsets.UTF_8)
+          When("captured V3 realization admission examines the original escaped record ID")
+          val result = InternalModelSemanticRealizationValidator.validateVerified(_capture(bytes))
+          Then("a lone high or low surrogate fails without a substituted logical identity or partial realization")
+          result.isSuccess shouldBe false
+          result.toOption shouldBe None
+          result.show should include("realizationReference recordId must be nonblank valid Unicode")
+        }
+      }
+
+      "preserve generated paired supplementary realization IDs and positive revisions exactly" in {
+        forAll(Gen.choose(0x10000, 0x10ffff), Gen.choose(1L, Long.MaxValue)) { (codepoint, revision) =>
+          Given("a generated supplementary scalar ID and independently declared positive realization revision")
+          val scalar = new String(Character.toChars(codepoint))
+          val escaped = Character.toChars(codepoint).map(character => f"\\u${character.toInt}%04x").mkString
+          val marked = _mutate(_realization(recordrevision = revision))(_.mapObject(root => root.add("realizationReference", root("realizationReference").get.mapObject(_.add("recordId", Json.fromString("unicode-realization-pair"))))))
+          val serialized = new String(marked, StandardCharsets.UTF_8)
+          val bytes = serialized.replace("\"unicode-realization-pair\"", "\"realization-" + escaped + "\"").getBytes(StandardCharsets.UTF_8)
+          val ordinary = serialized.replace("\"unicode-realization-pair\"", "\"realization-" + scalar + "\"").getBytes(StandardCharsets.UTF_8)
+          When("paired JSON escaping and ordinary UTF-8 independently cross captured V3 admission")
+          val result = InternalModelSemanticRealizationValidator.validateVerified(_capture(bytes))
+          val expected = InternalModelSemanticRealizationValidator.validateVerified(_capture(ordinary))
+          Then("the exact scalar, revision and complete evidence-bearing realization survive unchanged")
+          result.isSuccess shouldBe true
+          result.toOption shouldBe expected.toOption
+          result.toOption.get.realizationReference.recordId.value shouldBe "realization-" + scalar
+          result.toOption.get.realizationReference.recordRevision.value shouldBe revision
+        }
+      }
+
       "retain generated positive Long revisions including both boundaries" in {
         Given("producer-declared revisions including one, Long.MaxValue and generated positive Longs")
         val revisions = Gen.frequency(1 -> Gen.const(1L), 1 -> Gen.const(Long.MaxValue), 8 -> Gen.choose(1L, Long.MaxValue))

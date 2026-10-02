@@ -12,7 +12,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Sep. 28, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelSemanticScope(
@@ -204,6 +204,7 @@ private[runtime] object InternalModelSemanticRealizationValidator {
       profile <- _string(root, "profile", "realization root")
       _ <- _profile_version(profile, schema)
       recordvalue <- root("realizationReference").toRight("realizationReference is missing")
+      _ <- _record_id(recordvalue, "realizationReference")
       recordreference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(recordvalue))
       scope <- _scope(root)
       references <- _source_references(root, scope, snapshots)
@@ -887,6 +888,17 @@ private[runtime] object InternalModelSemanticRealizationValidator {
 
   private def _object(value: Json, label: String): Either[String, JsonObject] =
     value.asObject.toRight(s"$label must be an object")
+
+  private def _record_id(value: Json, label: String): Either[String, Unit] = {
+    val encoder = StandardCharsets.UTF_8.newEncoder()
+      .onMalformedInput(CodingErrorAction.REPORT)
+      .onUnmappableCharacter(CodingErrorAction.REPORT)
+    for {
+      objectvalue <- _object(value, label)
+      recordid <- objectvalue("recordId").flatMap(_.asString).toRight(s"$label recordId must be a JSON string")
+      _ <- Either.cond(!recordid.isBlank && encoder.canEncode(recordid), (), s"$label recordId must be nonblank valid Unicode")
+    } yield ()
+  }
 
   private def _array(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[Json]] =
     objectvalue(key).flatMap(_.asArray).map(_.toVector).toRight(s"$label $key must be an array")

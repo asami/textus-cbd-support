@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 28, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelDecisionRecordValidatorSpec
@@ -692,6 +692,54 @@ final class InternalModelDecisionRecordValidatorSpec
       val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = duplicate.getBytes(StandardCharsets.UTF_8).toVector))
       Then("presentation tolerance never admits duplicate members")
       result.isLeft shouldBe true
+    }
+
+    "reject raw escaped lone surrogates at every decision record reference depth" in {
+      val paths = Vector(Vector("ledgerReference"), Vector("records", "decisionReference"), Vector("records", "supersedes"), Vector("records", "basis", "realizationReference"))
+      val original = _ledger(_realization())
+      val base = original.copy(records = Vector(original.records.head.copy(supersedes = Some(_record_reference("decision-prior", 40)))))
+      paths.zipWithIndex.foreach { case (path, index) =>
+        Vector("\\ud800", "\\udfff").foreach { escape =>
+          Given(s"valid decision JSON with a unique placeholder at ${path.mkString(".")}.recordId")
+          val placeholder = s"unicode-decision-placeholder-$index"
+          val marked = _replace_at(_json(base), path :+ "recordId", Json.fromString(placeholder))
+          val bytes = marked.noSpaces.replace("\"" + placeholder + "\"", "\"decision-" + escape + "\"").getBytes(StandardCharsets.UTF_8)
+          When("the original ASCII JSON escape reaches the decision codec before any nested UTF-8 conversion")
+          val result = InternalModelDecisionRecordCodec.decode(_captured_decision(bytes))
+          Then("the lone high or low surrogate is rejected rather than replaced by a question mark")
+          result.isLeft shouldBe true
+        }
+      }
+    }
+
+    "preserve generated paired supplementary escapes and revisions at every decision reference depth" in {
+      val paths = Vector(Vector("ledgerReference"), Vector("records", "decisionReference"), Vector("records", "supersedes"), Vector("records", "basis", "realizationReference"))
+      forAll(Gen.choose(0x10000, 0x10ffff), Gen.choose(1L, Long.MaxValue)) { (codepoint, revision) =>
+        paths.zipWithIndex.foreach { case (path, index) =>
+          Given(s"a generated supplementary scalar and independent positive revision at ${path.mkString(".")}")
+          val original = _ledger(_realization())
+          val base = original.copy(records = Vector(original.records.head.copy(supersedes = Some(_record_reference("decision-prior", 40)))))
+          val scalar = new String(Character.toChars(codepoint))
+          val escaped = Character.toChars(codepoint).map(character => f"\\u${character.toInt}%04x").mkString
+          val recordid = "decision-" + scalar
+          val placeholder = s"unicode-decision-pair-$index"
+          val expectedjson = _replace_at(_replace_at(_json(base), path :+ "recordId", Json.fromString(recordid)), path :+ "recordRevision", Json.fromLong(revision))
+          val marked = _replace_at(expectedjson, path :+ "recordId", Json.fromString(placeholder))
+          val bytes = marked.noSpaces.replace("\"" + placeholder + "\"", "\"decision-" + escaped + "\"").getBytes(StandardCharsets.UTF_8)
+          val expected = InternalModelDecisionRecordCodec.decode(_captured_decision(_canonical(expectedjson)))
+          When("the paired JSON escape is decoded and emitted by the ordinary decision writer")
+          val result = InternalModelDecisionRecordCodec.decode(_captured_decision(bytes))
+          val roundtrip = result.flatMap(value => InternalModelDecisionRecordCodec.decode(_captured_decision(InternalModelDecisionRecordCodec.encode(value))))
+          Then("the exact scalar identity, declared revision and complete ledger survive without substitution")
+          result.isRight shouldBe true
+          result shouldBe expected
+          roundtrip shouldBe result
+          val ledger = result.toOption.get
+          val references = Vector(ledger.ledgerReference, ledger.records.head.decisionReference, ledger.records.head.supersedes.get, ledger.records.head.basis.realizationReference)
+          references(index).recordId.value shouldBe recordid
+          references(index).recordRevision.value shouldBe revision
+        }
+      }
     }
 
     "reject invalid lexical references and legacy fields at every decision reference depth" in {

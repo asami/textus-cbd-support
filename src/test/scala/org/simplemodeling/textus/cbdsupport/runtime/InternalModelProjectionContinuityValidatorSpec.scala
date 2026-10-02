@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 28, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelProjectionContinuityValidatorSpec
@@ -615,6 +615,48 @@ final class InternalModelProjectionContinuityValidatorSpec
         original.isRight shouldBe true
         results shouldBe Vector.fill(variants.size)(original)
         roundtrip shouldBe original
+      }
+    }
+
+    "reject raw escaped lone surrogates in the original binding record ID" in {
+      _with_fixture("display-one") { root =>
+        val captured = _capture(root)
+        val realization = _admitted_realization(root)
+        Vector("\\ud800", "\\udfff").foreach { escape =>
+          Given("an admitted V3 realization and valid binding JSON with a unique original record ID placeholder")
+          val marked = _binding_json(captured.projection.bytes.toArray).mapObject(_.add("bindingReference", _record_reference("unicode-binding-placeholder", 7L)))
+          val bytes = marked.noSpaces.replace("\"unicode-binding-placeholder\"", "\"binding-" + escape + "\"").getBytes(StandardCharsets.UTF_8).toVector
+          When("the raw ASCII escape reaches binding admission before nested UTF-8 conversion")
+          val result = _decode_binding(captured, realization, bytes)
+          Then("each lone surrogate is rejected instead of admitting a replacement binding identity")
+          result.isLeft shouldBe true
+          result.left.toOption.get should include("bindingReference recordId must be nonblank valid Unicode")
+        }
+      }
+    }
+
+    "preserve generated paired supplementary binding IDs and positive revisions exactly" in {
+      _with_fixture("display-one") { root =>
+        val captured = _capture(root)
+        val realization = _admitted_realization(root)
+        forAll(Gen.choose(0x10000, 0x10ffff), Gen.choose(1L, Long.MaxValue)) { (codepoint, revision) =>
+          Given("one valid binding whose record ID contains a generated supplementary scalar and independent positive revision")
+          val scalar = new String(Character.toChars(codepoint))
+          val escaped = Character.toChars(codepoint).map(character => f"\\u${character.toInt}%04x").mkString
+          val marked = _binding_json(captured.projection.bytes.toArray).mapObject(_.add("bindingReference", _record_reference("unicode-binding-pair", revision)))
+          val bytes = marked.noSpaces.replace("\"unicode-binding-pair\"", "\"binding-" + escaped + "\"").getBytes(StandardCharsets.UTF_8).toVector
+          val ordinary = marked.noSpaces.replace("\"unicode-binding-pair\"", "\"binding-" + scalar + "\"").getBytes(StandardCharsets.UTF_8).toVector
+          When("paired escaping, ordinary UTF-8 and the ordinary binding writer cross the same selected admission")
+          val result = _decode_binding(captured, realization, bytes)
+          val expected = _decode_binding(captured, realization, ordinary)
+          val roundtrip = result.flatMap(value => _decode_binding(captured, realization, InternalModelProjectionContinuityValidator.encode(value)))
+          Then("the exact scalar, revision and all views, evidence links and selected dependencies remain intact")
+          result.isRight shouldBe true
+          result shouldBe expected
+          roundtrip shouldBe result
+          result.toOption.get.bindingReference.recordId.value shouldBe "binding-" + scalar
+          result.toOption.get.bindingReference.recordRevision.value shouldBe revision
+        }
       }
     }
 

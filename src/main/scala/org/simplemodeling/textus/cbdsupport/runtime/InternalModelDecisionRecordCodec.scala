@@ -10,7 +10,7 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 28, 2026
- * @version Oct.  1, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Parses and emits the closed decision-record V2 values without selecting a current decision. */
@@ -446,6 +446,8 @@ private[runtime] object InternalModelDecisionRecordCodec {
 
   private def _record_reference_value(value: Json): Either[String, InternalModelRecordReference] =
     for {
+      objectvalue <- _object(value, "record reference")
+      _ <- _nonblank_string(objectvalue, "recordId", "record reference")
       reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(value))
       _ <- Either.cond(_nonblank(reference.recordId.value), (), "recordId must be a nonblank Unicode scalar string")
     } yield reference

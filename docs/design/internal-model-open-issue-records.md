@@ -1,7 +1,7 @@
 ---
-status: accepted
-decision_scope: P10-23
-updated_at: 2026-09-28
+status: target
+decision_scope: P10-23 / P104-TYPED-OPEN-ISSUE-001
+updated_at: 2026-10-01
 ---
 
 # Internal-model Open-issue Records Design
@@ -18,8 +18,15 @@ The [Canonical Component Design Model
 Contract](../spec/canonical-component-design-model-contract.md) remains the
 sole authority for CCDM meaning.
 
-P10-23B now realizes this boundary through the closed
-`ccdm-open-issue-records-v1` canonical JSON form, package-private immutable
+Original P10-23 acceptance remains historical evidence. The current V2 target
+uses [Typed Control](../spec/internal-model-typed-control-contract.md) and
+[Source Snapshot](../spec/internal-model-source-snapshot-contract.md) authorities,
+package V2, source V2 and realization V3. Authoring does not establish current
+validation, independent review, acceptance or Phase closure. There is no legacy
+reader, adapter, inferred/default version or fallback.
+
+This target realizes the boundary through the closed
+`ccdm-open-issue-records-v2` strict presentation-independent JSON form, package-private immutable
 records, the [closed codec](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelOpenIssueRecordCodec.scala),
 [read-only validator](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelOpenIssueRecordValidator.scala),
 and its [paired executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelOpenIssueRecordValidatorSpec.scala).
@@ -68,12 +75,15 @@ attributable unresolved material. Keeping these roles separate prevents a
 second manifest pass, mutable filesystem substitution, live-source lookup,
 chat/Git/archive reconstruction, or a storage record becoming a new CCDM.
 
-The ledger's basis intentionally uses both the current realization's semantic
-identity and its exact raw-byte hash. The raw-byte hash identifies the precise
-captured realization revision; it cannot identify a semantic target. Exact
-CCDM identities identify targets; they cannot substitute for the captured
-bytes. Retaining both prevents a changed realization with familiar labels or
-similar identities from being treated as the same basis.
+The ledger's basis contains both the exact captured realization artifact
+reference (ID, positive revision and realization role) and the admitted
+realization logical record reference (recordId and positive recordRevision).
+Ledger and issue logical references have their own producer-allocated revisions,
+independent of carrier/artifact/realization versions. Scope, the entire artifact
+reference and the entire logical reference must agree before any issue is
+inspected, including an empty ledger. Exact CCDM identities remain semantic
+targets; an artifact reference does not replace them. Explicit versions record
+producer-owned provenance without detecting undeclared valid content mutation.
 
 ## Scope-wide questions and condition visibility
 
@@ -107,7 +117,7 @@ continue to require their separately owned future boundaries.
 ## Evidence and alternatives remain attributable
 
 Each evidence item carries its own source kind, authority claim, identity,
-digest, locator/revision, conditions, and limitations. Realization-source
+source-owned locator/revision, conditions, and limitations. Realization-source
 evidence must match the retained realization source reference; external human,
 provider, and other evidence remain external. A provider payload is not pulled
 into the ledger automatically, and authority wording cannot promote any
@@ -125,13 +135,14 @@ The ledger has one root scope and one root current basis, including when it
 contains no issues. This avoids an empty artifact becoming an unbound claim and
 prevents per-record old bases from turning question preservation into a history
 or resolution system. The semantic scope identifies the retained CCDM context;
-the raw realization hash identifies the exact captured revision. Neither can
-substitute for the other.
+the explicit artifact and logical realization references identify their exact
+producer-declared versions. Neither replaces scope. Unknown source revisions
+remain unknown despite known carrier, artifact, ledger and issue revisions.
 
 Scala 3 enums model only the closed `open` state and the four evidence kinds.
 Immutable case classes retain the supplied scalar, option, source, target,
 condition, Boolean, and prose values. The codec recognizes explicit wire
-tokens, rejects unknown values, and canonicalizes identity collections only
+tokens, rejects unknown values, and orders identity collections only
 while encoding. It does not use string substitutes for closed alternatives,
 deduplicate author prose, or manufacture a semantic identity from a label,
 path, provider claim, or collection order.
@@ -150,13 +161,20 @@ snapshots. Its new package handoff is intentionally analogous to the existing
 realization, projection, and decision handoffs; it does not add a public
 structural role rule or another inventory read. The codec receives exactly the
 captured issue bytes. The semantic validator receives the same handoff and
-first delegates realization admission to the existing realization validator.
+first checks required capture paths and delegates complete V3 realization
+admission to the current realization validator. The codec checks non-null issue
+metadata and exact reference factories, unique ordered dependency IDs and no
+self-dependency before content. The validator requires the entire selected
+realization reference in the issue dependencies. Malformed/null selected or
+source captures fail as structured invalid operations without a partial account.
 
-This division proves a meaningful distinction: byte identity comes from the
-single package pass, while semantic currentness comes from the already admitted
-realization in that pass. It prevents an on-disk substitution after capture
-from changing the result and makes a fresh reader failure distinct from a
-captured-handoff admission. The read-only path never fetches a source, repairs
+The single package pass supplies immutable ordinary payload and exact declared
+artifact metadata; semantic currentness comes from the complete admitted
+realization in that same capture. Deletion or substitution on disk after capture
+cannot change retained input; a fresh reader still performs its own inventory
+and strict payload admission. No hash, cached canonical bytes or whole-file
+comparison grants identity, currentness or permission. Harmless JSON key order,
+whitespace and equivalent escaping retain the same logical values. The read-only path never fetches a source, repairs
 data, writes CML, resolves history, rehydrates a model, or invokes a second
 CCDM.
 
@@ -176,7 +194,8 @@ of creating a filtered realization for the issue.
 Neither slice becomes an issue-resolution or supersession-history system,
 approval/CML-application enforcement, source/model rehydration path, public
 API, or second CCDM. It also does not claim that issue discovery is complete,
-that P10-23 is accepted, or that Phase 10.2 is complete. The normative
+that this V2 target is accepted, or that any Step or Phase is complete. Original
+P10-23 acceptance is preserved solely as historical evidence. The normative
 [Open-issue Record Contract](../spec/internal-model-open-issue-record-contract.md)
 defines the exact grammar and failure matrix; the linked implementation and
 executable specification provide it without making an acceptance claim.

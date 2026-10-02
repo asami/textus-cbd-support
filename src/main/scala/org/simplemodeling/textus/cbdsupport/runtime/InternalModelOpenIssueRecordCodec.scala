@@ -11,57 +11,51 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Parses and emits the closed open-issue record bytes without admission or I/O. */
 private[runtime] object InternalModelOpenIssueRecordCodec {
-  private val _root_fields = Set("basis", "issues", "ledgerIdentity", "profile", "schemaVersion", "scope")
+  private val _root_fields = Set("basis", "issues", "ledgerReference", "profile", "schemaVersion", "scope")
   private val _scope_fields = Set("componentIdentity", "projectionContextIdentity", "selectedUseCaseElementIdentity")
-  private val _basis_fields = Set("realizationArtifactId", "realizationIdentity", "sha256")
+  private val _basis_fields = Set("realizationArtifactReference", "realizationReference")
   private val _issue_fields = Set(
     "affectedTargets", "assumptions", "blocking", "conditions", "consideredEvidence", "decisionRole", "impact",
-    "issueIdentity", "limitations", "options", "ownerIdentity", "question", "realizationConditionIds", "state"
+    "issueReference", "limitations", "options", "ownerIdentity", "question", "realizationConditionIds", "state"
   )
   private val _target_fields = Set("semanticIdentity", "semanticIdentityKind")
   private val _evidence_fields = Set("conditionIds", "conditions", "evidenceIdentity", "kind", "limitations", "source", "sourceReferenceId")
-  private val _source_fields = Set("authority", "identity", "locator", "revision", "sha256")
+  private val _source_fields = Set("authority", "identity", "locator", "revision")
   private val _option_fields = Set("assumptions", "conditions", "description", "evidenceIds", "limitations", "optionIdentity")
   private val _blocking_fields = Set("application", "cmlProjection", "semanticApproval", "validation")
-  private val _digest_pattern = "sha256:[0-9a-f]{64}".r
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
-  private val _canonical_printer = Printer.noSpacesSortKeys
+  private val _printer = Printer.noSpacesSortKeys
 
   def decode(openIssue: InternalModelVerifiedOpenIssue): Either[String, InternalModelOpenIssueLedger] = {
     for {
-      _ <- Either.cond(openIssue.role == "open-issue", (), "selected artifact role must be open-issue")
+      _ <- _captured_metadata(openIssue)
       bytes = openIssue.bytes.toArray
       _ <- Either.cond(!_has_bom(bytes), (), "open-issue record bytes must not contain a UTF-8 byte-order mark")
       content <- _decode_utf8(bytes, "open-issue record bytes")
       json <- _json_parser.parse(content).left.map(_ => "open-issue record bytes must be valid JSON without duplicate members")
       root <- json.asObject.toRight("open-issue record root must be an object")
-      canonical = _canonical_bytes(json)
-      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "open-issue record bytes are not canonical JSON")
       _ <- _closed_fields(root, _root_fields, "open-issue record root")
       profile <- _nonblank_string(root, "profile", "open-issue record root")
       schema <- _nonblank_string(root, "schemaVersion", "open-issue record root")
-      _ <- Either.cond(profile == "ccdm-open-issue-records-v1" && schema == "1.0", (), "open-issue record profile and schemaVersion are unsupported")
-      ledgeridentity <- _nonblank_string(root, "ledgerIdentity", "open-issue record root")
+      _ <- Either.cond(profile == "ccdm-open-issue-records-v2" && schema == "2.0", (), "open-issue record profile and schemaVersion are unsupported")
+      ledgerreference <- _record_reference(root, "ledgerReference", "open-issue record root")
       scope <- _scope(root, "open-issue record")
       basisvalue <- root("basis").toRight("open-issue record basis is missing")
       basis <- _basis(basisvalue, "open-issue record basis")
       issues <- _issues(root)
-      candidate = InternalModelOpenIssueLedger(profile, schema, ledgeridentity, scope, basis, issues, Vector.empty)
-      encoded = encode(candidate)
-      _ <- Either.cond(encoded.toVector == canonical.toVector, (), "typed open-issue record re-encoding does not match supplied canonical bytes")
-    } yield candidate.copy(canonicalBytes = canonical.toVector)
+    } yield InternalModelOpenIssueLedger(profile, schema, ledgerreference, scope, basis, issues)
   }
 
   def encode(ledger: InternalModelOpenIssueLedger): Array[Byte] =
-    _canonical_bytes(Json.obj(
+    _json_output(Json.obj(
       "basis" -> _basis_json(ledger.basis),
       "issues" -> Json.fromValues(_sort_issues(ledger.issues).map(_issue_json)),
-      "ledgerIdentity" -> Json.fromString(ledger.ledgerIdentity),
+      "ledgerReference" -> _record_reference_json(ledger.ledgerReference),
       "profile" -> Json.fromString(ledger.profile),
       "schemaVersion" -> Json.fromString(ledger.schemaVersion),
       "scope" -> _scope_json(ledger.scope)
@@ -76,7 +70,7 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
           issue <- _issue(value, index)
         } yield collected :+ issue
       }
-      _ <- _strictly_sorted(issues.map(issue => Vector(issue.issueIdentity)), "open-issue records")
+      _ <- _strictly_sorted(issues.map(issue => Vector(issue.issueReference.recordId.value)), "open-issue records")
     } yield issues
   }
 
@@ -84,7 +78,8 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
     for {
       objectvalue <- _object(value, s"open-issue record $index")
       _ <- _closed_fields(objectvalue, _issue_fields, s"open-issue record $index")
-      issueidentity <- _nonblank_string(objectvalue, "issueIdentity", s"open-issue record $index")
+      issuereference <- _record_reference(objectvalue, "issueReference", s"open-issue record $index")
+      issueidentity = issuereference.recordId.value
       state <- _state(objectvalue, s"open-issue record $issueidentity")
       question <- _nonblank_string(objectvalue, "question", s"open-issue record $issueidentity")
       decisionrole <- _nonblank_string(objectvalue, "decisionRole", s"open-issue record $issueidentity")
@@ -100,7 +95,7 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
       blockingvalue <- objectvalue("blocking").toRight(s"open-issue record $issueidentity blocking is missing")
       blocking <- _blocking(blockingvalue, s"open-issue record $issueidentity blocking")
     } yield InternalModelOpenIssueRecord(
-      issueidentity, state, question, decisionrole, owneridentity, impact, targets, evidence, options,
+      issuereference, state, question, decisionrole, owneridentity, impact, targets, evidence, options,
       assumptions, conditions, limitations, conditionids, blocking
     )
   }
@@ -218,11 +213,11 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
     for {
       objectvalue <- _object(value, label)
       _ <- _closed_fields(objectvalue, _basis_fields, label)
-      artifactid <- _nonblank_string(objectvalue, "realizationArtifactId", label)
-      identity <- _nonblank_string(objectvalue, "realizationIdentity", label)
-      sha256 <- _nonblank_string(objectvalue, "sha256", label)
-      _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
-    } yield InternalModelOpenIssueBasis(artifactid, identity, sha256)
+      artifactvalue <- objectvalue("realizationArtifactReference").toRight(s"$label realizationArtifactReference is missing")
+      artifactreference <- InternalModelTypedControlCodec.decodeArtifactReference(_json_bytes(artifactvalue))
+      _ <- Either.cond(artifactreference.role == InternalModelArtifactRole.Realization, (), s"$label artifact role must be realization")
+      recordreference <- _record_reference(objectvalue, "realizationReference", label)
+    } yield InternalModelOpenIssueBasis(artifactreference, recordreference)
   }
 
   private def _blocking(value: Json, label: String): Either[String, InternalModelOpenIssueBlocking] = {
@@ -244,9 +239,7 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
       identity <- _nonblank_string(objectvalue, "identity", label)
       locator <- _nullable_nonblank_string(objectvalue, "locator", label)
       revision <- _nullable_nonblank_string(objectvalue, "revision", label)
-      sha256 <- _nonblank_string(objectvalue, "sha256", label)
-      _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
-    } yield InternalModelSemanticSource(authority, identity, locator, revision, sha256)
+    } yield InternalModelSemanticSource(authority, identity, locator, revision)
   }
 
   private def _prose(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[String]] = {
@@ -316,7 +309,7 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
       "consideredEvidence" -> Json.fromValues(_sort_evidence(issue.consideredEvidence).map(_evidence_json)),
       "decisionRole" -> Json.fromString(issue.decisionRole),
       "impact" -> Json.fromString(issue.impact),
-      "issueIdentity" -> Json.fromString(issue.issueIdentity),
+      "issueReference" -> _record_reference_json(issue.issueReference),
       "limitations" -> Json.fromValues(issue.limitations.map(Json.fromString)),
       "options" -> Json.fromValues(_sort_options(issue.options).map(_option_json)),
       "ownerIdentity" -> issue.ownerIdentity.map(Json.fromString).getOrElse(Json.Null),
@@ -327,9 +320,8 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
 
   private def _basis_json(basis: InternalModelOpenIssueBasis): Json =
     Json.obj(
-      "realizationArtifactId" -> Json.fromString(basis.realizationArtifactId),
-      "realizationIdentity" -> Json.fromString(basis.realizationIdentity),
-      "sha256" -> Json.fromString(basis.sha256)
+      "realizationArtifactReference" -> _artifact_reference_json(basis.realizationArtifactReference),
+      "realizationReference" -> _record_reference_json(basis.realizationReference)
     )
 
   private def _scope_json(scope: InternalModelSemanticScope): Json =
@@ -361,8 +353,7 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
       "authority" -> Json.fromString(source.authority),
       "identity" -> Json.fromString(source.identity),
       "locator" -> source.locator.map(Json.fromString).getOrElse(Json.Null),
-      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null),
-      "sha256" -> Json.fromString(source.sha256)
+      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null)
     )
 
   private def _option_json(option: InternalModelOpenIssueOption): Json =
@@ -384,7 +375,7 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
     )
 
   private def _sort_issues(issues: Vector[InternalModelOpenIssueRecord]): Vector[InternalModelOpenIssueRecord] =
-    issues.sortWith((left, right) => _compare_text(left.issueIdentity, right.issueIdentity) < 0)
+    issues.sortWith((left, right) => _compare_text(left.issueReference.recordId.value, right.issueReference.recordId.value) < 0)
 
   private def _sort_targets(targets: Vector[InternalModelSemanticTarget]): Vector[InternalModelSemanticTarget] =
     targets.sortWith((left, right) => _compare_tuple(Vector(left.semanticIdentityKind, left.semanticIdentity), Vector(right.semanticIdentityKind, right.semanticIdentity)) < 0)
@@ -439,6 +430,45 @@ private[runtime] object InternalModelOpenIssueRecordCodec {
   private def _has_bom(bytes: Array[Byte]): Boolean =
     bytes.length >= 3 && bytes(0) == 0xef.toByte && bytes(1) == 0xbb.toByte && bytes(2) == 0xbf.toByte
 
-  private def _canonical_bytes(json: Json): Array[Byte] =
-    (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+  private def _json_output(json: Json): Array[Byte] =
+    (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+
+  private def _json_bytes(json: Json): Vector[Byte] =
+    json.noSpaces.getBytes(StandardCharsets.UTF_8).toVector
+
+  private def _record_reference(objectvalue: JsonObject, key: String, label: String): Either[String, InternalModelRecordReference] =
+    for {
+      value <- objectvalue(key).toRight(s"$label $key is missing")
+      _ <- Either.cond(value.asObject.flatMap(_("recordId")).flatMap(_.asString).exists(_nonblank), (), s"$label $key recordId must be a nonblank Unicode scalar string")
+      reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(value))
+      _ <- Either.cond(_nonblank(reference.recordId.value), (), s"$label $key recordId must be a nonblank Unicode scalar string")
+    } yield reference
+
+  private def _record_reference_json(reference: InternalModelRecordReference): Json =
+    Json.obj("recordId" -> Json.fromString(reference.recordId.value), "recordRevision" -> Json.fromLong(reference.recordRevision.value))
+
+  private def _artifact_reference_json(reference: InternalModelArtifactReference): Json =
+    Json.obj("artifactId" -> Json.fromString(reference.artifactId.value), "artifactRevision" -> Json.fromLong(reference.artifactRevision.value), "role" -> Json.fromString(reference.role.wireValue))
+
+  private def _captured_metadata(openissue: InternalModelVerifiedOpenIssue): Either[String, Unit] =
+    for {
+      _ <- Either.cond(openissue != null, (), "selected open-issue must be present")
+      _ <- _artifact_reference_metadata(openissue.reference)
+      _ <- Either.cond(openissue.reference.role == InternalModelArtifactRole.OpenIssue, (), "selected artifact role must be open-issue")
+      _ <- Either.cond(openissue.path != null && _nonblank(openissue.path), (), "selected open-issue path must be present")
+      _ <- Either.cond(openissue.bytes != null, (), "selected open-issue bytes must be present")
+      _ <- Either.cond(openissue.dependencies != null, (), "selected open-issue dependencies must be present")
+      _ <- openissue.dependencies.foldLeft[Either[String, Unit]](Right(())) { (result, reference) =>
+        result.flatMap(_ => _artifact_reference_metadata(reference))
+      }
+      _ <- _strictly_sorted(openissue.dependencies.map(reference => Vector(reference.artifactId.value)), "selected open-issue dependencies")
+      _ <- Either.cond(!openissue.dependencies.exists(_.artifactId == openissue.reference.artifactId), (), "selected open-issue must not depend on itself")
+    } yield ()
+
+  private def _artifact_reference_metadata(reference: InternalModelArtifactReference): Either[String, Unit] =
+    for {
+      _ <- Either.cond(reference != null && reference.role != null, (), "captured artifact reference and role must be present")
+      _ <- InternalModelArtifactId.from(reference.artifactId.value)
+      _ <- InternalModelArtifactRevision.from(reference.artifactRevision.value)
+    } yield ()
 }

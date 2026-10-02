@@ -1,12 +1,12 @@
 ---
-status: draft
-decision_scope: P10-21A--P10-21B1
-updated_at: 2026-09-28
+status: target
+decision_scope: P10-21 / P104-TYPED-PROJECTION-CONTINUITY
+updated_at: 2026-10-01
 ---
 
 # Internal-model Projection Continuity Design
 
-This design explains the closed P10-21B1 binding defined by the
+This design explains the closed V3 binding defined by the
 [Internal-model Projection Continuity Contract](../spec/internal-model-projection-continuity-contract.md).
 That contract is normative. The [Internal-model Package
 Contract](../spec/internal-model-package-contract.md) and accepted
@@ -16,22 +16,28 @@ structural and semantic authority. The Phase 9 [Canonical Component Design
 Model Contract](../spec/canonical-component-design-model-contract.md) remains
 the only semantic authority.
 
-P10-21A established logical continuity admission. B1 makes its persisted
-binding grammar closed so that B2 can implement one unchanged interpretation.
-P10-21B2A adds an explicit V2 interpretation when that binding consumes a V2
-realization; it does not reinterpret V1 bytes. This slice does not implement
-or prove the eight values, close P10-21, or close the Phase.
+The [Typed Control Contract](../spec/internal-model-typed-control-contract.md)
+owns explicit logical record and artifact references; the [Source Snapshot
+Contract](../spec/internal-model-source-snapshot-contract.md) owns source V2
+attribution and unknown source versions. Neither record nor artifact revisions
+substitute for a source-owned version.
+
+The current target is only binding V3 / schemaVersion 3.0 with realization V3,
+package V2 and source V2. Original P10-21 proofs are historical. Current
+authoring preserves the existing eight constructors and semantic sidecars;
+coordinated consumer migration, parent validation, independent review and full
+Phase 10.4 acceptance/release remain pending. It changes no earlier Phase status.
 
 ## One pass, one ledger, eight constructors
 
-The package manifest is read once through its verified inventory/digest pass.
+The package manifest is read once through its verified inventory/version pass.
 That pass selects one present recognized continuity-family `role=projection`
-artifact whose `dependsOn` names the selected `role=realization` artifact. The
-continuity family is exactly the existing V1 or V2 profile/version pair; a V1
-plus V2 pair is duplicate continuity selection. A recognized
-`ccdm-candidate-cml-projection-v1` / `"1.0"` candidate-family artifact may
-coexist and is skipped only for continuity selection. Every considered
-projection must have canonical JSON bytes and a recognized exact pair; unknown
+artifact whose `dependsOn` contains the selected `role=realization` exact
+ID/revision/role reference. The continuity family is exactly
+`ccdm-projection-binding-v3` / `3.0`; duplicate continuity artifacts reject.
+The package classifier recognizes the current candidate/diff families, which
+may coexist and are skipped only for continuity selection. Every considered
+projection must have strict JSON and a recognized exact pair; unknown
 or malformed pairs fail closed rather than becoming a fallback. The realization
 already binds the accepted source snapshots, exact Component/context/selected-
 Use-Case scope, elements, relationships, assertion lanes, source references,
@@ -61,26 +67,36 @@ one closed binding of references (no semantic copies)
 ```
 
 This one-pass route matters: a consumer can independently reproduce the
-admitted input from exact package bytes and manifest context. It never requires
+admitted input from captured payload and explicit manifest references. It never requires
 a previous chat, provider response, database cache, filesystem encounter order,
 label, display layout, or an inferred reconstruction. Missing, duplicate, or
 non-dependent selections fail before projection construction.
 
-The binding repeats only the exact realization artifact ID and its three scope
-identities. Each view record then references one exact in-scope element or
+The binding carries a separately producer-allocated logical `bindingReference`,
+the exact selected `realizationArtifactReference` and its three scope
+identities. Its six root fields are exactly `bindingReference`, `profile`,
+`realizationArtifactReference`, `schemaVersion`, `scope` and `views`.
+The logical reference has closed `recordId`/`recordRevision`; the artifact
+reference has closed `artifactId`/`artifactRevision`/`role`, with role realization.
+Both revisions are explicit positive lexical `Long` integers, never defaults,
+inferred counters or another record's version. Logical binding, realization
+record, carrier artifact, carrier revision and source revision are independent.
+Each view record then references one exact in-scope element or
 relationship, its complete assertion-lane and condition ID links, and one
 directly witnessed Phase 9 role. It deliberately does not carry a label, path,
 hash, endpoint, direction, tie key, navigation target, copied source, copied
 condition, or mutable payload. Those omissions ensure that the persisted view
 cannot become a competing semantic authority.
 
-For an accepted V1 realization, the binding remains
-`ccdm-projection-binding-v1` / `schemaVersion="1.0"` with its unchanged
-historical grammar and semantics. An accepted V2 realization is consumed only
-by `ccdm-projection-binding-v2` / `schemaVersion="2.0"`; the root, scope,
-family, record, complete link-array, gap, and sequence shapes remain closed and
-unchanged. The version pair keeps a consumer from silently recasting prior
-binding bytes or treating an association as a view-local fact.
+Only `ccdm-projection-binding-v3` / `schemaVersion="3.0"` consumes the exact
+V3 realization. V1, V2 and mismatched pairs reject; no decoder, shim, alias,
+overload, inferred version or fallback retains those old shapes. Scope, family,
+record, complete link-array, gap and sequence semantics remain unchanged.
+Strict UTF-8/JSON rejects BOM, malformed content, duplicate members and
+missing/extra fields. Harmless key order, whitespace and escaping are admitted.
+The ordinary encoder emits deterministic JSON on demand without a byte cache,
+canonical admission comparison or content identity. Producer versions supply
+declared provenance, not authentication or undeclared-mutation detection.
 
 ## Exact roles without view conversion
 
@@ -122,26 +138,26 @@ attributable bounded gap supported by the existing DTO. It may not choose the
 first or last source, concatenate condition details into a synthetic winner, or
 claim that a presentation ordering makes evidence representable.
 
-The V1 representability gate is concrete. For every bound normal record, B2
-collects source-reference IDs from all canonical assertions, all enrichment
-assertions, and all linked conditions. For a gap, it collects the ID from its
-one admitted condition. All collected references must resolve to exactly one
-distinct source-reference ID, and that reference's `target` must be exactly
-`Some(kind, identity)` of the bound target. Zero, missing, distinct,
-wrong-target, or ambiguous references reject; B2 cannot select a first or last
-source or borrow another relation's source. It maps the one reference to
+For a gap, the one admitted condition supplies exactly its own source
+reference; that reference's `target` must equal `Some(kind, identity)` of the
+bound target. The adapter cannot select another source or borrow a relation's
+source. It maps that reference to
 `ComponentDashboardSourceAttribution(sourceId = source.identity,
 authorityScope = source.authority, sourceLocator = sourceAnchor)`, while the
 full reference and ledger remain in the sidecar.
 
-The V2 gate has a narrower, explicit attribution rule: one DTO receives the
+The V3 attribution rule is exact: one normal DTO receives the
 source reference of its one direct canonical same-identity
 `kind:<viewRole>` or `role:<viewRole>` witness. A missing, multiple,
 different-source, wrong-target, or conflicting role witness rejects rather
 than selecting one. Association and sequence source references are still
-complete evidence, but remain in the retained V2 realization sidecar rather
+complete evidence, but remain in the retained V3 realization sidecar rather
 than being collapsed into the DTO's one attribution. The exact B1 condition
-compression and one-condition gap rules continue unchanged.
+compression and one-condition gap rules continue unchanged. Two direct
+assertions reject even if they name the same source reference. Enrichment and
+condition sources also remain complete in the sidecar, without aggregation
+into normal attribution. Unknown source revisions remain explicit unknowns,
+with no readiness claim or fabricated source version.
 
 `ComponentDashboardCondition` has adapter sentinels
 `availability="unverified"` and `authorization="unverified"`; these are not
@@ -180,8 +196,8 @@ sequence.
 Most view output retains the existing constructors' identity-first deterministic
 order. That order is reproducibility only; it supplies neither chronology nor
 causality, authority, priority, or an evidence winner. The profile fixes its
-eight family positions and record identity tuple order so canonical re-encoding
-is byte-stable, but neither order is semantic input.
+eight family positions and record identity tuple order for declared semantic
+array structure, independently of object-key order and JSON presentation.
 
 Only `UseCaseCommunicationFlowStep` and `WorkflowProjectionFlowRelation`
 relationships have source-owned order. Each must name a canonical assertion on
@@ -217,7 +233,7 @@ duplicate sequence keys within one flow reject. Array order, labels, loose
 endpoints, and presentation tie keys never establish membership or order. This
 adds no binding field and no realization schema or API.
 
-The later B2B constructor proof uses the closed V2 associations only for the
+The reconstruction uses the closed V3 associations only for the
 frozen all-eight mapping: `owner` relates a Structure assertion relation to its
 exact parent Structure relation, a Classification dimension assertion to its
 exact dimension element, a Workflow flow to its exact Workflow element, a
@@ -233,12 +249,18 @@ required nested value empty.
 
 The implementation retains the accepted realization and complete binding next
 to the eight constructed values. It obtains both through the one verified
-package handoff and invokes only existing Phase 9 constructors. It does not
+package handoff, validates `handoff.realizationpackage`, selects its
+`realization.reference`, and checks the binding against that exact captured
+artifact reference and projection dependency. Null handoff/projection/package,
+reference, bytes or dependency metadata and invalid IDs/revisions/roles,
+duplicate/unsorted dependencies or self-dependency reject before partial return
+through structured `operationInvalid`. It invokes only existing Phase 9
+constructors. It does not
 reopen the manifest, read another artifact set, create a projection-local
 source record, or transfer source authority to an association or sequence
 witness.
 
-For V2, one DTO attribution comes only from a direct same-target role witness.
+For V3, one DTO attribution comes only from a direct same-target role witness.
 Association and sequence source references remain evidence in the sidecar, not
 attribution shortcuts for a parent or nested endpoint. The adapter fails closed
 when endpoint-local evidence, a required owner/subject association, or a
@@ -247,26 +269,35 @@ at this boundary.
 
 ## Navigation remains deliberately absent
 
-The B1 artifact has no navigation field. Keeping a relationship reference does
+The binding artifact has no navigation field. Keeping a relationship reference does
 not show that another surface can safely receive it. B2 therefore suppresses
 navigation unless a separately implemented exact receiving contract proves the
 target, scope, attribution, conditions, and receiver. It may not replace that
 contract with a loose query, proxy, dead link, inferred reverse relation,
 reauthorization, disclosure, or source fetch.
 
-## B2B implementation proof and excluded work
+## Current executable authoring and excluded work
 
-B2B implements the parser/validator and one-pass
-package-to-realization-to-binding path. Its executable fixture constructs
-substantive nonempty values through all eight existing constructors and checks
-label/order invariance and fail-closed unknown, cross-scope, duplicate,
-role/endpoint/dependency, relationship/sequence, lane-promotion,
-omitted-condition, and hidden-winner cases. Focused representative and
-package/realization accumulator validation passed; P10-21 Step review and
-acceptance commit remain pending.
+The in-place
+[InternalModelProjectionContinuityValidatorSpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelProjectionContinuityValidatorSpec.scala)
+migration retains substantive normal/nested values through all eight existing
+constructors, owner and Value/Aggregate metadata, label/order invariance,
+complete sidecars and fail-closed identity, role, endpoint, association,
+sequence, lane, condition and gap cases. It adds declared version boundaries,
+invalid lexical forms, exact realization artifact reference failures,
+malformed/null capture, legacy rejection, harmless presentation variation and
+ordinary writer semantic roundtrips. Generated identities, labels, revisions
+and encounter order remain active ScalaCheck dimensions. Later semantic
+rejection scenarios establish earlier realization admission in setup.
+Fixture roots are confined to `target/internal-model-projection-continuity/work`;
+only the exact fixture subtree is cleaned, without following symlinks, and its
+walk is closed in `finally`.
 
-This B1 design creates no new package role, CCDM or Phase 9 public API,
+Historical validation does not establish V3 acceptance. Coordinated consumer
+migration, parent validation and independent review remain pending.
+
+This binding creates no new package role, CCDM or Phase 9 public API,
 mutable state, CML read/write, live source, approval, rehydration, Web/API
 route, Phase 10.3+ behavior, review workflow, publication, deployment, or
-checklist closure. P10-21 and Phase 10.2 remain open pending their separately
-required review, acceptance, and release gates.
+checklist closure. Phase 10.4 retains its separately required complete
+executable proof, validation, review, acceptance and release gates.

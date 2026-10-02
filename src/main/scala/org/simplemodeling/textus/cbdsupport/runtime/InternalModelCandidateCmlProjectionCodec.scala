@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.ByteBuffer
 import java.nio.charset.{CodingErrorAction, StandardCharsets}
-import java.security.MessageDigest
 import java.util.{Arrays, Base64}
 
 import scala.util.control.NonFatal
@@ -12,71 +11,64 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Parses and encodes the closed candidate CML projection profile without CML interpretation. */
 private[runtime] object InternalModelCandidateCmlProjectionCodec {
   private val _root_fields = Set(
-    "candidateIdentity", "candidateModelIdentity", "candidateRevision", "continuityArtifactId", "profile",
-    "realizationArtifactId", "schemaVersion", "scope", "targets"
+    "candidateReference", "candidateModelIdentity", "continuityArtifactReference", "profile",
+    "realizationArtifactReference", "schemaVersion", "scope", "targets"
   )
   private val _scope_fields = Set("componentIdentity", "projectionContextIdentity", "selectedUseCaseElementIdentity")
-  private val _target_fields = Set("baselineArtifactId", "effects", "mappings", "patchIdentity", "projectRelativePath", "proposedContent", "source", "targetId")
-  private val _content_fields = Set("byteLength", "rawBytesBase64", "sha256")
-  private val _source_fields = Set("authority", "identity", "locator", "revision", "sha256")
+  private val _target_fields = Set("baselineArtifactReference", "effects", "mappings", "patchIdentity", "projectRelativePath", "proposedContent", "source", "targetId")
+  private val _content_fields = Set("contentReference", "byteLength", "rawBytesBase64")
+  private val _source_fields = Set("authority", "identity", "locator", "revision")
   private val _mapping_fields = Set("canonicalAssertionIds", "cmlAnchor", "cmlSemanticIdentity", "conditionIds", "enrichmentAssertionIds", "mappingId", "semanticIdentity", "semanticIdentityKind")
   private val _effect_fields = Set("assessment", "detail", "effectId", "kind", "mappingIds", "sourceReferenceId")
-  private val _digest_pattern = "sha256:[0-9a-f]{64}".r
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
   private val _canonical_printer = Printer.noSpacesSortKeys
 
   def decode(projection: InternalModelVerifiedProjection): Either[String, InternalModelCandidateCmlProjection] =
     for {
-      _ <- Either.cond(projection.role == "projection", (), "selected candidate artifact role must be projection")
+      _ <- Either.cond(projection != null, (), "selected candidate capture must be present")
+      _ <- _captured_metadata(projection)
       bytes = projection.bytes.toArray
       _ <- Either.cond(!_has_bom(bytes), (), "candidate CML projection bytes must not contain a UTF-8 byte-order mark")
       content <- _decode_utf8(bytes, "candidate CML projection bytes")
       json <- _json_parser.parse(content).left.map(_ => "candidate CML projection bytes must be valid JSON without duplicate members")
       root <- json.asObject.toRight("candidate CML projection root must be an object")
-      canonical = _canonical_bytes(json)
-      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "candidate CML projection bytes are not canonical JSON")
       _ <- _closed_fields(root, _root_fields, "candidate CML projection root")
-      candidateidentity <- _nonempty_string(root, "candidateIdentity", "candidate CML projection root")
+      candidatevalue <- root("candidateReference").toRight("candidateReference is missing")
+      candidatereference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(candidatevalue))
+      _ <- _valid_text(candidatereference.recordId.value, "candidateReference recordId")
       modelidentity <- _nonempty_string(root, "candidateModelIdentity", "candidate CML projection root")
-      revision <- _candidate_revision(root)
-      continuityartifactid <- _nonempty_string(root, "continuityArtifactId", "candidate CML projection root")
+      continuityreference <- _artifact_reference(root, "continuityArtifactReference", InternalModelArtifactRole.Projection)
       profile <- _nonempty_string(root, "profile", "candidate CML projection root")
-      _ <- Either.cond(profile == "ccdm-candidate-cml-projection-v1", (), "candidate CML projection profile is unsupported")
-      realizationartifactid <- _nonempty_string(root, "realizationArtifactId", "candidate CML projection root")
+      _ <- Either.cond(profile == "ccdm-candidate-cml-projection-v2", (), "candidate CML projection profile is unsupported")
+      realizationreference <- _artifact_reference(root, "realizationArtifactReference", InternalModelArtifactRole.Realization)
       schema <- _nonempty_string(root, "schemaVersion", "candidate CML projection root")
-      _ <- Either.cond(schema == "1.0", (), "candidate CML projection schemaVersion is unsupported")
+      _ <- Either.cond(schema == "2.0", (), "candidate CML projection schemaVersion is unsupported")
       scope <- _scope(root)
       targets <- _targets(root)
-      candidate = InternalModelCandidateCmlProjection(
-        candidateIdentity = candidateidentity,
+    } yield InternalModelCandidateCmlProjection(
+        candidateReference = candidatereference,
         candidateModelIdentity = modelidentity,
-        candidateRevision = revision,
-        continuityArtifactId = continuityartifactid,
+        continuityArtifactReference = continuityreference,
         profile = profile,
-        realizationArtifactId = realizationartifactid,
+        realizationArtifactReference = realizationreference,
         schemaVersion = schema,
         scope = scope,
-        targets = targets,
-        canonicalBytes = Vector.empty
+        targets = targets
       )
-      encoded = encode(candidate).toVector
-      _ <- Either.cond(encoded == canonical.toVector, (), "typed candidate CML projection re-encoding does not match supplied canonical bytes")
-    } yield candidate.copy(canonicalBytes = encoded)
 
   def encode(projection: InternalModelCandidateCmlProjection): Array[Byte] =
     _canonical_bytes(Json.obj(
-      "candidateIdentity" -> Json.fromString(projection.candidateIdentity),
+      "candidateReference" -> _record_json(projection.candidateReference),
       "candidateModelIdentity" -> Json.fromString(projection.candidateModelIdentity),
-      "candidateRevision" -> Json.fromInt(projection.candidateRevision),
-      "continuityArtifactId" -> Json.fromString(projection.continuityArtifactId),
+      "continuityArtifactReference" -> _artifact_json(projection.continuityArtifactReference),
       "profile" -> Json.fromString(projection.profile),
-      "realizationArtifactId" -> Json.fromString(projection.realizationArtifactId),
+      "realizationArtifactReference" -> _artifact_json(projection.realizationArtifactReference),
       "schemaVersion" -> Json.fromString(projection.schemaVersion),
       "scope" -> _scope_json(projection.scope),
       "targets" -> Json.fromValues(projection.targets.map(_target_json))
@@ -104,7 +96,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       }
       _ <- _strictly_sorted(targets.map(target => Vector(target.targetId)), "candidate CML projection targets")
       _ <- _unique(targets.map(_.patchIdentity), "candidate CML projection patch identities")
-      _ <- _unique(targets.map(_.baselineArtifactId), "candidate CML projection baseline artifact IDs")
+      _ <- _unique(targets.map(_.baselineArtifactReference.artifactId.value), "candidate CML projection baseline artifact IDs")
       _ <- _unique(targets.map(_.projectRelativePath), "candidate CML projection project-relative paths")
       _ <- _unique(targets.flatMap(_.mappings.map(_.mappingId)), "candidate CML projection mapping IDs")
       _ <- _unique(targets.flatMap(_.effects.map(_.effectId)), "candidate CML projection effect IDs")
@@ -114,7 +106,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
     for {
       objectvalue <- _object(value, s"candidate CML projection target $index")
       _ <- _closed_fields(objectvalue, _target_fields, s"candidate CML projection target $index")
-      baselineartifactid <- _nonempty_string(objectvalue, "baselineArtifactId", s"candidate CML projection target $index")
+      baselinereference <- _artifact_reference(objectvalue, "baselineArtifactReference", InternalModelArtifactRole.SourceSnapshot)
       effects <- _effects(objectvalue, index)
       mappings <- _mappings(objectvalue, index)
       patchidentity <- _nonempty_string(objectvalue, "patchIdentity", s"candidate CML projection target $index")
@@ -125,20 +117,21 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       sourcevalue <- objectvalue("source").toRight(s"candidate CML projection target $index source is missing")
       source <- _source(sourcevalue, s"candidate CML projection target $index source")
       targetid <- _nonempty_string(objectvalue, "targetId", s"candidate CML projection target $index")
-    } yield InternalModelCandidateCmlTarget(baselineartifactid, effects, mappings, patchidentity, path, proposed, source, targetid)
+    } yield InternalModelCandidateCmlTarget(baselinereference, effects, mappings, patchidentity, path, proposed, source, targetid)
 
   private def _content(value: Json, label: String): Either[String, InternalModelCandidateCmlContent] =
     for {
       objectvalue <- _object(value, label)
       _ <- _closed_fields(objectvalue, _content_fields, label)
+      referencevalue <- objectvalue("contentReference").toRight(s"$label contentReference is missing")
+      reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(referencevalue))
+      _ <- _valid_text(reference.recordId.value, s"$label contentReference recordId")
       bytelength <- _nonnegative_integer(objectvalue, "byteLength", label)
       encoded <- _string(objectvalue, "rawBytesBase64", label)
       rawbytes <- _decode_base64(encoded, label)
       _ <- Either.cond(_canonical_base64(rawbytes) == encoded, (), s"$label rawBytesBase64 is not canonical RFC 4648 padded Base64")
       _ <- Either.cond(bytelength == rawbytes.length.toLong, (), s"$label byteLength does not match decoded bytes")
-      sha256 <- _string(objectvalue, "sha256", label)
-      _ <- Either.cond(_digest_pattern.matches(sha256) && sha256 == _sha256(rawbytes), (), s"$label sha256 does not match decoded bytes")
-    } yield InternalModelCandidateCmlContent(bytelength, encoded, sha256)
+    } yield InternalModelCandidateCmlContent(reference, bytelength, encoded)
 
   private def _source(value: Json, label: String): Either[String, InternalModelSemanticSource] =
     for {
@@ -148,9 +141,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       identity <- _nonempty_string(objectvalue, "identity", label)
       locator <- _nullable_nonempty_string(objectvalue, "locator", label)
       revision <- _nullable_nonempty_string(objectvalue, "revision", label)
-      sha256 <- _string(objectvalue, "sha256", label)
-      _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
-    } yield InternalModelSemanticSource(authority, identity, locator, revision, sha256)
+    } yield InternalModelSemanticSource(authority, identity, locator, revision)
 
   private def _mappings(objectvalue: JsonObject, targetindex: Int): Either[String, Vector[InternalModelCandidateCmlMapping]] =
     for {
@@ -214,11 +205,6 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       case _ => Left(s"$label kind is invalid")
     }
 
-  private def _candidate_revision(root: JsonObject): Either[String, Int] =
-    root("candidateRevision").flatMap(_.asNumber).flatMap { number =>
-      number.toInt.filter(value => value >= 1 && number.toString == value.toString)
-    }.toRight("candidate CML projection candidateRevision must be a canonical integer in 1..2147483647")
-
   private def _nonnegative_integer(objectvalue: JsonObject, key: String, label: String): Either[String, Long] =
     objectvalue(key).flatMap(_.asNumber).flatMap { number =>
       number.toLong.filter(value => value >= 0 && number.toString == value.toString)
@@ -233,7 +219,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
 
   private def _target_json(target: InternalModelCandidateCmlTarget): Json =
     Json.obj(
-      "baselineArtifactId" -> Json.fromString(target.baselineArtifactId),
+      "baselineArtifactReference" -> _artifact_json(target.baselineArtifactReference),
       "effects" -> Json.fromValues(target.effects.map(_effect_json)),
       "mappings" -> Json.fromValues(target.mappings.map(_mapping_json)),
       "patchIdentity" -> Json.fromString(target.patchIdentity),
@@ -245,9 +231,9 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
 
   private def _content_json(content: InternalModelCandidateCmlContent): Json =
     Json.obj(
+      "contentReference" -> _record_json(content.contentReference),
       "byteLength" -> Json.fromLong(content.byteLength),
-      "rawBytesBase64" -> Json.fromString(content.rawBytesBase64),
-      "sha256" -> Json.fromString(content.sha256)
+      "rawBytesBase64" -> Json.fromString(content.rawBytesBase64)
     )
 
   private def _source_json(source: InternalModelSemanticSource): Json =
@@ -255,8 +241,7 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       "authority" -> Json.fromString(source.authority),
       "identity" -> Json.fromString(source.identity),
       "locator" -> source.locator.map(Json.fromString).getOrElse(Json.Null),
-      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null),
-      "sha256" -> Json.fromString(source.sha256)
+      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null)
     )
 
   private def _mapping_json(mapping: InternalModelCandidateCmlMapping): Json =
@@ -291,12 +276,12 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
     objectvalue(key).flatMap(_.asString).toRight(s"$label $key must be a JSON string")
 
   private def _nonempty_string(objectvalue: JsonObject, key: String, label: String): Either[String, String] =
-    _string(objectvalue, key, label).flatMap(value => Either.cond(value.nonEmpty, value, s"$label $key must be nonempty"))
+    _string(objectvalue, key, label).flatMap(value => _valid_text(value, s"$label $key").map(_ => value))
 
   private def _nullable_nonempty_string(objectvalue: JsonObject, key: String, label: String): Either[String, Option[String]] =
     objectvalue(key) match {
       case Some(value) if value.isNull => Right(None)
-      case Some(value) => value.asString.filter(_.nonEmpty).map(Some(_)).toRight(s"$label $key must be null or a nonempty string")
+      case Some(value) => value.asString.toRight(s"$label $key must be null or a nonblank string").flatMap(text => _valid_text(text, s"$label $key").map(_ => Some(text)))
       case None => Left(s"$label $key is missing")
     }
 
@@ -313,7 +298,8 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
       values.zipWithIndex.foldLeft[Either[String, Vector[String]]](Right(Vector.empty)) { case (result, (value, index)) =>
         for {
           collected <- result
-          stringvalue <- value.asString.filter(_.nonEmpty).toRight(s"$label $key $index must be a nonempty string")
+          stringvalue <- value.asString.toRight(s"$label $key $index must be a string")
+          _ <- _valid_text(stringvalue, s"$label $key $index")
         } yield collected :+ stringvalue
       }
     }
@@ -358,6 +344,47 @@ private[runtime] object InternalModelCandidateCmlProjectionCodec {
   private def _canonical_bytes(json: Json): Array[Byte] =
     (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
 
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
+  private def _json_bytes(json: Json): Vector[Byte] = json.noSpaces.getBytes(StandardCharsets.UTF_8).toVector
+
+  private def _record_json(reference: InternalModelRecordReference): Json =
+    Json.obj("recordId" -> Json.fromString(reference.recordId.value), "recordRevision" -> Json.fromLong(reference.recordRevision.value))
+
+  private def _artifact_json(reference: InternalModelArtifactReference): Json =
+    Json.obj("artifactId" -> Json.fromString(reference.artifactId.value), "artifactRevision" -> Json.fromLong(reference.artifactRevision.value), "role" -> Json.fromString(reference.role.wireValue))
+
+  private def _artifact_reference(root: JsonObject, key: String, role: InternalModelArtifactRole): Either[String, InternalModelArtifactReference] =
+    for {
+      value <- root(key).toRight(s"$key is missing")
+      reference <- InternalModelTypedControlCodec.decodeArtifactReference(_json_bytes(value))
+      _ <- Either.cond(reference.role == role, (), s"$key has the wrong role")
+    } yield reference
+
+  private def _valid_text(value: String, label: String): Either[String, Unit] = {
+    val encoder = StandardCharsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
+    Either.cond(value != null && !value.isBlank && encoder.canEncode(value), (), s"$label must be nonblank valid Unicode")
+  }
+
+  private[runtime] def referenceMetadata(reference: InternalModelArtifactReference): Either[String, Unit] =
+    for {
+      _ <- Either.cond(reference != null && reference.role != null, (), "captured reference and role must be present")
+      _ <- InternalModelArtifactId.from(reference.artifactId.value)
+      _ <- InternalModelArtifactRevision.from(reference.artifactRevision.value)
+    } yield ()
+
+  private[runtime] def capturedMetadata(reference: InternalModelArtifactReference, path: String, dependencies: Vector[InternalModelArtifactReference]): Either[String, Unit] =
+    for {
+      _ <- referenceMetadata(reference)
+      _ <- Either.cond(path != null && InternalModelSourceSnapshotFreshness.isSafeCmlProjectRelativePath(path) && path != "manifest.yaml", (), "captured path must be safe")
+      _ <- Either.cond(dependencies != null, (), "captured dependencies must be present")
+      _ <- dependencies.foldLeft[Either[String, Unit]](Right(()))((result, value) => result.flatMap(_ => referenceMetadata(value)))
+      _ <- _strictly_sorted(dependencies.map(value => Vector(value.artifactId.value)), "captured dependency IDs")
+      _ <- Either.cond(!dependencies.exists(_.artifactId == reference.artifactId), (), "captured artifact must not depend on itself")
+    } yield ()
+
+  private def _captured_metadata(projection: InternalModelVerifiedProjection): Either[String, Unit] =
+    for {
+      _ <- capturedMetadata(projection.reference, projection.path, projection.dependencies)
+      _ <- Either.cond(projection.reference.role == InternalModelArtifactRole.Projection, (), "selected candidate role must be projection")
+      _ <- Either.cond(projection.bytes != null, (), "selected candidate bytes must be present")
+    } yield ()
 }

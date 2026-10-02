@@ -2,13 +2,13 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelCandidateCmlContent(
+  contentReference: InternalModelRecordReference,
   byteLength: Long,
-  rawBytesBase64: String,
-  sha256: String
+  rawBytesBase64: String
 )
 
 private[runtime] final case class InternalModelCandidateCmlMapping(
@@ -32,7 +32,7 @@ private[runtime] final case class InternalModelCandidateCmlEffect(
 )
 
 private[runtime] final case class InternalModelCandidateCmlTarget(
-  baselineArtifactId: String,
+  baselineArtifactReference: InternalModelArtifactReference,
   effects: Vector[InternalModelCandidateCmlEffect],
   mappings: Vector[InternalModelCandidateCmlMapping],
   patchIdentity: String,
@@ -43,24 +43,21 @@ private[runtime] final case class InternalModelCandidateCmlTarget(
 )
 
 private[runtime] final case class InternalModelCandidateCmlProjection(
-  candidateIdentity: String,
+  candidateReference: InternalModelRecordReference,
   candidateModelIdentity: String,
-  candidateRevision: Int,
-  continuityArtifactId: String,
+  continuityArtifactReference: InternalModelArtifactReference,
   profile: String,
-  realizationArtifactId: String,
+  realizationArtifactReference: InternalModelArtifactReference,
   schemaVersion: String,
   scope: InternalModelSemanticScope,
-  targets: Vector[InternalModelCandidateCmlTarget],
-  canonicalBytes: Vector[Byte]
+  targets: Vector[InternalModelCandidateCmlTarget]
 )
 
 private[runtime] final case class InternalModelCandidateCmlBaseline(
-  artifactId: String,
+  reference: InternalModelArtifactReference,
   projectRelativePath: String,
   source: InternalModelSemanticSource,
-  rawBytes: Vector[Byte],
-  snapshotSha256: String
+  rawBytes: Vector[Byte]
 )
 
 private[runtime] final case class InternalModelCandidateCmlTargetBytes(
@@ -73,8 +70,7 @@ private[runtime] final case class InternalModelCandidateCmlAdmission(
   projection: InternalModelCandidateCmlProjection,
   continuity: InternalModelProjectionContinuity,
   packageContext: InternalModelVerifiedPackageContext,
-  candidateArtifactId: String,
-  candidateArtifactSha256: String,
+  candidateArtifactReference: InternalModelArtifactReference,
   candidatePackageRelativePath: String,
   targetBytes: Vector[InternalModelCandidateCmlTargetBytes]
 )

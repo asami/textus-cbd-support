@@ -9,7 +9,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 27, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] enum InternalModelPackageFreshnessInput {
@@ -18,7 +18,7 @@ private[runtime] enum InternalModelPackageFreshnessInput {
     authority: String,
     identity: String,
     revision: Option[String],
-    currentProjectRelativePath: String
+    currentprojectrelativepath: String
   )
 }
 
@@ -28,8 +28,8 @@ private[runtime] enum InternalModelPackageFreshnessResult {
 }
 
 private[runtime] final case class InternalModelPackageFreshnessEntry(
-  artifactId: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   result: InternalModelPackageFreshnessResult
 )
 
@@ -48,9 +48,11 @@ private[runtime] object InternalModelPackageFreshness {
 
   def check(
     projectRoot: Path,
-    inputs: Map[String, InternalModelPackageFreshnessInput]
+    inputs: Map[InternalModelArtifactReference, InternalModelPackageFreshnessInput]
   ): Consequence[InternalModelPackageFreshnessReport] = {
     if inputs == null then Consequence.operationInvalid("source-snapshot freshness inputs are missing")
+    else if inputs.exists { case (reference, input) => reference == null || input == null } then
+      Consequence.operationInvalid("source-snapshot freshness input references and values must be non-null")
     else
       try {
         InternalModelPackageValidator.verifiedSourceSnapshots(projectRoot).flatMap { snapshots =>
@@ -64,20 +66,19 @@ private[runtime] object InternalModelPackageFreshness {
   private def _check(
     projectroot: Path,
     snapshots: Vector[InternalModelVerifiedSourceSnapshot],
-    inputs: Map[String, InternalModelPackageFreshnessInput]
+    inputs: Map[InternalModelArtifactReference, InternalModelPackageFreshnessInput]
   ): Either[String, InternalModelPackageFreshnessReport] =
-    _input_ids(snapshots, inputs).map { _ =>
-      InternalModelPackageFreshnessReport(snapshots.map(snapshot => _entry(projectroot, snapshot, inputs.get(snapshot.artifactId))))
+    _input_references(snapshots, inputs).map { _ =>
+      InternalModelPackageFreshnessReport(snapshots.map(snapshot => _entry(projectroot, snapshot, inputs.get(snapshot.reference))))
     }
 
-  private def _input_ids(
+  private def _input_references(
     snapshots: Vector[InternalModelVerifiedSourceSnapshot],
-    inputs: Map[String, InternalModelPackageFreshnessInput]
-  ): Either[String, Unit] =
-    if inputs.keys.exists(_ == null) then Left("source-snapshot freshness input IDs must be nonempty manifest artifact IDs")
-    else {
-      val unknown = inputs.keySet -- snapshots.map(_.artifactId).toSet
-      if unknown.nonEmpty then Left(s"source-snapshot freshness inputs name unknown or non-source artifacts: ${unknown.toVector.sorted.mkString(", ")}")
+    inputs: Map[InternalModelArtifactReference, InternalModelPackageFreshnessInput]
+  ): Either[String, Unit] = {
+      val unknown = inputs.keySet -- snapshots.map(_.reference).toSet
+      val ordered = unknown.toVector.sortBy(reference => (reference.artifactId.value, reference.artifactRevision.value, reference.role.wireValue))
+      if ordered.nonEmpty then Left(s"source-snapshot freshness inputs name unknown, stale, wrong-role or non-source artifact references: ${ordered.map(reference => s"${reference.artifactId.value}/${reference.artifactRevision.value}/${reference.role.wireValue}").mkString(", ")}")
       else Right(())
     }
 
@@ -89,8 +90,8 @@ private[runtime] object InternalModelPackageFreshness {
     snapshot.bytes match {
       case None =>
         InternalModelPackageFreshnessEntry(
-          snapshot.artifactId,
-          snapshot.packageRelativePath,
+          snapshot.reference,
+          snapshot.path,
           InternalModelPackageFreshnessResult.MissingBaseline
         )
       case Some(bytes) =>
@@ -99,8 +100,8 @@ private[runtime] object InternalModelPackageFreshness {
           kind => _compare(projectroot, kind, bytes, input)
         )
         InternalModelPackageFreshnessEntry(
-          snapshot.artifactId,
-          snapshot.packageRelativePath,
+          snapshot.reference,
+          snapshot.path,
           InternalModelPackageFreshnessResult.Compared(report)
         )
     }
@@ -145,14 +146,14 @@ private[runtime] object InternalModelPackageFreshness {
     _cml_request_reason(request) match {
       case Some(reason) => InternalModelLiveSourceObservation.Malformed(reason)
       case None =>
-        _read_cml(projectroot, request.currentProjectRelativePath) match {
+        _read_cml(projectroot, request.currentprojectrelativepath) match {
           case CmlReadResult.Read(bytes) =>
             InternalModelLiveSourceObservation.Observed(
               request.authority,
               request.identity,
               request.revision,
               bytes,
-              Some(request.currentProjectRelativePath)
+              Some(request.currentprojectrelativepath)
             )
           case CmlReadResult.Unavailable(reason) => InternalModelLiveSourceObservation.Unavailable(reason)
           case CmlReadResult.Unauthorized(reason) => InternalModelLiveSourceObservation.Unauthorized(reason)
@@ -165,7 +166,7 @@ private[runtime] object InternalModelPackageFreshness {
     else if Option(request.authority).forall(_.isEmpty) then Some("CML observed request authority must be nonempty")
     else if Option(request.identity).forall(_.isEmpty) then Some("CML observed request identity must be nonempty")
     else if request.revision == null || request.revision.exists(value => value == null || value.isEmpty) then Some("CML observed request revision must be an explicit optional nonempty value")
-    else if !InternalModelSourceSnapshotFreshness.isSafeCmlProjectRelativePath(request.currentProjectRelativePath) then Some("CML observed request current project-relative target path is unsafe")
+    else if !InternalModelSourceSnapshotFreshness.isSafeCmlProjectRelativePath(request.currentprojectrelativepath) then Some("CML observed request current project-relative target path is unsafe")
     else None
 
   private def _read_cml(projectroot: Path, projectrelativepath: String): CmlReadResult =

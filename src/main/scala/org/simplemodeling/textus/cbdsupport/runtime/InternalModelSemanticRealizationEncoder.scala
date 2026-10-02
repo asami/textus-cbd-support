@@ -6,21 +6,24 @@ import io.circe.{Json, Printer}
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Encodes the closed semantic-realization artifact without validation or I/O. */
 private[runtime] object InternalModelSemanticRealizationEncoder {
-  private val _canonical_printer = Printer.noSpacesSortKeys
+  private val _printer = Printer.noSpacesSortKeys
 
   def encode(realization: InternalModelSemanticRealization): Array[Byte] =
-    _canonical_bytes(Json.obj(
-      "canonicalAssertions" -> Json.fromValues(realization.canonicalAssertions.map(_assertion_json(_, realization.profile))),
+    _serialize(Json.obj(
+      "canonicalAssertions" -> Json.fromValues(realization.canonicalAssertions.map(_assertion_json)),
       "conditions" -> Json.fromValues(realization.conditions.map(_condition_json)),
       "elements" -> Json.fromValues(realization.elements.map(_element_json)),
-      "enrichmentAssertions" -> Json.fromValues(realization.enrichmentAssertions.map(_assertion_json(_, realization.profile))),
+      "enrichmentAssertions" -> Json.fromValues(realization.enrichmentAssertions.map(_assertion_json)),
       "profile" -> Json.fromString(realization.profile),
-      "realizationIdentity" -> Json.fromString(realization.realizationIdentity),
+      "realizationReference" -> Json.obj(
+        "recordId" -> Json.fromString(realization.realizationReference.recordId.value),
+        "recordRevision" -> Json.fromLong(realization.realizationReference.recordRevision.value)
+      ),
       "relationships" -> Json.fromValues(realization.relationships.map(_relationship_json)),
       "schemaVersion" -> Json.fromString(realization.schemaVersion),
       "scope" -> Json.obj(
@@ -31,12 +34,13 @@ private[runtime] object InternalModelSemanticRealizationEncoder {
       "sourceReferences" -> Json.fromValues(realization.sourceReferences.map(_source_reference_json)),
       "successorLinks" -> Json.fromValues(realization.successorLinks.map(_successor_link_json)),
       "traceability" -> Json.obj(
-        "consumedSnapshotArtifactIds" -> Json.fromValues(realization.consumedSnapshotArtifactIds.map(Json.fromString))
+        "consumedSnapshotReferences" -> Json.fromValues(realization.consumedSnapshotReferences.map(_artifact_reference_json))
       )
     ))
 
-  private def _assertion_json(assertion: InternalModelSemanticAssertion, profile: String): Json = {
-    val fields = Vector(
+  private def _assertion_json(assertion: InternalModelSemanticAssertion): Json =
+    Json.obj(
+      "association" -> assertion.association.map(_association_json).getOrElse(Json.Null),
       "assertionId" -> Json.fromString(assertion.assertionId),
       "conditionIds" -> Json.fromValues(assertion.conditionIds.map(Json.fromString)),
       "content" -> Json.fromString(assertion.content),
@@ -44,9 +48,6 @@ private[runtime] object InternalModelSemanticRealizationEncoder {
       "semanticIdentityKind" -> Json.fromString(assertion.semanticIdentityKind),
       "sourceReferenceId" -> Json.fromString(assertion.sourceReferenceId)
     )
-    val v2fields = if profile == "ccdm-realization-v2" then fields :+ ("association" -> assertion.association.map(_association_json).getOrElse(Json.Null)) else fields
-    Json.obj(v2fields*)
-  }
 
   private def _association_json(association: InternalModelSemanticAssociation): Json =
     Json.obj(
@@ -91,7 +92,7 @@ private[runtime] object InternalModelSemanticRealizationEncoder {
   private def _source_reference_json(reference: InternalModelSemanticSourceReference): Json =
     Json.obj(
       "referenceId" -> Json.fromString(reference.referenceId),
-      "snapshotArtifactId" -> Json.fromString(reference.snapshotArtifactId),
+      "snapshotReference" -> _artifact_reference_json(reference.snapshotReference),
       "source" -> _source_json(reference.source),
       "sourceAnchor" -> Json.fromString(reference.sourceAnchor),
       "target" -> reference.target.map(_target_json).getOrElse(Json.Null)
@@ -102,8 +103,7 @@ private[runtime] object InternalModelSemanticRealizationEncoder {
       "authority" -> Json.fromString(source.authority),
       "identity" -> Json.fromString(source.identity),
       "locator" -> source.locator.map(Json.fromString).getOrElse(Json.Null),
-      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null),
-      "sha256" -> Json.fromString(source.sha256)
+      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null)
     )
 
   private def _target_json(target: InternalModelSemanticTarget): Json =
@@ -121,6 +121,13 @@ private[runtime] object InternalModelSemanticRealizationEncoder {
       "successorKind" -> Json.fromString(link.successorKind)
     )
 
-  private def _canonical_bytes(json: Json): Array[Byte] =
-    (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+  private def _artifact_reference_json(reference: InternalModelArtifactReference): Json =
+    Json.obj(
+      "artifactId" -> Json.fromString(reference.artifactId.value),
+      "artifactRevision" -> Json.fromLong(reference.artifactRevision.value),
+      "role" -> Json.fromString(reference.role.wireValue)
+    )
+
+  private def _serialize(json: Json): Array[Byte] =
+    (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
 }

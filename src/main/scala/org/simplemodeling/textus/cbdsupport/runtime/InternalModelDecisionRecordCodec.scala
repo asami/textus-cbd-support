@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.ByteBuffer
 import java.nio.charset.{CodingErrorAction, StandardCharsets}
-import java.util.Arrays
 
 import scala.util.control.NonFatal
 
@@ -11,54 +10,48 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
-/** Parses and emits the closed decision-record V1 bytes without selecting a current decision. */
+/** Parses and emits the closed decision-record V2 values without selecting a current decision. */
 private[runtime] object InternalModelDecisionRecordCodec {
-  private val _root_fields = Set("ledgerIdentity", "profile", "records", "schemaVersion", "scope")
+  private val _root_fields = Set("ledgerReference", "profile", "records", "schemaVersion", "scope")
   private val _scope_fields = Set("componentIdentity", "projectionContextIdentity", "selectedUseCaseElementIdentity")
   private val _record_fields = Set(
-    "actor", "affectedTargets", "assumptions", "basis", "conditions", "consideredEvidence", "decisionIdentity",
+    "actor", "affectedTargets", "assumptions", "basis", "conditions", "consideredEvidence", "decisionReference",
     "limitations", "provenance", "rationale", "realizationConditionIds", "rejectedAlternatives", "selectedChoice",
     "state", "supersedes", "topicIdentity"
   )
   private val _actor_fields = Set("identity", "kind", "role")
-  private val _source_fields = Set("authority", "identity", "locator", "revision", "sha256")
+  private val _source_fields = Set("authority", "identity", "locator", "revision")
   private val _choice_fields = Set("choiceIdentity", "description")
   private val _target_fields = Set("semanticIdentity", "semanticIdentityKind")
   private val _evidence_fields = Set("conditionIds", "conditions", "evidenceIdentity", "kind", "limitations", "source", "sourceReferenceId")
   private val _alternative_fields = Set("alternativeIdentity", "description", "rejectionRationale")
-  private val _basis_fields = Set("realizationArtifactId", "realizationIdentity", "scope", "sha256", "status")
-  private val _digest_pattern = "sha256:[0-9a-f]{64}".r
+  private val _basis_fields = Set("realizationArtifactReference", "realizationReference", "scope", "status")
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
-  private val _canonical_printer = Printer.noSpacesSortKeys
+  private val _printer = Printer.noSpacesSortKeys
 
   def decode(decision: InternalModelVerifiedDecision): Either[String, InternalModelDecisionLedger] =
     for {
-      _ <- Either.cond(decision.role == "decision", (), "selected artifact role must be decision")
+      _ <- _captured_metadata(decision)
       bytes = decision.bytes.toArray
       _ <- Either.cond(!_has_bom(bytes), (), "decision record bytes must not contain a UTF-8 byte-order mark")
       content <- _decode_utf8(bytes, "decision record bytes")
       json <- _json_parser.parse(content).left.map(_ => "decision record bytes must be valid JSON without duplicate members")
       root <- json.asObject.toRight("decision record root must be an object")
-      canonical = _canonical_bytes(json)
-      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "decision record bytes are not canonical JSON")
       _ <- _closed_fields(root, _root_fields, "decision record root")
       profile <- _nonblank_string(root, "profile", "decision record root")
       schema <- _nonblank_string(root, "schemaVersion", "decision record root")
-      _ <- Either.cond(profile == "ccdm-decision-records-v1" && schema == "1.0", (), "decision record profile and schemaVersion are unsupported")
-      ledgeridentity <- _nonblank_string(root, "ledgerIdentity", "decision record root")
+      _ <- Either.cond(profile == "ccdm-decision-records-v2" && schema == "2.0", (), "decision record profile and schemaVersion are unsupported")
+      ledgerreference <- _record_reference(root, "ledgerReference", "decision record root")
       scope <- _scope(root, "decision record")
       records <- _records(root)
-      candidate = InternalModelDecisionLedger(profile, schema, ledgeridentity, scope, records, Vector.empty)
-      encoded = encode(candidate)
-      _ <- Either.cond(encoded.toVector == canonical.toVector, (), "typed decision record re-encoding does not match supplied canonical bytes")
-    } yield candidate.copy(canonicalBytes = encoded.toVector)
+    } yield InternalModelDecisionLedger(profile, schema, ledgerreference, scope, records)
 
   def encode(ledger: InternalModelDecisionLedger): Array[Byte] =
-    _canonical_bytes(Json.obj(
-      "ledgerIdentity" -> Json.fromString(ledger.ledgerIdentity),
+    _json_output(Json.obj(
+      "ledgerReference" -> _record_reference_json(ledger.ledgerReference),
       "profile" -> Json.fromString(ledger.profile),
       "records" -> Json.fromValues(_sort_records(ledger.records).map(_record_json)),
       "schemaVersion" -> Json.fromString(ledger.schemaVersion),
@@ -75,14 +68,15 @@ private[runtime] object InternalModelDecisionRecordCodec {
         } yield collected :+ record
       }
       _ <- Either.cond(records.nonEmpty, (), "decision record root records must be nonempty")
-      _ <- _strictly_sorted(records.map(record => Vector(record.decisionIdentity)), "decision records")
+      _ <- _strictly_sorted(records.map(record => Vector(record.decisionReference.recordId.value)), "decision records")
     } yield records
 
   private def _record(value: Json, index: Int): Either[String, InternalModelDecisionRecord] =
     for {
       objectvalue <- _object(value, s"decision record $index")
       _ <- _closed_fields(objectvalue, _record_fields, s"decision record $index")
-      decisionidentity <- _nonblank_string(objectvalue, "decisionIdentity", s"decision record $index")
+      decisionreference <- _record_reference(objectvalue, "decisionReference", s"decision record $index")
+      decisionidentity = decisionreference.recordId.value
       topicidentity <- _nonblank_string(objectvalue, "topicIdentity", s"decision record $decisionidentity")
       statetoken <- _nonblank_string(objectvalue, "state", s"decision record $decisionidentity")
       state <- InternalModelDecisionState.fromToken(statetoken).toRight(s"decision record $decisionidentity state is invalid")
@@ -103,9 +97,12 @@ private[runtime] object InternalModelDecisionRecordCodec {
       _ <- Either.cond(!alternatives.exists(_.alternativeIdentity == choice.choiceIdentity), (), s"decision record $decisionidentity selected choice identity collides with a rejected alternative")
       basisvalue <- objectvalue("basis").toRight(s"decision record $decisionidentity basis is missing")
       basis <- _basis(basisvalue, s"decision record $decisionidentity basis")
-      supersedes <- _nullable_nonblank_string(objectvalue, "supersedes", s"decision record $decisionidentity")
+      supersedes <- objectvalue("supersedes").toRight(s"decision record $decisionidentity supersedes is missing").flatMap {
+        case value if value.isNull => Right(None)
+        case value => _record_reference_value(value).map(Some(_))
+      }
     } yield InternalModelDecisionRecord(
-      decisionidentity, topicidentity, state, actor, provenance, choice, rationale, targets, evidence,
+      decisionreference, topicidentity, state, actor, provenance, choice, rationale, targets, evidence,
       assumptions, conditions, limitations, conditionids, alternatives, basis, supersedes
     )
 
@@ -205,14 +202,14 @@ private[runtime] object InternalModelDecisionRecordCodec {
     for {
       objectvalue <- _object(value, label)
       _ <- _closed_fields(objectvalue, _basis_fields, label)
-      artifactid <- _nonblank_string(objectvalue, "realizationArtifactId", label)
-      identity <- _nonblank_string(objectvalue, "realizationIdentity", label)
-      sha256 <- _nonblank_string(objectvalue, "sha256", label)
-      _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
+      artifactvalue <- objectvalue("realizationArtifactReference").toRight(s"$label realizationArtifactReference is missing")
+      artifactreference <- InternalModelTypedControlCodec.decodeArtifactReference(_json_bytes(artifactvalue))
+      _ <- Either.cond(artifactreference.role == InternalModelArtifactRole.Realization, (), s"$label artifact role must be realization")
+      recordreference <- _record_reference(objectvalue, "realizationReference", label)
       scope <- _scope(objectvalue, label)
       statustoken <- _nonblank_string(objectvalue, "status", label)
       status <- InternalModelDecisionBasisStatus.fromToken(statustoken).toRight(s"$label status is invalid")
-    } yield InternalModelDecisionBasis(artifactid, identity, sha256, scope, status)
+    } yield InternalModelDecisionBasis(artifactreference, recordreference, scope, status)
 
   private def _scope(objectvalue: JsonObject, label: String): Either[String, InternalModelSemanticScope] =
     for {
@@ -238,9 +235,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       identity <- _nonblank_string(objectvalue, "identity", label)
       locator <- _nullable_nonblank_string(objectvalue, "locator", label)
       revision <- _nullable_nonblank_string(objectvalue, "revision", label)
-      sha256 <- _nonblank_string(objectvalue, "sha256", label)
-      _ <- Either.cond(_digest_pattern.matches(sha256), (), s"$label sha256 is invalid")
-    } yield InternalModelSemanticSource(authority, identity, locator, revision, sha256)
+    } yield InternalModelSemanticSource(authority, identity, locator, revision)
 
   private def _prose(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[String]] =
     for {
@@ -273,7 +268,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       "basis" -> _basis_json(record.basis),
       "conditions" -> Json.fromValues(record.conditions.map(Json.fromString)),
       "consideredEvidence" -> Json.fromValues(_sort_evidence(record.consideredEvidence).map(_evidence_json)),
-      "decisionIdentity" -> Json.fromString(record.decisionIdentity),
+      "decisionReference" -> _record_reference_json(record.decisionReference),
       "limitations" -> Json.fromValues(record.limitations.map(Json.fromString)),
       "provenance" -> _source_json(record.provenance),
       "rationale" -> Json.fromString(record.rationale),
@@ -281,7 +276,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       "rejectedAlternatives" -> Json.fromValues(_sort_alternatives(record.rejectedAlternatives).map(_alternative_json)),
       "selectedChoice" -> _choice_json(record.selectedChoice),
       "state" -> Json.fromString(record.state.token),
-      "supersedes" -> record.supersedes.map(Json.fromString).getOrElse(Json.Null),
+      "supersedes" -> record.supersedes.map(_record_reference_json).getOrElse(Json.Null),
       "topicIdentity" -> Json.fromString(record.topicIdentity)
     )
 
@@ -324,10 +319,9 @@ private[runtime] object InternalModelDecisionRecordCodec {
 
   private def _basis_json(basis: InternalModelDecisionBasis): Json =
     Json.obj(
-      "realizationArtifactId" -> Json.fromString(basis.realizationArtifactId),
-      "realizationIdentity" -> Json.fromString(basis.realizationIdentity),
+      "realizationArtifactReference" -> _artifact_reference_json(basis.realizationArtifactReference),
+      "realizationReference" -> _record_reference_json(basis.realizationReference),
       "scope" -> _scope_json(basis.scope),
-      "sha256" -> Json.fromString(basis.sha256),
       "status" -> Json.fromString(basis.status.token)
     )
 
@@ -343,8 +337,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
       "authority" -> Json.fromString(source.authority),
       "identity" -> Json.fromString(source.identity),
       "locator" -> source.locator.map(Json.fromString).getOrElse(Json.Null),
-      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null),
-      "sha256" -> Json.fromString(source.sha256)
+      "revision" -> source.revision.map(Json.fromString).getOrElse(Json.Null)
     )
 
   private def _object(value: Json, label: String): Either[String, JsonObject] =
@@ -374,7 +367,7 @@ private[runtime] object InternalModelDecisionRecordCodec {
   }
 
   private def _sort_records(records: Vector[InternalModelDecisionRecord]): Vector[InternalModelDecisionRecord] =
-    records.sortWith((left, right) => _compare_text(left.decisionIdentity, right.decisionIdentity) < 0)
+    records.sortWith((left, right) => _compare_text(left.decisionReference.recordId.value, right.decisionReference.recordId.value) < 0)
 
   private def _sort_targets(targets: Vector[InternalModelSemanticTarget]): Vector[InternalModelSemanticTarget] =
     targets.sortWith((left, right) => _compare_tuple(Vector(left.semanticIdentityKind, left.semanticIdentity), Vector(right.semanticIdentityKind, right.semanticIdentity)) < 0)
@@ -442,6 +435,46 @@ private[runtime] object InternalModelDecisionRecordCodec {
   private def _has_bom(bytes: Array[Byte]): Boolean =
     bytes.length >= 3 && bytes(0) == 0xef.toByte && bytes(1) == 0xbb.toByte && bytes(2) == 0xbf.toByte
 
-  private def _canonical_bytes(json: Json): Array[Byte] =
-    (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+  private def _json_output(json: Json): Array[Byte] =
+    (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+
+  private def _json_bytes(json: Json): Vector[Byte] =
+    json.noSpaces.getBytes(StandardCharsets.UTF_8).toVector
+
+  private def _record_reference(objectvalue: JsonObject, key: String, label: String): Either[String, InternalModelRecordReference] =
+    objectvalue(key).toRight(s"$label $key is missing").flatMap(_record_reference_value)
+
+  private def _record_reference_value(value: Json): Either[String, InternalModelRecordReference] =
+    for {
+      reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(value))
+      _ <- Either.cond(_nonblank(reference.recordId.value), (), "recordId must be a nonblank Unicode scalar string")
+    } yield reference
+
+  private def _record_reference_json(reference: InternalModelRecordReference): Json =
+    Json.obj("recordId" -> Json.fromString(reference.recordId.value), "recordRevision" -> Json.fromLong(reference.recordRevision.value))
+
+  private def _artifact_reference_json(reference: InternalModelArtifactReference): Json =
+    Json.obj("artifactId" -> Json.fromString(reference.artifactId.value), "artifactRevision" -> Json.fromLong(reference.artifactRevision.value), "role" -> Json.fromString(reference.role.wireValue))
+
+  private def _captured_metadata(decision: InternalModelVerifiedDecision): Either[String, Unit] =
+    for {
+      _ <- Either.cond(decision != null, (), "selected decision must be present")
+      _ <- _artifact_reference_metadata(decision.reference)
+      _ <- Either.cond(decision.reference.role == InternalModelArtifactRole.Decision, (), "selected artifact role must be decision")
+      _ <- Either.cond(decision.path != null && _nonblank(decision.path), (), "selected decision path must be present")
+      _ <- Either.cond(decision.bytes != null, (), "selected decision bytes must be present")
+      _ <- Either.cond(decision.dependencies != null, (), "selected decision dependencies must be present")
+      _ <- decision.dependencies.foldLeft[Either[String, Unit]](Right(())) { (result, reference) =>
+        result.flatMap(_ => _artifact_reference_metadata(reference))
+      }
+      _ <- _strictly_sorted(decision.dependencies.map(reference => Vector(reference.artifactId.value)), "selected decision dependencies")
+      _ <- Either.cond(!decision.dependencies.exists(_.artifactId == decision.reference.artifactId), (), "selected decision must not depend on itself")
+    } yield ()
+
+  private def _artifact_reference_metadata(reference: InternalModelArtifactReference): Either[String, Unit] =
+    for {
+      _ <- Either.cond(reference != null && reference.role != null, (), "captured artifact reference and role must be present")
+      _ <- InternalModelArtifactId.from(reference.artifactId.value)
+      _ <- InternalModelArtifactRevision.from(reference.artifactRevision.value)
+    } yield ()
 }

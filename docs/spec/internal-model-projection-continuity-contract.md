@@ -1,18 +1,21 @@
 ---
-status: draft
-decision_scope: P10-21A--P10-21B1
-updated_at: 2026-09-28
+status: target
+decision_scope: P10-21 / P104-TYPED-PROJECTION-CONTINUITY
+updated_at: 2026-10-01
 ---
 
 # Internal-model Projection Continuity Contract
 
-This normative contract retains P10-21A's logical continuity admission and
-defines P10-21B1's closed, canonical `ccdm-projection-binding-v1` artifact and
-P10-21B2A's V2 interpretation for V2 realizations.
+This normative contract preserves Phase 9 continuity and defines only
+`ccdm-projection-binding-v3` / schemaVersion `3.0` paired with
+`ccdm-realization-v3` / schemaVersion `3.0`, package V2 and source V2.
 Its companion is the [Internal-model Projection Continuity
 Design](../design/internal-model-projection-continuity.md). The
 [Internal-model Package Contract](internal-model-package-contract.md) remains
-authoritative for the manifest, inventory, digest, and dependency relation.
+authoritative for the manifest, inventory and exact versioned dependencies.
+The [Typed Control Contract](internal-model-typed-control-contract.md) owns
+explicit record/artifact references, and the [Source Snapshot
+Contract](internal-model-source-snapshot-contract.md) owns source attribution.
 The [Internal-model Semantic Realization
 Contract](internal-model-semantic-realization-contract.md) remains authoritative
 for the selected realization and its CCDM ledger. The [Canonical Component
@@ -22,30 +25,37 @@ sole semantic authority.
 This binding is an organization of an accepted realization, not a second CCDM
 or a new package role. P10-21B2 reconstructs all eight values only through the
 existing Phase 9 `create` APIs; it does not extend their public DTOs or recast a
-binding-local value as CCDM. B1 neither proves all eight nor closes P10-21 or
-Phase 10.2.
+binding-local value as CCDM. Original P10-21 implementation and validation are
+historical evidence. Current V3 authoring requires coordinated consumer
+migration, parent validation and independent review; it establishes no Step
+acceptance or Phase 10.4 closure and alters no earlier Phase history.
 
 ## 1. Selected binding and authority
 
-Continuity admission starts with the one verified package inventory/digest pass
+Continuity admission starts with the one verified package inventory/version pass
 required by the package contract. It selects exactly one present recognized
 continuity-family `role=projection` artifact and exactly one accepted
 `role=realization` artifact. The continuity family is exactly
-`ccdm-projection-binding-v1` / `"1.0"` or
-`ccdm-projection-binding-v2` / `"2.0"`; one V1-plus-V2 pair is a duplicate
-continuity selection. A recognized candidate-family artifact
-`ccdm-candidate-cml-projection-v1` / `"1.0"` may coexist and is skipped only
-for continuity selection. Every considered projection has canonical JSON bytes
-and a recognized exact profile/version pair; unknown or malformed pairs fail
+`ccdm-projection-binding-v3` / `"3.0"`; duplicate continuity artifacts reject.
+Recognized candidate-family artifacts may coexist and are skipped only for
+continuity selection by the package contract's current classifier. Every
+considered projection has strict JSON and a recognized exact profile/version
+pair; unknown, legacy or malformed pairs fail
 closed and are never a fallback. The selected continuity artifact's manifest
-`dependsOn` SHALL name that realization; the realization continues to name its
+`dependsOn` SHALL contain that realization's exact ID/revision/role reference;
+the realization continues to name its
 selected source snapshots. A package may remain structurally valid without a
 continuity artifact, but SHALL fail P10-21 continuity admission. Missing,
 duplicate, absent, cross-package, or non-dependent selections SHALL fail
 without repair or fallback.
 
-The binding's `realizationArtifactId` SHALL identify that selected realization
-exactly. Its `scope` SHALL equal that realization's exact `componentIdentity`,
+The binding's `realizationArtifactReference` SHALL equal the selected captured
+realization reference exactly, including its positive artifact revision and
+`realization` role. Its `bindingReference` is a separately allocated logical
+record identity/revision, distinct from the carrier artifact reference and the
+selected realization artifact. Its version need not equal a carrier artifact,
+realization record, package carrier or source revision. Its `scope` SHALL equal
+that realization's exact `componentIdentity`,
 `projectionContextIdentity`, and `selectedUseCaseElementIdentity`; no other
 scope fact may be repeated. The selected realization and its accepted source
 snapshots are the sole CCDM semantic ledger. A projection-local record,
@@ -54,39 +64,38 @@ inferred similarity SHALL NOT create, recover, or repair identity, role,
 endpoint, direction, attribution, condition, source sequence, or any other
 semantic fact.
 
-## 2. Canonical `ccdm-projection-binding-v1` and V2 bytes
+## 2. Strict presentation-independent V3 serialization
 
-The artifact is canonical UTF-8 JSON: no BOM, duplicate member,
-insignificant whitespace, or trailing byte after exactly one LF is admitted.
-Every object has ascending UTF-8-byte key order. A consumer parses without
-repair and accepts only when canonical re-encoding reproduces the supplied
-bytes byte-for-byte. Unknown, missing, duplicate, or additional keys at any
-defined object level reject.
+The artifact is strict UTF-8 JSON. BOM, invalid UTF-8, malformed JSON, duplicate
+members at every depth and trailing non-JSON data reject. Harmless object-key
+order, insignificant whitespace and equivalent JSON escaping are admitted.
+Writers may emit deterministic keys and terminal LF on demand, with no cached
+bytes or content identity. Re-encoding equality and whole-file comparisons are
+not admission checks. Unknown, missing or additional keys at every defined
+object level reject.
 
-The root has exactly these five keys; its canonical representation therefore
-orders them as `profile`, `realizationArtifactId`, `schemaVersion`, `scope`,
-and `views`:
+The root has exactly six fields: `bindingReference`, `profile`,
+`realizationArtifactReference`, `schemaVersion`, `scope` and `views`:
 
 ```json
-{"profile":"ccdm-projection-binding-v1","realizationArtifactId":"...","schemaVersion":"1.0","scope":{},"views":[]}
+{"bindingReference":{"recordId":"binding-main","recordRevision":7},"profile":"ccdm-projection-binding-v3","realizationArtifactReference":{"artifactId":"realization-main","artifactRevision":23,"role":"realization"},"schemaVersion":"3.0","scope":{},"views":[]}
 ```
 
-`schemaVersion` is exactly `"1.0"`; `profile` is exactly
-`"ccdm-projection-binding-v1"`; and `realizationArtifactId` is the nonempty
-exact selected manifest realization artifact ID. `scope` has exactly the
-canonical keys `componentIdentity`, `projectionContextIdentity`, and
+`schemaVersion` is exactly `"3.0"`; `profile` is exactly
+`"ccdm-projection-binding-v3"`. `bindingReference` has exactly nonblank
+`recordId` and positive `recordRevision`. `realizationArtifactReference` has
+exactly token `artifactId`, positive `artifactRevision` and role `realization`.
+Both revisions are explicit lexical JSON integers fitting `Long`: no sign,
+fraction, exponent, leading zero, overflow, string, default or inferred version.
+`scope` has exactly `componentIdentity`, `projectionContextIdentity`, and
 `selectedUseCaseElementIdentity`, each equal to the corresponding realization
 scope identity.
 
-V1 binding bytes and their historical semantics remain unchanged. A binding
-which consumes `ccdm-realization-v2` is instead explicitly
-`ccdm-projection-binding-v2` with `schemaVersion="2.0"`. V2 retains the same
-closed root keys, scope fields, eight family order, record fields, complete
-assertion/condition ID arrays, gap form, sequence field, canonical encoding,
-and fail-closed rules specified here. It does not reinterpret a V1 binding or
-add a second semantic model. Its selected realization is the exact V2
-realization with its association assertions and complete source-reference
-sidecar.
+Only the V3 realization/binding pair is admitted. V1, V2 and mismatched pairs
+reject; no retained decoder branch, compatibility alias, overload, migration,
+fallback or inferred version exists. The closed scope, eight-family order,
+record/link arrays, gap and sequence shapes preserve Phase 9 semantics. The
+exact V3 realization retains associations and its complete source sidecar.
 
 `views` has exactly eight entries, once each and in this fixed family order:
 
@@ -99,17 +108,16 @@ sidecar.
 7. `WorkflowProjection`
 8. `StateMachineProjection`
 
-Each view has exactly `family` and `records` (canonical key order `family`,
-`records`); `family` is the exact listed token and `records` is an array.
+Each view has exactly `family` and `records`; `family` is the exact listed
+token and `records` is an array. Object-key order is presentation only.
 An empty `records` array is structurally permitted. P10-21B2 acceptance,
 separately, requires substantive nonempty output for all eight families.
 
-An `element` or `relationship` record has exactly these canonical keys:
+An `element` or `relationship` record has exactly these fields:
 `canonicalAssertionIds`, `conditionIds`, `enrichmentAssertionIds`,
 `recordKind`, `semanticIdentity`, `sequenceAssertionId`, and `viewRole`.
 `recordKind` is exactly `"element"`, `"relationship"`, or `"gap"`. A `gap`
-record has those keys plus exactly `requestedFieldOrScope`, in canonical key
-order between `recordKind` and `semanticIdentity`; no other gap-specific or
+record has those fields plus exactly `requestedFieldOrScope`; no other gap-specific or
 independently asserted fact is allowed. `requestedFieldOrScope` is a nonempty,
 bounded request/reason scope, not a claim of absence.
 
@@ -142,7 +150,7 @@ single-condition rule above.
 
 `viewRole` is a case-sensitive, closed Phase 9 constructor token. A bound
 element's realization `kind`, or a bound relationship's realization `role`,
-must equal that token exactly and be directly witnessed by at least one of the
+must equal that token exactly and be directly witnessed by exactly one of the
 target's canonical assertions. The witness must target that same identity and
 have source-snapshot-backed content exactly `kind:<token>` for an element or
 `role:<token>` for a relationship. Other assertions are retained by ID but are
@@ -229,29 +237,29 @@ collapsing a record. Otherwise it rejects the bound record or returns the
 attributable bounded gap supported by that DTO. It SHALL never select first or
 last evidence as a hidden winner.
 
-### V2 direct attribution, sidecar, and condition compression
+### Direct attribution, sidecar, and condition compression
 
-For V1, every bound normal record collects source-reference IDs from all
-canonical assertions, all enrichment assertions, and all linked conditions.
-For a gap, it collects the ID from its one admitted condition. All collected
-references SHALL resolve to exactly one distinct source-reference ID, whose
-`target` is exactly `Some(kind, identity)` for that bound target. Zero,
-missing, distinct, wrong-target, or ambiguous references reject. The
-constructor SHALL not choose a first or last source, or borrow another
-relation's source. That reference maps to
+For a gap, attribution comes exactly from its sole admitted condition's source
+reference, whose target is exactly `Some(kind, identity)` for that bound target.
+The constructor SHALL not choose a first or last source or borrow another
+relation's source. The admitted reference maps to
 `ComponentDashboardSourceAttribution(sourceId = source.identity,
 authorityScope = source.authority, sourceLocator = sourceAnchor)`; the full
 reference and ledger remain in the sidecar.
 
-For V2, the DTO attribution is instead the one unique direct canonical
+For every normal record, DTO attribution is the one unique direct canonical
 same-identity `kind:<viewRole>` or `role:<viewRole>` witness's source
 reference. It describes the projected role only. Complete other source
 references—including association and sequence witnesses—remain in the retained
-V2 realization sidecar, rather than being selected, discarded, or collapsed
+V3 realization sidecar, rather than being selected, discarded, or collapsed
 into DTO attribution. A missing, multiple, distinct-source, wrong-target, or
 conflicting direct role witness rejects; no first/last source winner exists.
-The existing exact condition-compression and single-condition gap rules remain
-unchanged for V2.
+Two direct role assertions reject even when they share the same source
+reference. Association, sequence, enrichment and condition sources remain
+complete in the retained sidecar. The exact condition-compression and
+single-condition gap rules remain unchanged. Explicit unknown source revisions
+remain recorded unknowns; artifact/record versions never substitute for them or
+establish readiness.
 
 `ComponentDashboardCondition` uses fixed adapter sentinels
 `availability="unverified"` and `authorization="unverified"`, which are not
@@ -283,7 +291,7 @@ key. Output order cannot establish chronology, causality, authority, priority,
 or a winner, and an artifact label or order cannot affect semantic
 reconstruction.
 
-For the later B2B all-eight constructor proof, V2 consumes closed associations
+The all-eight reconstruction consumes closed associations
 only as follows: `owner` relates a Structure assertion relation to its exact
 parent Structure relation, a Classification dimension assertion to its exact
 dimension element, a Workflow flow to its exact Workflow element, a
@@ -299,11 +307,17 @@ empty or choose the only visible owner.
 
 The adapter consumes one verified package handoff: one present projection, one
 present realization, and the realization's verified source-snapshot
-dependencies. The binding `realizationArtifactId` equals that realization and
-the projection `dependsOn` contains it. The realization parser consumes the
-same handoff, without reopening a manifest, inventory, digest, or artifact.
+dependencies. The binding `realizationArtifactReference` equals that
+realization's exact captured reference and the projection `dependsOn` contains
+it. Supplied capture, projection, realization package, references, metadata,
+bytes and dependencies must be non-null. IDs/revisions/roles must be valid,
+dependency IDs sorted and unique, and self-dependency absent before content use.
+The realization parser consumes `handoff.realizationpackage` and binding
+admission selects `handoff.realizationpackage.realization.reference`, without
+reopening a manifest, inventory or artifact. Null or malformed captured data
+rejects through structured `operationInvalid` before a partial return.
 
-For a normal V2 record, DTO attribution is the source reference of its one
+For a normal V3 record, DTO attribution is the source reference of its one
 direct canonical same-target `kind:<viewRole>` or `role:<viewRole>` witness.
 Association and sequence sources remain in the realization/binding sidecar.
 Missing, multiple, cross-target, or conflicting witnesses reject rather than
@@ -313,8 +327,8 @@ evidence and never inherits a parent relationship's attribution or condition.
 Within a view, records are sorted by the exact tuple `(recordKind,
 semanticIdentity, viewRole)` using ascending UTF-8-byte string comparison;
 identical tuples reject as duplicate semantic selections. The fixed `views`
-order above is part of the profile. Re-encoding must preserve both orders
-byte-for-byte.
+order above is part of the profile. Both semantic array orders are independent
+of object-key order and JSON presentation.
 
 ## 5. Fail-closed gaps and navigation suppression
 
@@ -331,7 +345,7 @@ relation does not authorize a broad lookup, proxy, dead link, name-based
 target, inferred reverse relation, reauthorization, disclosure, or source
 fetch.
 
-Continuity admission fails closed for malformed or noncanonical bytes; an
+Continuity admission fails closed for malformed UTF-8/JSON; an
 unknown, missing, extra, or duplicate field; wrong profile, scope, family, or
 order; duplicate projection selection; realization dependency mismatch;
 unknown/cross-scope/duplicate identity; unsupported role; missing direct role
@@ -340,19 +354,27 @@ unwitnessed sequence; or a hidden source/condition winner. It does not repair
 rejection from order, label, path, hash, view copy, provider history,
 chat/session state, or inferred meaning.
 
-## 6. B2B executable proof and exclusions
+## 6. Executable obligations and exclusions
 
-P10-21B2B reopens a manifest-bound package through the one-pass
-package-to-realization-to-binding path and constructs all eight projection
-values. Its canonical successful fixture is substantively nonempty in every
-family. Executable specifications check label/order invariance and reject
-unknown/cross-scope/duplicate selections, role/endpoint/dependency mismatch,
-missing relationship or sequence witness, lane promotion, omitted condition,
-and multi-source or multi-condition hidden winners. The focused representative
-and package/realization accumulator passed; P10-21 Step review and acceptance
-commit remain pending.
+The in-place V3 executable migration is
+[InternalModelProjectionContinuityValidatorSpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelProjectionContinuityValidatorSpec.scala).
+It retains substantive all-eight normal and nested values, selected owners,
+Value/Aggregate metadata, complete sidecars, association/sequence, condition and
+gap behavior. It adds explicit independent reference revisions, lexical
+rejections, exact realization revision/role/ID checks, malformed captured
+metadata, legacy rejection, presentation variation and semantic writer
+roundtrips. Given/setup establishes earlier realization admission where a later
+semantic rejection is intended; active ScalaCheck varies identities, labels,
+revisions and input encounter order. Fixture roots remain beneath
+`target/internal-model-projection-continuity/work`; cleanup is confined to the
+exact fixture subtree and closes its no-follow walk in `finally`.
 
-B1 introduced no parser or constructor. B2B adds no package role, CCDM or Phase 9 public API,
+Original P10-21 proofs are history, not validation of this V3 target.
+Coordinated consumers, parent validation, independent review and Phase 10.4
+acceptance/release remain pending. Producer-declared revisions provide provenance,
+not hash authentication or undeclared-mutation detection.
+
+Continuity reconstruction adds no package role, CCDM or Phase 9 public API,
 mutable state, CML read/write, live source, approval, rehydration, Web/API
 route, or Phase 10.3+ behavior. It does not authorize Phase 10.3 projection
 workflow, review, or approval; Phase 10.4 rehydration; Phase 10.5 freshness,

@@ -1,143 +1,247 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
-import java.util.Base64
-
+import java.util.Arrays
 import scala.util.control.NonFatal
-
 import org.goldenport.Consequence
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
-/**
- * Admits attributable candidate-review evidence without treating a review state
- * as approval, reopening a captured package, or authenticating a provider.
- */
+/** Admits one complete typed subject from one capture; review state is evidence. */
 private[runtime] object InternalModelCandidateReviewBindingValidator {
   def validate(
     projectRoot: Path,
-    reviewArtifactId: String,
+    reviewArtifact: InternalModelArtifactReference,
     expectedExecutionBasis: InternalModelCandidateReviewExecutionBasis
-  ): Consequence[InternalModelCandidateReviewBindingAdmission] =
+  ): Consequence[InternalModelCandidateReviewBindingAdmission] = {
     try {
-      InternalModelPackageValidator.verifiedCandidateReviewBinding(projectRoot, reviewArtifactId).flatMap(
-        validateVerified(_, expectedExecutionBasis)
-      )
+      InternalModelCandidateReviewBindingCodec.validateExecutionBasis(expectedExecutionBasis) match {
+        case Left(message) => Consequence.operationInvalid(message)
+        case Right(_) => InternalModelPackageValidator.verifiedCandidateReviewBinding(projectRoot, reviewArtifact).flatMap(
+          validateVerified(_, expectedExecutionBasis)
+        )
+      }
     } catch {
-      case NonFatal(error) => Consequence.operationInvalid(s"internal-model candidate review binding validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+      case NonFatal(error) => _failure(error)
     }
+  }
 
-  /** Pure same-capture admission; callers may retain its values after paths disappear. */
+  /** Pure same-capture admission; no source, provider, package or path is reopened. */
   private[runtime] def validateVerified(
     handoff: InternalModelVerifiedCandidateReviewBindingPackage,
     expectedExecutionBasis: InternalModelCandidateReviewExecutionBasis
-  ): Consequence[InternalModelCandidateReviewBindingAdmission] =
+  ): Consequence[InternalModelCandidateReviewBindingAdmission] = {
     try {
-      InternalModelSemanticDiffValidator.validateVerified(handoff.semanticDiffPackage).flatMap { semanticdiff =>
-        _admission(handoff, semanticdiff, expectedExecutionBasis).fold(Consequence.operationInvalid, Consequence.success)
+      val preconditions = for {
+        _ <- InternalModelCandidateReviewBindingCodec.validateExecutionBasis(expectedExecutionBasis)
+        _ <- _capture(handoff)
+      } yield ()
+      preconditions match {
+        case Left(message) => Consequence.operationInvalid(message)
+        case Right(_) => InternalModelSemanticDiffValidator.validateVerified(handoff.semanticDiffPackage).flatMap { semanticdiff =>
+          _admission(handoff, semanticdiff, expectedExecutionBasis).fold(Consequence.operationInvalid, Consequence.success)
+        }
       }
     } catch {
-      case NonFatal(error) => Consequence.operationInvalid(s"internal-model candidate review binding validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+      case NonFatal(error) => _failure(error)
     }
+  }
 
-  private def _admission(
-    handoff: InternalModelVerifiedCandidateReviewBindingPackage,
-    semanticdiff: InternalModelSemanticDiffAdmission,
-    expectedbasis: InternalModelCandidateReviewExecutionBasis
-  ): Either[String, InternalModelCandidateReviewBindingAdmission] =
+  private def _capture(handoff: InternalModelVerifiedCandidateReviewBindingPackage): Either[String, Unit] = {
+    for {
+      _ <- Either.cond(handoff != null && handoff.carrierPackageContext != null && handoff.semanticDiffPackage != null && handoff.reviewArtifact != null, (), "review capture, carrier, diff and selected review must be present")
+      diff = handoff.semanticDiffPackage
+      _ <- Either.cond(diff.candidatepackage != null && diff.semanticdiff != null, (), "review candidate handoff and selected diff must be present")
+      candidate = diff.candidatepackage
+      _ <- Either.cond(candidate.packagecontext != null && candidate.continuitypackage != null && candidate.candidate != null, (), "review candidate capture and continuity must be present")
+      continuity = candidate.continuitypackage
+      _ <- Either.cond(continuity.projection != null && continuity.realizationpackage != null && continuity.realizationpackage.realization != null && continuity.realizationpackage.sourcesnapshots != null, (), "review continuity, realization and snapshots must be present")
+      carrier = handoff.carrierPackageContext
+      _ <- Either.cond(carrier.reference != null && carrier.artifacts != null && carrier.artifacts.forall(value => value != null && _reference_present(value.reference) && value.path != null && _dependencies_present(value.dependencies)), (), "review carrier metadata must be present")
+      _ <- Either.cond(Vector(handoff.reviewArtifact, diff.semanticdiff, candidate.candidate, continuity.projection).forall(value => _reference_present(value.reference) && value.path != null && _dependencies_present(value.dependencies) && value.bytes != null), (), "review selected projection metadata must be present")
+      realization = continuity.realizationpackage.realization
+      _ <- Either.cond(_reference_present(realization.reference) && realization.path != null && _dependencies_present(realization.dependencies) && realization.bytes != null, (), "review realization metadata must be present")
+      _ <- Either.cond(continuity.realizationpackage.sourcesnapshots.forall(value => value != null && _reference_present(value.reference) && value.path != null && _dependencies_present(value.dependencies) && value.bytes != null), (), "review source metadata must be present")
+    } yield ()
+  }
+
+  private def _reference_present(reference: InternalModelArtifactReference): Boolean =
+    reference != null && InternalModelArtifactId.from(reference.artifactId.value).isRight && InternalModelArtifactRevision.from(reference.artifactRevision.value).isRight && reference.role != null
+
+  private def _dependencies_present(dependencies: Vector[InternalModelArtifactReference]): Boolean =
+    dependencies != null && dependencies.forall(_reference_present)
+
+  private def _admission(handoff: InternalModelVerifiedCandidateReviewBindingPackage, semanticdiff: InternalModelSemanticDiffAdmission, expectedbasis: InternalModelCandidateReviewExecutionBasis): Either[String, InternalModelCandidateReviewBindingAdmission] =
     for {
       binding <- InternalModelCandidateReviewBindingCodec.decode(handoff.reviewArtifact.bytes)
-      _ <- InternalModelCandidateReviewBindingCodec.validateExecutionBasis(expectedbasis)
-      _ <- Either.cond(binding.rules == expectedbasis.rules && binding.providers == expectedbasis.providers, (), "candidate review rules/providers do not equal the independently admitted execution basis")
-      reviewedbytes <- _reviewed_manifest_bytes(binding.reviewedPackageManifest)
-      reviewed <- InternalModelPackageValidator.reviewedPackageContext(reviewedbytes, handoff, handoff.reviewArtifact.artifactId)
-      _ <- _binding(binding, handoff, reviewed, semanticdiff)
-    } yield InternalModelCandidateReviewBindingAdmission(
-      binding = binding,
-      reviewArtifactId = handoff.reviewArtifact.artifactId,
-      reviewArtifactSha256 = _sha256(handoff.reviewArtifact.bytes),
-      reviewArtifactPackageRelativePath = handoff.reviewArtifact.packageRelativePath,
-      reviewedPackageContext = reviewed,
-      carrierPackageContext = handoff.carrierPackageContext,
-      semanticDiffAdmission = semanticdiff
-    )
+      _ <- Either.cond(binding.rules == expectedbasis.rules && binding.providers == expectedbasis.providers, (), "review rules/providers do not equal the independently admitted execution basis")
+      _ <- _binding(binding, handoff, semanticdiff)
+    } yield InternalModelCandidateReviewBindingAdmission(binding, handoff.reviewArtifact.reference, handoff.reviewArtifact.path, handoff.carrierPackageContext, semanticdiff)
 
-  private def _binding(
+  /**
+   * Checks structural and cross-binding consistency of already admitted semantic inputs.
+   * Upstream validators own their semantic admission and original captured authenticity;
+   * this helper neither reconstructs a capture nor detects undeclared payload mutations.
+   */
+  private[runtime] def validateAdmission(admission: InternalModelCandidateReviewBindingAdmission): Either[String, Unit] = {
+    try {
+      for {
+        _ <- Either.cond(_present_graph(admission), (), "review admission and every nested model, reference and vector must be present")
+        _ <- InternalModelCandidateReviewBindingCodec.validateValue(admission.binding)
+        carrier = admission.carrierPackageContext
+        _ <- InternalModelTypedControlCodec.decodePackageReference(InternalModelTypedControlCodec.encodePackageReference(carrier.reference)).map(_ => ())
+        _ <- Either.cond(carrier.artifacts.forall(entry => _reference_present(entry.reference) && _dependencies_present(entry.dependencies)), (), "review carrier contains an invalid typed reference")
+        _ <- InternalModelPackageValidator.validateCapturedContext(carrier)
+        _ <- _binding_value(admission.binding, carrier, admission.reviewArtifactReference, admission.reviewArtifactPackageRelativePath, admission.semanticDiffAdmission)
+      } yield ()
+    } catch { case NonFatal(_) => Left("review admission contains a null or invalid object graph") }
+  }
+
+  private def _present_graph(value: Any): Boolean = value match {
+    case null => false
+    case reference: InternalModelArtifactReference => _reference_present(reference)
+    case reference: InternalModelRecordReference => InternalModelRecordId.from(reference.recordId.value).isRight && InternalModelRecordRevision.from(reference.recordRevision.value).isRight
+    case reference: InternalModelPackageReference => InternalModelPackageId.from(reference.packageId.value).isRight && InternalModelProjectToken.from(reference.projectNamespace.value).isRight && InternalModelProjectToken.from(reference.projectId.value).isRight
+    case values: Iterable[?] => values.forall(_present_graph)
+    case value: Product => value.productIterator.forall(_present_graph)
+    case _ => true
+  }
+
+  private def _binding(binding: InternalModelCandidateReviewBinding, handoff: InternalModelVerifiedCandidateReviewBindingPackage, semanticdiff: InternalModelSemanticDiffAdmission): Either[String, Unit] = {
+    val candidate = semanticdiff.candidateAdmission
+    val carrier = handoff.carrierPackageContext
+    val continuity = handoff.semanticDiffPackage.candidatepackage.continuitypackage
+    val realization = continuity.realizationpackage.realization
+    for {
+      _ <- Either.cond(carrier == candidate.packageContext, (), "review and candidate must use the same captured carrier")
+      review <- _selected(carrier, handoff.reviewArtifact.reference, handoff.reviewArtifact.path, handoff.reviewArtifact.required, handoff.reviewArtifact.dependencies)
+      _ <- Either.cond(review.reference.role == InternalModelArtifactRole.Validation, (), "selected review must have Validation role")
+      _ <- _selected(carrier, handoff.semanticDiffPackage.semanticdiff.reference, handoff.semanticDiffPackage.semanticdiff.path, handoff.semanticDiffPackage.semanticdiff.required, handoff.semanticDiffPackage.semanticdiff.dependencies)
+      _ <- _selected(carrier, handoff.semanticDiffPackage.candidatepackage.candidate.reference, handoff.semanticDiffPackage.candidatepackage.candidate.path, handoff.semanticDiffPackage.candidatepackage.candidate.required, handoff.semanticDiffPackage.candidatepackage.candidate.dependencies)
+      _ <- _selected(carrier, continuity.projection.reference, continuity.projection.path, continuity.projection.required, continuity.projection.dependencies)
+      _ <- _selected(carrier, realization.reference, realization.path, realization.required, realization.dependencies)
+      _ <- continuity.realizationpackage.sourcesnapshots.foldLeft[Either[String, Unit]](Right(())) { (result, source) =>
+        for {
+          _ <- result
+          entry <- _inventory(carrier, source.reference, source.bytes.isDefined)
+          _ <- Either.cond(entry.path == source.path && entry.required == source.required && entry.dependencies == source.dependencies && entry.present == source.bytes.isDefined, (), "review source capture does not equal inventory metadata")
+        } yield ()
+      }
+      _ <- validateAdmission(InternalModelCandidateReviewBindingAdmission(binding, review.reference, review.path, carrier, semanticdiff))
+    } yield ()
+  }
+
+  private def _binding_value(
     binding: InternalModelCandidateReviewBinding,
-    handoff: InternalModelVerifiedCandidateReviewBindingPackage,
-    reviewed: InternalModelVerifiedPackageContext,
+    carrier: InternalModelVerifiedPackageContext,
+    reviewreference: InternalModelArtifactReference,
+    reviewpath: String,
     semanticdiff: InternalModelSemanticDiffAdmission
   ): Either[String, Unit] = {
     val candidate = semanticdiff.candidateAdmission
-    val continuity = handoff.semanticDiffPackage.candidatePackage.continuityPackage.projection
-    val realization = handoff.semanticDiffPackage.candidatePackage.continuityPackage.realizationPackage.realization
-    val diffartifact = handoff.semanticDiffPackage.semanticDiff
+    val continuity = candidate.continuity
+    val realization = continuity.realization
     for {
-      _ <- _artifact(binding.candidateArtifact, candidate.candidateArtifactId, candidate.candidateArtifactSha256, "projection", reviewed, "candidate")
-      _ <- _artifact(binding.continuityArtifact, continuity.artifactId, _captured_sha256(handoff.carrierPackageContext, continuity.artifactId), "projection", reviewed, "continuity")
-      _ <- _artifact(binding.realizationArtifact, realization.artifactId, _captured_sha256(handoff.carrierPackageContext, realization.artifactId), "realization", reviewed, "realization")
-      _ <- _artifact(binding.semanticDiffArtifact, semanticdiff.diffArtifactId, semanticdiff.diffArtifactSha256, "projection", reviewed, "semantic diff")
-      _ <- Either.cond(binding.realizationIdentity == candidate.continuity.realization.realizationIdentity, (), "candidate review realizationIdentity does not equal the selected realization")
-      _ <- Either.cond(binding.candidateIdentity == candidate.projection.candidateIdentity, (), "candidate review candidateIdentity does not equal the selected candidate")
-      _ <- Either.cond(binding.candidateModelIdentity == candidate.projection.candidateModelIdentity, (), "candidate review candidateModelIdentity does not equal the selected candidate")
-      _ <- Either.cond(binding.candidateRevision == candidate.projection.candidateRevision, (), "candidate review candidateRevision does not equal the selected candidate")
-      _ <- Either.cond(binding.scope == candidate.projection.scope && binding.scope == semanticdiff.diff.scope, (), "candidate review scope does not equal the selected candidate and semantic diff")
-      _ <- Either.cond(binding.semanticDiffIdentity == semanticdiff.diff.semanticDiffIdentity, (), "candidate review semanticDiffIdentity does not equal the selected semantic diff")
-      _ <- Either.cond(binding.semanticDiffRevision == semanticdiff.diff.semanticDiffRevision, (), "candidate review semanticDiffRevision does not equal the selected semantic diff")
-      _ <- Either.cond(diffartifact.artifactId == semanticdiff.diffArtifactId, (), "candidate review selected semantic diff artifact changed within its capture")
-      _ <- _evidence(binding.evidenceArtifacts, reviewed)
+      _ <- Either.cond(carrier == candidate.packageContext, (), "review and candidate must use the same captured carrier")
+      _ <- Either.cond(candidate.projection.profile == "ccdm-candidate-cml-projection-v2" && candidate.projection.schemaVersion == "2.0" && semanticdiff.diff.profile == "ccdm-semantic-diff-v2" && semanticdiff.diff.schemaVersion == "2.0" && realization.profile == "ccdm-realization-v3" && realization.schemaVersion == "3.0" && continuity.binding.profile == "ccdm-projection-binding-v3" && continuity.binding.schemaVersion == "3.0", (), "review semantic inputs must use current profiles and schemas")
+      review <- _inventory(carrier, reviewreference, true)
+      _ <- Either.cond(review.reference.role == InternalModelArtifactRole.Validation && review.path == reviewpath, (), "selected review reference role or path is inconsistent")
+      candidateentry <- _inventory(carrier, candidate.candidateArtifactReference, true)
+      _ <- Either.cond(candidateentry.reference.role == InternalModelArtifactRole.Projection && candidateentry.path == candidate.candidatePackageRelativePath, (), "review candidate reference role or path is inconsistent")
+      diffentry <- _inventory(carrier, semanticdiff.diffArtifactReference, true)
+      _ <- Either.cond(diffentry.reference.role == InternalModelArtifactRole.Projection && diffentry.path == semanticdiff.diffPackageRelativePath && diffentry.dependencies == Vector(candidate.candidateArtifactReference), (), "review diff selection or dependency is inconsistent")
+      continuityentry <- _inventory(carrier, binding.continuityArtifactReference, true)
+      realizationentry <- _inventory(carrier, binding.realizationArtifactReference, true)
+      _ <- Either.cond(binding.continuityArtifactReference == candidate.projection.continuityArtifactReference && binding.realizationArtifactReference == candidate.projection.realizationArtifactReference && binding.realizationArtifactReference == continuity.binding.realizationArtifactReference && continuityentry.dependencies == Vector(binding.realizationArtifactReference), (), "review continuity and realization topology is inconsistent")
+      _ <- Either.cond(realizationentry.reference.role == InternalModelArtifactRole.Realization && binding.realizationReference == realization.realizationReference, (), "review realization reference is inconsistent")
+      _ <- Either.cond(realizationentry.dependencies == realization.consumedSnapshotReferences, (), "review realization dependencies do not equal its consumed snapshots")
+      _ <- realization.consumedSnapshotReferences.foldLeft[Either[String, Unit]](Right(())) { (result, reference) =>
+        result.flatMap(_ => Either.cond(reference.role == InternalModelArtifactRole.SourceSnapshot, (), "review realization consumes a nonsource reference")).flatMap(_ => _inventory(carrier, reference, true).map(_ => ()))
+      }
+      _ <- Either.cond(realization.sourceReferences.forall(reference => realization.consumedSnapshotReferences.contains(reference.snapshotReference)), (), "review realization source witness reference is not consumed")
+      _ <- Either.cond(semanticdiff.diff.candidateArtifactReference == candidate.candidateArtifactReference && semanticdiff.diff.candidateReference == candidate.projection.candidateReference && semanticdiff.diff.candidateModelIdentity == candidate.projection.candidateModelIdentity && semanticdiff.diff.scope == candidate.projection.scope, (), "review admitted candidate/diff binding is inconsistent")
+      _ <- Either.cond(candidateentry.dependencies == (Vector(binding.continuityArtifactReference, binding.realizationArtifactReference) ++ candidate.projection.targets.map(_.baselineArtifactReference)).distinct.sortBy(_.artifactId.value), (), "review candidate dependencies do not equal its complete typed basis")
+      _ <- candidate.targetBytes.foldLeft[Either[String, Unit]](Right(())) { (result, target) =>
+        for {
+          _ <- result
+          _ <- _inventory(carrier, target.baseline.reference, true)
+          declared <- candidate.projection.targets.find(_.targetId == target.targetId).toRight("review retained candidate target is unknown")
+          _ <- Either.cond(target.baseline.reference == declared.baselineArtifactReference && target.baseline.source == declared.source && target.baseline.projectRelativePath == declared.projectRelativePath, (), "review retained target source or baseline binding is inconsistent")
+        } yield ()
+      }
+      _ <- Either.cond(candidate.targetBytes.map(_.targetId) == candidate.projection.targets.map(_.targetId), (), "review retained candidate target order is incomplete")
+      _ <- Either.cond(binding.candidateArtifactReference == candidate.candidateArtifactReference && binding.candidateReference == candidate.projection.candidateReference && binding.candidateModelIdentity == candidate.projection.candidateModelIdentity, (), "review candidate artifact, logical reference or model does not equal admitted candidate")
+      _ <- Either.cond(binding.realizationReference == realization.realizationReference, (), "review realization logical reference does not equal admitted selection")
+      _ <- Either.cond(binding.semanticDiffArtifactReference == semanticdiff.diffArtifactReference && binding.semanticDiffReference == semanticdiff.diff.semanticDiffReference, (), "review semantic diff references do not equal admitted diff")
+      _ <- Either.cond(binding.subject.packageReference == carrier.reference, (), "review subject packageReference does not equal stable carrier identity")
+      _ <- Either.cond(binding.scope == candidate.projection.scope && binding.scope == semanticdiff.diff.scope && binding.scope == candidate.continuity.realization.scope && binding.subject.scope == binding.scope, (), "review subject/root scope does not equal admitted semantic scope")
+      continuityscope = candidate.continuity.binding.scope
+      _ <- Either.cond(continuityscope.componentIdentity == binding.scope.componentIdentity && continuityscope.projectionContextIdentity == binding.scope.projectionContextIdentity && continuityscope.selectedUseCaseElementIdentity == binding.scope.selectedUseCaseElementIdentity, (), "review scope does not equal admitted continuity scope")
+      _ <- binding.evidenceArtifacts.foldLeft[Either[String, Unit]](Right(())) { (result, reference) =>
+        for {
+          _ <- result
+          _ <- Either.cond(reference.role == InternalModelArtifactRole.Validation && reference.artifactId != review.reference.artifactId, (), "review evidence cannot select the review itself or a nonvalidation artifact")
+          _ <- _inventory(carrier, reference, true)
+        } yield ()
+      }
+      subject <- _complete_subject(carrier, binding.evidenceArtifacts, review.reference)
+      _ <- Either.cond(binding.subject.artifacts == subject, (), "review subject does not equal the complete exact semantic dependency basis")
+      _ <- Either.cond(Vector(binding.candidateArtifactReference, binding.continuityArtifactReference, binding.realizationArtifactReference, binding.semanticDiffArtifactReference).forall(subject.contains), (), "review root artifacts must be present in its subject")
+      _ <- Either.cond(review.dependencies == binding.subject.artifacts, (), "selected review dependencies must equal the exact ordered subject artifacts")
       _ <- _targets(binding.targets, binding.evidenceArtifacts, candidate, semanticdiff)
     } yield ()
   }
 
-  private def _artifact(
-    binding: InternalModelCandidateReviewArtifact,
-    expectedid: String,
-    expectedsha: String,
-    expectedrole: String,
-    reviewed: InternalModelVerifiedPackageContext,
-    label: String
-  ): Either[String, Unit] =
+  private def _selected(carrier: InternalModelVerifiedPackageContext, reference: InternalModelArtifactReference, path: String, required: Boolean, dependencies: Vector[InternalModelArtifactReference]): Either[String, InternalModelVerifiedArtifactContext] =
     for {
-      _ <- Either.cond(binding.artifactId == expectedid && binding.sha256 == expectedsha, (), s"candidate review $label artifact does not equal the selected admitted artifact")
-      artifact <- reviewed.artifacts.filter(_.artifactId == binding.artifactId) match {
-        case Vector(value) => Right(value)
-        case Vector() => Left(s"candidate review $label artifact is absent from the reviewed package inventory")
-        case _ => Left(s"candidate review $label artifact is ambiguous in the reviewed package inventory")
-      }
-      _ <- Either.cond(artifact.present && artifact.role == expectedrole && artifact.sha256 == binding.sha256, (), s"candidate review $label artifact does not match the exact reviewed package inventory")
-    } yield ()
+      artifact <- _inventory(carrier, reference, true)
+      _ <- Either.cond(artifact.path == path && artifact.required == required && artifact.dependencies == dependencies, (), "selected review capture does not equal entire inventory metadata")
+    } yield artifact
 
-  private def _evidence(
-    evidence: Vector[InternalModelCandidateReviewArtifact],
-    reviewed: InternalModelVerifiedPackageContext
-  ): Either[String, Unit] =
-    evidence.foldLeft[Either[String, Unit]](Right(())) { (result, value) =>
+  private def _inventory(carrier: InternalModelVerifiedPackageContext, reference: InternalModelArtifactReference, present: Boolean): Either[String, InternalModelVerifiedArtifactContext] =
+    for {
+      entry <- carrier.artifacts.filter(_.reference.artifactId == reference.artifactId) match {
+        case Vector(value) => Right(value)
+        case _ => Left("consumed review reference must resolve to exactly one inventory entry")
+      }
+      _ <- Either.cond(entry.reference == reference && (!present || entry.present), (), "consumed review reference has absent or mismatched revision/role")
+    } yield entry
+
+  private def _complete_subject(carrier: InternalModelVerifiedPackageContext, evidence: Vector[InternalModelArtifactReference], review: InternalModelArtifactReference): Either[String, Vector[InternalModelArtifactReference]] = {
+    val roles = Set(InternalModelArtifactRole.SourceSnapshot, InternalModelArtifactRole.Realization, InternalModelArtifactRole.Projection, InternalModelArtifactRole.Decision, InternalModelArtifactRole.OpenIssue)
+    val roots = carrier.artifacts.filter(value => value.present && roles.contains(value.reference.role)).map(_.reference) ++ evidence
+    def _visit_(reference: InternalModelArtifactReference, active: Set[InternalModelArtifactId], completed: Set[InternalModelArtifactReference]): Either[String, Set[InternalModelArtifactReference]] = {
       for {
-        _ <- result
-        artifact <- reviewed.artifacts.filter(_.artifactId == value.artifactId) match {
-          case Vector(entry) => Right(entry)
-          case Vector() => Left(s"candidate review evidence artifact ${value.artifactId} is absent from the reviewed package inventory")
-          case _ => Left(s"candidate review evidence artifact ${value.artifactId} is ambiguous in the reviewed package inventory")
+        _ <- Either.cond(reference.artifactId != review.artifactId && reference.role != InternalModelArtifactRole.Resume && reference.role != InternalModelArtifactRole.Approval, (), "review semantic dependency cannot consume selected review, Resume or Approval")
+        _ <- Either.cond(!active.contains(reference.artifactId), (), "review semantic dependency cycle")
+        entry <- _inventory(carrier, reference, true)
+        result <- if (completed.contains(reference)) Right(completed) else {
+          entry.dependencies.foldLeft[Either[String, Set[InternalModelArtifactReference]]](Right(completed)) { (result, dependency) =>
+            result.flatMap(values => _visit_(dependency, active + reference.artifactId, values))
+          }.map(_ + reference)
         }
-        _ <- Either.cond(artifact.present && artifact.role == "validation" && artifact.sha256 == value.sha256, (), s"candidate review evidence artifact ${value.artifactId} is not an exact present validation-role reviewed artifact")
-      } yield ()
+      } yield result
     }
+    roots.foldLeft[Either[String, Set[InternalModelArtifactReference]]](Right(Set.empty)) { (result, reference) =>
+      result.flatMap(values => _visit_(reference, Set.empty, values))
+    }.map(_.toVector.sortWith((left, right) => Arrays.compareUnsigned(left.artifactId.value.getBytes(StandardCharsets.UTF_8), right.artifactId.value.getBytes(StandardCharsets.UTF_8)) < 0))
+  }
 
   private def _targets(
     targets: Vector[InternalModelCandidateReviewTarget],
-    evidence: Vector[InternalModelCandidateReviewArtifact],
+    evidence: Vector[InternalModelArtifactReference],
     candidate: InternalModelCandidateCmlAdmission,
     semanticdiff: InternalModelSemanticDiffAdmission
   ): Either[String, Unit] = {
     val expectedids = candidate.projection.targets.map(_.targetId)
-    if targets.map(_.targetId).toSet != expectedids.toSet || targets.size != expectedids.size then
+    if targets.map(_.targetId) != expectedids || targets.map(_.targetId) != semanticdiff.diff.targets.map(_.targetId) then
       Left("candidate review targets do not equal the complete selected candidate target set")
     else {
-      val evidenceids = evidence.map(_.artifactId).toSet
+      val evidenceids = evidence.map(_.artifactId.value).toSet
       for {
         _ <- Either.cond(targets.flatMap(_.evidenceArtifactIds).toSet == evidenceids, (), "candidate review target evidence IDs do not cover the admitted evidence set")
         _ <- targets.foldLeft[Either[String, Unit]](Right(())) { (result, target) =>
@@ -156,18 +260,6 @@ private[runtime] object InternalModelCandidateReviewBindingValidator {
     }
   }
 
-  private def _captured_sha256(
-    carrier: InternalModelVerifiedPackageContext,
-    artifactid: String
-  ): String =
-    carrier.artifacts.find(_.artifactId == artifactid).map(_.sha256).getOrElse("")
-
-  private def _reviewed_manifest_bytes(content: InternalModelCandidateCmlContent): Either[String, Vector[Byte]] =
-    try Right(Base64.getDecoder.decode(content.rawBytesBase64).toVector)
-    catch {
-      case NonFatal(_) => Left("candidate review reviewedPackageManifest cannot be decoded after codec validation")
-    }
-
-  private def _sha256(bytes: Vector[Byte]): String =
-    "sha256:" + java.security.MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
+  private def _failure(error: Throwable): Consequence[InternalModelCandidateReviewBindingAdmission] =
+    Consequence.operationInvalid(s"internal-model candidate review binding validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
 }

@@ -1,7 +1,6 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.util.Base64
 
 import io.circe.{Json, JsonObject, Printer}
@@ -13,7 +12,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 27, 2026
+ * @version Oct. 1, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelSourceSnapshotFreshnessSpec
@@ -32,270 +31,573 @@ final class InternalModelSourceSnapshotFreshnessSpec
   private val _cml_raw = "entity Customer\n".getBytes(StandardCharsets.UTF_8)
 
   "Internal-model source snapshot freshness" should {
-    "accept each closed V1 basis as an unchanged exact live observation" which {
-      "retain only comparison metadata for Scenario, model-context, glossary/BoK, and CML baselines" in {
-        Given("four independently canonical snapshot fixtures and exact source-owned observations")
+    "compare complete declared source references" which {
+      "admit all four V2 bases with matching versions and retain comparison metadata only" in {
+        Given("four complete closed V2 bases and source-owned observations")
         val cases = Vector(
+          (_snapshot("scenario", _scenario_basis), _observed(_scenario_raw), "scenario", None),
+          (_snapshot("model-context", _model_context_basis), _observed(_model_raw), "model-context", None),
+          (_snapshot("glossary-bok", _glossary_basis), _observed(_glossary_raw), "glossary-bok", None),
           (
-            _snapshot("scenario", _scenario_basis, _scenario_raw),
-            _observed(_scenario_raw)
-          ),
-          (
-            _snapshot("model-context", _model_context_basis, _model_raw),
-            _observed(_model_raw)
-          ),
-          (
-            _snapshot("glossary-bok", _glossary_basis, _glossary_raw),
-            _observed(_glossary_raw)
-          ),
-          (
-            _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), _cml_raw),
-            _observed(_cml_raw, projectrelativepath = Some("model/customer.cml"))
+            _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml")),
+            _observed(_cml_raw, projectrelativepath = Some("model/customer.cml")),
+            "cml-baseline",
+            Some("model/customer.cml")
           )
         )
 
-        cases.foreach { case (snapshot, observation) =>
-          When("the exact observed source is compared with its recorded baseline")
+        cases.foreach { case (snapshot, observation, kind, path) =>
+          When("the complete matching declared source references are compared")
           val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
+          val admittedkind = InternalModelSourceSnapshotFreshness.validatedSnapshotKind(snapshot)
 
-          Then("the report is unchanged without retaining raw source content")
+          Then("agreement reports Unchanged and exposes only declared comparison evidence")
           report.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+          admittedkind shouldBe Right(kind)
+          report.snapshotKind shouldBe Some(kind)
+          report.baselineSourceAuthority shouldBe Some(_authority)
+          report.observedSourceAuthority shouldBe Some(_authority)
+          report.baselineSourceIdentity shouldBe Some(_identity)
+          report.observedSourceIdentity shouldBe Some(_identity)
+          report.baselineSourceRevision shouldBe Some(_revision)
+          report.observedSourceRevision shouldBe Some(_revision)
+          report.baselineCmlProjectRelativePath shouldBe path
+          report.currentCmlProjectRelativePath shouldBe path
           report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
           report.reason shouldBe None
           report.toString should not include "scenario body"
+          report.toString should not include "model fact"
+          report.toString should not include "glossary definition"
           report.toString should not include "entity Customer"
+          report.toString should not include "navigation-only"
         }
       }
 
-      "treat an explicit null revision as equal only to an explicit null revision" in {
-        Given("a canonical Scenario snapshot whose source has no revision")
-        val snapshot = _snapshot("scenario", _scenario_basis, _scenario_raw, revision = Json.Null)
-        val observation = _observed(_scenario_raw, revision = None)
-
-        When("the equal null-revision observation is compared")
-        val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
-
-        Then("the null value remains explicit rather than inferred")
-        report.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
-        report.baselineSourceRevision shouldBe None
-        report.observedSourceRevision shouldBe None
-      }
-
-      "report a null baseline revision and a source-owned observed revision as changed" in {
-        Given("a canonical Scenario snapshot with null revision and equal non-revision source evidence")
-        val snapshot = _snapshot("scenario", _scenario_basis, _scenario_raw, revision = Json.Null)
-        val observation = _observed(_scenario_raw, revision = Some("source-revision-2"))
-
-        When("the source-owned nonempty revision is compared with the null baseline revision")
-        val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
-
-        Then("the revision transition is retained as the sole changed dimension")
-        report.status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-        report.changedDimensionNames shouldBe Vector("source.revision")
-        report.baselineSourceRevision shouldBe None
-        report.observedSourceRevision shouldBe Some("source-revision-2")
-      }
-    }
-
-    "retain every observed difference deterministically" which {
-      "report authority, identity, revision, raw bytes, CML path, and byte-length differences together" in {
-        Given("a CML baseline and one different source-owned CML observation")
-        val snapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), _cml_raw)
-        val currentraw = "entity Customer\nattribute name\n".getBytes(StandardCharsets.UTF_8)
+      "retain every known metadata and CML-path difference in sorted order" in {
+        Given("a complete CML baseline and an observation with four different declared dimensions")
+        val snapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"))
         val observation = _observed(
-          currentraw,
+          "different ordinary payload\n".getBytes(StandardCharsets.UTF_8),
           authority = "other-authority",
           identity = "other-identity",
           revision = Some("other-revision"),
           projectrelativepath = Some("model/customer-v2.cml")
         )
 
-        When("all live metadata and bytes differ from the recorded CML baseline")
+        When("all declared source metadata and the target path are compared")
         val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
 
-        Then("Changed contains every lexicographically ordered difference rather than the first one")
+        Then("Changed retains all four dimensions and no payload dimensions")
         report.status shouldBe InternalModelSnapshotFreshnessStatus.Changed
         report.changedDimensionNames shouldBe Vector(
-          "basis.byteLength",
-          "basis.projectRelativePath",
-          "basis.rawBytesBase64",
-          "source.authority",
-          "source.identity",
-          "source.revision",
-          "source.sha256"
+          "basis.projectRelativePath", "source.authority", "source.identity", "source.revision"
         )
+        report.missingDimensionNames shouldBe Vector.empty
+        report.observedSourceAuthority shouldBe Some("other-authority")
+        report.observedSourceIdentity shouldBe Some("other-identity")
+        report.observedSourceRevision shouldBe Some("other-revision")
         report.currentCmlProjectRelativePath shouldBe Some("model/customer-v2.cml")
+        report.reason.get should include ("declared source references differ")
       }
 
-      "treat a changed source identity or CML path as changed even when raw bytes have the same digest" in {
-        Given("a CML baseline with exact current bytes but a different identity and target path")
-        val snapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), _cml_raw)
-        val observation = _observed(
-          _cml_raw,
-          identity = "different-source-identity",
-          projectrelativepath = Some("model/customer-renamed.cml")
-        )
-
-        When("the equal bytes are compared with changed source identity and path")
-        val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
-
-        Then("the path and identity remain independent equality dimensions")
-        report.status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-        report.changedDimensionNames shouldBe Vector("basis.projectRelativePath", "source.identity")
-        report.observedRawBytesSha256 shouldBe report.baselineRawBytesSha256
-      }
-
-      "surface generated identity and byte perturbations without changing the supplied snapshot" in {
-        Given("a Scenario snapshot and generated nonempty identity and byte perturbations")
-        val snapshot = _snapshot("scenario", _scenario_basis, _scenario_raw)
+      "surface generated identity and revision perturbations without mutating caller inputs" in {
+        Given("a complete Scenario baseline and generated nonempty source-owned identity and revision suffixes")
+        val snapshot = _snapshot("scenario", _scenario_basis)
         val original = snapshot.clone()
         val suffixes = for {
           identitysuffix <- Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)
-          bytessuffix <- Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)
-        } yield identitysuffix -> bytessuffix
+          revisionsuffix <- Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)
+        } yield identitysuffix -> revisionsuffix
 
-        forAll(suffixes) { case (identitysuffix, bytessuffix) =>
-          When("one generated source identity and one exact raw-byte sequence differ")
+        forAll(suffixes) { case (identitysuffix, revisionsuffix) =>
+          And("the generated observation contains independently changed identity and revision")
           val observation = _observed(
-            ("different raw source " + bytessuffix).getBytes(StandardCharsets.UTF_8),
-            identity = "different-source-" + identitysuffix
+            _scenario_raw,
+            identity = "different-source-" + identitysuffix,
+            revision = Some("different-revision-" + revisionsuffix)
           )
+
+          When("the generated declared references are compared")
           val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
 
-          Then("both dimensions are reported and the caller-owned bytes remain unchanged")
+          Then("both reference differences are reported and the supplied baseline remains untouched")
           report.status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-          report.changedDimensionNames shouldBe Vector("source.identity", "source.sha256")
+          report.changedDimensionNames shouldBe Vector("source.identity", "source.revision")
+          report.missingDimensionNames shouldBe Vector.empty
           snapshot should contain theSameElementsInOrderAs original
         }
       }
+
+      "leave ordinary payload and CML length changes outside control comparison while retaining path changes" in {
+        Given("complete declared references with different raw payloads, selected text, and admitted CML lengths")
+        val otherraw = "entity Order\nattribute total\n".getBytes(StandardCharsets.UTF_8)
+        val path = "model/customer.cml"
+        val cases = Vector(
+          (_snapshot("scenario", _scenario_basis), _observed(otherraw)),
+          (_snapshot("scenario", _set(_scenario_basis, "content", Json.fromString("other full scenario\n"))), _observed(_scenario_raw)),
+          (_snapshot("model-context", _model_context_basis), _observed(otherraw)),
+          (_snapshot("glossary-bok", _glossary_basis), _observed(otherraw)),
+          (_snapshot("cml-baseline", _cml_basis(_cml_raw, path)), _observed(otherraw, projectrelativepath = Some(path))),
+          (_snapshot("cml-baseline", _cml_basis(otherraw, path)), _observed(_cml_raw, projectrelativepath = Some(path)))
+        )
+        val cmlsnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, path))
+        val moved = _observed(otherraw, projectrelativepath = Some("model/renamed.cml"))
+
+        When("the supplied references are compared independently of all payload variation")
+        val reports = cases.map { case (snapshot, observation) =>
+          InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
+        }
+        val pathreport = InternalModelSourceSnapshotFreshness.compare(cmlsnapshot, moved)
+
+        Then("matching complete references agree without claiming content freshness and the path remains independent")
+        reports.foreach { report =>
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+          report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
+          report.reason shouldBe None
+        }
+        pathreport.status shouldBe InternalModelSnapshotFreshnessStatus.Changed
+        pathreport.changedDimensionNames shouldBe Vector("basis.projectRelativePath")
+        pathreport.missingDimensionNames shouldBe Vector.empty
+      }
     }
 
-    "preserve source-observation availability states" which {
-      "return every non-observed status with its own evidence rather than manufacturing an observed source" in {
-        Given("one valid Scenario baseline and each closed non-observed live source state")
-        val snapshot = _snapshot("scenario", _scenario_basis, _scenario_raw)
+    "preserve unknown source versions" which {
+      "report None/None, None/Some, and Some/None as Incomplete with exact missing and changed dimensions" in {
+        Given("the three source-owned revision combinations containing at least one explicit absence")
         val cases = Vector(
-          InternalModelLiveSourceObservation.Unavailable("provider is offline") -> InternalModelSnapshotFreshnessStatus.Unavailable,
-          InternalModelLiveSourceObservation.Unauthorized("source access is denied") -> InternalModelSnapshotFreshnessStatus.Unauthorized,
-          InternalModelLiveSourceObservation.Malformed("provider response is malformed") -> InternalModelSnapshotFreshnessStatus.Malformed,
-          InternalModelLiveSourceObservation.AmbiguousOrConflicting("two source-owned revisions conflict") -> InternalModelSnapshotFreshnessStatus.AmbiguousOrConflicting
+          (Json.Null, None, Vector("baseline.source.revision", "observed.source.revision"), Vector.empty[String]),
+          (Json.Null, Some("observed-version"), Vector("baseline.source.revision"), Vector("source.revision")),
+          (Json.fromString(_revision), None, Vector("observed.source.revision"), Vector("source.revision"))
         )
 
-        cases.foreach { case (observation, status) =>
-          When("the baseline is compared with that non-observed source state")
+        cases.foreach { case (baseline, observed, missing, changed) =>
+          And("a structurally valid Scenario baseline and observation preserve that revision combination")
+          val snapshot = _snapshot("scenario", _scenario_basis, revision = baseline)
+          val observation = _observed(_scenario_raw, revision = observed)
+
+          When("the supplied revisions are compared without substituting an artifact version")
           val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
 
-          Then("the distinct status and evidence are retained without an observed digest")
-          report.status shouldBe status
-          report.observedRawBytesSha256 shouldBe None
-          report.reason should not be None
+          Then("the missing source-owned versions remain incomplete and any transition remains observable")
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Incomplete
+          report.missingDimensionNames shouldBe missing
+          report.changedDimensionNames shouldBe changed
+          report.baselineSourceRevision shouldBe baseline.asString
+          report.observedSourceRevision shouldBe observed
+          report.reason.get should include ("missing source-owned revision")
+          missing.foreach(dimension => report.reason.get should include (dimension))
         }
       }
 
-      "reject a non-CML target-path claim and require a safe CML target path" in {
-        Given("a Scenario observation that claims CML and a CML observation that omits its path")
-        val scenariosnapshot = _snapshot("scenario", _scenario_basis, _scenario_raw)
-        val cmlsnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), _cml_raw)
+      "retain simultaneous authority, identity, revision, and CML-path contradictions while incomplete" in {
+        Given("a CML baseline with no source revision and contradictory declared observation metadata")
+        val snapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), revision = Json.Null)
+        val revisions = Vector(None, Some("observed-version"))
 
-        When("the malformed observations are compared")
-        val noncml = InternalModelSourceSnapshotFreshness.compare(
-          scenariosnapshot,
-          _observed(_scenario_raw, projectrelativepath = Some("model/customer.cml"))
-        )
-        val missingpath = InternalModelSourceSnapshotFreshness.compare(cmlsnapshot, _observed(_cml_raw))
+        revisions.foreach { revision =>
+          And("the observation changes authority, identity, and path with the selected optional revision")
+          val observation = _observed(
+            _cml_raw,
+            authority = "other-authority",
+            identity = "other-identity",
+            revision = revision,
+            projectrelativepath = Some("model/other.cml")
+          )
 
-        Then("neither malformed observation can claim unchanged equality")
-        noncml.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-        missingpath.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-      }
+          When("the incomplete references and all independently observable contradictions are compared")
+          val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
 
-      "reject CML paths containing a non-breaking space in either comparison input" in {
-        Given("CML baseline and observed paths whose otherwise safe segment contains U+00A0")
-        val nonbreakingspacepath = "model/customer\u00a0draft.cml"
-        val baselinesnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, nonbreakingspacepath), _cml_raw)
-        val observedsnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), _cml_raw)
-
-        When("each CML path is compared as supplied baseline or source-owned observation evidence")
-        val malformedbaseline = InternalModelSourceSnapshotFreshness.compare(
-          baselinesnapshot,
-          _observed(_cml_raw, projectrelativepath = Some("model/customer.cml"))
-        )
-        val malformedobserved = InternalModelSourceSnapshotFreshness.compare(
-          observedsnapshot,
-          _observed(_cml_raw, projectrelativepath = Some(nonbreakingspacepath))
-        )
-
-        Then("both non-breaking-space paths are malformed rather than unchanged or changed")
-        malformedbaseline.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-        malformedobserved.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          Then("Incomplete retains every declared contradiction rather than hiding it")
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Incomplete
+          report.changedDimensionNames shouldBe
+            (Vector("basis.projectRelativePath", "source.authority", "source.identity") ++
+              revision.toVector.map(_ => "source.revision"))
+          report.missingDimensionNames shouldBe
+            (Vector("baseline.source.revision") ++ Option.when(revision.isEmpty)("observed.source.revision").toVector)
+          report.observedSourceAuthority shouldBe Some("other-authority")
+          report.observedSourceIdentity shouldBe Some("other-identity")
+          report.currentCmlProjectRelativePath shouldBe Some("model/other.cml")
+          report.reason.get should include ("missing source-owned revision")
+        }
       }
     }
 
-    "fail closed before comparing a live source" which {
-      "give malformed snapshot bytes precedence over an otherwise distinct live observation" in {
-        Given("BOM, invalid JSON, duplicate-member, and noncanonical source-snapshot byte variants")
-        val canonical = _snapshot("scenario", _scenario_basis, _scenario_raw)
-        val duplicate = ("{" +
-          "\"basis\":{},\"basis\":{},\"schemaVersion\":\"1.0\",\"snapshotKind\":\"scenario\",\"source\":{}" +
-          "}\n").getBytes(StandardCharsets.UTF_8)
-        val variants = Vector(
-          Array(0xef.toByte, 0xbb.toByte, 0xbf.toByte) ++ canonical,
-          "{not-json}\n".getBytes(StandardCharsets.UTF_8),
-          duplicate,
-          (canonical.dropRight(1) ++ " \n".getBytes(StandardCharsets.UTF_8))
+    "preserve attributed observation outcomes" which {
+      "retain all four non-observed states without inventing an observation or overriding them with incompleteness" in {
+        Given("a valid baseline with unknown revision and each closed non-observed state with its own evidence")
+        val snapshot = _snapshot("scenario", _scenario_basis, revision = Json.Null)
+        val cases = Vector(
+          (InternalModelLiveSourceObservation.Unavailable("provider is offline"), InternalModelSnapshotFreshnessStatus.Unavailable, "provider is offline"),
+          (InternalModelLiveSourceObservation.Unauthorized("source access is denied"), InternalModelSnapshotFreshnessStatus.Unauthorized, "source access is denied"),
+          (InternalModelLiveSourceObservation.Malformed("provider response is malformed"), InternalModelSnapshotFreshnessStatus.Malformed, "provider response is malformed"),
+          (InternalModelLiveSourceObservation.AmbiguousOrConflicting("two revisions conflict"), InternalModelSnapshotFreshnessStatus.AmbiguousOrConflicting, "two revisions conflict")
         )
 
-        forAll(Gen.oneOf(variants)) { snapshot =>
-          When("the malformed baseline is offered with an unauthorized live observation")
-          val report = InternalModelSourceSnapshotFreshness.compare(
-            snapshot,
-            InternalModelLiveSourceObservation.Unauthorized("not consulted before baseline validation")
-          )
+        cases.foreach { case (observation, status, evidence) =>
+          When("the valid baseline is offered with that non-observed source state")
+          val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
 
-          Then("Malformed is returned before the live status is considered")
-          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-          report.snapshotKind shouldBe None
+          Then("the exact status and evidence remain attributed with no comparable observation")
+          report.status shouldBe status
+          report.reason shouldBe Some(evidence)
+          report.baselineSourceAuthority shouldBe Some(_authority)
+          report.baselineSourceIdentity shouldBe Some(_identity)
+          report.baselineSourceRevision shouldBe None
+          report.observedSourceAuthority shouldBe None
           report.observedSourceIdentity shouldBe None
-        }
-      }
-
-      "reject invalid kind, basis, ordering, Base64, CML path, and raw digest without repair" in {
-        Given("independently canonical JSON envelopes whose V1 values are structurally invalid")
-        val wrongkind = _snapshot("unsupported-kind", _scenario_basis, _scenario_raw)
-        val wrongbasis = _snapshot("scenario", _cml_basis(_scenario_raw, "model/customer.cml"), _scenario_raw)
-        val unordered = _snapshot("scenario", _scenario_basis_with_unordered_traces, _scenario_raw)
-        val invalidbase64 = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml", encoded = "not canonical"), _cml_raw)
-        val unsafepath = _snapshot("cml-baseline", _cml_basis(_cml_raw, "../customer.cml"), _cml_raw)
-        val wronghash = _snapshot(
-          "cml-baseline",
-          _cml_basis(_cml_raw, "model/customer.cml"),
-          _cml_raw,
-          sourcehash = "sha256:" + ("0" * 64)
-        )
-        val invalid = Vector(wrongkind, wrongbasis, unordered, invalidbase64, unsafepath, wronghash)
-
-        forAll(Gen.oneOf(invalid)) { snapshot =>
-          When("an invalid V1 value is compared without modifying its supplied bytes")
-          val report = InternalModelSourceSnapshotFreshness.compare(snapshot, _observed(_scenario_raw))
-
-          Then("the comparator reports malformed baseline data instead of reserializing it into acceptance")
-          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          report.observedSourceRevision shouldBe None
+          report.currentCmlProjectRelativePath shouldBe None
           report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
         }
       }
 
-      "treat a supplied CML path as comparison evidence and never as a filesystem target" in {
-        Given("a valid CML baseline whose path does not name a local file")
-        val snapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "missing/read-only-model.cml"), _cml_raw)
+      "apply the existing nonempty evidence rule without trimming opaque evidence" in {
+        Given("null and empty evidence for each non-observed form plus a nonempty whitespace reason")
+        val snapshot = _snapshot("scenario", _scenario_basis)
+        val invalid = Vector(null, "").flatMap { evidence =>
+          Vector(
+            InternalModelLiveSourceObservation.Unavailable(evidence),
+            InternalModelLiveSourceObservation.Unauthorized(evidence),
+            InternalModelLiveSourceObservation.Malformed(evidence),
+            InternalModelLiveSourceObservation.AmbiguousOrConflicting(evidence)
+          )
+        }
+        val whitespace = InternalModelLiveSourceObservation.Unavailable(" ")
+
+        When("the evidence is interpreted under the unchanged nonempty-string rule")
+        val reports = invalid.map(observation => InternalModelSourceSnapshotFreshness.compare(snapshot, observation))
+        val preserved = InternalModelSourceSnapshotFreshness.compare(snapshot, whitespace)
+
+        Then("missing evidence is malformed while nonempty evidence retains its exact spelling")
+        reports.foreach { report =>
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          report.missingDimensionNames shouldBe Vector.empty
+        }
+        preserved.status shouldBe InternalModelSnapshotFreshnessStatus.Unavailable
+        preserved.reason shouldBe Some(" ")
+      }
+
+      "reject missing or malformed observed metadata, options, payloads, and incompatible CML-path claims" in {
+        Given("well-formed baselines with unknown revisions and malformed caller observations")
+        val scenariosnapshot = _snapshot("scenario", _scenario_basis, revision = Json.Null)
+        val cmlsnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml"), revision = Json.Null)
+        val invalidscenario = Vector(
+          null,
+          _observed(_scenario_raw, authority = null),
+          _observed(_scenario_raw, authority = ""),
+          _observed(_scenario_raw, identity = null),
+          _observed(_scenario_raw, identity = ""),
+          _observed(_scenario_raw, revision = null),
+          _observed(_scenario_raw, revision = Some(null)),
+          _observed(_scenario_raw, revision = Some("")),
+          InternalModelLiveSourceObservation.Observed(_authority, _identity, None, null, None),
+          _observed(_scenario_raw, projectrelativepath = null),
+          _observed(_scenario_raw, projectrelativepath = Some(null)),
+          _observed(_scenario_raw, projectrelativepath = Some("model/customer.cml"))
+        )
+        val invalidcml = Vector(
+          _observed(_cml_raw),
+          _observed(_cml_raw, projectrelativepath = null),
+          _observed(_cml_raw, projectrelativepath = Some(null)),
+          _observed(_cml_raw, projectrelativepath = Some("")),
+          _observed(_cml_raw, projectrelativepath = Some("../customer.cml")),
+          _observed(_cml_raw, projectrelativepath = Some("model/customer\u00a0draft.cml"))
+        )
+
+        When("each malformed observation is compared before deciding version completeness")
+        val reports = invalidscenario.map(observation =>
+          InternalModelSourceSnapshotFreshness.compare(scenariosnapshot, observation)
+        ) ++ invalidcml.map(observation =>
+          InternalModelSourceSnapshotFreshness.compare(cmlsnapshot, observation)
+        )
+
+        Then("every malformed caller value rejects without an invented observation or Incomplete result")
+        reports.foreach { report =>
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          report.observedSourceAuthority shouldBe None
+          report.observedSourceIdentity shouldBe None
+          report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
+        }
+      }
+
+      "treat safe supplied missing-local CML paths as evidence without requiring filesystem presence" in {
+        Given("a complete CML baseline and observation whose supplied safe path names no required local file")
+        val snapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "missing/read-only-model.cml"))
         val original = snapshot.clone()
         val observation = _observed(_cml_raw, projectrelativepath = Some("missing/read-only-model.cml"))
 
-        When("the supplied raw bytes and path are compared")
+        When("the supplied declared references and path are compared")
         val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
 
-        Then("no input bytes are mutated and no filesystem presence is required for equality")
+        Then("complete reference agreement requires no file read and leaves caller inputs untouched")
         report.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+        report.changedDimensionNames shouldBe Vector.empty
+        report.missingDimensionNames shouldBe Vector.empty
         snapshot should contain theSameElementsInOrderAs original
+      }
+    }
+
+    "admit strict structure before considering source observations" which {
+      "give malformed baseline precedence over observed and all non-observed outcomes" in {
+        Given("a closed envelope using the rejected old schema and every observation form including missing input")
+        val snapshot = _bytes(_set(_envelope("scenario", _scenario_basis), "schemaVersion", Json.fromString("1.0")))
+        val observations = Vector(
+          _observed(_scenario_raw),
+          InternalModelLiveSourceObservation.Unavailable("offline"),
+          InternalModelLiveSourceObservation.Unauthorized("denied"),
+          InternalModelLiveSourceObservation.Malformed("bad response"),
+          InternalModelLiveSourceObservation.AmbiguousOrConflicting("conflict"),
+          null
+        )
+
+        observations.foreach { observation =>
+          When("the malformed baseline is offered with that observation")
+          val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
+          val admittedkind = InternalModelSourceSnapshotFreshness.validatedSnapshotKind(snapshot)
+
+          Then("baseline rejection precedes the supplied live outcome and exposes no fabricated basis")
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          admittedkind.isLeft shouldBe true
+          report.snapshotKind shouldBe None
+          report.baselineSourceAuthority shouldBe None
+          report.observedSourceIdentity shouldBe None
+          report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
+          report.reason.get should include ("schemaVersion must be 2.0")
+        }
+      }
+
+      "admit equivalent whitespace, key order, and JSON escaping across envelope and nested bases" in {
+        Given("all four V2 envelopes with reversed object order, harmless whitespace, and equivalent escaped strings")
+        val cases = Vector(
+          (_envelope("scenario", _scenario_basis), _observed(_scenario_raw)),
+          (_envelope("model-context", _model_context_basis), _observed(_model_raw)),
+          (_envelope("glossary-bok", _glossary_basis), _observed(_glossary_raw)),
+          (_envelope("cml-baseline", _cml_basis(_cml_raw, "model/customer.cml")), _observed(_cml_raw, projectrelativepath = Some("model/customer.cml")))
+        )
+
+        cases.foreach { case (envelope, observation) =>
+          And("the alternate JSON presentation preserves the decoded source and basis values")
+          val representation = ("\n \t" + _reverse_objects(envelope).spaces2 + " \n\t")
+            .replace("catalog-authority", "\\u0063atalog-authority")
+            .replace("source-identity", "source-\\u0069dentity")
+            .replace("component-identity", "\\u0063omponent-identity")
+            .replace("glossary definition", "\\u0067lossary definition")
+            .replace("model/customer.cml", "model\\/customer.cml")
+          val snapshot = representation.getBytes(StandardCharsets.UTF_8)
+
+          When("that equivalent presentation is admitted and compared")
+          val report = InternalModelSourceSnapshotFreshness.compare(snapshot, observation)
+
+          Then("presentation variation preserves complete declared-reference agreement")
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+          report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
+          report.reason shouldBe None
+        }
+      }
+
+      "reject invalid UTF-8, BOM, non-JSON, and duplicate members at every object depth" in {
+        Given("malformed serialization and duplicate root, source, basis, trace, fact, and definition members")
+        val scenario = _printer.print(_envelope("scenario", _scenario_basis))
+        val model = _printer.print(_envelope("model-context", _model_context_basis))
+        val glossary = _printer.print(_envelope("glossary-bok", _glossary_basis))
+        val variants = Vector(
+          Array(0xc3.toByte, 0x28.toByte),
+          Array(0xef.toByte, 0xbb.toByte, 0xbf.toByte) ++ scenario.getBytes(StandardCharsets.UTF_8),
+          "{not-json}".getBytes(StandardCharsets.UTF_8),
+          "schemaVersion: 2.0\nsnapshotKind: scenario\n".getBytes(StandardCharsets.UTF_8),
+          (scenario + "{}").getBytes(StandardCharsets.UTF_8),
+          scenario.replace("\"schemaVersion\":\"2.0\"", "\"schemaVersion\":\"2.0\",\"schemaVersion\":\"2.0\"").getBytes(StandardCharsets.UTF_8),
+          scenario.replace("\"authority\":\"catalog-authority\"", "\"authority\":\"catalog-authority\",\"authority\":\"catalog-authority\"").getBytes(StandardCharsets.UTF_8),
+          scenario.replace("\"scenarioId\":\"scenario-identity\"", "\"scenarioId\":\"scenario-identity\",\"scenarioId\":\"scenario-identity\"").getBytes(StandardCharsets.UTF_8),
+          scenario.replace("\"scenarioAnchor\":\"scenario-anchor\"", "\"scenarioAnchor\":\"scenario-anchor\",\"scenarioAnchor\":\"scenario-anchor\"").getBytes(StandardCharsets.UTF_8),
+          model.replace("\"sourceAnchor\":\"model-source-anchor\"", "\"sourceAnchor\":\"model-source-anchor\",\"sourceAnchor\":\"model-source-anchor\"").getBytes(StandardCharsets.UTF_8),
+          glossary.replace("\"termIdentity\":\"term-identity\"", "\"termIdentity\":\"term-identity\",\"termIdentity\":\"term-identity\"").getBytes(StandardCharsets.UTF_8)
+        )
+
+        forAll(Gen.oneOf(variants)) { snapshot =>
+          When("the malformed serialization is offered without repair")
+          val report = InternalModelSourceSnapshotFreshness.compare(snapshot, _observed(_scenario_raw))
+
+          Then("the baseline is malformed before any observed source can supply meaning")
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          report.snapshotKind shouldBe None
+          report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
+        }
+      }
+
+      "reject old schemas, hash fields, wrong or missing types and fields, and empty required content or identities" in {
+        Given("V2 JSON values violating closed envelopes or required source and selected-basis values")
+        val scenario = _envelope("scenario", _scenario_basis)
+        val source = _source()
+        val fact = _model_fact("model-source-anchor")
+        val definition = _glossary_entry("glossary-source-anchor")
+        val invalid = Vector(
+          Json.Null,
+          _set(scenario, "schemaVersion", Json.fromString("1.0")),
+          _set(scenario, "schemaVersion", Json.fromInt(2)),
+          _set(scenario, "extra", Json.True),
+          _remove(scenario, "source"),
+          _set(scenario, "source", Json.arr()),
+          _set(scenario, "snapshotKind", Json.fromString("unsupported")),
+          _set(scenario, "basis", _cml_basis(_cml_raw, "model/customer.cml")),
+          _set(scenario, "basis", Json.Null),
+          _set(scenario, "source", _set(source, "sha256", Json.fromString("forbidden-extra-field"))),
+          _set(scenario, "basis", _set(_scenario_basis, "sha256", Json.fromString("forbidden-extra-field"))),
+          _set(scenario, "source", _remove(source, "locator")),
+          _set(scenario, "source", _remove(source, "revision")),
+          _set(scenario, "source", _set(source, "authority", Json.Null)),
+          _set(scenario, "source", _set(source, "authority", Json.fromString(""))),
+          _set(scenario, "source", _set(source, "identity", Json.fromInt(1))),
+          _set(scenario, "source", _set(source, "identity", Json.fromString(""))),
+          _set(scenario, "source", _set(source, "locator", Json.fromString(""))),
+          _set(scenario, "source", _set(source, "locator", Json.arr())),
+          _set(scenario, "source", _set(source, "revision", Json.fromString(""))),
+          _set(scenario, "source", _set(source, "revision", Json.fromInt(1))),
+          _envelope("scenario", _set(_scenario_basis, "content", Json.fromString(""))),
+          _envelope("scenario", _remove(_scenario_basis, "content")),
+          _envelope("scenario", _set(_scenario_basis, "scenarioId", Json.fromString(""))),
+          _envelope("scenario", _set(_scenario_basis, "traceLinks", Json.Null)),
+          _envelope("scenario", _set(_scenario_basis, "traceLinks", Json.arr(_set(_trace_link("anchor"), "semanticIdentityKind", Json.fromString("label"))))),
+          _envelope("scenario", _set(_scenario_basis, "traceLinks", Json.arr(_remove(_trace_link("anchor"), "semanticIdentity")))),
+          _envelope("model-context", _set(_model_context_basis, "contextIdentity", Json.fromString(""))),
+          _envelope("model-context", _set(_model_context_basis, "facts", Json.arr())),
+          _envelope("model-context", _remove(_model_context_basis, "facts")),
+          _envelope("model-context", _set(_model_context_basis, "facts", Json.arr(_set(fact, "content", Json.fromString(""))))),
+          _envelope("model-context", _set(_model_context_basis, "facts", Json.arr(_set(fact, "sourceAnchor", Json.fromString(""))))),
+          _envelope("model-context", _set(_model_context_basis, "facts", Json.arr(_set(fact, "limitations", Json.arr(Json.fromString("")))))),
+          _envelope("glossary-bok", Json.obj("entries" -> Json.arr())),
+          _envelope("glossary-bok", Json.obj()),
+          _envelope("glossary-bok", Json.obj("entries" -> Json.arr(_set(definition, "definition", Json.fromString(""))))),
+          _envelope("glossary-bok", Json.obj("entries" -> Json.arr(_set(definition, "termIdentity", Json.Null)))),
+          _envelope("glossary-bok", Json.obj("entries" -> Json.arr(_set(definition, "termLabel", Json.fromString("")))))
+        )
+
+        invalid.foreach { envelope =>
+          When("the structurally invalid source or basis value is admitted")
+          val report = InternalModelSourceSnapshotFreshness.compare(_bytes(envelope), _observed(_scenario_raw))
+
+          Then("closed-shape and required-value failures reject without defaults or normalization")
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+          report.snapshotKind shouldBe None
+          report.changedDimensionNames shouldBe Vector.empty
+          report.missingDimensionNames shouldBe Vector.empty
+        }
+      }
+
+      "retain full LF-normalized content and reject non-normalized Scenario, fact, and definition text" in {
+        Given("complete content with preserved Unicode and whitespace plus CR or leading-BOM variants")
+        val content = "  日本語 e\u0301\ncomplete second line \t\n"
+        val valid = Vector(
+          _snapshot("scenario", _set(_scenario_basis, "content", Json.fromString(content))),
+          _snapshot("model-context", _set(_model_context_basis, "facts", Json.arr(_model_fact("anchor", content = content)))),
+          _snapshot("glossary-bok", Json.obj("entries" -> Json.arr(_glossary_entry("anchor", definition = content))))
+        )
+        val invalid = Vector("line\r\n", "line\r", "\ufeffbody").flatMap { text =>
+          Vector(
+            _snapshot("scenario", _set(_scenario_basis, "content", Json.fromString(text))),
+            _snapshot("model-context", _set(_model_context_basis, "facts", Json.arr(_model_fact("anchor", content = text)))),
+            _snapshot("glossary-bok", Json.obj("entries" -> Json.arr(_glossary_entry("anchor", definition = text))))
+          )
+        }
+
+        When("complete selected text is interpreted exactly as supplied")
+        val admitted = valid.map(snapshot => InternalModelSourceSnapshotFreshness.compare(snapshot, _observed(_scenario_raw)))
+        val rejected = invalid.map(snapshot => InternalModelSourceSnapshotFreshness.compare(snapshot, _observed(_scenario_raw)))
+
+        Then("normalized complete text is admitted and non-normalized text rejects without repair")
+        admitted.foreach(_.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged)
+        rejected.foreach(_.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed)
+      }
+
+      "preserve tuple uniqueness and UTF-8 ordering while keeping distinct conflicting anchored claims" in {
+        Given("ordered distinct traces, conflicting anchored facts and definitions, and ordered limitations")
+        val limitations = Json.arr(Json.fromString("\ue000"), Json.fromString("\ud800\udc00"))
+        val facts = Json.arr(
+          _model_fact("a-anchor", content = "claim one\n", limitations = limitations),
+          _model_fact("z-anchor", content = "conflicting claim\n", limitations = limitations)
+        )
+        val definitions = Json.arr(
+          _glossary_entry("a-anchor", definition = "definition one\n", limitations = limitations),
+          _glossary_entry("z-anchor", definition = "conflicting definition\n", limitations = limitations)
+        )
+        val valid = Vector(
+          _snapshot("scenario", _set(_scenario_basis, "traceLinks", Json.arr())),
+          _snapshot("scenario", _set(_scenario_basis, "traceLinks", Json.arr(_trace_link("a-anchor"), _trace_link("z-anchor")))),
+          _snapshot("model-context", _set(_model_context_basis, "facts", facts)),
+          _snapshot("glossary-bok", Json.obj("entries" -> definitions))
+        )
+        val invalid = Vector(
+          _snapshot("scenario", _set(_scenario_basis, "traceLinks", Json.arr(_trace_link("z-anchor"), _trace_link("a-anchor")))),
+          _snapshot("scenario", _set(_scenario_basis, "traceLinks", Json.arr(_trace_link("a-anchor"), _trace_link("a-anchor")))),
+          _snapshot("model-context", _set(_model_context_basis, "facts", Json.arr(_model_fact("z"), _model_fact("a")))),
+          _snapshot("model-context", _set(_model_context_basis, "facts", Json.arr(_model_fact("a"), _model_fact("a")))),
+          _snapshot("glossary-bok", Json.obj("entries" -> Json.arr(_glossary_entry("z"), _glossary_entry("a")))),
+          _snapshot("glossary-bok", Json.obj("entries" -> Json.arr(_glossary_entry("a"), _glossary_entry("a"))))
+        ) ++ Vector(
+          Json.arr(Json.fromString("z"), Json.fromString("a")),
+          Json.arr(Json.fromString("a"), Json.fromString("a")),
+          Json.arr(Json.fromString("\ud800\udc00"), Json.fromString("\ue000"))
+        ).flatMap { unordered =>
+          Vector(
+            _snapshot("model-context", _set(_model_context_basis, "facts", Json.arr(_model_fact("anchor", limitations = unordered)))),
+            _snapshot("glossary-bok", Json.obj("entries" -> Json.arr(_glossary_entry("anchor", limitations = unordered))))
+          )
+        }
+
+        When("the original text-order and complete identity-and-anchor tuples are admitted")
+        val admitted = valid.map(snapshot => InternalModelSourceSnapshotFreshness.compare(snapshot, _observed(_scenario_raw)))
+        val rejected = invalid.map(snapshot => InternalModelSourceSnapshotFreshness.compare(snapshot, _observed(_scenario_raw)))
+
+        Then("distinct conflicting anchors survive while duplicate or unordered tuples and limitations reject")
+        admitted.foreach(_.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged)
+        rejected.foreach(_.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed)
+      }
+
+      "admit ordinary padded CML payload and reject encoding, lexical length, mismatch, and unsafe paths" in {
+        Given("valid ordinary CML payloads and invalid Base64, length, and POSIX-path variants")
+        val path = "model/customer.cml"
+        val basis = _cml_basis(_cml_raw, path)
+        val observation = _observed(_cml_raw, projectrelativepath = Some(path))
+        val valid = Vector(
+          _snapshot("cml-baseline", basis),
+          _snapshot("cml-baseline", _cml_basis(Array.emptyByteArray, path)),
+          _snapshot("cml-baseline", _cml_basis(Array(0xff.toByte, 0x00.toByte), path))
+        )
+        val invalidencoding = Vector("Zg", "Zh==", "Zg==\n", "_w==", "Zg===", "not base64")
+          .map(encoded => _snapshot("cml-baseline", _set(_cml_basis(Array('f'.toByte), path), "rawBytesBase64", Json.fromString(encoded))))
+        val invalidlength = Vector(Json.fromInt(-1), Json.fromString("15"), Json.Null, Json.fromInt(_cml_raw.length + 1))
+          .map(length => _snapshot("cml-baseline", _set(basis, "byteLength", length)))
+        val lexical = Vector("-0", _cml_raw.length.toString + ".0", _cml_raw.length.toString + "e0",
+          "0" + _cml_raw.length.toString, "9223372036854775808").map { length =>
+          _printer.print(_envelope("cml-baseline", basis))
+            .replace("\"byteLength\":" + _cml_raw.length, "\"byteLength\":" + length)
+            .getBytes(StandardCharsets.UTF_8)
+        }
+        val paths = Vector("", "/model/customer.cml", "model//customer.cml", "./customer.cml", "model/../customer.cml",
+          "model\\customer.cml", "model/customer draft.cml", "model/customer\tdraft.cml",
+          "model/customer\u0000draft.cml", "model/customer\u00a0draft.cml", "model/customer\u2003draft.cml")
+        val invalidpaths = paths.map(unsafe => _snapshot("cml-baseline", _cml_basis(_cml_raw, unsafe)))
+        val invalid = invalidencoding ++ invalidlength ++ lexical ++ invalidpaths
+
+        When("only ordinary encoding, decoded length, and declared path syntax are admitted")
+        val admitted = valid.map(snapshot => InternalModelSourceSnapshotFreshness.compare(snapshot, observation))
+        val rejected = invalid.map(snapshot => InternalModelSourceSnapshotFreshness.compare(snapshot, observation))
+        val safepaths = paths.map(InternalModelSourceSnapshotFreshness.isSafeCmlProjectRelativePath)
+
+        Then("payload syntax remains strict without providing a checksum or content-comparison control")
+        admitted.foreach { report =>
+          report.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+          report.changedDimensionNames shouldBe Vector.empty
+        }
+        rejected.foreach(_.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed)
+        safepaths should contain only (false)
       }
     }
   }
@@ -303,26 +605,37 @@ final class InternalModelSourceSnapshotFreshnessSpec
   private def _snapshot(
     kind: String,
     basis: Json,
-    rawbytes: Array[Byte],
     authority: String = _authority,
     identity: String = _identity,
-    revision: Json = Json.fromString(_revision),
-    sourcehash: String = ""
-  ): Array[Byte] = {
-    val hash = Option(sourcehash).filter(_.nonEmpty).getOrElse(_sha256(rawbytes))
-    _canonical(Json.fromJsonObject(JsonObject.fromIterable(Vector(
+    revision: Json = Json.fromString(_revision)
+  ): Array[Byte] =
+    _bytes(_envelope(kind, basis, authority, identity, revision))
+
+  private def _envelope(
+    kind: String,
+    basis: Json,
+    authority: String = _authority,
+    identity: String = _identity,
+    revision: Json = Json.fromString(_revision)
+  ): Json =
+    Json.obj(
       "basis" -> basis,
-      "schemaVersion" -> Json.fromString("1.0"),
+      "schemaVersion" -> Json.fromString("2.0"),
       "snapshotKind" -> Json.fromString(kind),
-      "source" -> Json.obj(
-        "authority" -> Json.fromString(authority),
-        "identity" -> Json.fromString(identity),
-        "locator" -> Json.Null,
-        "revision" -> revision,
-        "sha256" -> Json.fromString(hash)
-      )
-    ))))
-  }
+      "source" -> _source(authority, identity, revision)
+    )
+
+  private def _source(
+    authority: String = _authority,
+    identity: String = _identity,
+    revision: Json = Json.fromString(_revision)
+  ): Json =
+    Json.obj(
+      "authority" -> Json.fromString(authority),
+      "identity" -> Json.fromString(identity),
+      "locator" -> Json.fromString("navigation-only"),
+      "revision" -> revision
+    )
 
   private def _observed(
     rawbytes: Array[Byte],
@@ -340,13 +653,6 @@ final class InternalModelSourceSnapshotFreshnessSpec
       "traceLinks" -> Json.arr(_trace_link("scenario-anchor"))
     )
 
-  private def _scenario_basis_with_unordered_traces: Json =
-    Json.obj(
-      "content" -> Json.fromString("scenario body\n"),
-      "scenarioId" -> Json.fromString("scenario-identity"),
-      "traceLinks" -> Json.arr(_trace_link("z-anchor"), _trace_link("a-anchor"))
-    )
-
   private def _trace_link(anchor: String): Json =
     Json.obj(
       "componentIdentity" -> Json.fromString("component-identity"),
@@ -359,40 +665,67 @@ final class InternalModelSourceSnapshotFreshnessSpec
   private def _model_context_basis: Json =
     Json.obj(
       "contextIdentity" -> Json.fromString("model-context-identity"),
-      "facts" -> Json.arr(Json.obj(
-        "componentIdentity" -> Json.fromString("component-identity"),
-        "content" -> Json.fromString("model fact\n"),
-        "limitations" -> Json.arr(Json.fromString("source limitation")),
-        "projectionContextIdentity" -> Json.fromString("projection-context-identity"),
-        "semanticIdentity" -> Json.fromString("semantic-identity"),
-        "semanticIdentityKind" -> Json.fromString("relationship"),
-        "sourceAnchor" -> Json.fromString("model-source-anchor")
-      ))
+      "facts" -> Json.arr(_model_fact("model-source-anchor"))
+    )
+
+  private def _model_fact(
+    anchor: String,
+    content: String = "model fact\n",
+    limitations: Json = Json.arr(Json.fromString("source limitation"))
+  ): Json =
+    Json.obj(
+      "componentIdentity" -> Json.fromString("component-identity"),
+      "content" -> Json.fromString(content),
+      "limitations" -> limitations,
+      "projectionContextIdentity" -> Json.fromString("projection-context-identity"),
+      "semanticIdentity" -> Json.fromString("semantic-identity"),
+      "semanticIdentityKind" -> Json.fromString("relationship"),
+      "sourceAnchor" -> Json.fromString(anchor)
     )
 
   private def _glossary_basis: Json =
+    Json.obj("entries" -> Json.arr(_glossary_entry("glossary-source-anchor")))
+
+  private def _glossary_entry(
+    anchor: String,
+    definition: String = "glossary definition\n",
+    limitations: Json = Json.arr(Json.fromString("source limitation"))
+  ): Json =
     Json.obj(
-      "entries" -> Json.arr(Json.obj(
-        "definition" -> Json.fromString("glossary definition\n"),
-        "limitations" -> Json.arr(Json.fromString("source limitation")),
-        "sourceAnchor" -> Json.fromString("glossary-source-anchor"),
-        "termIdentity" -> Json.fromString("term-identity"),
-        "termLabel" -> Json.fromString("Term")
-      ))
+      "definition" -> Json.fromString(definition),
+      "limitations" -> limitations,
+      "sourceAnchor" -> Json.fromString(anchor),
+      "termIdentity" -> Json.fromString("term-identity"),
+      "termLabel" -> Json.fromString("Term")
     )
 
-  private def _cml_basis(rawbytes: Array[Byte], path: String, encoded: String = ""): Json = {
-    val base64 = Option(encoded).filter(_.nonEmpty).getOrElse(Base64.getEncoder.encodeToString(rawbytes))
+  private def _cml_basis(rawbytes: Array[Byte], path: String): Json =
     Json.obj(
       "byteLength" -> Json.fromInt(rawbytes.length),
       "projectRelativePath" -> Json.fromString(path),
-      "rawBytesBase64" -> Json.fromString(base64)
+      "rawBytesBase64" -> Json.fromString(Base64.getEncoder.encodeToString(rawbytes))
     )
+
+  private def _set(json: Json, key: String, value: Json): Json =
+    json.mapObject(_.add(key, value))
+
+  private def _remove(json: Json, key: String): Json =
+    json.mapObject(_.remove(key))
+
+  private def _reverse_objects(json: Json): Json = {
+    json.asObject match {
+      case Some(objectvalue) =>
+        Json.fromJsonObject(JsonObject.fromIterable(objectvalue.toVector.reverse.map { case (key, value) =>
+          key -> _reverse_objects(value)
+        }))
+      case None =>
+        json.asArray match {
+          case Some(values) => Json.fromValues(values.map(_reverse_objects))
+          case None => json
+        }
+    }
   }
 
-  private def _canonical(json: Json): Array[Byte] =
+  private def _bytes(json: Json): Array[Byte] =
     (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
-
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
 }

@@ -2,7 +2,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Immutable retained open-issue account; admission remains a separate read-only operation. */
@@ -18,9 +18,8 @@ private[runtime] enum InternalModelOpenIssueEvidenceKind(val wireValue: String) 
 }
 
 private[runtime] final case class InternalModelOpenIssueBasis(
-  realizationArtifactId: String,
-  realizationIdentity: String,
-  sha256: String
+  realizationArtifactReference: InternalModelArtifactReference,
+  realizationReference: InternalModelRecordReference
 )
 
 private[runtime] final case class InternalModelOpenIssueBlocking(
@@ -50,7 +49,7 @@ private[runtime] final case class InternalModelOpenIssueOption(
 )
 
 private[runtime] final case class InternalModelOpenIssueRecord(
-  issueIdentity: String,
+  issueReference: InternalModelRecordReference,
   state: InternalModelOpenIssueState,
   question: String,
   decisionRole: String,
@@ -69,11 +68,10 @@ private[runtime] final case class InternalModelOpenIssueRecord(
 private[runtime] final case class InternalModelOpenIssueLedger(
   profile: String,
   schemaVersion: String,
-  ledgerIdentity: String,
+  ledgerReference: InternalModelRecordReference,
   scope: InternalModelSemanticScope,
   basis: InternalModelOpenIssueBasis,
-  issues: Vector[InternalModelOpenIssueRecord],
-  canonicalBytes: Vector[Byte]
+  issues: Vector[InternalModelOpenIssueRecord]
 )
 
 private[runtime] final case class InternalModelOpenIssueAdmission(

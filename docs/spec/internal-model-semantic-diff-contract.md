@@ -1,12 +1,12 @@
 ---
-status: draft
-decision_scope: P10-31A
-updated_at: 2026-09-29
+status: target
+decision_scope: P10-31 / P104-TYPED-SEMANTIC-DIFF
+updated_at: 2026-10-01
 ---
 
 # Internal-model Semantic-Diff Contract
 
-This normative P10-31A contract persists and reconstructs an admitted Phase 9
+This normative current target contract persists and reconstructs supplied Phase 9
 semantic diff without deriving any semantic delta from CML or Git text. It is
 implemented by the [semantic-diff value model](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiff.scala),
 [codec](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelSemanticDiffCodec.scala),
@@ -18,34 +18,50 @@ The [Internal-model Package Contract](internal-model-package-contract.md),
 [Candidate Design and Semantic-Diff Integration Contract](candidate-design-semantic-diff-integration-contract.md)
 retain their respective authority.
 
+The [Typed Control Contract](internal-model-typed-control-contract.md) owns the
+distinct public artifact/record reference domains used by the shared patch trace.
+The basis is package/source V2, candidate V2 and realization/continuity V3 only.
+Original P10-31A implementation and proof are historical. Current authoring
+requires parent validation and independent review; it establishes neither Step
+acceptance, all-consumer migration nor Phase 10.4 closure.
+
 ## Authority and admission
 
-The only admitted content profile is `ccdm-semantic-diff-v1` with
-`schemaVersion` `1.0`, carried as a `projection` artifact. It is selected from
+The only admitted content profile is `ccdm-semantic-diff-v2` with
+`schemaVersion` `2.0`, carried as a `projection` artifact. It is selected from
 one already captured, project-bound package inventory together with exactly one
-candidate projection. Its manifest dependency set is exactly the selected
-candidate artifact ID. The diff retains its own artifact ID, raw-byte digest,
-and package-relative path only in the external admission context; it serializes
-neither its own hash nor package digest.
+candidate projection. Its dependency vector is exactly one selected candidate
+`ArtifactReference`, including ID, positive Long revision and `projection` role.
+The diff's own artifact reference and package-relative path remain external.
+Admission has exactly `diff`, `diffArtifactReference`, `diffPackageRelativePath`
+and `candidateAdmission`; there is no digest or cached content.
 
-The root has exactly `candidateArtifactId`, `candidateArtifactSha256`,
-`candidateIdentity`, `candidateModelIdentity`, `candidateRevision`, `profile`,
-`schemaVersion`, `scope`, `semanticDiffIdentity`, `semanticDiffRevision`, and
-`targets`. `scope` has exactly `componentIdentity`,
+The root has exactly eight fields: `candidateArtifactReference`,
+`candidateReference`, `candidateModelIdentity`, `profile`, `schemaVersion`,
+`scope`, `semanticDiffReference` and `targets`. `scope` has exactly `componentIdentity`,
 `projectionContextIdentity`, and `selectedUseCaseElementIdentity`. Candidate
-identity/model/revision and scope equal the decoded selected candidate exactly;
-the diff identity is a separately supplied nonblank value and revision is a
-canonical positive `Int`.
+artifact reference, logical candidate reference, model identity and complete
+scope equal the selected candidate exactly. `candidateReference` and
+`semanticDiffReference` are independent closed `RecordReference` values with
+nonblank valid Unicode IDs and explicitly supplied positive lexical JSON Long
+revisions. Neither revision is inferred from another record, artifact, carrier,
+source version or payload. `candidateArtifactReference` has exactly
+`artifactId`, `artifactRevision` and role `projection`; an artifact ID follows
+the package's ASCII token grammar. No raw ID, scalar reference or old field is
+admitted. All references are required and closed; signs, leading zeros,
+fractions, exponents, strings, null and overflow reject for revision values.
 
 ## Closed content grammar
 
-Bytes are UTF-8 JSON without BOM, duplicate members, insignificant whitespace,
-or excess final bytes. Every object key is ascending unsigned UTF-8 byte order
-and bytes end in exactly one LF. Decoder re-encoding must equal supplied bytes.
-All object depths are closed. Digests are lowercase `sha256:` plus 64 hex
-characters and positive revisions use canonical integer syntax.
+Bytes are strict UTF-8 JSON without BOM, duplicate members, malformed Unicode
+or trailing non-JSON data. All object depths are closed. Readers admit harmless
+member order, insignificant whitespace and equivalent escaping. The ordinary
+deterministic writer may sort object keys and emit terminal LF; neither
+re-encoding equality, a cache nor whole-byte comparison is an admission rule.
+Writer output preserves supplied semantic arrays, including malformed ordering
+or duplicates; it does not normalize a semantic defect into acceptance.
 
-`targets` is nonempty, exactly the complete candidate target set, and strictly
+`targets` is nonempty, exactly the complete ordered candidate target IDs, and strictly
 ascending by unsigned UTF-8 `targetId`. A target has exactly `entries`,
 `patchTrace`, and `targetId`; entries are nonempty, strictly sorted by entry
 ID, and globally unique. A mapped entry has exactly `entry`, `mappingId`, and
@@ -57,28 +73,41 @@ ID, and globally unique. A mapped entry has exactly `entry`, `mappingId`, and
 before/after requires explicit absence, never mere unavailability,
 unauthorization, or redaction.
 
-`patchTrace` has exactly `attribution`, `baseDigest`, `cmlLocator`, `cmlOwner`,
-`component`, `condition`, `context`, `id`, `limitations`, `proposedDigest`, and
-`stableTieKey`. Attribution has exactly `authorityScope`, `sourceId`, and
+`patchTrace` has exactly eleven fields: `attribution`,
+`baselineArtifactReference`, `cmlLocator`, `cmlOwner`, `component`, `condition`,
+`context`, `id`, `limitations`, `proposedContentReference` and `stableTieKey`.
+The baseline is a closed `ArtifactReference` with exact `source-snapshot` role;
+proposed content is a closed `RecordReference`. Attribution has exactly `authorityScope`, `sourceId`, and
 `sourceLocator`; condition has exactly `ambiguity`, `authorization`,
 `availability`, `conflict`, `explicitAbsence`, `limitations`,
 `malformedEvidence`, `redaction`, and `staleness`. Required strings are
-nonblank without byte normalization. Optional condition facets are null or
+nonblank valid Unicode without normalization. Optional condition facets are null or
 nonblank. Limitation vectors preserve order and multiplicity.
 
 ## Binding and rejection
 
+Null outer, candidate, selected metadata or bytes reject as structured
+`operationInvalid` without a crash or partial admission. The current candidate
+validator validates the complete captured package reference, schema/carrier
+revision and deterministic inventory first. The selected diff must resolve to
+exactly one entry in that same capture with equal entire artifact reference,
+path, required flag, ordered dependencies and presence. There is no filesystem,
+manifest, source or provider reread after capture. Duplicated dependencies,
+changed roles/revisions and contradictory selected/context metadata reject.
+
 Each target resolves once to the selected candidate. Its patch ID, scope,
-baseline/proposed raw-byte digests, and source authority bind exactly. A present
+baseline artifact reference, proposed content reference and source authority
+bind exactly to that target's supplied values. A present
 baseline locator must match; a null baseline locator retains the supplied
 nonblank patch locator independently. Every entry binds to that patch, selected
 candidate model, and scope. Its mapping exists in that exact target, retains its
 explicit kind, and names that mapping's semantic identity. Element and
 relationship identities are not inferred from opaque strings.
 
-Unknown or wrong profiles, schema versions, fields, dependencies, target sets,
-array ordering, mappings, identities, digests, locators, ownership, malformed
-UTF-8, duplicate members, and noncanonical bytes reject. Recognized but
+Unknown or wrong profiles, schema versions, fields, dependencies, target IDs,
+array ordering, mappings, typed identities/revisions/roles, locators, ownership,
+malformed UTF-8 and duplicate members reject. Old profiles, hash fields and
+bare identities have no compatibility reader or inferred default. Recognized but
 nonrequested families are skipped only for selection; they are not semantically
 admitted by that skip.
 
@@ -87,4 +116,7 @@ and `CandidateDesignProposedCmlPatchTrace` values. It does not parse, read,
 write, generate, apply, or compare CML; reopen package paths; access a provider
 or database; establish freshness, patch applicability, semantic correctness,
 compatibility, approval, review acceptance, Git acceptance, canonical facts, or
-Phase 10.4 rehydration.
+Phase 10.4 rehydration. References are producer-owned provenance, not
+authentication or proof of an undeclared payload change. Equal or different
+ordinary CML payload bytes establish no binding, revision or semantic delta.
+A source revision of `None` remains unknown beside known control versions.

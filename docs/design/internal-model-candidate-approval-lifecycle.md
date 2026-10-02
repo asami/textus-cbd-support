@@ -1,45 +1,56 @@
 ---
 status: working
-decision_scope: P10-34A
-updated_at: 2026-09-29
+decision_scope: P104-TYPED-APPROVAL-LIFECYCLE-001
+updated_at: 2026-10-01
 ---
 
 # Internal-model Candidate Approval Lifecycle Design
 
-P10-34A introduces a narrow derived-evidence adapter after P10-33. The
-[lifecycle contract](../spec/internal-model-candidate-approval-lifecycle-contract.md)
-is normative. This design records why the original decision, historical review
-subject, current review evidence, and explicit replacement evidence remain
-separate.
+The normative [lifecycle contract](../spec/internal-model-candidate-approval-lifecycle-contract.md)
+keeps four authorities separate: original actual human admission, independently
+admitted current review, source-owner observations and explicit replacement.
+Typed V2 lifecycle and executable migration are authored; validation, independent
+review, integrated continuation conversion and acceptance remain pending.
 
-```text
-immutable original P10-33 admission
-  + explicit current P10-32 admission / independent rule-provider basis
-  + complete historical source snapshots / caller-owned observations
-  + optional portable predecessor -> successor link
-  -> pure applicability report
-```
+An immutable original approval plus current review/independent basis, complete
+original snapshots/caller observations and optional exact predecessor-to-successor
+link produces one pure report. Superseded or Invalidated never rewrites history.
+Every changed AND missing dimension remains visible to distinguish a new subject,
+changed execution basis, changed source fact and still-unknown source revision.
 
-The original approval record remains historical evidence even if a valid link
-derives `Superseded` or current evidence derives `Invalidated`. It is never
-rewritten into a current record. The report preserves every mismatch because a
-single selected reason would hide whether a future reevaluation needs new
-candidate, review, package, rule/provider, or source evidence.
+Artifact, logical-record, subject and carrier revisions are different facts.
+Full artifact ID/revision/role selects; candidate/approval logical references
+control lineage; subject ID/revision/package/scope/full input set define review.
+A newer carrier or inert approval/resume control transports unchanged subject
+evidence without rebasing. No content token or whole-file equality establishes
+these meanings.
 
-The link is deliberately content-only and portable. It names exact external
-approval artifact tuples, while a caller separately admits the successor. That
-avoids introducing a storage topology, a latest-record policy, a clock, or an
-implicit transitive history. Its only effect is retiring the exact predecessor;
-it cannot make the successor current or authorize application.
+The portable link names exact external Approval references; caller separately
+actually admits the successor using independent human input. This adds no latest/
+ranking/timestamp policy, storage topology or transitive history engine. Same
+logical candidate revision requires equal full candidate reference; same approval
+logical ID requires higher logical revision. Different logical IDs have no
+numeric ranking. Link retires only its predecessor, granting no successor
+currentness or CML permission.
 
-The evaluator treats the historical reviewed package—not a later carrier—as
-the comparison subject. A carrier can transport approval artifacts without
-rebasing the selected review. Full source-inventory equality closes the same
-gap for source evidence: every original model, scenario, glossary, and CML
-baseline remains visible, including explicit optional absence.
+Inventory correspondence preserves every original source full reference/path/
+required/dependency/presence field, including optional absence. Source V2 grammar
+remains mandatory. Existing source-owner freshness comparison maps unknown
+baseline/observed revisions to SourceIncomplete with BOTH dimension vectors.
+Ordinary payload is not a revision/drift token; undeclared content changes under
+the same producer-owned version are not detected.
 
-This remains a pure boundary. Source-owner observations are evidence supplied
-to the existing freshness comparator; the evaluator never follows locators,
-reopens package paths, reads CML, executes providers, consults Git, or mutates
-CML. P10-34 does not decide actual approval/authentication, link storage or
-selection, reconciliation, canonical CML permission, or application.
+Pure structural helpers reject malformed/null and cross-binding-inconsistent
+retained graphs without simulated Verified captures, control-byte caches,
+path rereads or repeat human authentication. Actual admission alone checks
+independent human input. Package lifecycle ASCII descriptive-token syntax stays
+with the package owner; no new state enum is introduced.
+
+All basis reasons precede source reasons sorted by kind and unsigned artifact ID.
+Supersession wins state selection only, not evidence accumulation. Container
+insertion order does not confer authority.
+
+The evaluator follows no locators, reopens no paths, executes no providers and
+consults no Git/clock/network. Link storage/selection, authentication,
+reconciliation, continuation/action authority, actual fresh-process recovery
+and canonical CML application belong to later separately admitted work.

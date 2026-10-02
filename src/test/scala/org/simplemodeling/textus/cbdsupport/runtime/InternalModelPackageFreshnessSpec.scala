@@ -1,8 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, StandardOpenOption}
-import java.security.MessageDigest
+import java.nio.file.{Files, LinkOption, Path, StandardOpenOption}
 import java.util.Base64
 
 import scala.jdk.CollectionConverters.*
@@ -17,7 +16,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 27, 2026
+ * @version Oct.  2, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelPackageFreshnessSpec
@@ -48,26 +47,26 @@ final class InternalModelPackageFreshnessSpec
     "derive its checked inventory from the verified manifest pass" which {
       "compare every source kind and same-kind artifact in manifest order regardless of caller map insertion order" in {
         Given("a manifest-order inventory with four source kinds, two Scenario artifacts, and one non-source artifact")
-        val cmlsnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"), _cml_raw)
-        val glossarysnapshot = _snapshot("glossary-bok", _glossary_basis, _glossary_raw)
-        val modelsnapshot = _snapshot("model-context", _model_context_basis, _model_raw)
-        val scenariosnapshot = _snapshot("scenario", _scenario_basis("first Scenario body\n"), _scenario_raw)
-        val secondscenario = _snapshot("scenario", _scenario_basis("second Scenario body\n"), "second Scenario raw\n".getBytes(StandardCharsets.UTF_8), identity = "second-source")
+        val cmlsnapshot = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"))
+        val glossarysnapshot = _snapshot("glossary-bok", _glossary_basis)
+        val modelsnapshot = _snapshot("model-context", _model_context_basis)
+        val scenariosnapshot = _snapshot("scenario", _scenario_basis("first Scenario body\n"))
+        val secondscenario = _snapshot("scenario", _scenario_basis("second Scenario body\n"), identity = "second-source")
         val decisionbytes = "decision\n".getBytes(StandardCharsets.UTF_8)
         val artifacts = Vector(
-          _artifact("decision", "decision.json", required = true, decisionbytes),
-          _artifact("source-cml", "snapshots/cml.json", required = true, cmlsnapshot, role = "source-snapshot"),
-          _artifact("source-glossary", "snapshots/glossary.json", required = true, glossarysnapshot, role = "source-snapshot"),
-          _artifact("source-model", "snapshots/model.json", required = true, modelsnapshot, role = "source-snapshot"),
-          _artifact("source-scenario", "snapshots/scenario.json", required = true, scenariosnapshot, role = "source-snapshot"),
-          _artifact("source-scenario-second", "snapshots/scenario-second.json", required = true, secondscenario, role = "source-snapshot")
+          _artifact(_reference("decision", 7L, "decision"), "decision.json", required = true),
+          _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true),
+          _artifact(_reference("source-glossary", 7L, "source-snapshot"), "snapshots/glossary.json", required = true),
+          _artifact(_reference("source-model", 7L, "source-snapshot"), "snapshots/model.json", required = true),
+          _artifact(_reference("source-scenario", 7L, "source-snapshot"), "snapshots/scenario.json", required = true),
+          _artifact(_reference("source-scenario-second", 7L, "source-snapshot"), "snapshots/scenario-second.json", required = true)
         )
         val inputs = Vector(
-          "source-scenario-second" -> InternalModelPackageFreshnessInput.SourceObservation(_observed("second Scenario raw\n".getBytes(StandardCharsets.UTF_8), identity = "second-source")),
-          "source-model" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_model_raw)),
-          "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml"),
-          "source-glossary" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_glossary_raw)),
-          "source-scenario" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))
+          _reference("source-scenario-second", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(_observed("second Scenario raw\n".getBytes(StandardCharsets.UTF_8), identity = "second-source")),
+          _reference("source-model", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_model_raw)),
+          _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml"),
+          _reference("source-glossary", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_glossary_raw)),
+          _reference("source-scenario", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))
         )
 
         _with_fixture(
@@ -87,52 +86,99 @@ final class InternalModelPackageFreshnessSpec
 
           Then("only source-snapshot entries retain deterministic manifest order and every independently observed kind is unchanged")
           val report = _report(result)
-          report.entries.map(_.artifactId) shouldBe Vector("source-cml", "source-glossary", "source-model", "source-scenario", "source-scenario-second")
-          report.entries.map(_.packageRelativePath) shouldBe Vector("snapshots/cml.json", "snapshots/glossary.json", "snapshots/model.json", "snapshots/scenario.json", "snapshots/scenario-second.json")
-          report.entries.map(entry => _freshness(entry).status) shouldBe Vector.fill(5)(InternalModelSnapshotFreshnessStatus.Unchanged)
+          report.entries.map(_.reference) shouldBe Vector(
+            _reference("source-cml", 7L, "source-snapshot"),
+            _reference("source-glossary", 7L, "source-snapshot"),
+            _reference("source-model", 7L, "source-snapshot"),
+            _reference("source-scenario", 7L, "source-snapshot"),
+            _reference("source-scenario-second", 7L, "source-snapshot")
+          )
+          report.entries.map(_.reference.artifactId.value) shouldBe Vector("source-cml", "source-glossary", "source-model", "source-scenario", "source-scenario-second")
+          report.entries.map(_.path) shouldBe Vector("snapshots/cml.json", "snapshots/glossary.json", "snapshots/model.json", "snapshots/scenario.json", "snapshots/scenario-second.json")
+          report.entries.map(entry => _freshness(entry).status) shouldBe (Vector(_native_status(InternalModelSnapshotFreshnessStatus.Unchanged)) ++ Vector.fill(4)(InternalModelSnapshotFreshnessStatus.Unchanged))
           report.toString should not include "first Scenario body"
           report.toString should not include "entity Customer"
         }
       }
 
-      "reject unknown and non-source input IDs and fail closed when package integrity is invalid" in {
-        Given("a manifest with one source snapshot and one ordinary decision artifact")
-        val snapshot = _snapshot("scenario", _scenario_basis("Scenario body\n"), _scenario_raw)
-        val decisionbytes = "decision\n".getBytes(StandardCharsets.UTF_8)
-        val source = _artifact("source-scenario", "snapshots/scenario.json", required = true, snapshot, role = "source-snapshot")
-        val decision = _artifact("decision", "decision.json", required = true, decisionbytes)
+      "refuse unknown, stale, wrong-role and non-source references without a partial report" in {
+        Given("a V2 inventory with a source at revision seven and an ordinary decision artifact")
+        val snapshot = _snapshot("scenario", _scenario_basis("Scenario body\n"))
+        val source = _artifact(_reference("source-scenario", 7L, "source-snapshot"), "snapshots/scenario.json", required = true)
+        val decision = _artifact(_reference("decision", 7L, "decision"), "decision.json", required = true)
+        val observation = InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))
+        val generated = Gen.oneOf(
+          _reference("missing", 7L, "source-snapshot"),
+          _reference("source-scenario", 6L, "source-snapshot"),
+          _reference("source-scenario", 8L, "source-snapshot"),
+          _reference("source-scenario", 7L, "decision"),
+          _reference("decision", 7L, "decision")
+        )
 
-        _with_fixture(_manifest(Vector(decision, source)), Map("decision.json" -> decisionbytes, "snapshots/scenario.json" -> snapshot)) { root =>
-          When("an input names an unknown ID or an inventory artifact outside the source-snapshot role")
-          val unknown = InternalModelPackageFreshness.check(root, Map("missing" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))))
-          val nonsource = InternalModelPackageFreshness.check(root, Map("decision" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))))
+        _with_fixture(_manifest(Vector(decision, source)), Map("decision.json" -> _scenario_raw, "snapshots/scenario.json" -> snapshot)) { root =>
+          forAll(generated) { reference =>
+            When("the caller selects a reference outside the exact source inventory")
+            val result = InternalModelPackageFreshness.check(root, Map(reference -> observation))
 
-          Then("neither ID is silently ignored or selected as a snapshot")
-          unknown.isSuccess shouldBe false
-          nonsource.isSuccess shouldBe false
+            Then("the complete request is refused without selecting by existing ID")
+            result.isSuccess shouldBe false
+            result.toOption shouldBe None
+          }
         }
-        _with_fixture(_manifest(Vector(source)), Map("snapshots/scenario.json" -> "tampered\n".getBytes(StandardCharsets.UTF_8))) { root =>
-          When("the manifest-declared artifact digest does not match the stored snapshot bytes")
-          val result = InternalModelPackageFreshness.check(root, Map("source-scenario" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))))
+      }
 
-          Then("the package-wide entry returns no partial freshness report")
-          result.isSuccess shouldBe false
+      "reject null request maps, keys and values before returning any entry" in {
+        Given("a valid source inventory and null request forms")
+        val snapshot = _snapshot("scenario", _scenario_basis("Scenario body\n"))
+        val reference = _reference("source-scenario", 7L, "source-snapshot")
+        val artifact = _artifact(reference, "snapshots/scenario.json", required = true)
+        val invalid = Vector(
+          null,
+          Map(null.asInstanceOf[InternalModelArtifactReference] -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))),
+          Map(reference -> null.asInstanceOf[InternalModelPackageFreshnessInput])
+        )
+
+        _with_fixture(_manifest(Vector(artifact)), Map("snapshots/scenario.json" -> snapshot)) { root =>
+          invalid.foreach { inputs =>
+            When("the caller supplies one null request form")
+            val result = InternalModelPackageFreshness.check(root, inputs)
+
+            Then("request admission refuses it without a partial report")
+            result.isSuccess shouldBe false
+            result.toOption shouldBe None
+          }
         }
-        _with_fixture(_manifest(Vector(source)), Map("snapshots/scenario.json" -> snapshot)) { root =>
-          Given("an unlisted regular package file after the manifest has been created")
-          _write(root.resolve("src/main/internal-model/unlisted.json"), "unlisted\n".getBytes(StandardCharsets.UTF_8))
-          When("the package-wide entry requests its validator-owned inventory")
-          val result = InternalModelPackageFreshness.check(root, Map("source-scenario" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))))
+      }
 
-          Then("the closed inventory rejection prevents a partial freshness report")
-          result.isSuccess shouldBe false
+      "refuse unlisted files, missing required files and exact dependency mismatches without a partial report" in {
+        Given("a valid V2 source declaration and three structurally invalid package arrangements")
+        val snapshot = _snapshot("scenario", _scenario_basis("Scenario body\n"))
+        val reference = _reference("source-scenario", 7L, "source-snapshot")
+        val source = _artifact(reference, "snapshots/scenario.json", required = true)
+        val decision = _artifact(_reference("decision", 7L, "decision"), "decision.json", required = true,
+          dependencies = Vector(_reference("source-scenario", 6L, "source-snapshot")))
+        val fixtures = Vector(
+          _manifest(Vector(source)) -> Map("snapshots/scenario.json" -> snapshot, "unlisted.json" -> _scenario_raw),
+          _manifest(Vector(source)) -> Map.empty[String, Array[Byte]],
+          _manifest(Vector(source, decision)) -> Map("snapshots/scenario.json" -> snapshot, "decision.json" -> _scenario_raw)
+        )
+
+        fixtures.foreach { case (manifest, files) =>
+          _with_fixture(manifest, files) { root =>
+            When("the package capture encounters an invalid closed inventory or dependency")
+            val result = InternalModelPackageFreshness.check(root, Map(reference -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw))))
+
+            Then("structural refusal yields no package freshness report")
+            result.isSuccess shouldBe false
+            result.toOption shouldBe None
+          }
         }
       }
 
       "return an empty report for an empty verified source-snapshot inventory without claiming completeness" in {
         Given("a valid package manifest that contains only one ordinary decision artifact")
         val decisionbytes = "decision\n".getBytes(StandardCharsets.UTF_8)
-        val decision = _artifact("decision", "decision.json", required = true, decisionbytes)
+        val decision = _artifact(_reference("decision", 7L, "decision"), "decision.json", required = true)
 
         _with_fixture(_manifest(Vector(decision)), Map("decision.json" -> decisionbytes)) { root =>
           When("the caller supplies no source-snapshot inputs")
@@ -147,11 +193,11 @@ final class InternalModelPackageFreshnessSpec
     "retain explicit baseline and source-owner observation states" which {
       "report missing present input, absent optional baseline, and all closed non-observed states without source selection" in {
         Given("a present Scenario baseline, an absent optional baseline, and independently supplied non-observed source states")
-        val scenario = _snapshot("scenario", _scenario_basis("Scenario body\n"), _scenario_raw)
-        val optionalbytes = _snapshot("scenario", _scenario_basis("optional Scenario body\n"), _scenario_raw)
+        val scenario = _snapshot("scenario", _scenario_basis("Scenario body\n"))
+        val optionalbytes = _snapshot("scenario", _scenario_basis("optional Scenario body\n"))
         val artifacts = Vector(
-          _artifact("source-optional", "snapshots/optional.json", required = false, optionalbytes, role = "source-snapshot"),
-          _artifact("source-scenario", "snapshots/scenario.json", required = true, scenario, role = "source-snapshot")
+          _artifact(_reference("source-optional", 7L, "source-snapshot"), "snapshots/optional.json", required = false),
+          _artifact(_reference("source-scenario", 7L, "source-snapshot"), "snapshots/scenario.json", required = true)
         )
         val states = Vector(
           InternalModelLiveSourceObservation.Unavailable("provider offline") -> InternalModelSnapshotFreshnessStatus.Unavailable,
@@ -165,7 +211,8 @@ final class InternalModelPackageFreshnessSpec
           val missing = _report(InternalModelPackageFreshness.check(root, Map.empty))
 
           Then("the present baseline is unavailable while the optional absent baseline is distinct and does not read a target")
-          missing.entries.map(entry => entry.artifactId -> entry.result) shouldBe Vector(
+          missing.entries.map(_.reference) shouldBe Vector(_reference("source-optional", 7L, "source-snapshot"), _reference("source-scenario", 7L, "source-snapshot"))
+          missing.entries.map(entry => entry.reference.artifactId.value -> entry.result) shouldBe Vector(
             "source-optional" -> InternalModelPackageFreshnessResult.MissingBaseline,
             "source-scenario" -> InternalModelPackageFreshnessResult.Compared(_freshness(missing.entries.last))
           )
@@ -174,7 +221,7 @@ final class InternalModelPackageFreshnessSpec
 
           When("an absent optional baseline is offered a CML-specific input with an unsafe path")
           val absent = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-optional" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "../outside/customer.cml")
+            _reference("source-optional", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "../outside/customer.cml")
           )))
 
           Then("the absent baseline remains MissingBaseline before any CML path is validated or read")
@@ -182,41 +229,51 @@ final class InternalModelPackageFreshnessSpec
 
           states.foreach { case (observation, status) =>
             When("the source owner reports one closed non-observed state")
-            val report = _report(InternalModelPackageFreshness.check(root, Map("source-scenario" -> InternalModelPackageFreshnessInput.SourceObservation(observation))))
+            val report = _report(InternalModelPackageFreshness.check(root, Map(_reference("source-scenario", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(observation))))
 
             Then("the package report preserves that state instead of manufacturing observed bytes")
             _freshness(report.entries.last).status shouldBe status
-            _freshness(report.entries.last).observedRawBytesSha256 shouldBe None
           }
         }
       }
 
       "give a malformed source-snapshot baseline precedence over supplied live input" in {
-        Given("a package-integrity-valid source-snapshot artifact whose own bytes are not a valid V1 snapshot")
-        val malformed = "{not-json}\n".getBytes(StandardCharsets.UTF_8)
-        val artifact = _artifact("source-scenario", "snapshots/scenario.json", required = true, malformed, role = "source-snapshot")
+        Given("a structurally valid V2 package whose source-snapshot envelope has an empty authority")
+        val malformed = _snapshot("scenario", _scenario_basis("Scenario body\n"), authority = "")
+        val artifact = _artifact(_reference("source-scenario", 7L, "source-snapshot"), "snapshots/scenario.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/scenario.json" -> malformed)) { root =>
-          When("the source owner reports unauthorized access")
-          val report = _report(InternalModelPackageFreshness.check(root, Map("source-scenario" -> InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Unauthorized("not consulted")))))
+          val inputs = Vector(
+            InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Unauthorized("not consulted")),
+            InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw, revision = None)),
+            InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "../outside/never-read.cml")
+          )
+          inputs.foreach { input =>
+            When("the source owner supplies an unauthorized, incomplete or unsafe CML input for the malformed baseline")
+            val report = _report(InternalModelPackageFreshness.check(root, Map(_reference("source-scenario", 7L, "source-snapshot") -> input)))
 
-          Then("the malformed baseline result is retained before the live status is considered")
-          _freshness(report.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-          _freshness(report.entries.head).snapshotKind shouldBe None
+            Then("the malformed baseline takes precedence before live input admission or any read")
+            _freshness(report.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+            _freshness(report.entries.head).snapshotKind shouldBe None
+            _freshness(report.entries.head).observedSourceIdentity shouldBe None
+            _freshness(report.entries.head).missingDimensionNames shouldBe Vector.empty
+          }
         }
       }
     }
 
-    "compare raw bytes and source dimensions without caller-order effects" which {
-      "surface generated raw-byte perturbations in the matching Scenario entry while preserving the immutable baseline" in {
-        Given("two Scenario baselines and generated raw-byte suffixes with alternate caller input map orders")
-        val first = _snapshot("scenario", _scenario_basis("first Scenario body\n"), _scenario_raw)
+    "compare declared source dimensions without caller-order effects" which {
+      "retain generated source identity and revision changes in exact inventory order while ordinary payload remains outside control" in {
+        Given("two immutable Scenario baselines and generated source metadata and caller map orders")
+        val first = _snapshot("scenario", _scenario_basis("first Scenario body\n"))
         val secondraw = "second Scenario raw\n".getBytes(StandardCharsets.UTF_8)
-        val second = _snapshot("scenario", _scenario_basis("second Scenario body\n"), secondraw, identity = "second-source")
+        val second = _snapshot("scenario", _scenario_basis("second Scenario body\n"), identity = "second-source")
         val original = first.clone()
+        val firstreference = _reference("source-first", 7L, "source-snapshot")
+        val secondreference = _reference("source-second", 7L, "source-snapshot")
         val artifacts = Vector(
-          _artifact("source-first", "snapshots/first.json", required = true, first, role = "source-snapshot"),
-          _artifact("source-second", "snapshots/second.json", required = true, second, role = "source-snapshot")
+          _artifact(firstreference, "snapshots/first.json", required = true),
+          _artifact(secondreference, "snapshots/second.json", required = true)
         )
         val generated = for {
           suffix <- Gen.nonEmptyListOf(Gen.alphaNumChar).map(_.mkString)
@@ -225,88 +282,222 @@ final class InternalModelPackageFreshnessSpec
 
         _with_fixture(_manifest(artifacts), Map("snapshots/first.json" -> first, "snapshots/second.json" -> second)) { root =>
           forAll(generated) { case (suffix, reverse) =>
-            When("one caller-owned raw-byte sequence changes and the input map is inserted in either order")
-            val firstinput = "source-first" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(("changed raw " + suffix).getBytes(StandardCharsets.UTF_8)))
-            val secondinput = "source-second" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(secondraw, identity = "second-source"))
+            Given("source-owned changed identity and revision with distinct ordinary caller payload")
+            val current = ("ordinary payload " + suffix).getBytes(StandardCharsets.UTF_8)
+            val firstinput = firstreference -> InternalModelPackageFreshnessInput.SourceObservation(_observed(current, identity = "changed-" + suffix, revision = Some("changed-" + suffix)))
+            val secondinput = secondreference -> InternalModelPackageFreshnessInput.SourceObservation(_observed(secondraw, identity = "second-source"))
             val inputs = if reverse then Map.from(Vector(secondinput, firstinput)) else Map.from(Vector(firstinput, secondinput))
+
+            When("the package compares inputs supplied in either map order")
             val report = _report(InternalModelPackageFreshness.check(root, inputs))
 
-            Then("the manifest-order first entry reports only its raw digest drift and neither supplied nor baseline bytes are retained")
-            report.entries.map(_.artifactId) shouldBe Vector("source-first", "source-second")
+            Then("exact references remain in captured order and every declared metadata change is retained")
+            report.entries.map(_.reference) shouldBe Vector(firstreference, secondreference)
             _freshness(report.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-            _freshness(report.entries.head).changedDimensionNames shouldBe Vector("source.sha256")
+            _freshness(report.entries.head).changedDimensionNames shouldBe Vector("source.identity", "source.revision")
             _freshness(report.entries.last).status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
             first should contain theSameElementsInOrderAs original
-            report.toString should not include ("changed raw " + suffix)
+            report.toString should not include ("ordinary payload " + suffix)
+
+            When("only ordinary payload differs under the unchanged source-owned references")
+            val payloadonly = _report(InternalModelPackageFreshness.check(root, Map(
+              firstreference -> InternalModelPackageFreshnessInput.SourceObservation(_observed(current)),
+              secondinput
+            )))
+
+            Then("payload creates no control dimension or invented source revision")
+            _freshness(payloadonly.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+            _freshness(payloadonly.entries.head).changedDimensionNames shouldBe Vector.empty
+            _freshness(payloadonly.entries.head).missingDimensionNames shouldBe Vector.empty
+            current should contain theSameElementsInOrderAs ("ordinary payload " + suffix).getBytes(StandardCharsets.UTF_8)
+          }
+        }
+      }
+
+      "propagate every unknown source revision combination and independently contradictory metadata" in {
+        Given("explicit None/None, None/Some and Some/None source versions independent of artifact revision seven")
+        val reference = _reference("source-scenario", 7L, "source-snapshot")
+        val artifact = _artifact(reference, "snapshots/scenario.json", required = true)
+        val versions = Vector(None -> None, None -> Some(_revision), Some(_revision) -> None)
+
+        versions.foreach { case (baselineversion, currentversion) =>
+          val snapshot = _snapshot("scenario", _scenario_basis("Scenario body\n"), revision = baselineversion.fold(Json.Null)(Json.fromString))
+          _with_fixture(_manifest(Vector(artifact)), Map("snapshots/scenario.json" -> snapshot)) { root =>
+            When("the source owner supplies its optional revision and contradictory authority and identity")
+            val report = _report(InternalModelPackageFreshness.check(root, Map(
+              reference -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_scenario_raw, authority = "other-authority", identity = "other-identity", revision = currentversion))
+            )))
+
+            Then("Incomplete retains every missing version and observable difference without artifact-version substitution")
+            val freshness = _freshness(report.entries.head)
+            freshness.status shouldBe InternalModelSnapshotFreshnessStatus.Incomplete
+            freshness.baselineSourceRevision shouldBe baselineversion
+            freshness.observedSourceRevision shouldBe currentversion
+            freshness.missingDimensionNames shouldBe Vector(
+              Option.when(baselineversion.isEmpty)("baseline.source.revision"),
+              Option.when(currentversion.isEmpty)("observed.source.revision")
+            ).flatten
+            freshness.changedDimensionNames shouldBe (Vector("source.authority", "source.identity") ++ Option.when(baselineversion != currentversion)("source.revision"))
+            freshness.reason.getOrElse(fail("missing incomplete reason")) should include ("source-owned revision")
+            report.entries.head.reference shouldBe reference
           }
         }
       }
 
       "retain every CML source and target difference when a source-owner current target has changed" in {
         Given("a CML baseline and a different source-owner target below the consuming project root")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"), _cml_raw)
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"))
         val current = "entity Customer\nattribute name\n".getBytes(StandardCharsets.UTF_8)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current-customer.cml" -> current)) { root =>
           When("the CML owner supplies a different current target, identity, revision, and exact file bytes")
           val report = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved("other-authority", "other-identity", Some("other-revision"), "models/current-customer.cml")
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved("other-authority", "other-identity", Some("other-revision"), "models/current-customer.cml")
           )))
 
           Then("the pure comparator receives only captured bytes and reports every deterministic difference")
-          _freshness(report.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-          _freshness(report.entries.head).changedDimensionNames shouldBe Vector(
-            "basis.byteLength",
+          _freshness(report.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Changed)
+          _freshness(report.entries.head).changedDimensionNames shouldBe _native_dimensions(Vector(
             "basis.projectRelativePath",
-            "basis.rawBytesBase64",
             "source.authority",
             "source.identity",
-            "source.revision",
-            "source.sha256"
-          )
-          _freshness(report.entries.head).currentCmlProjectRelativePath shouldBe Some("models/current-customer.cml")
+            "source.revision"
+          ))
+          _freshness(report.entries.head).currentCmlProjectRelativePath shouldBe Option.when(Platform.isMac)("models/current-customer.cml")
           report.toString should not include "attribute name"
 
           When("the CML source owner reports an unavailable state instead of an observed target")
           val unavailable = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Unavailable("CML source is offline"))
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Unavailable("CML source is offline"))
           )))
 
           Then("the non-observed CML status is retained explicitly without a CML read")
           _freshness(unavailable.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Unavailable
-          _freshness(unavailable.entries.head).observedRawBytesSha256 shouldBe None
         }
       }
     }
 
     "enforce the project-bound CML read boundary" which {
+      "propagate unknown CML source revisions independently of known artifact revisions" in {
+        Given("a source artifact at revision seven with every explicit unknown source-version combination")
+        val reference = _reference("source-cml", 7L, "source-snapshot")
+        val artifact = _artifact(reference, "snapshots/cml.json", required = true)
+        val versions = Vector(None -> None, None -> Some(_revision), Some(_revision) -> None)
+
+        versions.foreach { case (baselineversion, currentversion) =>
+          val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"), revision = baselineversion.fold(Json.Null)(Json.fromString))
+          _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current.cml" -> _cml_raw)) { root =>
+            When("the source owner requests the actual current path with contradictory authority and identity and its optional revision")
+            val report = _report(InternalModelPackageFreshness.check(root, Map(
+              reference -> InternalModelPackageFreshnessInput.CmlObserved("other-authority", "other-identity", currentversion, "models/current.cml")
+            )))
+
+            Then("the real native observation retains incomplete source metadata and every declared contradiction, or refuses the unsupported platform")
+            val freshness = _freshness(report.entries.head)
+            report.entries.head.reference shouldBe reference
+            freshness.baselineSourceRevision shouldBe baselineversion
+            if Platform.isMac then {
+              freshness.status shouldBe InternalModelSnapshotFreshnessStatus.Incomplete
+              freshness.observedSourceRevision shouldBe currentversion
+              freshness.missingDimensionNames shouldBe Vector(
+                Option.when(baselineversion.isEmpty)("baseline.source.revision"),
+                Option.when(currentversion.isEmpty)("observed.source.revision")
+              ).flatten
+              freshness.changedDimensionNames shouldBe (Vector("basis.projectRelativePath", "source.authority", "source.identity") ++ Option.when(baselineversion != currentversion)("source.revision"))
+            } else {
+              freshness.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+              freshness.observedSourceRevision shouldBe None
+              freshness.changedDimensionNames shouldBe Vector.empty
+              freshness.missingDimensionNames shouldBe Vector.empty
+            }
+          }
+        }
+      }
+
+      "refuse invalid CML request metadata and options before attempting a current-target read" in {
+        Given("a valid CML baseline and invalid source-owned request metadata pointing to a missing target")
+        val reference = _reference("source-cml", 7L, "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"))
+        val artifact = _artifact(reference, "snapshots/cml.json", required = true)
+        val requests = Vector(
+          InternalModelPackageFreshnessInput.CmlObserved(null, _identity, Some(_revision), "models/missing.cml"),
+          InternalModelPackageFreshnessInput.CmlObserved(_authority, "", Some(_revision), "models/missing.cml"),
+          InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, null, "models/missing.cml"),
+          InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(""), "models/missing.cml"),
+          InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(null), "models/missing.cml"),
+          InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), null),
+          InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "../outside/customer.cml")
+        )
+
+        _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline)) { root =>
+          requests.foreach { request =>
+            When("the source owner supplies one malformed CML request")
+            val report = _report(InternalModelPackageFreshness.check(root, Map(reference -> request)))
+
+            Then("invalid request metadata remains Malformed instead of yielding missing-file availability")
+            val freshness = _freshness(report.entries.head)
+            freshness.status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+            freshness.reason.getOrElse(fail("missing malformed-request reason")) should include ("request")
+            freshness.observedSourceIdentity shouldBe None
+            freshness.missingDimensionNames shouldBe Vector.empty
+          }
+        }
+      }
+
+      "preserve every non-observed CML state without reading a target" in {
+        Given("a CML baseline whose recorded target is absent and all source-owner non-observed states")
+        val reference = _reference("source-cml", 7L, "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/never-read.cml"))
+        val artifact = _artifact(reference, "snapshots/cml.json", required = true)
+        val states = Vector(
+          InternalModelLiveSourceObservation.Unavailable("source offline") -> InternalModelSnapshotFreshnessStatus.Unavailable,
+          InternalModelLiveSourceObservation.Unauthorized("source denied") -> InternalModelSnapshotFreshnessStatus.Unauthorized,
+          InternalModelLiveSourceObservation.Malformed("source malformed") -> InternalModelSnapshotFreshnessStatus.Malformed,
+          InternalModelLiveSourceObservation.AmbiguousOrConflicting("source conflict") -> InternalModelSnapshotFreshnessStatus.AmbiguousOrConflicting
+        )
+
+        _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline)) { root =>
+          states.foreach { case (observation, status) =>
+            When("the owner supplies an explicit non-observed state")
+            val report = _report(InternalModelPackageFreshness.check(root, Map(reference -> InternalModelPackageFreshnessInput.SourceObservation(observation))))
+
+            Then("the state propagates unchanged on every platform with no invented observation")
+            val freshness = _freshness(report.entries.head)
+            freshness.status shouldBe status
+            freshness.observedSourceIdentity shouldBe None
+            freshness.changedDimensionNames shouldBe Vector.empty
+            freshness.missingDimensionNames shouldBe Vector.empty
+          }
+        }
+      }
+
       "use the source-owner current target rather than the recorded path or locator and reject a supplied generic CML observation" in {
         Given("a CML snapshot whose recorded basis path and locator do not name the source-owner current target")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/never-read.cml"), _cml_raw, locator = Json.fromString("https://example.invalid/never-read"))
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/never-read.cml"), locator = Json.fromString("https://example.invalid/never-read"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current.cml" -> _cml_raw)) { root =>
           When("the owner supplies the actual current target with equal bytes")
           val equal = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
           )))
           When("a caller instead tries to inject a generic observed CML byte value")
           val injected = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_cml_raw, projectrelativepath = Some("models/current.cml")))
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.SourceObservation(_observed(_cml_raw, projectrelativepath = Some("models/current.cml")))
           )))
 
           Then("only the owner target is read, so its changed path drifts and the injected observation is malformed")
-          _freshness(equal.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-          _freshness(equal.entries.head).changedDimensionNames shouldBe Vector("basis.projectRelativePath")
+          _freshness(equal.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Changed)
+          _freshness(equal.entries.head).changedDimensionNames shouldBe _native_dimensions(Vector("basis.projectRelativePath"))
           _freshness(injected.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
         }
       }
 
       "preserve missing, unsafe, symbolic, and nonregular target outcomes without an unsafe read" in {
         Given("one CML baseline and owner-supplied target paths covering each project-bound read outcome")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"), _cml_raw)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline)) { root =>
           Files.createDirectories(root.resolve("models/directory.cml"))
@@ -326,21 +517,20 @@ final class InternalModelPackageFreshnessSpec
           requests.foreach { case ((label, path), status) =>
             When("the CML owner supplies the " + label + " current target path")
             val report = _report(InternalModelPackageFreshness.check(root, Map(
-              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), path)
+              _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), path)
             )))
 
             Then("the closed outcome is reported without using the recorded baseline path as read authority")
-            _freshness(report.entries.head).status shouldBe status
-            _freshness(report.entries.head).observedRawBytesSha256 shouldBe None
+            _freshness(report.entries.head).status shouldBe _native_status(status)
           }
         }
       }
 
       "fail closed without exposing external raw bytes when an in-root directory becomes a symlink between owner checks" in {
         Given("a CML baseline with a regular in-root current-target directory and an external file with distinct bytes")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current/customer.cml"), _cml_raw)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
-        val outside = Files.createTempDirectory("internal-model-package-freshness-outside-")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current/customer.cml"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
+        val outside = _fixture_directory("outside-")
 
         try {
           _write(outside.resolve("customer.cml"), "entity Outside\n".getBytes(StandardCharsets.UTF_8))
@@ -351,11 +541,11 @@ final class InternalModelPackageFreshnessSpec
           ) { root =>
             When("the source owner checks the regular in-root target")
             val before = _report(InternalModelPackageFreshness.check(root, Map(
-              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current/customer.cml")
+              _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current/customer.cml")
             )))
 
             Then("the equal current target remains unchanged")
-            _freshness(before.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+            _freshness(before.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Unchanged)
 
             When("the target directory is replaced by an in-root symbolic-link component before the next owner check")
             val current = root.resolve("models/current")
@@ -363,12 +553,47 @@ final class InternalModelPackageFreshnessSpec
             Files.delete(current)
             Files.createSymbolicLink(current, outside)
             val after = _report(InternalModelPackageFreshness.check(root, Map(
-              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current/customer.cml")
+              _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current/customer.cml")
             )))
 
             Then("the second check is malformed and retains no external raw-byte evidence")
             _freshness(after.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-            _freshness(after.entries.head).observedRawBytesSha256 shouldBe None
+            after.toString should not include "entity Outside"
+          }
+        } finally _delete_tree(outside)
+      }
+
+      "refuse a regular current target replaced by a final symlink before the next owner check" in {
+        Given("a regular current CML target and a distinct external target under a scoped fixture parent")
+        val reference = _reference("source-cml", 7L, "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"))
+        val artifact = _artifact(reference, "snapshots/cml.json", required = true)
+        val outside = _fixture_directory("final-link-outside-")
+
+        try {
+          _write(outside.resolve("customer.cml"), "entity Outside\n".getBytes(StandardCharsets.UTF_8))
+          _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current.cml" -> _cml_raw)) { root =>
+            When("the owner first requests the regular current target")
+            val before = _report(InternalModelPackageFreshness.check(root, Map(
+              reference -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            )))
+
+            Then("the real native reader admits the regular file on macOS and refuses unsupported platforms")
+            _freshness(before.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Unchanged)
+
+            Given("the final regular file is deterministically replaced by a symbolic link")
+            val target = root.resolve("models/current.cml")
+            Files.delete(target)
+            Files.createSymbolicLink(target, outside.resolve("customer.cml"))
+
+            When("the source owner repeats the same request")
+            val after = _report(InternalModelPackageFreshness.check(root, Map(
+              reference -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            )))
+
+            Then("the final symlink is refused before reading or exposing external content")
+            _freshness(after.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
+            _freshness(after.entries.head).observedSourceIdentity shouldBe None
             after.toString should not include "entity Outside"
           }
         } finally _delete_tree(outside)
@@ -376,18 +601,18 @@ final class InternalModelPackageFreshnessSpec
 
       "fail closed without raw-byte evidence when a regular current target is replaced by a FIFO before the next owner check" in {
         Given("a CML baseline and a regular source-owner current target")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"), _cml_raw)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current.cml" -> _cml_raw)) { root =>
           if (Platform.isMac) {
             When("the source owner checks the regular current target")
             val before = _report(InternalModelPackageFreshness.check(root, Map(
-              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+              _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
             )))
 
             Then("the initial package-entry observation remains unchanged")
-            _freshness(before.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+            _freshness(before.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Unchanged)
 
             Given("the current target is deterministically replaced by a FIFO before the next owner check")
             val target = root.resolve("models/current.cml")
@@ -396,40 +621,38 @@ final class InternalModelPackageFreshnessSpec
 
             When("the source owner repeats the package-entry CML check")
             val after = _report(InternalModelPackageFreshness.check(root, Map(
-              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+              _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
             )))
 
             Then("the final nonregular descriptor is malformed without a blocking read or retained raw bytes")
             _freshness(after.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-            _freshness(after.entries.head).observedRawBytesSha256 shouldBe None
             after.toString should not include "entity Customer"
           } else {
             When("the source owner requests the CML check on a platform without the descriptor-safe reader")
             val after = _report(InternalModelPackageFreshness.check(root, Map(
-              "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+              _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
             )))
 
             Then("the package entry remains fail-closed without raw-byte evidence")
             _freshness(after.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-            _freshness(after.entries.head).observedRawBytesSha256 shouldBe None
           }
         }
       }
 
-      "read the source-owner target through the physical root for equal and drifted CML bytes without retaining payloads" in {
+      "read the source-owner target through the physical root while ordinary CML payload changes remain outside control" in {
         Given("a CML baseline whose recorded path is not the owner-supplied equal current target")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"), _cml_raw)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "recorded/customer.cml"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/cml.json" -> baseline), Map("models/current.cml" -> _cml_raw)) { root =>
           When("the CML source owner supplies the equal current path below the consuming project root")
           val equal = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
           )))
 
           Then("the owner path is compared as a path difference while its exact equal bytes remain non-reportable")
-          _freshness(equal.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-          _freshness(equal.entries.head).changedDimensionNames shouldBe Vector("basis.projectRelativePath")
+          _freshness(equal.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Changed)
+          _freshness(equal.entries.head).changedDimensionNames shouldBe _native_dimensions(Vector("basis.projectRelativePath"))
           equal.toString should not include "entity Customer"
 
           Given("the same source-owner target is replaced with a regular file containing distinct raw bytes")
@@ -437,26 +660,21 @@ final class InternalModelPackageFreshnessSpec
           _write(root.resolve("models/current.cml"), changed)
           When("the source owner repeats the same current-target request")
           val drifted = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
           )))
 
-          Then("only the deterministic CML byte dimensions drift and the changed raw content remains absent from the report")
-          _freshness(drifted.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Changed
-          _freshness(drifted.entries.head).changedDimensionNames shouldBe Vector(
-            "basis.byteLength",
-            "basis.projectRelativePath",
-            "basis.rawBytesBase64",
-            "source.sha256"
-          )
+          Then("only the declared path difference remains and changed ordinary content stays absent from the report")
+          _freshness(drifted.entries.head).status shouldBe _native_status(InternalModelSnapshotFreshnessStatus.Changed)
+          _freshness(drifted.entries.head).changedDimensionNames shouldBe _native_dimensions(Vector("basis.projectRelativePath"))
           drifted.toString should not include "attribute name"
         }
       }
 
       "reject a symbolic final consuming-project root before its owner target can be read" in {
         Given("a symbolic project-root final component and a regular external-looking target beneath its destination")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"), _cml_raw)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
-        val parent = Files.createTempDirectory("internal-model-package-freshness-root-link-")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
+        val parent = _fixture_directory("root-link-")
         try {
           val actual = parent.resolve("actual")
           val alias = parent.resolve("alias")
@@ -468,7 +686,7 @@ final class InternalModelPackageFreshnessSpec
 
           When("the package freshness entry is given the symbolic project-root path")
           val result = InternalModelPackageFreshness.check(alias, Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
           ))
 
           Then("the existing package boundary rejects the symbolic root before any CML observation is captured")
@@ -478,9 +696,9 @@ final class InternalModelPackageFreshnessSpec
 
       "reject a symbolic ancestor of a regular consuming-project root without exposing external CML bytes" in {
         Given("a regular consuming-project root reached through a symbolic ancestor with external-looking CML bytes")
-        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"), _cml_raw)
-        val artifact = _artifact("source-cml", "snapshots/cml.json", required = true, baseline, role = "source-snapshot")
-        val parent = Files.createTempDirectory("internal-model-package-freshness-root-ancestor-")
+        val baseline = _snapshot("cml-baseline", _cml_basis(_cml_raw, "models/current.cml"))
+        val artifact = _artifact(_reference("source-cml", 7L, "source-snapshot"), "snapshots/cml.json", required = true)
+        val parent = _fixture_directory("root-ancestor-")
         try {
           val external = parent.resolve("external")
           val alias = parent.resolve("alias")
@@ -493,25 +711,24 @@ final class InternalModelPackageFreshnessSpec
 
           When("the package freshness entry receives the regular final root below the symbolic ancestor")
           val report = _report(InternalModelPackageFreshness.check(alias.resolve("project"), Map(
-            "source-cml" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            _reference("source-cml", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
           )))
 
           Then("the descriptor-root policy reports a malformed CML observation without retaining external bytes")
           _freshness(report.entries.head).status shouldBe InternalModelSnapshotFreshnessStatus.Malformed
-          _freshness(report.entries.head).observedRawBytesSha256 shouldBe None
           report.toString should not include "entity Outside"
         } finally _delete_tree(parent)
       }
 
       "report a CML request for a non-CML baseline as malformed without consulting a project target" in {
         Given("a valid Scenario baseline and an owner-supplied CML current target request")
-        val scenario = _snapshot("scenario", _scenario_basis("Scenario body\n"), _scenario_raw)
-        val artifact = _artifact("source-scenario", "snapshots/scenario.json", required = true, scenario, role = "source-snapshot")
+        val scenario = _snapshot("scenario", _scenario_basis("Scenario body\n"))
+        val artifact = _artifact(_reference("source-scenario", 7L, "source-snapshot"), "snapshots/scenario.json", required = true)
 
         _with_fixture(_manifest(Vector(artifact)), Map("snapshots/scenario.json" -> scenario), Map("models/current.cml" -> _cml_raw)) { root =>
           When("the CML-specific request is applied to the Scenario artifact")
           val report = _report(InternalModelPackageFreshness.check(root, Map(
-            "source-scenario" -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
+            _reference("source-scenario", 7L, "source-snapshot") -> InternalModelPackageFreshnessInput.CmlObserved(_authority, _identity, Some(_revision), "models/current.cml")
           )))
 
           Then("the type mismatch is malformed and no CML bytes appear in the report")
@@ -528,62 +745,72 @@ final class InternalModelPackageFreshnessSpec
       case InternalModelPackageFreshnessResult.MissingBaseline => fail("freshness report is absent for an optional baseline")
     }
 
+  private def _native_status(status: InternalModelSnapshotFreshnessStatus): InternalModelSnapshotFreshnessStatus =
+    if Platform.isMac then status else InternalModelSnapshotFreshnessStatus.Malformed
+
+  private def _native_dimensions(dimensions: Vector[String]): Vector[String] =
+    if Platform.isMac then dimensions else Vector.empty
+
   private def _report(result: org.goldenport.Consequence[InternalModelPackageFreshnessReport]): InternalModelPackageFreshnessReport =
     result.toOption.getOrElse(fail("package freshness report is missing"))
 
   private def _artifact(
-    id: String,
+    reference: InternalModelArtifactReference,
     path: String,
     required: Boolean,
-    bytes: Array[Byte],
-    dependencies: Vector[String] = Vector.empty,
-    role: String = "decision"
+    dependencies: Vector[InternalModelArtifactReference] = Vector.empty
   ): Json =
     Json.obj(
-      "artifactId" -> Json.fromString(id),
-      "dependsOn" -> Json.fromValues(dependencies.map(Json.fromString)),
+      "artifactId" -> Json.fromString(reference.artifactId.value),
+      "artifactRevision" -> Json.fromLong(reference.artifactRevision.value),
+      "dependsOn" -> Json.fromValues(dependencies.map(_reference_json)),
       "path" -> Json.fromString(path),
       "required" -> Json.fromBoolean(required),
-      "role" -> Json.fromString(role),
-      "sha256" -> Json.fromString(_sha256(bytes))
+      "role" -> Json.fromString(reference.role.wireValue)
     )
 
   private def _manifest(artifacts: Vector[Json]): String =
-    _canonical_manifest(JsonObject.fromIterable(Vector(
+    _printer.print(Json.obj(
       "artifacts" -> Json.fromValues(artifacts),
       "lifecycleState" -> Json.fromString("draft"),
-      "packageDigest" -> Json.fromString("sha256:" + ("0" * 64)),
       "packageId" -> Json.fromString(_package_id),
       "projectId" -> Json.fromString("sample"),
       "projectNamespace" -> Json.fromString("org.example"),
       "revision" -> Json.fromInt(1),
-      "schemaVersion" -> Json.fromString("1.0")
-    )))
+      "schemaVersion" -> Json.fromString("2.0")
+    )) + "\n"
 
-  private def _canonical_manifest(root: JsonObject): String = {
-    val digest = _sha256(_canonical(root.remove("packageDigest").toJson))
-    _canonical(root.add("packageDigest", Json.fromString(digest)).toJson).map(_.toChar).mkString
-  }
+  private def _reference(id: String, revision: Long, role: String): InternalModelArtifactReference =
+    InternalModelArtifactReference(
+      InternalModelArtifactId.from(id).fold(fail(_), identity),
+      InternalModelArtifactRevision.from(revision).fold(fail(_), identity),
+      InternalModelArtifactRole.fromWire(role).fold(fail(_), identity)
+    )
+
+  private def _reference_json(reference: InternalModelArtifactReference): Json =
+    Json.obj(
+      "artifactId" -> Json.fromString(reference.artifactId.value),
+      "artifactRevision" -> Json.fromLong(reference.artifactRevision.value),
+      "role" -> Json.fromString(reference.role.wireValue)
+    )
 
   private def _snapshot(
     kind: String,
     basis: Json,
-    rawbytes: Array[Byte],
     authority: String = _authority,
     identity: String = _identity,
     revision: Json = Json.fromString(_revision),
     locator: Json = Json.Null
   ): Array[Byte] =
-    _canonical(Json.fromJsonObject(JsonObject.fromIterable(Vector(
+    _json_bytes(Json.fromJsonObject(JsonObject.fromIterable(Vector(
       "basis" -> basis,
-      "schemaVersion" -> Json.fromString("1.0"),
+      "schemaVersion" -> Json.fromString("2.0"),
       "snapshotKind" -> Json.fromString(kind),
       "source" -> Json.obj(
         "authority" -> Json.fromString(authority),
         "identity" -> Json.fromString(identity),
         "locator" -> locator,
-        "revision" -> revision,
-        "sha256" -> Json.fromString(_sha256(rawbytes))
+        "revision" -> revision
       )
     ))))
 
@@ -644,11 +871,8 @@ final class InternalModelPackageFreshnessSpec
       "rawBytesBase64" -> Json.fromString(Base64.getEncoder.encodeToString(rawbytes))
     )
 
-  private def _canonical(json: Json): Array[Byte] =
+  private def _json_bytes(json: Json): Array[Byte] =
     (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
-
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
 
   private lazy val _darwin_libc: DarwinTestLibC = Native.load("c", classOf[DarwinTestLibC])
 
@@ -657,7 +881,7 @@ final class InternalModelPackageFreshnessSpec
     packagefiles: Map[String, Array[Byte]],
     projectfiles: Map[String, Array[Byte]] = Map.empty
   )(f: Path => Unit): Unit = {
-    val root = Files.createTempDirectory("internal-model-package-freshness-")
+    val root = _fixture_directory("project-")
     try {
       _write(root.resolve("project.yaml"), _project_yaml.getBytes(StandardCharsets.UTF_8))
       _write(root.resolve("src/main/internal-model/manifest.yaml"), manifest.getBytes(StandardCharsets.UTF_8))
@@ -672,6 +896,17 @@ final class InternalModelPackageFreshnessSpec
     Files.write(path, bytes, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
   }
 
-  private def _delete_tree(root: Path): Unit =
-    if Files.exists(root) then Files.walk(root).iterator.asScala.toVector.sortBy(_.getNameCount).reverse.foreach(Files.delete)
+  private def _fixture_directory(prefix: String): Path = {
+    val work = Path.of("target/internal-model-package-freshness/work").toAbsolutePath.normalize
+    Files.createDirectories(work)
+    Files.createTempDirectory(work, prefix)
+  }
+
+  private def _delete_tree(root: Path): Unit = {
+    if Files.exists(root, LinkOption.NOFOLLOW_LINKS) then {
+      val stream = Files.walk(root)
+      try stream.iterator.asScala.toVector.sortBy(_.getNameCount).reverse.foreach(Files.delete)
+      finally stream.close()
+    }
+  }
 }

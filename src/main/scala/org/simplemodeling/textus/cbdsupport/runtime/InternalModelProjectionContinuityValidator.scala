@@ -6,7 +6,8 @@ import org.goldenport.Consequence
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelProjectionBindingScope(
@@ -32,12 +33,12 @@ private[runtime] final case class InternalModelProjectionBindingView(
 )
 
 private[runtime] final case class InternalModelProjectionBinding(
+  bindingReference: InternalModelRecordReference,
   profile: String,
   schemaVersion: String,
-  realizationArtifactId: String,
+  realizationArtifactReference: InternalModelArtifactReference,
   scope: InternalModelProjectionBindingScope,
-  views: Vector[InternalModelProjectionBindingView],
-  canonicalBytes: Vector[Byte]
+  views: Vector[InternalModelProjectionBindingView]
 )
 
 private[runtime] final case class InternalModelProjectionContinuity(
@@ -102,8 +103,10 @@ private[runtime] object InternalModelProjectionContinuityValidator {
     handoff: InternalModelVerifiedProjectionContinuityPackage
   ): Consequence[InternalModelProjectionContinuity] =
     try {
-      InternalModelSemanticRealizationValidator.validateVerified(handoff.realizationPackage).flatMap { realization =>
-        _binding(handoff.projection, handoff.realizationPackage.realization.artifactId, realization).flatMap(binding => _construct(realization, binding)).fold(Consequence.operationInvalid, Consequence.success)
+      if handoff == null || handoff.projection == null || handoff.realizationpackage == null || handoff.realizationpackage.realization == null then
+        Consequence.operationInvalid("projection continuity capture, projection and realization package must be present")
+      else InternalModelSemanticRealizationValidator.validateVerified(handoff.realizationpackage).flatMap { realization =>
+        _binding(handoff.projection, handoff.realizationpackage.realization.reference, realization).flatMap(binding => _construct(realization, binding)).fold(Consequence.operationInvalid, Consequence.success)
       }
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model projection continuity validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
@@ -114,10 +117,10 @@ private[runtime] object InternalModelProjectionContinuityValidator {
 
   private def _binding(
     projection: InternalModelVerifiedProjection,
-    selectedrealizationartifactid: String,
+    selectedrealizationartifactreference: InternalModelArtifactReference,
     realization: InternalModelSemanticRealization
   ): Either[String, InternalModelProjectionBinding] =
-    InternalModelProjectionBindingCodec.decode(projection, selectedrealizationartifactid, realization)
+    InternalModelProjectionBindingCodec.decode(projection, selectedrealizationartifactreference, realization)
 
   private def _construct(
     realization: InternalModelSemanticRealization,
@@ -130,7 +133,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
           selected <- view.records.foldLeft[Either[String, Vector[BoundRecord]]](Right(Vector.empty)) { (recordsresult, record) =>
             for {
               current <- recordsresult
-              bound <- _bound_record(realization, binding, view.family, record)
+              bound <- _bound_record(realization, view.family, record)
             } yield current :+ bound
           }
         } yield collected ++ selected
@@ -147,7 +150,6 @@ private[runtime] object InternalModelProjectionContinuityValidator {
 
   private def _bound_record(
     realization: InternalModelSemanticRealization,
-    binding: InternalModelProjectionBinding,
     family: String,
     record: InternalModelProjectionBindingRecord
   ): Either[String, BoundRecord] =
@@ -155,7 +157,7 @@ private[runtime] object InternalModelProjectionContinuityValidator {
       target <- _target(realization, record)
       _ <- _target_links(target, record, family)
       _ <- _role(realization, target, record, family)
-      attribution <- _attribution(realization, target, record, binding.profile)
+      attribution <- _attribution(realization, target, record)
       condition <- _condition(realization, record.conditionIds)
       sequencekey <- _sequence_key(realization, target, record, family)
     } yield BoundRecord(family, record, target, attribution, condition, sequencekey)
@@ -240,12 +242,10 @@ private[runtime] object InternalModelProjectionContinuityValidator {
   private def _attribution(
     realization: InternalModelSemanticRealization,
     target: BindingTarget,
-    record: InternalModelProjectionBindingRecord,
-    profile: String
+    record: InternalModelProjectionBindingRecord
   ): Either[String, ComponentDashboardSourceAttribution] = {
-    val allassertions = _canonical_assertions(realization, target) ++ _enrichment_assertions(realization, target)
     val conditionreferences = realization.conditions.filter(condition => record.conditionIds.contains(condition.conditionId)).map(_.sourceReferenceId)
-    val referenceids = if record.recordKind == "gap" then conditionreferences else if profile == "ccdm-projection-binding-v1" then allassertions.map(_.sourceReferenceId) ++ conditionreferences else {
+    val referenceids = if record.recordKind == "gap" then conditionreferences else {
       val witness = target match {
         case _: ElementTarget => s"kind:${record.viewRole}"
         case _: RelationshipTarget => s"role:${record.viewRole}"
@@ -254,10 +254,9 @@ private[runtime] object InternalModelProjectionContinuityValidator {
     }
     for {
       _ <- Either.cond(
-        if record.recordKind == "gap" then referenceids.size == 1 else if profile == "ccdm-projection-binding-v1" then referenceids.nonEmpty && referenceids.distinct.size == 1 else referenceids.size == 1,
+        referenceids.size == 1,
         (),
         if record.recordKind == "gap" then s"projection binding gap ${record.semanticIdentity} must have exactly one condition source"
-        else if profile == "ccdm-projection-binding-v1" then s"projection binding record ${record.semanticIdentity} would select a hidden source winner"
         else s"projection binding record ${record.semanticIdentity} must have exactly one direct canonical role witness"
       )
       reference <- realization.sourceReferences.find(_.referenceId == referenceids.head).toRight(s"projection binding record ${record.semanticIdentity} names an unknown source reference")
@@ -312,9 +311,6 @@ private[runtime] object InternalModelProjectionContinuityValidator {
 
   private def _canonical_assertions(realization: InternalModelSemanticRealization, target: BindingTarget): Vector[InternalModelSemanticAssertion] =
     realization.canonicalAssertions.filter(assertion => _matches(assertion.semanticIdentityKind, assertion.semanticIdentity, target))
-
-  private def _enrichment_assertions(realization: InternalModelSemanticRealization, target: BindingTarget): Vector[InternalModelSemanticAssertion] =
-    realization.enrichmentAssertions.filter(assertion => _matches(assertion.semanticIdentityKind, assertion.semanticIdentity, target))
 
   private def _matches(kind: String, identity: String, target: BindingTarget): Boolean =
     (target match {

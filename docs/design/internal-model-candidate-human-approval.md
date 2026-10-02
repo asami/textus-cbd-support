@@ -1,30 +1,48 @@
 ---
 status: working
-decision_scope: P10-33A
-updated_at: 2026-09-29
+decision_scope: P104-TYPED-APPROVAL-LIFECYCLE-001
+updated_at: 2026-10-01
 ---
 
 # Internal-model Candidate Human Approval Design
 
-P10-33A adds a narrow persistence boundary after P10-32: a caller-admitted,
-closed record retains one attributable human decision about one exact complete
-candidate/review basis. The normative grammar is in the [human approval
-contract](../spec/internal-model-candidate-human-approval-contract.md).
+The normative [approval contract](../spec/internal-model-candidate-human-approval-contract.md)
+defines the exact V2 schema. This boundary retains actual independent human
+input about one complete candidate/review/diff basis through shared typed
+references. Source and executable-spec migration are authored; validation,
+independent review, integrated continuation conversion and acceptance remain pending.
 
-The package validator captures the carrier once and composes the exact selected
-review with the exact selected approval. The review dependency reaches all
-present historical basis artifacts through the P10-32 binding. A pure validator
-then reuses that captured review handoff, validates independent rule/provider
-evidence and independent human input, and compares every persisted field
-exactly. The result retains both external approval metadata and the complete
-P10-32 admission context.
+The dependency direction is semantic subject -> review -> approval. One real
+capture admits explicit full external review and approval references. Approval
+has exactly the selected review reference as its dependency. Existing owners
+compose source witnesses, realization, continuity, candidate, diff and target
+evidence. The explicit complete review subject, not the later carrier or cursor
+revision, defines what was reviewed.
 
-Three authorities remain separate. P10-32 records provider/rule review
-evidence, not a human decision. Actor/provenance record attributable claims,
-not authentication. The historical reviewed package identifies the reviewed
-subject, while the newer carrier only transports the selected artifacts.
+The nine-field basis retains candidate artifact/logical references and model
+identity, review artifact/logical references, complete subject, scope and diff
+artifact/logical references. Logical approval reference is separate from external
+artifact reference. Producer-owned versions are preserved, not content-derived
+or defaulted. Shared review subject parsing prevents grammar divergence.
 
-This boundary deliberately does not choose an approval, authenticate a human,
-fetch provenance, read a provider, infer latest/currentness, parse or apply
-CML, or write anything. P10-34 exclusively owns lifecycle applicability,
-supersession, and invalidation; later work owns any actual CML authority.
+Independent rules/providers own execution evidence; actual independent human
+input owns actor/decision/provenance/rationale/items; source owners own authority,
+identity and available revision. Stored attributable claims are not authentication.
+Provider state is not human input; artifact revision is not unknown source revision.
+
+Strict ordinary JSON checks closed semantic grammar, not canonical bytes.
+Pure `validateValue` and `validateAdmission` reject malformed/null graphs and
+cross-binding metadata contradictions without simulated Verified captures,
+control-byte caches, path rereads or repeated human authentication. They never
+replace actual admission with independent input.
+
+The retained record, full external approval reference, selected relative path
+and actual review admission remain point-in-time historical evidence when
+filesystem paths later change. Fresh admission, including copied-carrier admission,
+is a separate act and never path/process-local identity.
+
+This boundary does not select latest records, authenticate people, fetch
+provenance, evaluate live sources, authorize/apply CML or mutate artifacts.
+Lifecycle separately derives applicability and explicit supersession. Undeclared
+payload changes under the same declared version remain the producer's obligation;
+typed control does not claim content mutation detection.

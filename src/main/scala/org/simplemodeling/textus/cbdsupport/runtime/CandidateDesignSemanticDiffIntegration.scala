@@ -1,5 +1,12 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
+import java.nio.charset.{CodingErrorAction, StandardCharsets}
+
+/*
+ * @since   Sep. 11, 2026
+ * @version Oct.  1, 2026
+ * @author  ASAMI, Tomoharu
+ */
 /**
  * Caller-admitted evidence for a proposed CML change.  This value deliberately
  * carries trace information only: it never reads, parses, or applies CML.
@@ -10,8 +17,8 @@ final case class CandidateDesignProposedCmlPatchTrace(
   component: ComponentDashboardComponentIdentity,
   cmlOwner: String,
   cmlLocator: String,
-  baseDigest: String,
-  proposedDigest: String,
+  baselineArtifactReference: InternalModelArtifactReference,
+  proposedContentReference: InternalModelRecordReference,
   attribution: ComponentDashboardSourceAttribution,
   condition: ComponentDashboardCondition,
   limitations: Vector[String],
@@ -269,15 +276,34 @@ object CandidateDesignSemanticDiffIntegration {
       _required_violations(
         Vector(
           "CML owner" -> patch.cmlOwner,
-          "CML locator" -> patch.cmlLocator,
-          "base digest" -> patch.baseDigest,
-          "proposed digest" -> patch.proposedDigest
+          "CML locator" -> patch.cmlLocator
         )
       ) ++
+      _baseline_reference_violations(patch.baselineArtifactReference) ++
+      _content_reference_violations(patch.proposedContentReference) ++
       _attribution_violations("patch", patch.attribution) ++
       _condition_violations("patch", patch.condition) ++
       _limitations_violations("patch", patch.limitations)
   }
+
+  private def _baseline_reference_violations(reference: InternalModelArtifactReference): Vector[String] =
+    if (reference == null) Vector("patch baseline artifact reference must be present")
+    else {
+      val idviolations = InternalModelArtifactId.from(reference.artifactId.value).fold(reason => Vector(s"patch baseline $reason"), _ => Vector.empty)
+      val revisionviolations = InternalModelArtifactRevision.from(reference.artifactRevision.value).fold(reason => Vector(s"patch baseline $reason"), _ => Vector.empty)
+      val roleviolations = if (reference.role == InternalModelArtifactRole.SourceSnapshot) Vector.empty else Vector("patch baseline artifact role must be source-snapshot")
+      idviolations ++ revisionviolations ++ roleviolations
+    }
+
+  private def _content_reference_violations(reference: InternalModelRecordReference): Vector[String] =
+    if (reference == null) Vector("patch proposed content reference must be present")
+    else {
+      val id = reference.recordId.value
+      val encoder = StandardCharsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
+      val idviolations = if (InternalModelRecordId.from(id).isRight && encoder.canEncode(id)) Vector.empty else Vector("patch proposed content recordId must be nonblank valid Unicode")
+      val revisionviolations = InternalModelRecordRevision.from(reference.recordRevision.value).fold(reason => Vector(s"patch proposed content $reason"), _ => Vector.empty)
+      idviolations ++ revisionviolations
+    }
 
   private def _candidate_violations(
     context: MonoKotoProjectionContextIdentity,

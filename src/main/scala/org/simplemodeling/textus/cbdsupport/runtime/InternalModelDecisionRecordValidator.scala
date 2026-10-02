@@ -1,7 +1,6 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.file.Path
-import java.security.MessageDigest
 
 import scala.util.control.NonFatal
 
@@ -9,7 +8,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Admits a captured decision ledger against its one captured semantic realization. */
@@ -23,28 +22,39 @@ private[runtime] object InternalModelDecisionRecordValidator {
 
   private[runtime] def validateVerified(handoff: InternalModelVerifiedDecisionPackage): Consequence[InternalModelDecisionAdmission] =
     try {
-      InternalModelSemanticRealizationValidator.validateVerified(handoff.realizationPackage).flatMap { realization =>
+      _captured_paths(handoff).fold(Consequence.operationInvalid, _ => InternalModelSemanticRealizationValidator.validateVerified(handoff.realizationpackage).flatMap { realization =>
         (for {
           ledger <- InternalModelDecisionRecordCodec.decode(handoff.decision)
           admission <- _admission(handoff, realization, ledger)
         } yield admission).fold(Consequence.operationInvalid, Consequence.success)
-      }
+      })
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model decision record validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
+
+  private def _captured_paths(handoff: InternalModelVerifiedDecisionPackage): Either[String, Unit] =
+    for {
+      _ <- Either.cond(handoff != null && handoff.decision != null && handoff.realizationpackage != null, (), "decision capture, decision and realization package must be present")
+      selected = handoff.realizationpackage
+      _ <- Either.cond(selected.realization != null && selected.sourcesnapshots != null, (), "captured realization and source-snapshot collection must be present")
+      _ <- Either.cond(selected.realization.path != null && !selected.realization.path.isBlank, (), "captured realization path must be present")
+      _ <- selected.sourcesnapshots.foldLeft[Either[String, Unit]](Right(())) { (result, snapshot) =>
+        result.flatMap(_ => Either.cond(snapshot != null && snapshot.path != null && !snapshot.path.isBlank, (), "captured source-snapshot and path must be present"))
+      }
+    } yield ()
 
   private def _admission(
     handoff: InternalModelVerifiedDecisionPackage,
     realization: InternalModelSemanticRealization,
     ledger: InternalModelDecisionLedger
   ): Either[String, InternalModelDecisionAdmission] = {
-    val currentdigest = _sha256(handoff.realizationPackage.realization.bytes.toArray)
     for {
+      _ <- Either.cond(handoff.decision.dependencies.contains(handoff.realizationpackage.realization.reference), (), "selected decision must depend on the exact selected realization artifact reference")
       _ <- Either.cond(ledger.scope == realization.scope, (), "decision ledger scope does not equal selected realization scope")
       _ <- ledger.records.foldLeft[Either[String, Unit]](Right(())) { (result, record) =>
         for {
           _ <- result
-          _ <- _record_admission(record, handoff.realizationPackage.realization, realization, currentdigest, ledger.scope)
+          _ <- _record_admission(record, handoff.realizationpackage.realization, realization, ledger.scope)
         } yield ()
       }
       _ <- _chain(ledger.records)
@@ -55,23 +65,21 @@ private[runtime] object InternalModelDecisionRecordValidator {
     record: InternalModelDecisionRecord,
     selected: InternalModelVerifiedRealization,
     realization: InternalModelSemanticRealization,
-    currentdigest: String,
     ledgerscope: InternalModelSemanticScope
   ): Either[String, Unit] = {
     val current =
-      record.basis.realizationArtifactId == selected.artifactId &&
-        record.basis.realizationIdentity == realization.realizationIdentity &&
-        record.basis.sha256 == currentdigest &&
+      record.basis.realizationArtifactReference == selected.reference &&
+        record.basis.realizationReference == realization.realizationReference &&
         record.basis.scope == realization.scope
     for {
-      _ <- Either.cond(record.basis.scope == ledgerscope, (), s"decision record ${record.decisionIdentity} basis scope does not equal ledger scope")
+      _ <- Either.cond(record.basis.scope == ledgerscope, (), s"decision record ${record.decisionReference.recordId.value} basis scope does not equal ledger scope")
       _ <- Either.cond(
         (current && record.basis.status == InternalModelDecisionBasisStatus.Current) || (!current && record.basis.status == InternalModelDecisionBasisStatus.HistoricalUnverified),
         (),
-        s"decision record ${record.decisionIdentity} basis status does not match its exact current basis"
+        s"decision record ${record.decisionReference.recordId.value} basis status does not match its exact current basis"
       )
-      _ <- Either.cond(!current || record.state == InternalModelDecisionState.Superseded || record.state == InternalModelDecisionState.Accepted, (), s"decision record ${record.decisionIdentity} current state is invalid")
-      _ <- Either.cond(current || record.state == InternalModelDecisionState.Superseded, (), s"decision record ${record.decisionIdentity} historical basis must be superseded")
+      _ <- Either.cond(!current || record.state == InternalModelDecisionState.Superseded || record.state == InternalModelDecisionState.Accepted, (), s"decision record ${record.decisionReference.recordId.value} current state is invalid")
+      _ <- Either.cond(current || record.state == InternalModelDecisionState.Superseded, (), s"decision record ${record.decisionReference.recordId.value} historical basis must be superseded")
       _ <- if current then _current_record(record, realization) else Right(())
     } yield ()
   }
@@ -93,13 +101,13 @@ private[runtime] object InternalModelDecisionRecordValidator {
           _ <- _target_exists(target, realization)
         } yield ()
       }
-      _ <- Either.cond(record.realizationConditionIds.forall(conditionids.contains), (), s"decision record ${record.decisionIdentity} names an unknown current realization condition")
-      _ <- Either.cond(requiredtargetconditions.subsetOf(record.realizationConditionIds.toSet), (), s"decision record ${record.decisionIdentity} hides an affected-target condition")
-      _ <- Either.cond(evidenceconditions.subsetOf(record.realizationConditionIds.toSet), (), s"decision record ${record.decisionIdentity} omits an evidence condition from its realization condition set")
+      _ <- Either.cond(record.realizationConditionIds.forall(conditionids.contains), (), s"decision record ${record.decisionReference.recordId.value} names an unknown current realization condition")
+      _ <- Either.cond(requiredtargetconditions.subsetOf(record.realizationConditionIds.toSet), (), s"decision record ${record.decisionReference.recordId.value} hides an affected-target condition")
+      _ <- Either.cond(evidenceconditions.subsetOf(record.realizationConditionIds.toSet), (), s"decision record ${record.decisionReference.recordId.value} omits an evidence condition from its realization condition set")
       _ <- record.consideredEvidence.foldLeft[Either[String, Unit]](Right(())) { (result, evidence) =>
         for {
           _ <- result
-          _ <- _evidence(evidence, record.decisionIdentity, realization)
+          _ <- _evidence(evidence, record.decisionReference.recordId.value, realization)
         } yield ()
       }
     } yield ()
@@ -131,18 +139,18 @@ private[runtime] object InternalModelDecisionRecordValidator {
     }
 
   private def _chain(records: Vector[InternalModelDecisionRecord]): Either[String, Unit] = {
-    val byid = records.map(record => record.decisionIdentity -> record).toMap
+    val byreference = records.map(record => record.decisionReference -> record).toMap
     for {
       _ <- records.foldLeft[Either[String, Unit]](Right(())) { (result, record) =>
         for {
           _ <- result
-          _ <- _predecessor(record, byid)
-          successors = records.filter(_.supersedes.contains(record.decisionIdentity))
+          _ <- _predecessor(record, byreference)
+          successors = records.filter(_.supersedes.contains(record.decisionReference))
           _ <- record.state match {
-            case InternalModelDecisionState.Superseded => Either.cond(successors.size == 1, (), s"superseded decision ${record.decisionIdentity} must have exactly one successor")
-            case InternalModelDecisionState.Accepted => Either.cond(successors.isEmpty, (), s"accepted decision ${record.decisionIdentity} must not have a successor")
+            case InternalModelDecisionState.Superseded => Either.cond(successors.size == 1, (), s"superseded decision ${record.decisionReference.recordId.value} must have exactly one successor")
+            case InternalModelDecisionState.Accepted => Either.cond(successors.isEmpty, (), s"accepted decision ${record.decisionReference.recordId.value} must not have a successor")
           }
-          _ <- Either.cond(!_has_cycle(record, byid), (), s"decision record ${record.decisionIdentity} has a supersession cycle")
+          _ <- Either.cond(!_has_cycle(record, byreference), (), s"decision record ${record.decisionReference.recordId.value} has a supersession cycle")
         } yield ()
       }
       _ <- records.map(_.topicIdentity).distinct.foldLeft[Either[String, Unit]](Right(())) { (result, topic) =>
@@ -157,36 +165,34 @@ private[runtime] object InternalModelDecisionRecordValidator {
 
   private def _predecessor(
     record: InternalModelDecisionRecord,
-    byid: Map[String, InternalModelDecisionRecord]
+    byreference: Map[InternalModelRecordReference, InternalModelDecisionRecord]
   ): Either[String, Unit] =
     record.supersedes match {
       case Some(predecessorid) =>
         for {
-          predecessor <- byid.get(predecessorid).toRight(s"decision record ${record.decisionIdentity} supersedes an unknown decision")
-          _ <- Either.cond(predecessor.decisionIdentity != record.decisionIdentity, (), s"decision record ${record.decisionIdentity} must not supersede itself")
-          _ <- Either.cond(predecessor.topicIdentity == record.topicIdentity, (), s"decision record ${record.decisionIdentity} supersedes a decision in another topic")
+          predecessor <- byreference.get(predecessorid).toRight(s"decision record ${record.decisionReference.recordId.value} supersedes an unknown decision")
+          _ <- Either.cond(predecessor.decisionReference != record.decisionReference, (), s"decision record ${record.decisionReference.recordId.value} must not supersede itself")
+          _ <- Either.cond(predecessor.topicIdentity == record.topicIdentity && predecessor.basis.scope == record.basis.scope, (), s"decision record ${record.decisionReference.recordId.value} supersedes a decision in another topic or scope")
         } yield ()
       case None => Right(())
     }
 
   private def _has_cycle(
     start: InternalModelDecisionRecord,
-    byid: Map[String, InternalModelDecisionRecord]
+    byreference: Map[InternalModelRecordReference, InternalModelDecisionRecord]
   ): Boolean = {
     var current = Option(start)
-    var visited = Set.empty[String]
+    var visited = Set.empty[InternalModelRecordReference]
     var cycle = false
     while current.nonEmpty && !cycle do {
       val record = current.get
-      if visited.contains(record.decisionIdentity) then cycle = true
+      if visited.contains(record.decisionReference) then cycle = true
       else {
-        visited = visited + record.decisionIdentity
-        current = record.supersedes.flatMap(byid.get)
+        visited = visited + record.decisionReference
+        current = record.supersedes.flatMap(byreference.get)
       }
     }
     cycle
   }
 
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
 }

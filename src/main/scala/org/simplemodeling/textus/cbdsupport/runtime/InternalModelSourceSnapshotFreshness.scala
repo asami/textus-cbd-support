@@ -2,15 +2,15 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.ByteBuffer
 import java.nio.charset.{CodingErrorAction, StandardCharsets}
-import java.security.MessageDigest
 import java.util.{Arrays, Base64}
 
 import scala.util.control.NonFatal
 
-import io.circe.{Json, JsonObject, Printer}
+import io.circe.{Json, JsonObject}
 import io.circe.jawn.JawnParser
 
 enum InternalModelLiveSourceObservation {
+  /** rawBytes is ordinary caller payload, never a comparison/control token. */
   case Observed(
     authority: String,
     identity: String,
@@ -27,6 +27,7 @@ enum InternalModelLiveSourceObservation {
 enum InternalModelSnapshotFreshnessStatus {
   case Unchanged
   case Changed
+  case Incomplete
   case Unavailable
   case Unauthorized
   case Malformed
@@ -42,9 +43,8 @@ final case class InternalModelSnapshotFreshnessReport(
   observedSourceIdentity: Option[String],
   baselineSourceRevision: Option[String],
   observedSourceRevision: Option[String],
-  baselineRawBytesSha256: Option[String],
-  observedRawBytesSha256: Option[String],
   changedDimensionNames: Vector[String],
+  missingDimensionNames: Vector[String],
   baselineCmlProjectRelativePath: Option[String],
   currentCmlProjectRelativePath: Option[String],
   reason: Option[String]
@@ -52,10 +52,10 @@ final case class InternalModelSnapshotFreshnessReport(
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 27, 2026
+ * @version Oct. 1, 2026
  * @author  ASAMI, Tomoharu
  */
-/** Compares one canonical V1 source snapshot with one supplied live observation. */
+/** Compares declared source references from one strict V2 snapshot and supplied observation. */
 object InternalModelSourceSnapshotFreshness {
   private enum SnapshotKind {
     case Scenario
@@ -67,20 +67,17 @@ object InternalModelSourceSnapshotFreshness {
   private final case class SourceMetadata(
     authority: String,
     identity: String,
-    revision: Option[String],
-    rawsha256: String
+    revision: Option[String]
   )
 
   private final case class ParsedSnapshot(
     kind: SnapshotKind,
     source: SourceMetadata,
-    cmlpath: Option[String],
-    cmlbytes: Option[Vector[Byte]]
+    cmlpath: Option[String]
   )
 
   private final case class CurrentObservation(
     source: SourceMetadata,
-    rawbytes: Vector[Byte],
     cmlpath: Option[String]
   )
 
@@ -103,7 +100,7 @@ object InternalModelSourceSnapshotFreshness {
   private final case class GlossaryEntry(termidentity: String, sourceanchor: String)
 
   private val _top_level_fields = Set("basis", "schemaVersion", "snapshotKind", "source")
-  private val _source_fields = Set("authority", "identity", "locator", "revision", "sha256")
+  private val _source_fields = Set("authority", "identity", "locator", "revision")
   private val _scenario_basis_fields = Set("content", "scenarioId", "traceLinks")
   private val _trace_link_fields = Set("componentIdentity", "projectionContextIdentity", "scenarioAnchor", "semanticIdentity", "semanticIdentityKind")
   private val _model_context_basis_fields = Set("contextIdentity", "facts")
@@ -112,10 +109,7 @@ object InternalModelSourceSnapshotFreshness {
   private val _glossary_entry_fields = Set("definition", "limitations", "sourceAnchor", "termIdentity", "termLabel")
   private val _cml_basis_fields = Set("byteLength", "projectRelativePath", "rawBytesBase64")
   private val _semantic_identity_kinds = Set("element", "relationship")
-  private val _digest_pattern = "sha256:[0-9a-f]{64}".r
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
-  private val _canonical_printer = Printer.noSpacesSortKeys
-  private val _no_cml = (Option.empty[String], Option.empty[Vector[Byte]])
 
   def compare(
     snapshotBytes: Array[Byte],
@@ -142,13 +136,14 @@ object InternalModelSourceSnapshotFreshness {
         InternalModelSnapshotFreshnessStatus.Malformed,
         None,
         Vector.empty,
+        Vector.empty,
         Some("live source observation is missing")
       )
     else
       observation match {
         case InternalModelLiveSourceObservation.Observed(authority, identity, revision, rawbytes, projectrelativepath) =>
           _observed(snapshot.kind, authority, identity, revision, rawbytes, projectrelativepath).fold(
-            reason => _report(snapshot, InternalModelSnapshotFreshnessStatus.Malformed, None, Vector.empty, Some(reason)),
+            reason => _report(snapshot, InternalModelSnapshotFreshnessStatus.Malformed, None, Vector.empty, Vector.empty, Some(reason)),
             current => _compare_observed(snapshot, current)
           )
         case InternalModelLiveSourceObservation.Unavailable(reason) =>
@@ -169,14 +164,13 @@ object InternalModelSourceSnapshotFreshness {
         content <- _decode_utf8(snapshotbytes, "snapshot bytes")
         json <- _json_parser.parse(content).left.map(_ => "snapshot bytes must be valid JSON without duplicate members")
         root <- json.asObject.toRight("snapshot root must be an object")
-        _ <- Either.cond(Arrays.equals(snapshotbytes, _canonical_bytes(json)), (), "snapshot bytes are not canonical V1 JSON")
         _ <- _closed_fields(root, _top_level_fields, "snapshot root")
         schema <- _string(root, "schemaVersion", "snapshot root")
-        _ <- Either.cond(schema == "1.0", (), "snapshot schemaVersion must be 1.0")
+        _ <- Either.cond(schema == "2.0", (), "snapshot schemaVersion must be 2.0")
         kind <- _snapshot_kind(root)
         source <- _source(root)
-        basis <- _basis(kind, root, source)
-      } yield ParsedSnapshot(kind, source, basis._1, basis._2)
+        cmlpath <- _basis(kind, root)
+      } yield ParsedSnapshot(kind, source, cmlpath)
 
   private def _snapshot_kind(root: JsonObject): Either[String, SnapshotKind] =
     _string(root, "snapshotKind", "snapshot root").flatMap {
@@ -184,7 +178,7 @@ object InternalModelSourceSnapshotFreshness {
       case "model-context" => Right(SnapshotKind.ModelContext)
       case "glossary-bok" => Right(SnapshotKind.GlossaryBok)
       case "cml-baseline" => Right(SnapshotKind.CmlBaseline)
-      case _ => Left("snapshotKind is not a supported V1 kind")
+      case _ => Left("snapshotKind is not a supported V2 kind")
     }
 
   private def _source(root: JsonObject): Either[String, SourceMetadata] =
@@ -196,21 +190,18 @@ object InternalModelSourceSnapshotFreshness {
       identity <- _nonempty_string(objectvalue, "identity", "snapshot source")
       _ <- _nullable_nonempty_string(objectvalue, "locator", "snapshot source").map(_ => ())
       revision <- _nullable_nonempty_string(objectvalue, "revision", "snapshot source")
-      rawsha256 <- _string(objectvalue, "sha256", "snapshot source")
-      _ <- Either.cond(_digest_pattern.matches(rawsha256), (), "snapshot source sha256 is invalid")
-    } yield SourceMetadata(authority, identity, revision, rawsha256)
+    } yield SourceMetadata(authority, identity, revision)
 
   private def _basis(
     kind: SnapshotKind,
-    root: JsonObject,
-    source: SourceMetadata
-  ): Either[String, (Option[String], Option[Vector[Byte]])] =
+    root: JsonObject
+  ): Either[String, Option[String]] =
     root("basis").toRight("snapshot basis is missing").flatMap { value =>
       kind match {
-        case SnapshotKind.Scenario => _scenario_basis(value).map(_ => _no_cml)
-        case SnapshotKind.ModelContext => _model_context_basis(value).map(_ => _no_cml)
-        case SnapshotKind.GlossaryBok => _glossary_basis(value).map(_ => _no_cml)
-        case SnapshotKind.CmlBaseline => _cml_basis(value, source)
+        case SnapshotKind.Scenario => _scenario_basis(value).map(_ => None)
+        case SnapshotKind.ModelContext => _model_context_basis(value).map(_ => None)
+        case SnapshotKind.GlossaryBok => _glossary_basis(value).map(_ => None)
+        case SnapshotKind.CmlBaseline => _cml_basis(value)
       }
     }
 
@@ -304,7 +295,7 @@ object InternalModelSourceSnapshotFreshness {
       _ <- _nonempty_string(objectvalue, "termLabel", s"glossary-bok entry $index")
     } yield GlossaryEntry(termidentity, sourceanchor)
 
-  private def _cml_basis(value: Json, source: SourceMetadata): Either[String, (Option[String], Option[Vector[Byte]])] =
+  private def _cml_basis(value: Json): Either[String, Option[String]] =
     for {
       objectvalue <- _object(value, "cml-baseline basis")
       _ <- _closed_fields(objectvalue, _cml_basis_fields, "cml-baseline basis")
@@ -315,8 +306,7 @@ object InternalModelSourceSnapshotFreshness {
       rawbytes <- _decode_base64(encoded)
       _ <- Either.cond(_canonical_base64(rawbytes) == encoded, (), "cml-baseline rawBytesBase64 is not canonical RFC 4648 padded Base64")
       _ <- Either.cond(bytelength == rawbytes.length.toLong, (), "cml-baseline byteLength does not match raw bytes")
-      _ <- Either.cond(_sha256(rawbytes) == source.rawsha256, (), "cml-baseline raw bytes do not match source sha256")
-    } yield Some(path) -> Some(rawbytes.toVector)
+    } yield Some(path)
 
   private def _limitations(objectvalue: JsonObject, label: String): Either[String, Unit] =
     for {
@@ -346,8 +336,7 @@ object InternalModelSourceSnapshotFreshness {
         sourcerevision <- _optional_nonempty_value(revision, "observed source revision")
         cmlpath <- _observed_cml_path(kind, projectrelativepath)
       } yield CurrentObservation(
-        SourceMetadata(sourceauthority, sourceidentity, sourcerevision, _sha256(rawbytes.toArray)),
-        rawbytes,
+        SourceMetadata(sourceauthority, sourceidentity, sourcerevision),
         cmlpath
       )
 
@@ -366,24 +355,31 @@ object InternalModelSourceSnapshotFreshness {
     val sourcechanges = Vector(
       Option.when(snapshot.source.authority != current.source.authority)("source.authority"),
       Option.when(snapshot.source.identity != current.source.identity)("source.identity"),
-      Option.when(snapshot.source.revision != current.source.revision)("source.revision"),
-      Option.when(snapshot.source.rawsha256 != current.source.rawsha256)("source.sha256")
+      Option.when(snapshot.source.revision != current.source.revision)("source.revision")
     ).flatten
     val cmlchanges = snapshot.kind match {
       case SnapshotKind.CmlBaseline =>
-        val baselinepath = snapshot.cmlpath.getOrElse("")
-        val baselinebytes = snapshot.cmlbytes.getOrElse(Vector.empty)
-        Vector(
-          Option.when(baselinepath != current.cmlpath.getOrElse(""))("basis.projectRelativePath"),
-          Option.when(baselinebytes.length != current.rawbytes.length)("basis.byteLength"),
-          Option.when(baselinebytes != current.rawbytes)("basis.rawBytesBase64")
-        ).flatten
+        Vector(Option.when(snapshot.cmlpath != current.cmlpath)("basis.projectRelativePath")).flatten
       case _ => Vector.empty
     }
     val changes = (sourcechanges ++ cmlchanges).distinct.sorted
-    val status = if changes.isEmpty then InternalModelSnapshotFreshnessStatus.Unchanged else InternalModelSnapshotFreshnessStatus.Changed
-    val reason = Option.when(changes.nonEmpty)("recorded source snapshot differs from the observed source")
-    _report(snapshot, status, Some(current), changes, reason)
+    val missing = Vector(
+      Option.when(snapshot.source.revision.isEmpty)("baseline.source.revision"),
+      Option.when(current.source.revision.isEmpty)("observed.source.revision")
+    ).flatten.distinct.sorted
+    val status = if (missing.nonEmpty) {
+      InternalModelSnapshotFreshnessStatus.Incomplete
+    } else if (changes.nonEmpty) {
+      InternalModelSnapshotFreshnessStatus.Changed
+    } else {
+      InternalModelSnapshotFreshnessStatus.Unchanged
+    }
+    val reason = if (missing.nonEmpty) {
+      Some("missing source-owned revision: " + missing.mkString(", "))
+    } else {
+      Option.when(changes.nonEmpty)("declared source references differ: " + changes.mkString(", "))
+    }
+    _report(snapshot, status, Some(current), changes, missing, reason)
   }
 
   private def _observation_report(
@@ -392,8 +388,8 @@ object InternalModelSourceSnapshotFreshness {
     evidence: String
   ): InternalModelSnapshotFreshnessReport =
     _nonempty_value(evidence, "live observation evidence").fold(
-      reason => _report(snapshot, InternalModelSnapshotFreshnessStatus.Malformed, None, Vector.empty, Some(reason)),
-      reason => _report(snapshot, status, None, Vector.empty, Some(reason))
+      reason => _report(snapshot, InternalModelSnapshotFreshnessStatus.Malformed, None, Vector.empty, Vector.empty, Some(reason)),
+      reason => _report(snapshot, status, None, Vector.empty, Vector.empty, Some(reason))
     )
 
   private def _report(
@@ -401,6 +397,7 @@ object InternalModelSourceSnapshotFreshness {
     status: InternalModelSnapshotFreshnessStatus,
     current: Option[CurrentObservation],
     changes: Vector[String],
+    missing: Vector[String],
     evidence: Option[String]
   ): InternalModelSnapshotFreshnessReport =
     InternalModelSnapshotFreshnessReport(
@@ -412,9 +409,8 @@ object InternalModelSourceSnapshotFreshness {
       observedSourceIdentity = current.map(_.source.identity),
       baselineSourceRevision = snapshot.source.revision,
       observedSourceRevision = current.flatMap(_.source.revision),
-      baselineRawBytesSha256 = Some(snapshot.source.rawsha256),
-      observedRawBytesSha256 = current.map(_.source.rawsha256),
-      changedDimensionNames = changes.sorted,
+      changedDimensionNames = changes.distinct.sorted,
+      missingDimensionNames = missing.distinct.sorted,
       baselineCmlProjectRelativePath = snapshot.cmlpath,
       currentCmlProjectRelativePath = current.flatMap(_.cmlpath),
       reason = evidence
@@ -430,9 +426,8 @@ object InternalModelSourceSnapshotFreshness {
       observedSourceIdentity = None,
       baselineSourceRevision = None,
       observedSourceRevision = None,
-      baselineRawBytesSha256 = None,
-      observedRawBytesSha256 = None,
       changedDimensionNames = Vector.empty,
+      missingDimensionNames = Vector.empty,
       baselineCmlProjectRelativePath = None,
       currentCmlProjectRelativePath = None,
       reason = Some(reason)
@@ -480,7 +475,7 @@ object InternalModelSourceSnapshotFreshness {
     }
 
   private def _closed_fields(objectvalue: JsonObject, fields: Set[String], label: String): Either[String, Unit] =
-    Either.cond(objectvalue.keys.toSet == fields, (), s"$label fields are not the closed V1 schema")
+    Either.cond(objectvalue.keys.toSet == fields, (), s"$label fields are not the closed V2 schema")
 
   private def _strictly_sorted(values: Vector[Vector[String]], label: String): Either[String, Unit] = {
     val ordered = values.zip(values.drop(1)).forall { case (left, right) => _compare_tuple(left, right) < 0 }
@@ -523,12 +518,6 @@ object InternalModelSourceSnapshotFreshness {
 
   private def _has_bom(bytes: Array[Byte]): Boolean =
     bytes.length >= 3 && bytes(0) == 0xef.toByte && bytes(1) == 0xbb.toByte && bytes(2) == 0xbf.toByte
-
-  private def _canonical_bytes(json: Json): Array[Byte] =
-    (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
-
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
 
   private def _kind_name(kind: SnapshotKind): String =
     kind match {

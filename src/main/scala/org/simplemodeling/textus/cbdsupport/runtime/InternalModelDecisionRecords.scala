@@ -2,7 +2,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Immutable retained decision account; admission remains a separate read-only operation. */
@@ -63,15 +63,14 @@ private[runtime] final case class InternalModelDecisionAlternative(
 )
 
 private[runtime] final case class InternalModelDecisionBasis(
-  realizationArtifactId: String,
-  realizationIdentity: String,
-  sha256: String,
+  realizationArtifactReference: InternalModelArtifactReference,
+  realizationReference: InternalModelRecordReference,
   scope: InternalModelSemanticScope,
   status: InternalModelDecisionBasisStatus
 )
 
 private[runtime] final case class InternalModelDecisionRecord(
-  decisionIdentity: String,
+  decisionReference: InternalModelRecordReference,
   topicIdentity: String,
   state: InternalModelDecisionState,
   actor: InternalModelDecisionActor,
@@ -86,16 +85,15 @@ private[runtime] final case class InternalModelDecisionRecord(
   realizationConditionIds: Vector[String],
   rejectedAlternatives: Vector[InternalModelDecisionAlternative],
   basis: InternalModelDecisionBasis,
-  supersedes: Option[String]
+  supersedes: Option[InternalModelRecordReference]
 )
 
 private[runtime] final case class InternalModelDecisionLedger(
   profile: String,
   schemaVersion: String,
-  ledgerIdentity: String,
+  ledgerReference: InternalModelRecordReference,
   scope: InternalModelSemanticScope,
-  records: Vector[InternalModelDecisionRecord],
-  canonicalBytes: Vector[Byte]
+  records: Vector[InternalModelDecisionRecord]
 )
 
 private[runtime] final case class InternalModelDecisionAdmission(

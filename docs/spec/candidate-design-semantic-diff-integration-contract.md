@@ -1,7 +1,7 @@
 ---
-status: stable
-decision_scope: P9-61A
-updated_at: 2026-09-11
+status: target
+decision_scope: P9-61A / P104-TYPED-PATCH-TRACE
+updated_at: 2026-10-01
 ---
 
 # Candidate Design and Semantic-Diff Integration Contract
@@ -9,6 +9,11 @@ updated_at: 2026-09-11
 This is the normative P9-61A contract for one transient, read-only
 candidate-design integration record. Its rationale is in the
 [Candidate Design and Semantic-Diff Integration Design](../design/candidate-design-semantic-diff-integration.md).
+
+The Phase 10.4 target changes only the shared patch's control references.
+Original P9-61 acceptance remains historical; current typed authoring requires
+parent validation and independent review. It neither reopens a Phase 9
+checklist nor establishes current Step or Phase acceptance.
 
 ## 1. Authority and exact scope
 
@@ -34,8 +39,9 @@ record:
 
 1. exactly one P9-60 proposal identity and its directly admitted impact-record
    and proposal-to-impact-link identities;
-2. exactly one proposed-CML patch identity, exact base-content digest, exact
-   proposed-content digest, exact CML owner, and bounded CML source locator;
+2. exactly one proposed-CML patch identity, exact baseline source-snapshot
+   artifact reference, exact proposed-content record reference, exact CML
+   owner, and bounded CML source locator;
 3. exactly one Candidate Component Design Model identity explicitly associated
    with that patch identity;
 4. exactly one caller-admitted semantic Design Diff identity and its explicit
@@ -47,8 +53,8 @@ record:
 6. exactly one externally supplied Git-governance reference identity and
    bounded repository/ref or review locator.
 
-Every association SHALL be explicit. Name, label, source location, digest
-equality, semantic target equality, visual relationship, CML order, candidate
+Every association SHALL be explicit. Name, label, source location, reference
+equality alone, semantic target equality, visual relationship, CML order, candidate
 order, review score, provider output, Git reference, or another projection
 SHALL NOT admit, recover, replace, redirect, merge, infer, or select a missing
 proposal, impact, link, CML owner, patch, candidate, diff entry, review
@@ -57,14 +63,36 @@ snapshot, governance state, acceptance, or canonical fact.
 ## 3. CML-owned patch-trace boundary
 
 For a CML-owned impact, the integration record SHALL retain the exact CML
-owner, exact proposed-CML patch identity, exact base and proposed content
-digests, and a bounded CML source locator. The trace identities and digests,
-not CML source text, SHALL be the P9-61 admission boundary.
+owner, exact proposed-CML patch identity, exact `baselineArtifactReference`
+and `proposedContentReference`, and a bounded CML source locator. These supplied
+trace identities and declared versions SHALL be the admission boundary.
+
+`baselineArtifactReference` is the existing public
+`InternalModelArtifactReference(artifactId, artifactRevision, role)`, with
+nonnull reference/role, a factory-admitted ASCII token artifact ID, a positive
+Long artifact revision and exactly `SourceSnapshot` (`source-snapshot`) role.
+`proposedContentReference` is the existing public
+`InternalModelRecordReference(recordId, recordRevision)`, with nonnull reference,
+a nonblank valid Unicode logical ID and an independently supplied positive Long
+logical revision. Invalid IDs, roles, revisions or missing reference metadata
+join every other observed admission violation in the all-or-nothing result.
+Validation uses supplied metadata only, without payload or package lookup.
+
+Only the existing artifact/record opaque domains, companions, artifact role
+enum/companion and reference values are public for this shared trace. Package
+domains/references, captured package context and codecs remain private.
+There is one typed reference model: no aliases, adapters, old digest constructor,
+conversion reader or inferred default accompanies this boundary. The public
+[external caller executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/api/CandidateDesignPatchReferenceSpec.scala)
+documents construction and compiler-enforced distinct domains.
 
 This contract SHALL NOT authorize CML or source retrieval, source I/O, parsing,
 validation, generation, textual diffing, interpretation, normalization, patch
 creation, candidate construction, patch application, source mutation, or any
-claim that a digest comparison establishes a semantic change. A locator is
+claim that reference or ordinary payload equality establishes a semantic change.
+Producer-owned references establish declared provenance, not authentication,
+undeclared payload mutation detection, source freshness or patch applicability.
+A locator is
 traceability only and SHALL NOT grant source authority or source access.
 
 ## 4. Candidate model and semantic-diff entry admission

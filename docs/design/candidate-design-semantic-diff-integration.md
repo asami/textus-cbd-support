@@ -1,7 +1,7 @@
 ---
-status: stable
-decision_scope: P9-61A
-updated_at: 2026-09-11
+status: target
+decision_scope: P9-61A / P104-TYPED-PATCH-TRACE
+updated_at: 2026-10-01
 ---
 
 # Candidate Design and Semantic-Diff Integration Design
@@ -9,6 +9,11 @@ updated_at: 2026-09-11
 This design fixes the P9-61A documentation boundary for a transient, read-only
 candidate-design integration. Its normative companion is the
 [Candidate Design and Semantic-Diff Integration Contract](../spec/candidate-design-semantic-diff-integration-contract.md).
+
+Phase 10.4 changes the existing shared patch control fields to typed references.
+Original P9-61 acceptance is historical. Current authoring, parent validation
+and independent review remain separate; no Phase 9 checklist is reopened and no
+current Step or Phase closure follows from this design.
 
 ## Purpose and authority
 
@@ -44,7 +49,7 @@ independently admitted values:
 | Value | Required retained identity and boundary |
 | --- | --- |
 | Proposal evidence | One P9-60 proposal identity and its direct impact-record and proposal-to-impact-link identities. The proposal retains its own attributable origin and is not recreated here. |
-| Proposed-CML patch trace | One patch identity, its exact base-content digest, exact proposed-content digest, the exact CML owner, and a bounded CML source locator. The trace/digests, not patch source text, are the P9-61 admission boundary. |
+| Proposed-CML patch trace | One patch identity, its exact baseline source-snapshot ArtifactReference, exact proposed-content RecordReference, exact CML owner, and bounded CML source locator. Supplied trace identities and versions are the admission boundary. |
 | Candidate Component Design Model | One exact candidate-model identity scoped to the same Component/context and explicitly associated with the patch identity. |
 | Semantic Design Diff | One caller-admitted diff identity and its explicitly supplied entries, each associated with the exact patch and candidate-model identities. |
 | Candidate Review evidence | One externally supplied, read-only review-evidence snapshot identity, review-source identity/locator, and its association with the exact candidate-model identity. |
@@ -52,7 +57,7 @@ independently admitted values:
 
 Every association is explicit. The integration never reconstructs a missing
 proposal, CML owner, patch, candidate model, semantic delta, review result, or
-governance state from a name, label, source locator, digest equality, semantic
+governance state from a name, label, source locator, reference equality alone, semantic
 target equality, visual relationship, CML order, candidate order, provider
 output, review score, Git reference, or another projection. A supplied value
 that cannot establish the required exact Component/context or association is a
@@ -71,16 +76,33 @@ relation, interpretation, delta, review outcome, acceptance, or winner.
 
 Where the stated impact is CML-owned, the integration retains an exact CML
 owner and bounded CML source locator together with the explicitly supplied
-proposed-CML patch identity and base/proposed content digests. This binds a
+proposed-CML patch identity, `baselineArtifactReference` and
+`proposedContentReference`. This binds a
 candidate to a stated source basis while preserving the owning source's
 authority.
 
 The record does not retain, retrieve, compare, interpret, normalize, or expose
 the CML source text as its admission rule. It does not parse or validate CML,
 generate a patch, calculate a textual diff, apply a patch, create candidate
-CML, mutate a source, invoke source I/O, or claim that equal or unequal digests
-establish a semantic change. The exact owner, locator, patch identity, and
-digests are traceability evidence only.
+CML, mutate a source, invoke source I/O, or claim that equal or unequal ordinary
+payload establishes a semantic change. Exact owner, locator, patch identity and
+producer-declared artifact/record versions remain bounded traceability evidence.
+
+The shared patch already has a public construction boundary. It now consumes
+the same distinct opaque artifact/record domains and reference classes as
+durable internal-model consumers, with the existing role enum and factories
+narrowly made public. Package identity/project token/package references and
+all capture/codec APIs remain private. No parallel public reference model,
+compatibility constructor, adapter or inferred version is introduced.
+
+Integration admission validates nonnull reference metadata, domain-admitted ID,
+positive Long revision, exact source-snapshot role for the baseline and nonblank
+valid Unicode logical content identity. It collects those violations alongside
+the existing scope, evidence and association violations without looking up a
+package or reading payload. Artifact and logical revisions are independent;
+declared provenance authenticates neither a source nor stored claim and cannot
+detect an undeclared producer change. The supplied reference does not authorize
+source access, patch application, review, approval or canonical acceptance.
 
 ## Candidate model and explicit semantic design diff
 

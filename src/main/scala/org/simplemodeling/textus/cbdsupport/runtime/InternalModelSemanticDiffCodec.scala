@@ -11,64 +11,55 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
-/** Strict canonical codec for the persisted Phase 9 semantic-diff projection. */
+/** Strict structural codec for the persisted Phase 9 semantic-diff projection. */
 private[runtime] object InternalModelSemanticDiffCodec {
-  private val _root_fields = Set("candidateArtifactId", "candidateArtifactSha256", "candidateIdentity", "candidateModelIdentity", "candidateRevision", "profile", "schemaVersion", "scope", "semanticDiffIdentity", "semanticDiffRevision", "targets")
+  private val _root_fields = Set("candidateArtifactReference", "candidateReference", "candidateModelIdentity", "profile", "schemaVersion", "scope", "semanticDiffReference", "targets")
   private val _scope_fields = Set("componentIdentity", "projectionContextIdentity", "selectedUseCaseElementIdentity")
   private val _target_fields = Set("entries", "patchTrace", "targetId")
   private val _mapped_entry_fields = Set("entry", "mappingId", "semanticIdentityKind")
   private val _entry_fields = Set("action", "after", "attribution", "before", "candidateModelId", "category", "component", "condition", "context", "id", "limitations", "patchId", "relationship", "stableTieKey", "subject")
-  private val _patch_fields = Set("attribution", "baseDigest", "cmlLocator", "cmlOwner", "component", "condition", "context", "id", "limitations", "proposedDigest", "stableTieKey")
+  private val _patch_fields = Set("attribution", "baselineArtifactReference", "cmlLocator", "cmlOwner", "component", "condition", "context", "id", "limitations", "proposedContentReference", "stableTieKey")
   private val _attribution_fields = Set("authorityScope", "sourceId", "sourceLocator")
   private val _condition_fields = Set("ambiguity", "authorization", "availability", "conflict", "explicitAbsence", "limitations", "malformedEvidence", "redaction", "staleness")
-  private val _digest_pattern = "sha256:[0-9a-f]{64}".r
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
-  private val _canonical_printer = Printer.noSpacesSortKeys
+  private val _printer = Printer.noSpacesSortKeys
 
   def decode(projection: InternalModelVerifiedProjection): Either[String, InternalModelSemanticDiff] =
     for {
-      _ <- Either.cond(projection.role == "projection", (), "selected semantic diff artifact role must be projection")
+      _ <- Either.cond(projection != null, (), "selected semantic diff capture must be present")
+      _ <- InternalModelCandidateCmlProjectionCodec.capturedMetadata(projection.reference, projection.path, projection.dependencies)
+      _ <- Either.cond(projection.reference.role == InternalModelArtifactRole.Projection, (), "selected semantic diff artifact role must be projection")
+      _ <- Either.cond(projection.bytes != null, (), "selected semantic diff bytes must be present")
       bytes = projection.bytes.toArray
       _ <- Either.cond(!_has_bom(bytes), (), "semantic diff bytes must not contain a UTF-8 byte-order mark")
       content <- _decode_utf8(bytes, "semantic diff bytes")
       json <- _json_parser.parse(content).left.map(_ => "semantic diff bytes must be valid JSON without duplicate members")
       root <- json.asObject.toRight("semantic diff root must be an object")
-      canonical = _canonical_bytes(json)
-      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "semantic diff bytes are not canonical JSON")
       _ <- _closed_fields(root, _root_fields, "semantic diff root")
-      candidateartifactid <- _nonblank(root, "candidateArtifactId", "semantic diff root")
-      candidateartifactsha <- _digest(root, "candidateArtifactSha256", "semantic diff root")
-      candidateidentity <- _nonblank(root, "candidateIdentity", "semantic diff root")
+      candidateartifact <- _artifact_reference(root, "candidateArtifactReference", InternalModelArtifactRole.Projection)
+      candidatereference <- _record_reference(root, "candidateReference")
       candidatemodelidentity <- _nonblank(root, "candidateModelIdentity", "semantic diff root")
-      candidaterevision <- _positive_int(root, "candidateRevision", "semantic diff root")
       profile <- _nonblank(root, "profile", "semantic diff root")
-      _ <- Either.cond(profile == "ccdm-semantic-diff-v1", (), "semantic diff profile is unsupported")
+      _ <- Either.cond(profile == "ccdm-semantic-diff-v2", (), "semantic diff profile is unsupported")
       schema <- _nonblank(root, "schemaVersion", "semantic diff root")
-      _ <- Either.cond(schema == "1.0", (), "semantic diff schemaVersion is unsupported")
+      _ <- Either.cond(schema == "2.0", (), "semantic diff schemaVersion is unsupported")
       scope <- _scope(root)
-      diffidentity <- _nonblank(root, "semanticDiffIdentity", "semantic diff root")
-      diffrevision <- _positive_int(root, "semanticDiffRevision", "semantic diff root")
+      diffreference <- _record_reference(root, "semanticDiffReference")
       targets <- _targets(root)
-      value = InternalModelSemanticDiff(candidateartifactid, candidateartifactsha, candidateidentity, candidatemodelidentity, candidaterevision, profile, schema, scope, diffidentity, diffrevision, targets, Vector.empty)
-      encoded = encode(value).toVector
-      _ <- Either.cond(encoded == canonical.toVector, (), "typed semantic diff re-encoding does not match supplied canonical bytes")
-    } yield value.copy(canonicalBytes = encoded)
+    } yield InternalModelSemanticDiff(candidateartifact, candidatereference, candidatemodelidentity, profile, schema, scope, diffreference, targets)
 
   def encode(value: InternalModelSemanticDiff): Array[Byte] =
-    _canonical_bytes(Json.obj(
-      "candidateArtifactId" -> Json.fromString(value.candidateArtifactId),
-      "candidateArtifactSha256" -> Json.fromString(value.candidateArtifactSha256),
-      "candidateIdentity" -> Json.fromString(value.candidateIdentity),
+    _json_bytes(Json.obj(
+      "candidateArtifactReference" -> _artifact_json(value.candidateArtifactReference),
+      "candidateReference" -> _record_json(value.candidateReference),
       "candidateModelIdentity" -> Json.fromString(value.candidateModelIdentity),
-      "candidateRevision" -> Json.fromInt(value.candidateRevision),
       "profile" -> Json.fromString(value.profile),
       "schemaVersion" -> Json.fromString(value.schemaVersion),
       "scope" -> _scope_json(value.scope),
-      "semanticDiffIdentity" -> Json.fromString(value.semanticDiffIdentity),
-      "semanticDiffRevision" -> Json.fromInt(value.semanticDiffRevision),
+      "semanticDiffReference" -> _record_json(value.semanticDiffReference),
       "targets" -> Json.fromValues(value.targets.map(_target_json))
     ))
 
@@ -151,7 +142,7 @@ private[runtime] object InternalModelSemanticDiffCodec {
       objectvalue <- _object(value, s"semantic diff target $targetindex patchTrace")
       _ <- _closed_fields(objectvalue, _patch_fields, s"semantic diff target $targetindex patchTrace")
       attribution <- _attribution(objectvalue, "semantic diff patchTrace")
-      base <- _digest(objectvalue, "baseDigest", "semantic diff patchTrace")
+      baseline <- _artifact_reference(objectvalue, "baselineArtifactReference", InternalModelArtifactRole.SourceSnapshot)
       locator <- _nonblank(objectvalue, "cmlLocator", "semantic diff patchTrace")
       owner <- _nonblank(objectvalue, "cmlOwner", "semantic diff patchTrace")
       component <- _component(objectvalue, "component", "semantic diff patchTrace")
@@ -159,9 +150,9 @@ private[runtime] object InternalModelSemanticDiffCodec {
       context <- _context(objectvalue, "context", "semantic diff patchTrace")
       id <- _nonblank(objectvalue, "id", "semantic diff patchTrace")
       limitations <- _nonblank_strings(objectvalue, "limitations", "semantic diff patchTrace")
-      proposed <- _digest(objectvalue, "proposedDigest", "semantic diff patchTrace")
+      proposed <- _record_reference(objectvalue, "proposedContentReference")
       tie <- _nullable_nonblank(objectvalue, "stableTieKey", "semantic diff patchTrace")
-    } yield CandidateDesignProposedCmlPatchTrace(id, context, component, owner, locator, base, proposed, attribution, condition, limitations, tie)
+    } yield CandidateDesignProposedCmlPatchTrace(id, context, component, owner, locator, baseline, proposed, attribution, condition, limitations, tie)
 
   private def _attribution(objectvalue: JsonObject, label: String): Either[String, ComponentDashboardSourceAttribution] =
     for {
@@ -199,7 +190,7 @@ private[runtime] object InternalModelSemanticDiffCodec {
   private def _target_json(target: InternalModelSemanticDiffTarget): Json = Json.obj("entries" -> Json.fromValues(target.entries.map(_mapped_entry_json)), "patchTrace" -> _patch_json(target.patchTrace), "targetId" -> Json.fromString(target.targetId))
   private def _mapped_entry_json(value: InternalModelSemanticDiffMappedEntry): Json = Json.obj("entry" -> _entry_json(value.entry), "mappingId" -> Json.fromString(value.mappingId), "semanticIdentityKind" -> Json.fromString(value.semanticIdentityKind))
   private def _entry_json(value: CandidateDesignSemanticDiffEntry): Json = Json.obj("action" -> Json.fromString(value.action), "after" -> _nullable_json(value.after), "attribution" -> _attribution_json(value.attribution), "before" -> _nullable_json(value.before), "candidateModelId" -> Json.fromString(value.candidateModelId), "category" -> Json.fromString(value.category), "component" -> Json.fromString(value.component.value), "condition" -> _condition_json(value.condition), "context" -> Json.fromString(value.context.value), "id" -> Json.fromString(value.id), "limitations" -> _strings_json(value.limitations), "patchId" -> Json.fromString(value.patchId), "relationship" -> Json.fromString(value.relationship), "stableTieKey" -> _nullable_json(value.stableTieKey), "subject" -> Json.fromString(value.subject))
-  private def _patch_json(value: CandidateDesignProposedCmlPatchTrace): Json = Json.obj("attribution" -> _attribution_json(value.attribution), "baseDigest" -> Json.fromString(value.baseDigest), "cmlLocator" -> Json.fromString(value.cmlLocator), "cmlOwner" -> Json.fromString(value.cmlOwner), "component" -> Json.fromString(value.component.value), "condition" -> _condition_json(value.condition), "context" -> Json.fromString(value.context.value), "id" -> Json.fromString(value.id), "limitations" -> _strings_json(value.limitations), "proposedDigest" -> Json.fromString(value.proposedDigest), "stableTieKey" -> _nullable_json(value.stableTieKey))
+  private def _patch_json(value: CandidateDesignProposedCmlPatchTrace): Json = Json.obj("attribution" -> _attribution_json(value.attribution), "baselineArtifactReference" -> _artifact_json(value.baselineArtifactReference), "cmlLocator" -> Json.fromString(value.cmlLocator), "cmlOwner" -> Json.fromString(value.cmlOwner), "component" -> Json.fromString(value.component.value), "condition" -> _condition_json(value.condition), "context" -> Json.fromString(value.context.value), "id" -> Json.fromString(value.id), "limitations" -> _strings_json(value.limitations), "proposedContentReference" -> _record_json(value.proposedContentReference), "stableTieKey" -> _nullable_json(value.stableTieKey))
   private def _attribution_json(value: ComponentDashboardSourceAttribution): Json = Json.obj("authorityScope" -> Json.fromString(value.authorityScope), "sourceId" -> Json.fromString(value.sourceId), "sourceLocator" -> Json.fromString(value.sourceLocator))
   private def _condition_json(value: ComponentDashboardCondition): Json = Json.obj("ambiguity" -> _nullable_json(value.ambiguity), "authorization" -> Json.fromString(value.authorization), "availability" -> Json.fromString(value.availability), "conflict" -> _nullable_json(value.conflict), "explicitAbsence" -> _nullable_json(value.explicitAbsence), "limitations" -> _strings_json(value.limitations), "malformedEvidence" -> _nullable_json(value.malformedEvidence), "redaction" -> _nullable_json(value.redaction), "staleness" -> _nullable_json(value.staleness))
   private def _strings_json(values: Vector[String]): Json = Json.fromValues(values.map(Json.fromString))
@@ -207,15 +198,36 @@ private[runtime] object InternalModelSemanticDiffCodec {
 
   private def _object(value: Json, label: String): Either[String, JsonObject] = value.asObject.toRight(s"$label must be an object")
   private def _array(value: JsonObject, key: String, label: String): Either[String, Vector[Json]] = value(key).flatMap(_.asArray).map(_.toVector).toRight(s"$label $key must be an array")
-  private def _nonblank(objectvalue: JsonObject, key: String, label: String): Either[String, String] = objectvalue(key).flatMap(_.asString).filter(_.trim.nonEmpty).toRight(s"$label $key must be a nonblank JSON string")
-  private def _nullable_nonblank(objectvalue: JsonObject, key: String, label: String): Either[String, Option[String]] = objectvalue(key) match { case Some(value) if value.isNull => Right(None); case Some(value) => value.asString.filter(_.trim.nonEmpty).map(Some(_)).toRight(s"$label $key must be null or a nonblank JSON string"); case None => Left(s"$label $key is missing") }
-  private def _digest(objectvalue: JsonObject, key: String, label: String): Either[String, String] = _nonblank(objectvalue, key, label).flatMap(value => Either.cond(_digest_pattern.matches(value), value, s"$label $key is not a lowercase sha256 digest"))
-  private def _positive_int(objectvalue: JsonObject, key: String, label: String): Either[String, Int] = objectvalue(key).flatMap(_.asNumber).flatMap(number => number.toInt.filter(value => value > 0 && number.toString == value.toString)).toRight(s"$label $key must be a canonical positive Int")
-  private def _nonblank_strings(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[String]] = _array(objectvalue, key, label).flatMap(_.zipWithIndex.foldLeft[Either[String, Vector[String]]](Right(Vector.empty)) { case (result, (value, index)) => for { collected <- result; text <- value.asString.filter(_.trim.nonEmpty).toRight(s"$label $key $index must be a nonblank string") } yield collected :+ text })
+  private def _nonblank(objectvalue: JsonObject, key: String, label: String): Either[String, String] = objectvalue(key).flatMap(_.asString).toRight(s"$label $key must be a JSON string").flatMap(value => _valid_text(value, s"$label $key").map(_ => value))
+  private def _nullable_nonblank(objectvalue: JsonObject, key: String, label: String): Either[String, Option[String]] = objectvalue(key) match { case Some(value) if value.isNull => Right(None); case Some(value) => value.asString.toRight(s"$label $key must be null or a JSON string").flatMap(text => _valid_text(text, s"$label $key").map(_ => Some(text))); case None => Left(s"$label $key is missing") }
+  private def _nonblank_strings(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[String]] = _array(objectvalue, key, label).flatMap(_.zipWithIndex.foldLeft[Either[String, Vector[String]]](Right(Vector.empty)) { case (result, (value, index)) => for { collected <- result; text <- value.asString.toRight(s"$label $key $index must be a string"); _ <- _valid_text(text, s"$label $key $index") } yield collected :+ text })
   private def _closed_fields(objectvalue: JsonObject, fields: Set[String], label: String): Either[String, Unit] = Either.cond(objectvalue.keys.toSet == fields, (), s"$label fields are not closed")
   private def _unique(values: Vector[String], label: String): Either[String, Unit] = Either.cond(values.distinct.size == values.size, (), s"$label must be unique")
   private def _strictly_sorted(values: Vector[String], label: String): Either[String, Unit] = Either.cond(values.zip(values.drop(1)).forall { case (left, right) => Arrays.compareUnsigned(left.getBytes(StandardCharsets.UTF_8), right.getBytes(StandardCharsets.UTF_8)) < 0 }, (), s"$label must be unique and sorted by ascending UTF-8-byte order")
   private def _decode_utf8(bytes: Array[Byte], label: String): Either[String, String] = try { val decoder = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT); Right(decoder.decode(ByteBuffer.wrap(bytes)).toString) } catch { case NonFatal(_) => Left(s"$label is not valid UTF-8") }
   private def _has_bom(bytes: Array[Byte]): Boolean = bytes.length >= 3 && bytes(0) == 0xef.toByte && bytes(1) == 0xbb.toByte && bytes(2) == 0xbf.toByte
-  private def _canonical_bytes(json: Json): Array[Byte] = (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+  private def _json_bytes(json: Json): Array[Byte] = (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+
+  private def _artifact_reference(root: JsonObject, key: String, role: InternalModelArtifactRole): Either[String, InternalModelArtifactReference] =
+    for {
+      value <- root(key).toRight(s"$key is missing")
+      reference <- InternalModelTypedControlCodec.decodeArtifactReference(_json_bytes(value).toVector)
+      _ <- Either.cond(reference.role == role, (), s"$key has the wrong role")
+    } yield reference
+
+  private def _record_reference(root: JsonObject, key: String): Either[String, InternalModelRecordReference] =
+    for {
+      value <- root(key).toRight(s"$key is missing")
+      objectvalue <- _object(value, key)
+      _ <- _nonblank(objectvalue, "recordId", key)
+      reference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(value).toVector)
+    } yield reference
+
+  private def _artifact_json(reference: InternalModelArtifactReference): Json = Json.obj("artifactId" -> Json.fromString(reference.artifactId.value), "artifactRevision" -> Json.fromLong(reference.artifactRevision.value), "role" -> Json.fromString(reference.role.wireValue))
+  private def _record_json(reference: InternalModelRecordReference): Json = Json.obj("recordId" -> Json.fromString(reference.recordId.value), "recordRevision" -> Json.fromLong(reference.recordRevision.value))
+
+  private def _valid_text(value: String, label: String): Either[String, Unit] = {
+    val encoder = StandardCharsets.UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
+    Either.cond(value != null && !value.isBlank && encoder.canEncode(value), (), s"$label must be nonblank valid Unicode")
+  }
 }

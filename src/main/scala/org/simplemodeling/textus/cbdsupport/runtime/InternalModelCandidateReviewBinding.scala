@@ -2,27 +2,19 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
-/** Exact raw artifact identity retained by a candidate-review record. */
-private[runtime] final case class InternalModelCandidateReviewArtifact(
-  artifactId: String,
-  sha256: String
-)
-
 /** Independently caller-admitted rule execution basis. */
 private[runtime] final case class InternalModelCandidateReviewRule(
   ruleId: String,
-  ruleVersion: String,
-  sha256: String
+  ruleVersion: String
 )
 
 /** Independently caller-admitted provider execution basis. */
 private[runtime] final case class InternalModelCandidateReviewProvider(
   providerId: String,
-  providerVersion: String,
-  sha256: String
+  providerVersion: String
 )
 
 /** The separate rule/provider basis that a caller admits for review validation. */
@@ -38,33 +30,34 @@ private[runtime] final case class InternalModelCandidateReviewTarget(
   targetId: String
 )
 
-/**
- * Closed, portable candidate-review evidence.  It deliberately stores review
- * evidence rather than an approval, and its reviewed package bytes remain
- * distinct from the current carrier package context.
- */
+/** Complete immutable semantic basis, distinct from its current carrier. */
+private[runtime] final case class InternalModelReviewSubject(
+  subjectId: InternalModelRecordId,
+  subjectRevision: InternalModelRecordRevision,
+  packageReference: InternalModelPackageReference,
+  scope: InternalModelSemanticScope,
+  artifacts: Vector[InternalModelArtifactReference]
+)
+
+/** Closed, portable candidate-review evidence; review state grants no approval. */
 private[runtime] final case class InternalModelCandidateReviewBinding(
-  candidateArtifact: InternalModelCandidateReviewArtifact,
-  candidateIdentity: String,
+  candidateArtifactReference: InternalModelArtifactReference,
+  candidateReference: InternalModelRecordReference,
   candidateModelIdentity: String,
-  candidateRevision: Int,
-  continuityArtifact: InternalModelCandidateReviewArtifact,
-  evidenceArtifacts: Vector[InternalModelCandidateReviewArtifact],
+  continuityArtifactReference: InternalModelArtifactReference,
+  evidenceArtifacts: Vector[InternalModelArtifactReference],
   profile: String,
   providers: Vector[InternalModelCandidateReviewProvider],
-  realizationArtifact: InternalModelCandidateReviewArtifact,
-  realizationIdentity: String,
-  reviewIdentity: String,
-  reviewRevision: Int,
-  reviewedPackageManifest: InternalModelCandidateCmlContent,
+  realizationArtifactReference: InternalModelArtifactReference,
+  realizationReference: InternalModelRecordReference,
+  reviewReference: InternalModelRecordReference,
   rules: Vector[InternalModelCandidateReviewRule],
   schemaVersion: String,
   scope: InternalModelSemanticScope,
-  semanticDiffArtifact: InternalModelCandidateReviewArtifact,
-  semanticDiffIdentity: String,
-  semanticDiffRevision: Int,
-  targets: Vector[InternalModelCandidateReviewTarget],
-  canonicalBytes: Vector[Byte]
+  semanticDiffArtifactReference: InternalModelArtifactReference,
+  semanticDiffReference: InternalModelRecordReference,
+  subject: InternalModelReviewSubject,
+  targets: Vector[InternalModelCandidateReviewTarget]
 )
 
 /** Captured review artifact and its same-capture semantic-diff carrier context. */
@@ -74,13 +67,11 @@ private[runtime] final case class InternalModelVerifiedCandidateReviewBindingPac
   reviewArtifact: InternalModelVerifiedProjection
 )
 
-/** Successful review admission retains both historical and current package contexts. */
+/** Successful review admission retains its exact selection and current capture. */
 private[runtime] final case class InternalModelCandidateReviewBindingAdmission(
   binding: InternalModelCandidateReviewBinding,
-  reviewArtifactId: String,
-  reviewArtifactSha256: String,
+  reviewArtifactReference: InternalModelArtifactReference,
   reviewArtifactPackageRelativePath: String,
-  reviewedPackageContext: InternalModelVerifiedPackageContext,
   carrierPackageContext: InternalModelVerifiedPackageContext,
   semanticDiffAdmission: InternalModelSemanticDiffAdmission
 )

@@ -1,40 +1,102 @@
 ---
-status: working
-decision_scope: P10-32A
-updated_at: 2026-09-29
+status: target
+decision_scope: P10-32A / P104-TYPED-PRODUCT-CONTRACT
+updated_at: 2026-10-01
 ---
 
 # Internal-model Candidate Review Binding Design
 
-The review binding is a narrow durable adapter between the accepted [P10-31
-semantic-diff handoff](../spec/internal-model-semantic-diff-contract.md), the
-[P10-30 candidate projection](../spec/internal-model-candidate-cml-projection-contract.md), and P10-33's separate human-approval work. Its normative behavior is fixed by the [Candidate Review Binding Contract](../spec/internal-model-candidate-review-binding-contract.md).
+The [Review Binding Contract](../spec/internal-model-candidate-review-binding-contract.md)
+owns the `ccdm-candidate-review-binding-v2` / `2.0` target.
+The [Typed Control Contract](../spec/internal-model-typed-control-contract.md)
+owns reference/version semantics. This design explains the settled boundary,
+with review implementation and executable migration authored and verification
+pending.
 
-The adapter keeps three contexts deliberately separate:
+## Three separate owners
 
-1. the exact historical V1 manifest that was reviewed;
-2. the current carrier package that contains the selected review artifact; and
-3. a caller-admitted rules/providers execution basis.
+The review keeps three distinct values: the complete explicit semantic
+ReviewSubject, the current carrier holding review/control records, and the
+independently caller-admitted rule/provider ID/version basis.
 
-The historical manifest is retained as raw canonical V1 bytes because a V1
-package digest describes the entire inventory, including explicitly absent
-optional artifacts. Replacing it with a selected subset or a new digest would
-silently change the reviewed subject. Its raw-byte digest checks transport
-fidelity, while the V1 package digest continues to identify the package
-content; neither substitutes for the other.
+The runtime-private immutable subject has exactly `subjectId`,
+`subjectRevision`, `packageReference`, `scope` and `artifacts`.
+The subject names the exact semantic input versions and scope rather
+than retaining a historical manifest. Source, realization, continuity,
+candidate, semantic diff, and target review evidence contribute to it.
+All present source/realization/projection/decision/open-issue entries are
+contributing roots, along with explicitly selected evidence. Exact transitive
+dependencies complete that basis. Missing, ambiguous or absent consumed
+references, cycles, resume/approval dependencies and selected review
+dependencies reject instead of being filtered out. Unconsumed optional
+absent entries and inert unselected Validation remain in the carrier.
+Decision/open-issue contribution establishes no separate semantic admission.
+The review record, human approval, and cursor are controls over that basis and
+are excluded from the subject. Added or changed semantic inputs require a new
+explicit subject revision and review; selection cannot conceal changed evidence.
 
-The package validator captures the carrier exactly once. It validates the
-historical manifest against this capture without reopening paths and permits
-only the selected validation review artifact and inert approval-role additions
-outside the reviewed inventory. This makes a carrier revision extension
-inspectable without rebasing or treating later approval material as review
-evidence. The review validator then reuses the captured P10-31 semantic-diff
-admission and compares every retained candidate/continuity/realization/diff/
-target/evidence value to the exact reviewed inventory.
+The carrier's revision can therefore advance for cursor/approval controls while
+an unchanged subject remains unchanged. Reviews depend on exact subject inputs
+rather than every present carrier file. Approval subsequently references the
+exact review and subject identities/revisions, under independent actual
+human-input admission. A changed semantic basis cannot be accepted by
+rewriting the historical review or rebasing old approval.
 
-Rules and providers are input independently from the record to avoid
-self-authentication. They establish only the caller-admitted identity/version/
-content-hash basis. This design neither executes nor authenticates providers,
-retrieves source, parses CML, establishes live freshness, makes a review
-conclusion, or grants human approval. P10-33 and P10-34 remain the exclusive
-owners of approval and lifecycle/invalidation behavior.
+## Exact evidence without self-authentication
+
+The exact seventeen-field root stores `candidateArtifactReference`,
+`candidateReference`, `candidateModelIdentity`,
+`continuityArtifactReference`, `evidenceArtifacts`, `profile`,
+`providers`, `realizationArtifactReference`, `realizationReference`,
+`reviewReference`, `rules`, `schemaVersion`, `scope`,
+`semanticDiffArtifactReference`, `semanticDiffReference`, `subject`
+and `targets`. Logical references use the existing record domain with
+independently supplied positive Long revisions.
+Artifact references carry ID, positive producer-supplied revision, and closed
+role. Rule/provider values carry their existing IDs and versions, independently
+admitted by the caller. These explicit versions replace management digests;
+they provide neither cryptographic authenticity nor evidence that a producer
+never changed content without advancing its version.
+
+Targets retain complete Phase 9 review snapshots, source attribution, every
+condition facet, nullable facets/tie key, and ordered/multiplicity-preserving
+limitations. Per-target evidence IDs resolve to the exact versioned evidence
+selection. A recorded review state cannot authenticate the provider or become
+a human decision, applicability conclusion, repository acceptance, or CML grant.
+
+## Capture and semantic authority
+
+`validate(projectRoot, reviewArtifact, expectedExecutionBasis)` accepts
+an exact artifact reference. The package validator captures the carrier once.
+The review handoff is exactly `carrierPackageContext`,
+`semanticDiffPackage` and `reviewArtifact`. Review admission reuses that
+capture for candidate, semantic diff, realization, continuity, source, and
+target/evidence resolution through current `packagecontext`,
+`candidatepackage`, `continuitypackage`, `realizationpackage` and
+`semanticdiff` fields. Entire selected inventory metadata stays exact,
+and review dependencies equal the ordered subject vector rather than a set
+or whole carrier inventory. Its pure boundary never reopens source/package
+paths or reads provider history. Non-subject control records stay raw and inert
+until admitted by their own contracts with independent evidence.
+
+CCDM meaning remains in the Phase 9 ledger and existing semantic contracts.
+A typed subject is a management reference over that meaning, not a second
+domain model or a format for regenerating semantic facts from names or bytes.
+Missing source versions remain unknown; package-only evidence cannot establish
+live freshness.
+
+## Format and migration boundary
+
+Closed strict JSON rejects ambiguous structure and unsupported schemas.
+Harmless key order/whitespace variation is accepted; deterministic writer
+output is convenience, not authority. No historical manifest bytes, hashes,
+canonical-byte comparison, legacy readers/adapters, inferred versions, or
+fallback accompany this redesign.
+
+P10-33/P10-34 semantic human-input and lifecycle requirements remain, with
+their management bindings pending separately owned migration. The executable
+review/approval/lifecycle specifications must prove the new subject/carrier
+distinction before acceptance. Admission retains exactly the binding, external
+review artifact reference/path, carrier and diff admission; the immutable
+subject is retained once in the binding. This design provides no implementation PASS,
+action permission, Step acceptance, or Phase closure.

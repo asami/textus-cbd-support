@@ -6,6 +6,11 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
+/*
+ * @since   Sep. 11, 2026
+ * @version Oct.  1, 2026
+ * @author  ASAMI, Tomoharu
+ */
 final class CandidateDesignSemanticDiffIntegrationSpec
     extends AnyWordSpec
     with Matchers
@@ -68,8 +73,8 @@ final class CandidateDesignSemanticDiffIntegrationSpec
       val invalidpatch = _patch().copy(
         cmlOwner = " ",
         cmlLocator = " ",
-        baseDigest = " ",
-        proposedDigest = " ",
+        baselineArtifactReference = null,
+        proposedContentReference = null,
         condition = _condition.copy(availability = " "),
         limitations = Vector(" ")
       )
@@ -94,7 +99,16 @@ final class CandidateDesignSemanticDiffIntegrationSpec
       failure.violations.exists(_.contains("unknown proposal")) shouldBe true
       failure.violations.exists(_.contains("unknown selected impact link")) shouldBe true
       failure.violations.exists(_.contains("CML owner")) shouldBe true
+      failure.violations.exists(_.contains("baseline artifact reference")) shouldBe true
+      failure.violations.exists(_.contains("proposed content reference")) shouldBe true
+      failure.violations.exists(_.contains("CML locator")) shouldBe true
+      failure.violations.exists(_.contains("condition availability")) shouldBe true
+      failure.violations.exists(_.contains("limitations")) shouldBe true
+      failure.violations.exists(_.contains("candidate context")) shouldBe true
+      failure.violations.exists(_.contains("semantic diff patch")) shouldBe true
+      failure.violations.exists(_.contains("explicit absence")) shouldBe true
       failure.violations.exists(_.contains("review state")) shouldBe true
+      failure.violations.exists(_.contains("Git governance reference")) shouldBe true
     }
 
     "reject duplicate identities or selected direct links without a partial projection" in {
@@ -119,8 +133,9 @@ final class CandidateDesignSemanticDiffIntegrationSpec
 
     "retain review and Git governance traceability as references only" in {
       Given("valid caller-admitted review and Git governance references")
+      val projection = _projection()
       When("the integration is created")
-      val result = _result(_projection(), Vector("link-1"))
+      val result = _result(projection, Vector("link-1"))
 
       Then("the references remain traceability evidence only")
       result shouldBe a[CandidateDesignSemanticDiffProjectedIntegration]
@@ -134,12 +149,13 @@ final class CandidateDesignSemanticDiffIntegrationSpec
       val ids = Vector("link-1", "link-2")
       forAll(Gen.pick(ids.size, ids).map(_.toVector).suchThat(_.size == ids.size)) { permutation =>
         Given("a permutation of the same admitted links and semantic diff entries")
+        val projection = _projection()
         val diffs = permutation.zipWithIndex.map { case (_, index) =>
           if (index == 0) _diff("diff-2") else _diff("diff-1")
         }
         When("the permutation is submitted for integration")
         val result = CandidateDesignSemanticDiffIntegration.create(
-          _projection(),
+          projection,
           "proposal-1",
           permutation,
           _patch(),
@@ -159,9 +175,10 @@ final class CandidateDesignSemanticDiffIntegrationSpec
 
     "reject empty semantic-diff evidence without a partial integration" in {
       Given("an otherwise valid integration request with no semantic diff entries")
+      val projection = _projection()
       When("the empty semantic-diff vector is submitted")
       val result = CandidateDesignSemanticDiffIntegration.create(
-        _projection(),
+        projection,
         "proposal-1",
         Vector("link-1"),
         _patch(),
@@ -178,10 +195,11 @@ final class CandidateDesignSemanticDiffIntegrationSpec
 
     "reject a candidate model whose explicit patch association differs from the proposed patch" in {
       Given("an otherwise valid candidate model associated with another patch")
+      val projection = _projection()
       val mismatchedcandidate = _candidate().copy(patchId = "patch-other")
       When("the mismatched candidate model is submitted")
       val result = CandidateDesignSemanticDiffIntegration.create(
-        _projection(),
+        projection,
         "proposal-1",
         Vector("link-1"),
         _patch(),
@@ -196,7 +214,66 @@ final class CandidateDesignSemanticDiffIntegrationSpec
       result.isInstanceOf[CandidateDesignSemanticDiffProjectedIntegration] shouldBe false
     }
 
+    "retain independently supplied artifact and content revisions through the full positive Long domain" in {
+      forAll(Gen.oneOf(1L, Long.MaxValue, 37L), Gen.oneOf(1L, Long.MaxValue, 73L)) { (artifactrevision, recordrevision) =>
+        Given("a source-snapshot reference and an independent proposed-content record reference")
+        val baseline = _artifact_reference("baseline-source", artifactrevision)
+        val content = _record_reference("proposed-content-漢", recordrevision)
+        val patch = _patch().copy(baselineArtifactReference = baseline, proposedContentReference = content)
+        val projection = _projection()
+        When("the caller supplies those references to actual integration creation")
+        val result = _result_with_patch(projection, patch)
+        Then("the integration preserves both supplied domains and all patch metadata")
+        result shouldBe a[CandidateDesignSemanticDiffProjectedIntegration]
+        result.asInstanceOf[CandidateDesignSemanticDiffProjectedIntegration].sourceIntegration.proposedCmlPatch shouldBe patch
+        baseline.artifactRevision.value shouldBe artifactrevision
+        content.recordRevision.value shouldBe recordrevision
+      }
+    }
+
+    "collect malformed reference domains, roles and revisions without partial integration" in {
+      Given("otherwise valid evidence with independently malformed supplied baseline or content metadata")
+      val patch = _patch()
+      val baseline = patch.baselineArtifactReference
+      val content = patch.proposedContentReference
+      val cases = Vector(
+        patch.copy(baselineArtifactReference = null),
+        patch.copy(proposedContentReference = null),
+        patch.copy(baselineArtifactReference = baseline.copy(artifactId = "bad id".asInstanceOf[InternalModelArtifactId])),
+        patch.copy(baselineArtifactReference = baseline.copy(artifactId = null.asInstanceOf[InternalModelArtifactId])),
+        patch.copy(baselineArtifactReference = baseline.copy(artifactRevision = 0L.asInstanceOf[InternalModelArtifactRevision])),
+        patch.copy(baselineArtifactReference = baseline.copy(artifactRevision = (-1L).asInstanceOf[InternalModelArtifactRevision])),
+        patch.copy(baselineArtifactReference = baseline.copy(role = InternalModelArtifactRole.Projection)),
+        patch.copy(baselineArtifactReference = baseline.copy(role = null)),
+        patch.copy(proposedContentReference = content.copy(recordId = " ".asInstanceOf[InternalModelRecordId])),
+        patch.copy(proposedContentReference = content.copy(recordId = null.asInstanceOf[InternalModelRecordId])),
+        patch.copy(proposedContentReference = content.copy(recordId = "\uD800".asInstanceOf[InternalModelRecordId])),
+        patch.copy(proposedContentReference = content.copy(recordRevision = 0L.asInstanceOf[InternalModelRecordRevision])),
+        patch.copy(proposedContentReference = content.copy(recordRevision = (-1L).asInstanceOf[InternalModelRecordRevision])),
+        patch.copy(
+          baselineArtifactReference = baseline.copy(artifactId = "bad id".asInstanceOf[InternalModelArtifactId], artifactRevision = 0L.asInstanceOf[InternalModelArtifactRevision], role = null),
+          proposedContentReference = content.copy(recordId = " ".asInstanceOf[InternalModelRecordId], recordRevision = 0L.asInstanceOf[InternalModelRecordRevision])
+        )
+      )
+      val projection = _projection()
+      When("actual creation admits the positive control and each malformed variant")
+      val control = _result_with_patch(projection, patch)
+      val results = cases.map(value => _result_with_patch(projection, value))
+      Then("the control succeeds, every malformed reference rejects and independent errors remain collected")
+      control shouldBe a[CandidateDesignSemanticDiffProjectedIntegration]
+      results.foreach(result => result shouldBe a[CandidateDesignSemanticDiffRejectedIntegration])
+      results.last.asInstanceOf[CandidateDesignSemanticDiffRejectedIntegration].failure.violations.size shouldBe 5
+    }
   }
+
+  private def _result_with_patch(projection: AnalysisDesignImpactProjection, patch: CandidateDesignProposedCmlPatchTrace): CandidateDesignSemanticDiffIntegrationResult =
+    CandidateDesignSemanticDiffIntegration.create(projection, "proposal-1", Vector("link-1"), patch, _candidate(), Vector(_diff()), _review(), _governance())
+
+  private def _artifact_reference(id: String, revision: Long): InternalModelArtifactReference =
+    InternalModelArtifactReference(InternalModelArtifactId.from(id).toOption.get, InternalModelArtifactRevision.from(revision).toOption.get, InternalModelArtifactRole.SourceSnapshot)
+
+  private def _record_reference(id: String, revision: Long): InternalModelRecordReference =
+    InternalModelRecordReference(InternalModelRecordId.from(id).toOption.get, InternalModelRecordRevision.from(revision).toOption.get)
 
   private def _result(
     projection: AnalysisDesignImpactProjection,
@@ -298,8 +375,8 @@ final class CandidateDesignSemanticDiffIntegrationSpec
       _component,
       "cml-owner",
       "cml://candidate-1",
-      "digest-base",
-      "digest-proposed",
+      _artifact_reference("baseline-source", 11L),
+      _record_reference("proposed-content", 31L),
       _attribution,
       _condition,
       Vector("proposal evidence"),

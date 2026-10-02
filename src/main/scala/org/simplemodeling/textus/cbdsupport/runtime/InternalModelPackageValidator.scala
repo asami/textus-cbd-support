@@ -4,13 +4,9 @@ import java.nio.ByteBuffer
 import java.nio.charset.{CodingErrorAction, StandardCharsets}
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{FileVisitResult, Files, LinkOption, Path, SimpleFileVisitor}
-import java.security.MessageDigest
-import java.util.Arrays
-
-import scala.jdk.CollectionConverters.*
 import scala.util.control.NonFatal
 
-import io.circe.{Json, JsonObject, Printer}
+import io.circe.{Json, JsonObject}
 import io.circe.jawn.JawnParser
 import org.goldenport.Consequence
 import org.yaml.snakeyaml.LoaderOptions
@@ -19,114 +15,104 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 
 /*
  * @since   Sep. 27, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelVerifiedSourceSnapshot(
-  artifactId: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   required: Boolean,
+  dependencies: Vector[InternalModelArtifactReference],
   bytes: Option[Vector[Byte]]
 )
 
 private[runtime] final case class InternalModelVerifiedRealization(
-  artifactId: String,
-  role: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   required: Boolean,
-  dependencies: Vector[String],
+  dependencies: Vector[InternalModelArtifactReference],
   bytes: Vector[Byte]
 )
 
 private[runtime] final case class InternalModelVerifiedRealizationPackage(
   realization: InternalModelVerifiedRealization,
-  sourceSnapshots: Vector[InternalModelVerifiedSourceSnapshot]
+  sourcesnapshots: Vector[InternalModelVerifiedSourceSnapshot]
 )
 
 private[runtime] final case class InternalModelVerifiedProjection(
-  artifactId: String,
-  role: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   required: Boolean,
-  dependencies: Vector[String],
+  dependencies: Vector[InternalModelArtifactReference],
   bytes: Vector[Byte]
 )
 
 private[runtime] final case class InternalModelVerifiedProjectionContinuityPackage(
-  realizationPackage: InternalModelVerifiedRealizationPackage,
+  realizationpackage: InternalModelVerifiedRealizationPackage,
   projection: InternalModelVerifiedProjection
 )
 
 private[runtime] final case class InternalModelVerifiedArtifactContext(
-  artifactId: String,
-  role: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   required: Boolean,
-  dependencies: Vector[String],
-  sha256: String,
+  dependencies: Vector[InternalModelArtifactReference],
   present: Boolean
 )
 
 private[runtime] final case class InternalModelVerifiedPackageContext(
-  schemaVersion: String,
-  packageId: String,
-  projectNamespace: String,
-  projectId: String,
+  reference: InternalModelPackageReference,
+  schemaversion: String,
   revision: Long,
-  lifecycleState: String,
-  packageDigest: String,
-  manifestBytes: Vector[Byte],
+  lifecyclestate: String,
   artifacts: Vector[InternalModelVerifiedArtifactContext]
 )
 
 private[runtime] final case class InternalModelVerifiedCandidateCmlProjectionPackage(
-  packageContext: InternalModelVerifiedPackageContext,
-  continuityPackage: InternalModelVerifiedProjectionContinuityPackage,
+  packagecontext: InternalModelVerifiedPackageContext,
+  continuitypackage: InternalModelVerifiedProjectionContinuityPackage,
   candidate: InternalModelVerifiedProjection
 )
 
 private[runtime] final case class InternalModelVerifiedSemanticDiffPackage(
-  candidatePackage: InternalModelVerifiedCandidateCmlProjectionPackage,
-  semanticDiff: InternalModelVerifiedProjection
+  candidatepackage: InternalModelVerifiedCandidateCmlProjectionPackage,
+  semanticdiff: InternalModelVerifiedProjection
 )
 
 private[runtime] final case class InternalModelVerifiedDecision(
-  artifactId: String,
-  role: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   required: Boolean,
-  dependencies: Vector[String],
+  dependencies: Vector[InternalModelArtifactReference],
   bytes: Vector[Byte]
 )
 
 private[runtime] final case class InternalModelVerifiedDecisionPackage(
-  realizationPackage: InternalModelVerifiedRealizationPackage,
+  realizationpackage: InternalModelVerifiedRealizationPackage,
   decision: InternalModelVerifiedDecision
 )
 
 private[runtime] final case class InternalModelVerifiedOpenIssue(
-  artifactId: String,
-  role: String,
-  packageRelativePath: String,
+  reference: InternalModelArtifactReference,
+  path: String,
   required: Boolean,
-  dependencies: Vector[String],
+  dependencies: Vector[InternalModelArtifactReference],
   bytes: Vector[Byte]
 )
 
 private[runtime] final case class InternalModelVerifiedOpenIssuePackage(
-  realizationPackage: InternalModelVerifiedRealizationPackage,
-  openIssue: InternalModelVerifiedOpenIssue
+  realizationpackage: InternalModelVerifiedRealizationPackage,
+  openissue: InternalModelVerifiedOpenIssue
 )
 
-/** Validates the closed, project-bound V1 internal-model package structure. */
+/** Validates the closed, project-bound V2 carrier without granting semantic readiness. */
 object InternalModelPackageValidator {
   private final case class Artifact(
-    id: String,
-    role: String,
+    reference: InternalModelArtifactReference,
     path: String,
     required: Boolean,
-    sha256: String,
-    dependencies: Vector[String]
+    dependencies: Vector[InternalModelArtifactReference]
   )
 
   private final case class VerifiedArtifact(artifact: Artifact, bytes: Option[Vector[Byte]])
@@ -137,16 +123,13 @@ object InternalModelPackageValidator {
   )
 
   private val _manifest_fields = Set(
-    "artifacts", "lifecycleState", "packageDigest", "packageId", "projectId", "projectNamespace", "revision", "schemaVersion"
+    "artifacts", "lifecycleState", "packageId", "projectId", "projectNamespace", "revision", "schemaVersion"
   )
-  private val _artifact_fields = Set("artifactId", "dependsOn", "path", "required", "role", "sha256")
-  private val _roles = Set("resume", "source-snapshot", "decision", "open-issue", "realization", "projection", "approval", "validation")
+  private val _artifact_fields = Set("artifactId", "artifactRevision", "dependsOn", "path", "required", "role")
+  private val _reference_fields = Set("artifactId", "artifactRevision", "role")
   private val _token_pattern = "[A-Za-z0-9][A-Za-z0-9._:-]*".r
   private val _path_segment_pattern = "[A-Za-z0-9][A-Za-z0-9._-]*".r
-  private val _uuid_pattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".r
-  private val _digest_pattern = "sha256:[0-9a-f]{64}".r
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
-  private val _canonical_printer = Printer.noSpacesSortKeys
 
   def validateStructure(projectRoot: Path): Consequence[Unit] =
     try {
@@ -176,6 +159,59 @@ object InternalModelPackageValidator {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
 
+  /** Retains continuity and every raw inventory entry from one validated capture. */
+  private[runtime] def verifiedContinuation(projectRoot: Path): Consequence[InternalModelVerifiedContinuationPackage] =
+    try {
+      val result = for {
+        captured <- _captured_package(projectRoot)
+        continuity <- _projection_continuity(captured.artifacts)
+      } yield InternalModelVerifiedContinuationPackage(
+        captured.context,
+        continuity,
+        captured.context.artifacts.zip(captured.artifacts).map { case (context, entry) =>
+          InternalModelVerifiedContinuationArtifact(context, entry.bytes)
+        }
+      )
+      result.fold(Consequence.operationInvalid, Consequence.success)
+    } catch {
+      case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
+    }
+
+  /** Checks declared typed metadata and presence without authenticating content or source identity. */
+  private[runtime] def validateCapturedContext(context: InternalModelVerifiedPackageContext): Either[String, Unit] = {
+    val artifacts = context.artifacts.map(entry => Artifact(entry.reference, entry.path, entry.required, entry.dependencies))
+    for {
+      _ <- Either.cond(context.schemaversion == "2.0", (), "captured schemaVersion must be 2.0")
+      _ <- Either.cond(context.revision > 0, (), "captured carrier revision must be positive")
+      _ <- Either.cond(_is_token(context.lifecyclestate), (), "captured lifecycleState must be an ASCII token")
+      _ <- _inventory_metadata(artifacts)
+      _ <- _inventory_order(artifacts)
+      _ <- Either.cond(context.artifacts.forall(entry => !entry.required || entry.present), (), "captured required artifact is absent")
+      _ <- _present_dependencies(artifacts, context.artifacts.filter(_.present).map(_.reference.artifactId).toSet)
+    } yield ()
+  }
+
+  /** Selects continuity from the complete captured inventory without path access. */
+  private[runtime] def selectCapturedContinuity(
+    artifacts: Vector[InternalModelVerifiedContinuationArtifact]
+  ): Either[String, InternalModelVerifiedProjectionContinuityPackage] = {
+    val verified = artifacts.map { entry =>
+      val context = entry.context
+      VerifiedArtifact(
+        Artifact(context.reference, context.path, context.required, context.dependencies),
+        entry.bytes
+      )
+    }
+    for {
+      _ <- Either.cond(artifacts.forall(entry => entry.context.present == entry.bytes.nonEmpty), (), "captured artifact presence does not match supplied payload availability")
+      _ <- Either.cond(artifacts.forall(entry => !entry.context.required || entry.context.present), (), "captured required artifact is absent")
+      _ <- _inventory_metadata(verified.map(_.artifact))
+      _ <- _inventory_order(verified.map(_.artifact))
+      _ <- _present_dependencies(verified.map(_.artifact), artifacts.filter(_.context.present).map(_.context.reference.artifactId).toSet)
+      continuity <- _projection_continuity(verified)
+    } yield continuity
+  }
+
   private[runtime] def verifiedCandidateCmlProjection(projectRoot: Path): Consequence[InternalModelVerifiedCandidateCmlProjectionPackage] =
     try {
       _captured_package(projectRoot).flatMap(_candidate_cml_projection).fold(Consequence.operationInvalid, Consequence.success)
@@ -193,10 +229,10 @@ object InternalModelPackageValidator {
   /** Captures the carrier once and selects one explicit validation-role review artifact. */
   private[runtime] def verifiedCandidateReviewBinding(
     projectRoot: Path,
-    reviewArtifactId: String
+    reviewArtifact: InternalModelArtifactReference
   ): Consequence[InternalModelVerifiedCandidateReviewBindingPackage] =
     try {
-      _captured_package(projectRoot).flatMap(_candidate_review_binding(_, reviewArtifactId)).fold(Consequence.operationInvalid, Consequence.success)
+      _captured_package(projectRoot).flatMap(_candidate_review_binding(_, reviewArtifact)).fold(Consequence.operationInvalid, Consequence.success)
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
@@ -204,47 +240,14 @@ object InternalModelPackageValidator {
   /** Captures one carrier and explicitly composes its selected review and approval artifacts. */
   private[runtime] def verifiedCandidateHumanApproval(
     projectRoot: Path,
-    approvalArtifactId: String,
-    reviewArtifactId: String
+    approvalArtifact: InternalModelArtifactReference,
+    reviewArtifact: InternalModelArtifactReference
   ): Consequence[InternalModelVerifiedCandidateHumanApprovalPackage] =
     try {
-      _captured_package(projectRoot).flatMap(_candidate_human_approval(_, approvalArtifactId, reviewArtifactId)).fold(Consequence.operationInvalid, Consequence.success)
+      _captured_package(projectRoot).flatMap(_candidate_human_approval(_, approvalArtifact, reviewArtifact)).fold(Consequence.operationInvalid, Consequence.success)
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model package validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
-
-  /**
-   * Reconstructs an exact historical V1 package solely from supplied manifest
-   * bytes and the already captured carrier; this method never touches paths.
-   */
-  private[runtime] def reviewedPackageContext(
-    reviewedPackageManifestBytes: Vector[Byte],
-    carrier: InternalModelVerifiedCandidateReviewBindingPackage,
-    reviewArtifactId: String
-  ): Either[String, InternalModelVerifiedPackageContext] =
-    for {
-      manifest <- _manifest(reviewedPackageManifestBytes.toArray)
-      artifacts <- _artifacts(manifest, carrier.carrierPackageContext.projectNamespace -> carrier.carrierPackageContext.projectId)
-      _ <- _package_digest(manifest)
-      _ <- _inventory_order(artifacts)
-      packageid <- _string(manifest, "packageId")
-      namespace <- _string(manifest, "projectNamespace")
-      projectid <- _string(manifest, "projectId")
-      _ <- Either.cond(
-        carrier.carrierPackageContext.schemaVersion == "1.0" &&
-          carrier.carrierPackageContext.packageId == packageid &&
-          carrier.carrierPackageContext.projectNamespace == namespace &&
-          carrier.carrierPackageContext.projectId == projectid,
-        (),
-        "reviewed package identity does not equal captured carrier package identity"
-      )
-      revision <- manifest("revision").flatMap(_.asNumber).flatMap(_.toLong).toRight("reviewed package revision cannot be captured")
-      _ <- Either.cond(carrier.carrierPackageContext.revision > revision, (), "carrier package revision must be greater than reviewed package revision")
-      _ <- _reviewed_inventory(artifacts, carrier, reviewArtifactId)
-      verified <- _reviewed_verified_artifacts(artifacts, carrier.carrierPackageContext)
-      _ <- _present_dependencies(artifacts, verified.collect { case VerifiedArtifact(artifact, Some(_)) => artifact.id }.toSet)
-      context <- _package_context(reviewedPackageManifestBytes.toArray, manifest, verified)
-    } yield context
 
   private[runtime] def verifiedDecisionRecords(projectRoot: Path): Consequence[InternalModelVerifiedDecisionPackage] =
     try {
@@ -271,10 +274,9 @@ object InternalModelPackageValidator {
       manifestbytes <- _regular_bytes(packageroot.resolve("manifest.yaml"), "manifest.yaml")
       manifest <- _manifest(manifestbytes)
       artifacts <- _artifacts(manifest, identity)
-      _ <- _package_digest(manifest)
       _ <- _inventory_order(artifacts)
       verified <- _filesystem_inventory(packageroot, artifacts)
-      context <- _package_context(manifestbytes, manifest, verified)
+      context <- _package_context(manifest, verified)
     } yield CapturedPackage(context, verified)
 
   private def _project_root(projectroot: Path): Either[String, Path] = {
@@ -346,24 +348,17 @@ object InternalModelPackageValidator {
       content <- _decode_utf8(bytes, "manifest.yaml")
       json <- _json_parser.parse(content).left.map(_ => "manifest.yaml must be valid JSON without duplicate members")
       root <- json.asObject.toRight("manifest.yaml root must be an object")
-      _ <- Either.cond(Arrays.equals(bytes, _canonical_bytes(json)), (), "manifest.yaml is not canonical V1 JSON bytes")
-      _ <- Either.cond(root.keys.toSet == _manifest_fields, (), "manifest.yaml root fields are not the closed V1 schema")
+      _ <- Either.cond(root.keys.toSet == _manifest_fields, (), "manifest.yaml root fields are not the closed V2 schema")
       _ <- _root_fields(root)
     } yield root
 
   private def _root_fields(root: JsonObject): Either[String, Unit] =
     for {
       schema <- _string(root, "schemaVersion")
-      _ <- Either.cond(schema == "1.0", (), "manifest schemaVersion must be 1.0")
-      packageid <- _string(root, "packageId")
-      _ <- Either.cond(_uuid_pattern.matches(packageid), (), "manifest packageId must be a lowercase UUID")
-      _ <- _token_field(root, "projectNamespace")
-      _ <- _token_field(root, "projectId")
+      _ <- Either.cond(schema == "2.0", (), "manifest schemaVersion must be 2.0")
+      _ <- _package_reference(root)
       _ <- _token_field(root, "lifecycleState")
-      digest <- _string(root, "packageDigest")
-      _ <- Either.cond(_is_digest(digest), (), "manifest packageDigest is invalid")
-      revision <- root("revision").flatMap(_.asNumber).toRight("manifest revision must be a JSON integer")
-      _ <- Either.cond(revision.toLong.exists(_ > 0) && _number_is_canonical_integer(revision), (), "manifest revision must be a positive JSON integer")
+      _ <- _positive_long(root, "revision")
       _ <- root("artifacts").flatMap(_.asArray).toRight("manifest artifacts must be an array").map(_ => ())
     } yield ()
 
@@ -379,151 +374,101 @@ object InternalModelPackageValidator {
           artifact <- _artifact(value, index)
         } yield collected :+ artifact
       }
-      _ <- _unique(artifacts.map(_.id), "artifact IDs")
-      _ <- _unique(artifacts.map(_.path), "artifact paths")
+      _ <- _inventory_metadata(artifacts)
     } yield artifacts
 
   private def _package_context(
-    manifestbytes: Array[Byte],
     manifest: JsonObject,
     verified: Vector[VerifiedArtifact]
   ): Either[String, InternalModelVerifiedPackageContext] =
     for {
       schema <- _string(manifest, "schemaVersion")
-      packageid <- _string(manifest, "packageId")
-      namespace <- _string(manifest, "projectNamespace")
-      projectid <- _string(manifest, "projectId")
-      revision <- manifest("revision").flatMap(_.asNumber).flatMap(_.toLong).toRight("manifest revision cannot be captured")
+      reference <- _package_reference(manifest)
+      revision <- _positive_long(manifest, "revision")
       lifecycle <- _string(manifest, "lifecycleState")
-      digest <- _string(manifest, "packageDigest")
     } yield InternalModelVerifiedPackageContext(
-      schemaVersion = schema,
-      packageId = packageid,
-      projectNamespace = namespace,
-      projectId = projectid,
+      reference = reference,
+      schemaversion = schema,
       revision = revision,
-      lifecycleState = lifecycle,
-      packageDigest = digest,
-      manifestBytes = manifestbytes.toVector,
+      lifecyclestate = lifecycle,
       artifacts = verified.map { entry =>
         InternalModelVerifiedArtifactContext(
-          artifactId = entry.artifact.id,
-          role = entry.artifact.role,
-          packageRelativePath = entry.artifact.path,
+          reference = entry.artifact.reference,
+          path = entry.artifact.path,
           required = entry.artifact.required,
           dependencies = entry.artifact.dependencies,
-          sha256 = entry.artifact.sha256,
           present = entry.bytes.nonEmpty
         )
       }
     )
 
-  private def _reviewed_inventory(
-    reviewed: Vector[Artifact],
-    carrier: InternalModelVerifiedCandidateReviewBindingPackage,
-    reviewartifactid: String
-  ): Either[String, Unit] = {
-    val carrierartifacts = carrier.carrierPackageContext.artifacts
-    val reviewedids = reviewed.map(_.id).toSet
-    val reviewedpaths = reviewed.map(_.path).toSet
-    val selected = carrierartifacts.filter(_.artifactId == reviewartifactid)
-    val reviewedchecks = reviewed.foldLeft[Either[String, Unit]](Right(())) { (result, artifact) =>
-      for {
-        _ <- result
-        captured <- carrierartifacts.filter(_.artifactId == artifact.id) match {
-          case Vector(value) => Right(value)
-          case Vector() => Left(s"reviewed artifact ${artifact.id} is absent from captured carrier inventory")
-          case _ => Left(s"reviewed artifact ${artifact.id} is ambiguous in captured carrier inventory")
-        }
-        _ <- Either.cond(_same_artifact(artifact, captured), (), s"reviewed artifact ${artifact.id} does not exactly match captured carrier inventory")
-      } yield ()
-    }
-    for {
-      _ <- reviewedchecks
-      selectedartifact <- selected match {
-        case Vector(value) => Right(value)
-        case Vector() => Left("selected review artifact is absent from captured carrier inventory")
-        case _ => Left("selected review artifact is ambiguous in captured carrier inventory")
-      }
-      _ <- Either.cond(selectedartifact.role == "validation" && selectedartifact.present, (), "selected review artifact must be a present validation-role carrier artifact")
-      _ <- Either.cond(!reviewedids.contains(reviewartifactid) && !reviewedpaths.contains(selectedartifact.packageRelativePath), (), "reviewed package inventory must not contain the selected review artifact")
-      presentreviewed = reviewed.filter { artifact =>
-        carrierartifacts.find(_.artifactId == artifact.id).exists(_.present)
-      }.map(_.id).sorted
-      _ <- Either.cond(selectedartifact.dependencies == presentreviewed, (), "selected review artifact dependencies do not equal all present reviewed package artifact IDs")
-      extras = carrierartifacts.filterNot(artifact => reviewedids.contains(artifact.artifactId))
-      _ <- Either.cond(extras.forall(artifact => artifact.artifactId == reviewartifactid || artifact.role == "approval"), (), "carrier contains a new nonapproval artifact outside the reviewed package inventory")
-    } yield ()
-  }
-
-  private def _reviewed_verified_artifacts(
-    reviewed: Vector[Artifact],
-    carrier: InternalModelVerifiedPackageContext
-  ): Either[String, Vector[VerifiedArtifact]] =
-    reviewed.foldLeft[Either[String, Vector[VerifiedArtifact]]](Right(Vector.empty)) { (result, artifact) =>
-      for {
-        collected <- result
-        captured <- carrier.artifacts.filter(_.artifactId == artifact.id) match {
-          case Vector(value) => Right(value)
-          case Vector() => Left(s"reviewed artifact ${artifact.id} is absent from captured carrier inventory")
-          case _ => Left(s"reviewed artifact ${artifact.id} is ambiguous in captured carrier inventory")
-        }
-        _ <- Either.cond(_same_artifact(artifact, captured), (), s"reviewed artifact ${artifact.id} does not exactly match captured carrier inventory")
-      } yield collected :+ VerifiedArtifact(artifact, Option.when(captured.present)(Vector.empty))
-    }
-
-  private def _same_artifact(artifact: Artifact, captured: InternalModelVerifiedArtifactContext): Boolean =
-    artifact.id == captured.artifactId &&
-      artifact.role == captured.role &&
-      artifact.path == captured.packageRelativePath &&
-      artifact.required == captured.required &&
-      artifact.sha256 == captured.sha256 &&
-      artifact.dependencies == captured.dependencies
-
   private def _artifact(value: Json, index: Int): Either[String, Artifact] =
     for {
       objectvalue <- value.asObject.toRight(s"artifact $index must be an object")
-      _ <- Either.cond(objectvalue.keys.toSet == _artifact_fields, (), s"artifact $index fields are not the closed V1 schema")
-      id <- _token_field(objectvalue, "artifactId")
-      role <- _token_field(objectvalue, "role")
-      _ <- Either.cond(_roles.contains(role), (), s"artifact $id has an unsupported V1 role")
+      _ <- Either.cond(objectvalue.keys.toSet == _artifact_fields, (), s"artifact $index fields are not the closed V2 schema")
+      reference <- _artifact_reference(objectvalue)
       path <- _string(objectvalue, "path")
-      _ <- Either.cond(_is_path(path), (), s"artifact $id has an unsafe path")
-      _ <- Either.cond(path != "manifest.yaml", (), s"artifact $id must not name manifest.yaml")
-      required <- objectvalue("required").flatMap(_.asBoolean).toRight(s"artifact $id required must be a JSON Boolean")
-      digest <- _string(objectvalue, "sha256")
-      _ <- Either.cond(_is_digest(digest), (), s"artifact $id sha256 is invalid")
-      dependencies <- _string_array(objectvalue, "dependsOn", s"artifact $id dependsOn")
-      _ <- Either.cond(dependencies.forall(_is_token), (), s"artifact $id dependsOn contains an invalid token")
-      _ <- _unique(dependencies, s"artifact $id dependencies")
-      _ <- Either.cond(dependencies == dependencies.sorted, (), s"artifact $id dependencies are not in canonical order")
-    } yield Artifact(id, role, path, required, digest, dependencies)
+      required <- objectvalue("required").flatMap(_.asBoolean).toRight(s"artifact $index required must be a JSON Boolean")
+      values <- objectvalue("dependsOn").flatMap(_.asArray).toRight(s"artifact $index dependsOn must be an array")
+      dependencies <- values.toVector.foldLeft[Either[String, Vector[InternalModelArtifactReference]]](Right(Vector.empty)) { (result, dependency) =>
+        for {
+          collected <- result
+          root <- dependency.asObject.toRight(s"artifact $index dependency must be an object")
+          _ <- Either.cond(root.keys.toSet == _reference_fields, (), s"artifact $index dependency fields are not the closed reference shape")
+          reference <- _artifact_reference(root)
+        } yield collected :+ reference
+      }
+    } yield Artifact(reference, path, required, dependencies)
 
-  private def _package_digest(root: JsonObject): Either[String, Unit] =
-    _string(root, "packageDigest").flatMap { declared =>
-      val actual = _sha256(_canonical_bytes(root.remove("packageDigest").toJson))
-      Either.cond(declared == actual, (), "manifest packageDigest does not match its canonical content")
-    }
+  private def _package_reference(root: JsonObject): Either[String, InternalModelPackageReference] =
+    for {
+      packageid <- _string(root, "packageId").flatMap(InternalModelPackageId.from)
+      namespace <- _string(root, "projectNamespace").flatMap(InternalModelProjectToken.from)
+      projectid <- _string(root, "projectId").flatMap(InternalModelProjectToken.from)
+    } yield InternalModelPackageReference(packageid, namespace, projectid)
+
+  private def _artifact_reference(root: JsonObject): Either[String, InternalModelArtifactReference] =
+    for {
+      id <- _string(root, "artifactId").flatMap(InternalModelArtifactId.from)
+      revision <- _positive_long(root, "artifactRevision").flatMap(InternalModelArtifactRevision.from)
+      role <- _string(root, "role").flatMap(InternalModelArtifactRole.fromWire)
+    } yield InternalModelArtifactReference(id, revision, role)
+
+  private def _inventory_metadata(artifacts: Vector[Artifact]): Either[String, Unit] =
+    for {
+      _ <- _unique(artifacts.map(_.reference.artifactId.value), "artifact IDs")
+      _ <- _unique(artifacts.map(_.path), "artifact paths")
+      _ <- artifacts.foldLeft[Either[String, Unit]](Right(())) { (result, artifact) =>
+        val id = artifact.reference.artifactId.value
+        val dependencies = artifact.dependencies.map(_.artifactId.value)
+        for {
+          _ <- result
+          _ <- Either.cond(_is_path(artifact.path) && artifact.path != "manifest.yaml", (), s"artifact $id has an unsafe path")
+          _ <- _unique(dependencies, s"artifact $id dependency IDs")
+          _ <- Either.cond(dependencies == dependencies.sorted, (), s"artifact $id dependencies are not in artifact ID order")
+        } yield ()
+      }
+    } yield ()
 
   private def _inventory_order(artifacts: Vector[Artifact]): Either[String, Unit] = {
-    val ids = artifacts.map(_.id).toSet
-    val unresolved = artifacts.flatMap(artifact => artifact.dependencies.filterNot(ids.contains).map(dependency => s"${artifact.id} -> $dependency"))
-    if unresolved.nonEmpty then Left(s"artifact dependencies are unresolved: ${unresolved.mkString(", ")}")
-    else if artifacts.exists(artifact => artifact.dependencies.contains(artifact.id)) then Left("artifact dependencies must not be self-referential")
+    val references = artifacts.map(artifact => artifact.reference.artifactId -> artifact.reference).toMap
+    val unresolved = artifacts.flatMap(artifact => artifact.dependencies.filterNot(dependency => references.get(dependency.artifactId).contains(dependency)).map(dependency => s"${artifact.reference.artifactId.value} -> ${dependency.artifactId.value}"))
+    if unresolved.nonEmpty then Left(s"artifact dependencies do not resolve exact ID/revision/role: ${unresolved.mkString(", ")}")
+    else if artifacts.exists(artifact => artifact.dependencies.exists(_.artifactId == artifact.reference.artifactId)) then Left("artifact dependencies must not be self-referential")
     else {
-      val remaining = artifacts.map(artifact => artifact.id -> artifact.dependencies.toSet).toMap
+      val remaining = artifacts.map(artifact => artifact.reference.artifactId -> artifact.dependencies.map(_.artifactId).toSet).toMap
       _topological_order(remaining).flatMap { expected =>
-        Either.cond(artifacts.map(_.id) == expected, (), "artifacts are not in deterministic topological order")
+        Either.cond(artifacts.map(_.reference.artifactId) == expected, (), "artifacts are not in deterministic topological order")
       }
     }
   }
 
-  private def _topological_order(remaining: Map[String, Set[String]]): Either[String, Vector[String]] = {
+  private def _topological_order(remaining: Map[InternalModelArtifactId, Set[InternalModelArtifactId]]): Either[String, Vector[InternalModelArtifactId]] = {
     @annotation.tailrec
-    def _loop_(pending: Map[String, Set[String]], completed: Vector[String]): Either[String, Vector[String]] =
+    def _loop_(pending: Map[InternalModelArtifactId, Set[InternalModelArtifactId]], completed: Vector[InternalModelArtifactId]): Either[String, Vector[InternalModelArtifactId]] =
       if pending.isEmpty then Right(completed)
       else {
-        val available = pending.collect { case (id, dependencies) if dependencies.isEmpty => id }.toVector.sorted
+        val available = pending.collect { case (id, dependencies) if dependencies.isEmpty => id }.toVector.sortBy(_.value)
         available.headOption match {
           case None => Left("artifact dependencies contain a cycle")
           case Some(next) =>
@@ -545,23 +490,22 @@ object InternalModelPackageValidator {
           entry <- _artifact_file(packageroot, actualpaths, artifact)
         } yield collected :+ entry
       }
-      present = verified.collect { case VerifiedArtifact(artifact, Some(_)) => artifact.id }.toSet
+      present = verified.collect { case VerifiedArtifact(artifact, Some(_)) => artifact.reference.artifactId }.toSet
       _ <- _present_dependencies(artifacts, present)
     } yield verified
 
   private def _source_snapshots(verified: Vector[VerifiedArtifact]): Vector[InternalModelVerifiedSourceSnapshot] =
     verified.collect {
-      case VerifiedArtifact(artifact, bytes) if artifact.role == "source-snapshot" =>
-        InternalModelVerifiedSourceSnapshot(artifact.id, artifact.path, artifact.required, bytes)
+      case VerifiedArtifact(artifact, bytes) if artifact.reference.role == InternalModelArtifactRole.SourceSnapshot =>
+        InternalModelVerifiedSourceSnapshot(artifact.reference, artifact.path, artifact.required, artifact.dependencies, bytes)
     }
 
   private def _present_realization(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedRealizationPackage] = {
     val realizations = verified.collect {
-      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "realization" =>
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.reference.role == InternalModelArtifactRole.Realization =>
         InternalModelVerifiedRealization(
-          artifactId = artifact.id,
-          role = artifact.role,
-          packageRelativePath = artifact.path,
+          reference = artifact.reference,
+          path = artifact.path,
           required = artifact.required,
           dependencies = artifact.dependencies,
           bytes = bytes
@@ -579,7 +523,7 @@ object InternalModelPackageValidator {
       realizationpackage <- _present_realization(verified)
       projection <- _selected_projection(verified, "continuity")
       _ <- Either.cond(
-        projection.dependencies.contains(realizationpackage.realization.artifactId),
+        projection.dependencies.contains(realizationpackage.realization.reference),
         (),
         "present projection artifact must depend on the selected realization artifact"
       )
@@ -599,51 +543,49 @@ object InternalModelPackageValidator {
 
   private def _candidate_review_binding(
     captured: CapturedPackage,
-    reviewartifactid: String
+    reviewartifact: InternalModelArtifactReference
   ): Either[String, InternalModelVerifiedCandidateReviewBindingPackage] =
     for {
-      _ <- Either.cond(reviewartifactid.trim.nonEmpty, (), "selected review artifact ID must be nonblank")
       semanticdiff <- _semantic_diff(captured)
-      review <- _selected_validation(captured.artifacts, reviewartifactid)
+      review <- _selected_validation(captured.artifacts, reviewartifact)
     } yield InternalModelVerifiedCandidateReviewBindingPackage(captured.context, semanticdiff, review)
 
   private def _candidate_human_approval(
     captured: CapturedPackage,
-    approvalartifactid: String,
-    reviewartifactid: String
+    approvalartifact: InternalModelArtifactReference,
+    reviewartifact: InternalModelArtifactReference
   ): Either[String, InternalModelVerifiedCandidateHumanApprovalPackage] =
     for {
-      _ <- Either.cond(approvalartifactid.trim.nonEmpty, (), "selected approval artifact ID must be nonblank")
-      review <- _candidate_review_binding(captured, reviewartifactid)
-      approval <- _selected_approval(captured.artifacts, approvalartifactid, reviewartifactid)
+      review <- _candidate_review_binding(captured, reviewartifact)
+      approval <- _selected_approval(captured.artifacts, approvalartifact, reviewartifact)
     } yield InternalModelVerifiedCandidateHumanApprovalPackage(review, approval)
 
   private def _selected_validation(
     verified: Vector[VerifiedArtifact],
-    reviewartifactid: String
+    reviewartifact: InternalModelArtifactReference
   ): Either[String, InternalModelVerifiedProjection] =
-    verified.filter(_.artifact.id == reviewartifactid) match {
-      case Vector(VerifiedArtifact(artifact, Some(bytes))) if artifact.role == "validation" =>
-        Right(InternalModelVerifiedProjection(artifact.id, artifact.role, artifact.path, artifact.required, artifact.dependencies, bytes))
+    verified.filter(_.artifact.reference == reviewartifact) match {
+      case Vector(VerifiedArtifact(artifact, Some(bytes))) if artifact.reference.role == InternalModelArtifactRole.Validation =>
+        Right(InternalModelVerifiedProjection(artifact.reference, artifact.path, artifact.required, artifact.dependencies, bytes))
       case Vector(VerifiedArtifact(_, Some(_))) => Left("selected review artifact role must be validation")
       case Vector(VerifiedArtifact(_, None)) => Left("selected review artifact is absent")
       case Vector() => Left("selected review artifact is not present in captured package inventory")
-      case _ => Left("selected review artifact ID is ambiguous")
+      case _ => Left("selected review artifact reference is ambiguous")
     }
 
   private def _selected_approval(
     verified: Vector[VerifiedArtifact],
-    approvalartifactid: String,
-    reviewartifactid: String
+    approvalartifact: InternalModelArtifactReference,
+    reviewartifact: InternalModelArtifactReference
   ): Either[String, InternalModelVerifiedProjection] =
-    verified.filter(_.artifact.id == approvalartifactid) match {
-      case Vector(VerifiedArtifact(artifact, Some(bytes))) if artifact.role == "approval" && artifact.dependencies == Vector(reviewartifactid) =>
-        Right(InternalModelVerifiedProjection(artifact.id, artifact.role, artifact.path, artifact.required, artifact.dependencies, bytes))
-      case Vector(VerifiedArtifact(artifact, Some(_))) if artifact.role != "approval" => Left("selected approval artifact role must be approval")
-      case Vector(VerifiedArtifact(_, Some(_))) => Left("selected approval artifact dependencies must equal exactly the selected review artifact ID")
+    verified.filter(_.artifact.reference == approvalartifact) match {
+      case Vector(VerifiedArtifact(artifact, Some(bytes))) if artifact.reference.role == InternalModelArtifactRole.Approval && artifact.dependencies == Vector(reviewartifact) =>
+        Right(InternalModelVerifiedProjection(artifact.reference, artifact.path, artifact.required, artifact.dependencies, bytes))
+      case Vector(VerifiedArtifact(artifact, Some(_))) if artifact.reference.role != InternalModelArtifactRole.Approval => Left("selected approval artifact role must be approval")
+      case Vector(VerifiedArtifact(_, Some(_))) => Left("selected approval artifact dependencies must equal exactly the selected review artifact reference")
       case Vector(VerifiedArtifact(_, None)) => Left("selected approval artifact is absent")
       case Vector() => Left("selected approval artifact is not present in captured package inventory")
-      case _ => Left("selected approval artifact ID is ambiguous")
+      case _ => Left("selected approval artifact reference is ambiguous")
     }
 
   private def _decision_records(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecisionPackage] =
@@ -651,7 +593,7 @@ object InternalModelPackageValidator {
       realizationpackage <- _present_realization(verified)
       decision <- _present_decision(verified)
       _ <- Either.cond(
-        decision.dependencies.contains(realizationpackage.realization.artifactId),
+        decision.dependencies.contains(realizationpackage.realization.reference),
         (),
         "present decision artifact must depend on the selected realization artifact"
       )
@@ -662,7 +604,7 @@ object InternalModelPackageValidator {
       realizationpackage <- _present_realization(verified)
       openissue <- _present_open_issue(verified)
       _ <- Either.cond(
-        openissue.dependencies.contains(realizationpackage.realization.artifactId),
+        openissue.dependencies.contains(realizationpackage.realization.reference),
         (),
         "present open-issue artifact must depend on the selected realization artifact"
       )
@@ -687,11 +629,10 @@ object InternalModelPackageValidator {
 
   private def _present_projections(verified: Vector[VerifiedArtifact]): Either[String, Vector[InternalModelVerifiedProjection]] =
     Right(verified.collect {
-      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "projection" =>
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.reference.role == InternalModelArtifactRole.Projection =>
         InternalModelVerifiedProjection(
-          artifactId = artifact.id,
-          role = artifact.role,
-          packageRelativePath = artifact.path,
+          reference = artifact.reference,
+          path = artifact.path,
           required = artifact.required,
           dependencies = artifact.dependencies,
           bytes = bytes
@@ -701,28 +642,26 @@ object InternalModelPackageValidator {
   private def _projection_family(projection: InternalModelVerifiedProjection): Either[String, String] =
     for {
       bytes <- Right(projection.bytes.toArray)
-      _ <- Either.cond(!_has_bom(bytes), (), s"projection artifact ${projection.artifactId} must not contain a UTF-8 byte-order mark")
-      content <- _decode_utf8(bytes, s"projection artifact ${projection.artifactId}")
-      json <- _json_parser.parse(content).left.map(_ => s"projection artifact ${projection.artifactId} must be valid JSON without duplicate members")
-      root <- json.asObject.toRight(s"projection artifact ${projection.artifactId} root must be an object")
-      _ <- Either.cond(Arrays.equals(bytes, _canonical_bytes(json)), (), s"projection artifact ${projection.artifactId} is not canonical JSON")
-      profile <- root("profile").flatMap(_.asString).toRight(s"projection artifact ${projection.artifactId} profile must be a JSON string")
-      schema <- root("schemaVersion").flatMap(_.asString).toRight(s"projection artifact ${projection.artifactId} schemaVersion must be a JSON string")
+      _ <- Either.cond(!_has_bom(bytes), (), s"projection artifact ${projection.reference.artifactId.value} must not contain a UTF-8 byte-order mark")
+      content <- _decode_utf8(bytes, s"projection artifact ${projection.reference.artifactId.value}")
+      json <- _json_parser.parse(content).left.map(_ => s"projection artifact ${projection.reference.artifactId.value} must be valid JSON without duplicate members")
+      root <- json.asObject.toRight(s"projection artifact ${projection.reference.artifactId.value} root must be an object")
+      profile <- root("profile").flatMap(_.asString).toRight(s"projection artifact ${projection.reference.artifactId.value} profile must be a JSON string")
+      schema <- root("schemaVersion").flatMap(_.asString).toRight(s"projection artifact ${projection.reference.artifactId.value} schemaVersion must be a JSON string")
       family <- (profile, schema) match {
-        case ("ccdm-projection-binding-v1", "1.0") | ("ccdm-projection-binding-v2", "2.0") => Right("continuity")
-        case ("ccdm-candidate-cml-projection-v1", "1.0") => Right("candidate")
-        case ("ccdm-semantic-diff-v1", "1.0") => Right("semantic-diff")
-        case _ => Left(s"projection artifact ${projection.artifactId} has an unknown profile/schemaVersion pair")
+        case ("ccdm-projection-binding-v3", "3.0") => Right("continuity")
+        case ("ccdm-candidate-cml-projection-v2", "2.0") => Right("candidate")
+        case ("ccdm-semantic-diff-v2", "2.0") => Right("semantic-diff")
+        case _ => Left(s"projection artifact ${projection.reference.artifactId.value} has an unknown profile/schemaVersion pair")
       }
     } yield family
 
   private def _present_decision(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedDecision] = {
     val decisions = verified.collect {
-      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "decision" =>
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.reference.role == InternalModelArtifactRole.Decision =>
         InternalModelVerifiedDecision(
-          artifactId = artifact.id,
-          role = artifact.role,
-          packageRelativePath = artifact.path,
+          reference = artifact.reference,
+          path = artifact.path,
           required = artifact.required,
           dependencies = artifact.dependencies,
           bytes = bytes
@@ -737,11 +676,10 @@ object InternalModelPackageValidator {
 
   private def _present_open_issue(verified: Vector[VerifiedArtifact]): Either[String, InternalModelVerifiedOpenIssue] = {
     val openissues = verified.collect {
-      case VerifiedArtifact(artifact, Some(bytes)) if artifact.role == "open-issue" =>
+      case VerifiedArtifact(artifact, Some(bytes)) if artifact.reference.role == InternalModelArtifactRole.OpenIssue =>
         InternalModelVerifiedOpenIssue(
-          artifactId = artifact.id,
-          role = artifact.role,
-          packageRelativePath = artifact.path,
+          reference = artifact.reference,
+          path = artifact.path,
           required = artifact.required,
           dependencies = artifact.dependencies,
           bytes = bytes
@@ -758,17 +696,12 @@ object InternalModelPackageValidator {
     try {
       var failure: Option[String] = None
       var paths = Set.empty[String]
-      var directories = Set.empty[String]
       Files.walkFileTree(packageroot, new SimpleFileVisitor[Path] {
         override def preVisitDirectory(directory: Path, attributes: BasicFileAttributes): FileVisitResult =
           if attributes.isSymbolicLink then {
             failure = Some(s"internal-model package contains a symbolic-link directory: ${_relative_path(packageroot, directory)}")
             FileVisitResult.TERMINATE
-          } else {
-            val relative = _relative_path(packageroot, directory)
-            if relative.nonEmpty then directories = directories + relative
-            FileVisitResult.CONTINUE
-          }
+          } else FileVisitResult.CONTINUE
 
         override def visitFile(file: Path, attributes: BasicFileAttributes): FileVisitResult =
           if attributes.isSymbolicLink then {
@@ -790,10 +723,7 @@ object InternalModelPackageValidator {
       })
       failure match {
         case Some(reason) => Left(reason)
-        case None => directories.find(directory => !paths.exists(_.startsWith(directory + "/"))) match {
-          case Some(directory) => Left(s"internal-model package contains an empty directory: $directory")
-          case None => Right(paths)
-        }
+        case None => Right(paths)
       }
     } catch {
       case NonFatal(_) => Left("internal-model package inventory cannot be read")
@@ -801,20 +731,20 @@ object InternalModelPackageValidator {
 
   private def _artifact_file(packageroot: Path, actualpaths: Set[String], artifact: Artifact): Either[String, VerifiedArtifact] =
     if !actualpaths.contains(artifact.path) then
-      if !artifact.required then Right(VerifiedArtifact(artifact, None))
-      else Left(s"required artifact ${artifact.id} is absent")
+      if Files.exists(packageroot.resolve(artifact.path), LinkOption.NOFOLLOW_LINKS) then Left(s"artifact ${artifact.reference.artifactId.value} must be a regular file")
+      else if !artifact.required then Right(VerifiedArtifact(artifact, None))
+      else Left(s"required artifact ${artifact.reference.artifactId.value} is absent")
     else {
       val path = packageroot.resolve(artifact.path).normalize
       for {
-        _ <- Either.cond(path.startsWith(packageroot), (), s"artifact ${artifact.id} escapes the package root")
-        bytes <- _regular_bytes(path, s"artifact ${artifact.id}")
-        _ <- Either.cond(_sha256(bytes) == artifact.sha256, (), s"artifact ${artifact.id} raw-byte digest does not match")
+        _ <- Either.cond(path.startsWith(packageroot), (), s"artifact ${artifact.reference.artifactId.value} escapes the package root")
+        bytes <- _regular_bytes(path, s"artifact ${artifact.reference.artifactId.value}")
       } yield VerifiedArtifact(artifact, Some(bytes.toVector))
     }
 
-  private def _present_dependencies(artifacts: Vector[Artifact], present: Set[String]): Either[String, Unit] =
-    artifacts.find(artifact => present.contains(artifact.id) && artifact.dependencies.exists(dependency => !present.contains(dependency))) match {
-      case Some(artifact) => Left(s"present artifact ${artifact.id} depends on an absent optional artifact")
+  private def _present_dependencies(artifacts: Vector[Artifact], present: Set[InternalModelArtifactId]): Either[String, Unit] =
+    artifacts.find(artifact => present.contains(artifact.reference.artifactId) && artifact.dependencies.exists(dependency => !present.contains(dependency.artifactId))) match {
+      case Some(artifact) => Left(s"present artifact ${artifact.reference.artifactId.value} depends on an absent optional artifact")
       case None => Right(())
     }
 
@@ -834,15 +764,10 @@ object InternalModelPackageValidator {
   private def _token_field(objectvalue: JsonObject, key: String): Either[String, String] =
     _string(objectvalue, key).flatMap(value => Either.cond(_is_token(value), value, s"manifest $key must be an ASCII token"))
 
-  private def _string_array(objectvalue: JsonObject, key: String, label: String): Either[String, Vector[String]] =
-    objectvalue(key).flatMap(_.asArray).toRight(s"$label must be an array").flatMap { values =>
-      values.toVector.foldLeft[Either[String, Vector[String]]](Right(Vector.empty)) { (result, value) =>
-        for {
-          collected <- result
-          stringvalue <- value.asString.toRight(s"$label must contain only strings")
-        } yield collected :+ stringvalue
-      }
-    }
+  private def _positive_long(objectvalue: JsonObject, key: String): Either[String, Long] =
+    objectvalue(key).flatMap(_.asNumber).flatMap { number =>
+      number.toLong.filter(value => value > 0 && number.toString == value.toString)
+    }.toRight(s"manifest $key must be a positive lexical Long integer")
 
   private def _unique(values: Vector[String], label: String): Either[String, Unit] =
     Either.cond(values.distinct.size == values.size, (), s"$label must be unique")
@@ -855,20 +780,8 @@ object InternalModelPackageValidator {
       !value.contains("\\") && !value.contains(":") &&
       value.split("/", -1).forall(segment => _path_segment_pattern.matches(segment) && segment != "." && segment != "..")
 
-  private def _is_digest(value: String): Boolean =
-    _digest_pattern.matches(value)
-
-  private def _number_is_canonical_integer(number: io.circe.JsonNumber): Boolean =
-    number.toLong.exists(value => number.toString == value.toString)
-
   private def _has_bom(bytes: Array[Byte]): Boolean =
     bytes.length >= 3 && bytes(0) == 0xef.toByte && bytes(1) == 0xbb.toByte && bytes(2) == 0xbf.toByte
-
-  private def _canonical_bytes(json: Json): Array[Byte] =
-    (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
-
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
 
   private def _relative_path(root: Path, path: Path): String =
     root.relativize(path).toString.replace('\\', '/')

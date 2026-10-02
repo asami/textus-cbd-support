@@ -1,8 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, StandardOpenOption}
-import java.security.MessageDigest
+import java.nio.file.{Files, LinkOption, Path, StandardOpenOption}
 
 import scala.jdk.CollectionConverters.*
 
@@ -16,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 final class InternalModelDecisionRecordValidatorSpec
@@ -26,21 +25,21 @@ final class InternalModelDecisionRecordValidatorSpec
     with ScalaCheckPropertyChecks {
 
   private val _printer = Printer.noSpacesSortKeys
-  private val _model_raw = "model source bytes\n".getBytes(StandardCharsets.UTF_8)
   private val _scope = InternalModelSemanticScope("component-order", "context-order", "e-usecase")
   private val _source = InternalModelSemanticSource(
-    "model-authority", "model-source", Some("catalog/model-source"), Some("revision-1"), _sha256(_model_raw)
+    "model-authority", "model-source", Some("catalog/model-source"), Some("revision-1")
   )
   private val _provenance = InternalModelSemanticSource(
-    "human-decision", "human-decision-source", Some("decisions/record"), Some("decision-revision-1"), "sha256:" + ("1" * 64)
+    "human-decision", "human-decision-source", Some("decisions/record"), Some("decision-revision-1")
   )
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
   private val _identity_gen: Gen[String] = Gen.nonEmptyListOf(Gen.alphaLowerChar).map(chars => chars.mkString("id-", "", ""))
   private val _prose_gen: Gen[String] = Gen.nonEmptyListOf(Gen.alphaNumChar).map(chars => s"ASCII-${chars.mkString}-日本語-𩸽")
 
   "Internal-model decision record validation" should {
+    "retained decision accounts" which {
     "admit one complete current decision account and retain its complete selected realization" in {
-      Given("a portable package with a selected V1 realization, human decision provenance, source evidence, external evidence, and provider evidence")
+      Given("a portable package with a selected V3 realization, human decision provenance, source evidence, external evidence, and provider evidence")
       val realization = _realization()
       val ledger = _ledger(realization)
 
@@ -48,11 +47,11 @@ final class InternalModelDecisionRecordValidatorSpec
         When("the captured decision artifact is admitted through the package handoff")
         val result = InternalModelDecisionRecordValidator.validate(root)
 
-        Then("the immutable admission retains the complete typed ledger, supplied prose order and duplicates, provenance, nullable source fields, and byte-exact encoding")
+        Then("the immutable admission retains the complete typed ledger, supplied prose order and duplicates, provenance, nullable source fields, and presentation-independent values")
         result.isSuccess shouldBe true
         result.toOption.map { admission =>
           admission.ledger
-        } shouldBe Some(ledger.copy(canonicalBytes = InternalModelDecisionRecordCodec.encode(ledger).toVector))
+        } shouldBe Some(ledger)
         result.toOption.map(_.realization.conditions.map(_.detail)) shouldBe Some(Vector("source limitation", "source limitation secondary"))
       }
     }
@@ -62,7 +61,7 @@ final class InternalModelDecisionRecordValidatorSpec
       val realization = _realization()
       val base = _ledger(realization)
       val first = base.records.head.copy(
-        decisionIdentity = "decision-topic-a-old",
+        decisionReference = _record_reference("decision-topic-a-old", 41),
         topicIdentity = "topic-a",
         state = InternalModelDecisionState.Superseded,
         selectedChoice = InternalModelDecisionChoice("choice-a-old", "Earlier alternative"),
@@ -72,17 +71,17 @@ final class InternalModelDecisionRecordValidatorSpec
         limitations = Vector.empty
       )
       val second = base.records.head.copy(
-        decisionIdentity = "decision-topic-a-current",
+        decisionReference = _record_reference("decision-topic-a-current", 42),
         topicIdentity = "topic-a",
         selectedChoice = InternalModelDecisionChoice("choice-a-new", "A later explicit human selection"),
         rejectedAlternatives = Vector(
           InternalModelDecisionAlternative("choice-a-old", "Earlier alternative", "The later human decision changed the selected choice"),
           InternalModelDecisionAlternative("choice-secondary", "Use a separately sourced relationship", "The later human decision retained the selected source")
         ),
-        supersedes = Some("decision-topic-a-old")
+        supersedes = Some(_record_reference("decision-topic-a-old", 41))
       )
       val independent = base.records.head.copy(
-        decisionIdentity = "decision-topic-b-current",
+        decisionReference = _record_reference("decision-topic-b-current", 41),
         topicIdentity = "topic-b",
         selectedChoice = InternalModelDecisionChoice("choice-b", "Independent topic choice")
       )
@@ -92,9 +91,9 @@ final class InternalModelDecisionRecordValidatorSpec
         When("the logical records are supplied in a noncanonical construction order")
         val result = InternalModelDecisionRecordValidator.validate(root)
 
-        Then("canonical decoding retains explicit empty arrays and accepts each independent exact chain while the later human record selects its predecessor's rejected choice explicitly")
+        Then("deterministic identity collection decoding retains explicit empty arrays and accepts each independent exact chain while the later human record selects its predecessor's rejected choice explicitly")
         result.isSuccess shouldBe true
-        result.toOption.map(_.ledger.records.map(record => (record.decisionIdentity, record.assumptions, record.selectedChoice.choiceIdentity, record.rejectedAlternatives.map(_.alternativeIdentity)))) shouldBe Some(Vector(
+        result.toOption.map(_.ledger.records.map(record => (record.decisionReference.recordId.value, record.assumptions, record.selectedChoice.choiceIdentity, record.rejectedAlternatives.map(_.alternativeIdentity)))) shouldBe Some(Vector(
           ("decision-topic-a-current", Vector("assumption retained in supplied order", "assumption duplicate", "assumption duplicate"), "choice-a-new", Vector("choice-a-old", "choice-secondary")),
           ("decision-topic-a-old", Vector.empty, "choice-a-old", Vector("choice-a-new")),
           ("decision-topic-b-current", Vector("assumption retained in supplied order", "assumption duplicate", "assumption duplicate"), "choice-b", Vector("choice-alternative", "choice-secondary"))
@@ -103,23 +102,23 @@ final class InternalModelDecisionRecordValidatorSpec
     }
 
     "retain an unavailable old basis only as historical-unverified metadata" in {
-      Given("a superseded predecessor with an old hash, unavailable target and source reference, and one exact-current accepted terminal")
+      Given("a superseded predecessor with an old reference versions, unavailable target and source reference, and one exact-current accepted terminal")
       val realization = _realization()
       val base = _ledger(realization)
       val old = base.records.head.copy(
-        decisionIdentity = "decision-old",
+        decisionReference = _record_reference("decision-old", 41),
         topicIdentity = "topic-history",
         state = InternalModelDecisionState.Superseded,
         affectedTargets = Vector(InternalModelSemanticTarget("element", "e-removed")),
         consideredEvidence = Vector(InternalModelDecisionEvidence("e-old", InternalModelDecisionEvidenceKind.RealizationSource, _source, Some("ref-removed"), Vector("c-removed"), Vector("old condition"), Vector("old limitation"))),
         realizationConditionIds = Vector("c-removed"),
-        basis = InternalModelDecisionBasis("realization-old", "realization-old", "sha256:" + ("2" * 64), _scope, InternalModelDecisionBasisStatus.HistoricalUnverified),
+        basis = InternalModelDecisionBasis(_artifact_reference("realization-old", "realization", 11), _record_reference("realization-old", 21), _scope, InternalModelDecisionBasisStatus.HistoricalUnverified),
         supersedes = None
       )
       val current = base.records.head.copy(
-        decisionIdentity = "decision-current",
+        decisionReference = _record_reference("decision-current", 41),
         topicIdentity = "topic-history",
-        supersedes = Some("decision-old")
+        supersedes = Some(_record_reference("decision-old", 41))
       )
       val ledger = base.copy(records = Vector(old, current))
 
@@ -129,38 +128,41 @@ final class InternalModelDecisionRecordValidatorSpec
 
         Then("the current terminal is admitted while the old record is retained without historical lookup, retargeting, or current-basis promotion")
         result.isSuccess shouldBe true
-        result.toOption.map(_.ledger.records.map(record => (record.decisionIdentity, record.basis.status, record.affectedTargets.head.semanticIdentity))) shouldBe Some(Vector(
+        result.toOption.map(_.ledger.records.map(record => (record.decisionReference.recordId.value, record.basis.status, record.affectedTargets.head.semanticIdentity))) shouldBe Some(Vector(
           ("decision-current", InternalModelDecisionBasisStatus.Current, "e-customer"),
           ("decision-old", InternalModelDecisionBasisStatus.HistoricalUnverified, "e-removed")
         ))
       }
     }
 
+    }
+
+    "closed grammar and exact current admission" which {
     "fail closed for byte grammar, closed vocabulary, identity ordering, source-condition visibility, current basis, and explicit chain violations" in {
       Given("a complete canonical ledger with focused malformed and semantic mutations")
       val realization = _realization()
       val base = _ledger(realization)
       val canonical = InternalModelDecisionRecordCodec.encode(base)
-      val badbytes = canonical.dropRight(1) ++ " \n".getBytes(StandardCharsets.UTF_8)
+      val badbytes = canonical ++ "not-json".getBytes(StandardCharsets.UTF_8)
       val unsortedtargets = new String(canonical, StandardCharsets.UTF_8).replace(
         "\"affectedTargets\":[{\"semanticIdentity\":\"e-customer\",\"semanticIdentityKind\":\"element\"},{\"semanticIdentity\":\"r-uses\",\"semanticIdentityKind\":\"relationship\"}]",
         "\"affectedTargets\":[{\"semanticIdentity\":\"r-uses\",\"semanticIdentityKind\":\"relationship\"},{\"semanticIdentity\":\"e-customer\",\"semanticIdentityKind\":\"element\"}]"
       ).getBytes(StandardCharsets.UTF_8)
       val codecinputs = Vector(
-        InternalModelVerifiedDecision("decision-main", "decision", "decisions.json", true, Vector("realization-main"), badbytes.toVector),
-        InternalModelVerifiedDecision("decision-main", "decision", "decisions.json", true, Vector("realization-main"), InternalModelDecisionRecordCodec.encode(base.copy(profile = "unsupported")).toVector),
-        InternalModelVerifiedDecision("decision-main", "decision", "decisions.json", true, Vector("realization-main"), unsortedtargets.toVector)
+        InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decisions.json", true, Vector(_artifact_reference("realization-main", "realization", 13)), badbytes.toVector),
+        InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decisions.json", true, Vector(_artifact_reference("realization-main", "realization", 13)), InternalModelDecisionRecordCodec.encode(base.copy(profile = "unsupported")).toVector),
+        InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decisions.json", true, Vector(_artifact_reference("realization-main", "realization", 13)), unsortedtargets.toVector)
       )
 
       codecinputs.foreach { decision =>
-        When("canonical bytes, profile vocabulary, or an identity collection order is invalid")
+        When("strict JSON, profile vocabulary, or an identity collection order is invalid")
         val result = InternalModelDecisionRecordCodec.decode(decision)
 
         Then("the codec rejects instead of normalizing or repairing the candidate")
         result.isLeft shouldBe true
       }
 
-      val badcurrent = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(sha256 = "sha256:" + ("f" * 64)))))
+      val badcurrent = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(realizationArtifactReference = _artifact_reference("realization-main", "realization", 14)))))
       val hiddencondition = base.copy(records = Vector(base.records.head.copy(realizationConditionIds = Vector.empty)))
       val hiddensourcecondition = base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
         if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(conditionIds = Vector.empty) else evidence
@@ -171,14 +173,16 @@ final class InternalModelDecisionRecordValidatorSpec
       val provideractor = base.copy(records = Vector(base.records.head.copy(actor = InternalModelDecisionActor("provider", "provider-1", "provider"))))
       val historicalterminal = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(status = InternalModelDecisionBasisStatus.HistoricalUnverified))))
       val fork = base.copy(records = Vector(
-        base.records.head.copy(decisionIdentity = "decision-root", topicIdentity = "topic-fork", state = InternalModelDecisionState.Superseded),
-        base.records.head.copy(decisionIdentity = "decision-left", topicIdentity = "topic-fork", supersedes = Some("decision-root")),
-        base.records.head.copy(decisionIdentity = "decision-right", topicIdentity = "topic-fork", supersedes = Some("decision-root"))
+        base.records.head.copy(decisionReference = _record_reference("decision-root", 41), topicIdentity = "topic-fork", state = InternalModelDecisionState.Superseded),
+        base.records.head.copy(decisionReference = _record_reference("decision-left", 41), topicIdentity = "topic-fork", supersedes = Some(_record_reference("decision-root", 41))),
+        base.records.head.copy(decisionReference = _record_reference("decision-right", 41), topicIdentity = "topic-fork", supersedes = Some(_record_reference("decision-root", 41)))
       ))
       val invalid = Vector(badcurrent, hiddencondition, changedsource, provideractor, historicalterminal, fork)
 
       invalid.foreach { ledger =>
         _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(ledger))) { root =>
+          Given("the selected V3 realization independently meets its source and semantic contract")
+          _admit_realization(root)
           When("a current-basis, actor, source-condition, historical-terminal, or chain invariant is changed")
           val result = InternalModelDecisionRecordValidator.validate(root)
 
@@ -188,21 +192,23 @@ final class InternalModelDecisionRecordValidatorSpec
       }
 
       val oldcurrent = base.records.head.copy(
-        decisionIdentity = "decision-old-current",
+        decisionReference = _record_reference("decision-old-current", 41),
         topicIdentity = "topic-old-current",
         state = InternalModelDecisionState.Superseded,
-        basis = base.records.head.basis.copy(sha256 = "sha256:" + ("2" * 64), status = InternalModelDecisionBasisStatus.Current)
+        basis = base.records.head.basis.copy(realizationReference = _record_reference("realization-order", 22), status = InternalModelDecisionBasisStatus.Current)
       )
       val oldcurrentterminal = base.records.head.copy(
-        decisionIdentity = "decision-old-current-terminal",
+        decisionReference = _record_reference("decision-old-current-terminal", 41),
         topicIdentity = "topic-old-current",
-        supersedes = Some("decision-old-current")
+        supersedes = Some(_record_reference("decision-old-current", 41))
       )
       Vector(
         ("old predecessor is labeled current", base.copy(records = Vector(oldcurrent, oldcurrentterminal))),
         ("source condition IDs are hidden", hiddensourcecondition)
       ).foreach { case (_, ledger) =>
         _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(ledger))) { root =>
+          Given("the selected V3 realization independently meets its source and semantic contract")
+          _admit_realization(root)
           When("a historical predecessor is labeled current or a realization-source condition is omitted")
           val result = InternalModelDecisionRecordValidator.validate(root)
 
@@ -221,14 +227,11 @@ final class InternalModelDecisionRecordValidatorSpec
         }))),
         base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
           if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(revision = Some("other-revision"))) else evidence
-        }))),
-        base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
-          if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(sha256 = "sha256:" + ("e" * 64))) else evidence
         })))
       )
       sourcefieldmutations.foreach { ledger =>
         _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(ledger))) { root =>
-          When("one realization-source authority, identity, locator, revision, or digest field is changed")
+          When("one realization-source authority, identity, locator, or revision field is changed")
           val result = InternalModelDecisionRecordValidator.validate(root)
 
           Then("the exact admitted source object is required for current decision admission")
@@ -237,17 +240,20 @@ final class InternalModelDecisionRecordValidatorSpec
       }
     }
 
+    }
+
+    "portable inventory and captured admission" which {
     "keep structural package validity separate from decision readiness and use only captured handoff bytes" in {
       Given("a package whose optional decision is absent and a separately captured valid handoff")
       val realization = _realization()
       val decision = InternalModelDecisionRecordCodec.encode(_ledger(realization))
 
       _with_fixture(realization, None) { root =>
-        When("the V1 structural inventory has no present optional decision")
+        When("the V2 structural inventory has no present optional decision")
         val structural = InternalModelPackageValidator.validateStructure(root)
         val admission = InternalModelDecisionRecordValidator.validate(root)
 
-        Then("structural validation remains compatible while decision readiness fails")
+        Then("structural validation succeeds while decision readiness fails")
         structural.isSuccess shouldBe true
         admission.isSuccess shouldBe false
       }
@@ -268,18 +274,26 @@ final class InternalModelDecisionRecordValidatorSpec
       }
     }
 
-    "retain compatible selected realization V1 and V2 forms and a safe nonconventional decision path" in {
-      Given("portable V1 and V2 semantic realizations with the same bounded decision ledger and a manifest-relative decision filename")
-      forAll(Gen.oneOf(false, true)) { v2 =>
-        val realization = _realization(v2)
-        val ledger = _ledger(realization)
+    "admit only the current realization profile at a safe nonconventional decision path" in {
+      Given("a portable V3 realization, V2 ledger and safe manifest-relative decision filename")
+      val realization = _realization()
+      val ledger = _ledger(realization)
+      _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(ledger)), decisionpath = "records/decision-ledger.json") { root =>
+        When("the decision is admitted from the declared path")
+        val result = InternalModelDecisionRecordValidator.validate(root)
+        Then("the path convention has no authority over the current realization profile")
+        result.toOption.map(_.realization.profile) shouldBe Some("ccdm-realization-v3")
+      }
 
-        _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(ledger)), decisionpath = "records/decision-ledger.json") { root =>
-          When("the decision is admitted from a safe path that is not the conventional filename")
+      Vector(("ccdm-realization-v1", "1.0"), ("ccdm-realization-v2", "2.0"), ("ccdm-realization-v3", "2.0")).foreach { case (profile, schema) =>
+        Given("a selected realization with a legacy or mismatched explicit profile pair")
+        val original = _json_parser.parse(new String(realization, StandardCharsets.UTF_8)).toOption.get.asObject.get
+        val legacy = _canonical(Json.fromJsonObject(original.add("profile", Json.fromString(profile)).add("schemaVersion", Json.fromString(schema))))
+        _with_fixture(legacy, Some(InternalModelDecisionRecordCodec.encode(ledger))) { root =>
+          When("current decision admission encounters the legacy selected realization")
           val result = InternalModelDecisionRecordValidator.validate(root)
-
-          Then("the decision grammar remains independent of filename and preserves the selected realization profile")
-          result.toOption.map(_.realization.profile) shouldBe Some(if v2 then "ccdm-realization-v2" else "ccdm-realization-v1")
+          Then("the profile rejects without a compatibility decoder or inferred version")
+          result.isSuccess shouldBe false
         }
       }
     }
@@ -296,14 +310,14 @@ final class InternalModelDecisionRecordValidatorSpec
       )
       malformed.foreach { bytes =>
         When("a BOM, invalid UTF-8 sequence, or duplicate object member is supplied")
-        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision("decision-main", "decision", "decision.json", true, Vector.empty, bytes.toVector))
+        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decision.json", true, Vector.empty, bytes.toVector))
 
         Then("the closed parser rejects it without parser fallback")
         result.isLeft shouldBe true
       }
 
       val invalidcodec = Vector(
-        base.copy(ledgerIdentity = ""),
+        base.copy(ledgerReference = _record_reference_unchecked("", 31)),
         base.copy(records = Vector.empty),
         base.copy(records = Vector(record.copy(actor = record.actor.copy(identity = " ")))),
         base.copy(records = Vector(record.copy(actor = record.actor.copy(role = "")))),
@@ -322,7 +336,7 @@ final class InternalModelDecisionRecordValidatorSpec
       invalidcodec.foreach { ledger =>
         When("a required scalar, state/status vocabulary, local identity uniqueness, choice collision, or external realization link is invalid")
         val bytes = InternalModelDecisionRecordCodec.encode(ledger)
-        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision("decision-main", "decision", "decision.json", true, Vector.empty, bytes.toVector))
+        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decision.json", true, Vector.empty, bytes.toVector))
 
         Then("the codec rejects the typed candidate rather than treating encoding as admission")
         result.isLeft shouldBe true
@@ -335,14 +349,14 @@ final class InternalModelDecisionRecordValidatorSpec
       )
       rawunsupportedtokens.foreach { bytes =>
         When("a raw decision wire token falls outside one of the closed typed domains")
-        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision("decision-main", "decision", "decision.json", true, Vector.empty, bytes.toVector))
+        val result = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decision.json", true, Vector.empty, bytes.toVector))
 
         Then("the decoder rejects the unsupported token without widening the retained enum domain")
         result.isLeft shouldBe true
       }
 
-      val badartifact = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationArtifactId = "other-realization"))))
-      val badidentity = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationIdentity = "other-identity"))))
+      val badartifact = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationArtifactReference = _artifact_reference("other-realization", "realization", 13)))))
+      val badidentity = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationReference = _record_reference("other-identity", 23)))))
       val badscope = base.copy(records = Vector(record.copy(basis = record.basis.copy(scope = _scope.copy(componentIdentity = "other-component")))))
       val unknowntarget = base.copy(records = Vector(record.copy(affectedTargets = Vector(InternalModelSemanticTarget("element", "e-missing")))))
       val unknowncondition = base.copy(records = Vector(record.copy(realizationConditionIds = Vector("c-missing"))))
@@ -350,27 +364,33 @@ final class InternalModelDecisionRecordValidatorSpec
         if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(sourceReferenceId = Some("ref-missing"), conditionIds = Vector.empty) else evidence
       })))
       val supersededterminal = base.copy(records = Vector(record.copy(state = InternalModelDecisionState.Superseded)))
-      val dangling = base.copy(records = Vector(record.copy(supersedes = Some("decision-missing"))))
-      val self = base.copy(records = Vector(record.copy(supersedes = Some("decision-current"))))
+      val dangling = base.copy(records = Vector(record.copy(supersedes = Some(_record_reference("decision-missing", 41)))))
+      val self = base.copy(records = Vector(record.copy(supersedes = Some(_record_reference("decision-current", 41)))))
       val acceptedwithsuccessor = base.copy(records = Vector(
-        record.copy(decisionIdentity = "decision-root", topicIdentity = "topic-chain"),
-        record.copy(decisionIdentity = "decision-successor", topicIdentity = "topic-chain", supersedes = Some("decision-root"))
+        record.copy(decisionReference = _record_reference("decision-root", 41), topicIdentity = "topic-chain"),
+        record.copy(decisionReference = _record_reference("decision-successor", 41), topicIdentity = "topic-chain", supersedes = Some(_record_reference("decision-root", 41)))
       ))
       val duplicatedterminal = base.copy(records = Vector(
-        record.copy(decisionIdentity = "decision-one", topicIdentity = "topic-terminal"),
-        record.copy(decisionIdentity = "decision-two", topicIdentity = "topic-terminal")
+        record.copy(decisionReference = _record_reference("decision-one", 41), topicIdentity = "topic-terminal"),
+        record.copy(decisionReference = _record_reference("decision-two", 41), topicIdentity = "topic-terminal")
       ))
       val cycle = base.copy(records = Vector(
-        record.copy(decisionIdentity = "decision-cycle-a", topicIdentity = "topic-cycle", state = InternalModelDecisionState.Superseded, supersedes = Some("decision-cycle-b")),
-        record.copy(decisionIdentity = "decision-cycle-b", topicIdentity = "topic-cycle", state = InternalModelDecisionState.Superseded, supersedes = Some("decision-cycle-a")),
-        record.copy(decisionIdentity = "decision-cycle-terminal", topicIdentity = "topic-cycle")
+        record.copy(decisionReference = _record_reference("decision-cycle-a", 41), topicIdentity = "topic-cycle", state = InternalModelDecisionState.Superseded, supersedes = Some(_record_reference("decision-cycle-b", 41))),
+        record.copy(decisionReference = _record_reference("decision-cycle-b", 41), topicIdentity = "topic-cycle", state = InternalModelDecisionState.Superseded, supersedes = Some(_record_reference("decision-cycle-a", 41))),
+        record.copy(decisionReference = _record_reference("decision-cycle-terminal", 41), topicIdentity = "topic-cycle")
       ))
       val cross = base.copy(records = Vector(
-        record.copy(decisionIdentity = "decision-topic-a", topicIdentity = "topic-a", state = InternalModelDecisionState.Superseded),
-        record.copy(decisionIdentity = "decision-topic-b", topicIdentity = "topic-b", supersedes = Some("decision-topic-a"))
+        record.copy(decisionReference = _record_reference("decision-topic-a", 41), topicIdentity = "topic-a", state = InternalModelDecisionState.Superseded),
+        record.copy(decisionReference = _record_reference("decision-topic-b", 41), topicIdentity = "topic-b", supersedes = Some(_record_reference("decision-topic-a", 41)))
       ))
       val ledgerscopemismatch = base.copy(scope = _scope.copy(componentIdentity = "other-component"))
-      val invalidadmission = Vector(badartifact, badidentity, badscope, ledgerscopemismatch, unknowntarget, unknowncondition, unknownsource, supersededterminal, dangling, self, acceptedwithsuccessor, duplicatedterminal, cycle, cross)
+      val badartifactrevision = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationArtifactReference = _artifact_reference("realization-main", "realization", 14)))))
+      val badrecordrevision = base.copy(records = Vector(record.copy(basis = record.basis.copy(realizationReference = _record_reference("realization-order", 24)))))
+      val predecessorversion = base.copy(records = Vector(
+        record.copy(decisionReference = _record_reference("decision-prior", 41), state = InternalModelDecisionState.Superseded),
+        record.copy(decisionReference = _record_reference("decision-successor", 42), supersedes = Some(_record_reference("decision-prior", 40)))
+      ))
+      val invalidadmission = Vector(badartifact, badartifactrevision, badidentity, badrecordrevision, predecessorversion, badscope, ledgerscopemismatch, unknowntarget, unknowncondition, unknownsource, supersededterminal, dangling, self, acceptedwithsuccessor, duplicatedterminal, cycle, cross)
       invalidadmission.foreach { ledger =>
         _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(ledger))) { root =>
           When("an exact current basis, current resolution, or predecessor/successor chain requirement is violated")
@@ -386,7 +406,7 @@ final class InternalModelDecisionRecordValidatorSpec
         val structural = InternalModelPackageValidator.validateStructure(root)
         val result = InternalModelDecisionRecordValidator.validate(root)
 
-        Then("structural V1 compatibility is preserved while decision admission rejects the missing direct handoff dependency")
+        Then("structural V2 validity is preserved while decision admission rejects the missing direct handoff dependency")
         structural.isSuccess shouldBe true
         result.isSuccess shouldBe false
       }
@@ -414,21 +434,21 @@ final class InternalModelDecisionRecordValidatorSpec
         result.isSuccess shouldBe false
       }
       _with_fixture(realization, Some(InternalModelDecisionRecordCodec.encode(base))) { root =>
-        Given("a package whose manifest-verified decision bytes are replaced after fixture construction")
+        Given("a package whose captured decision payload are replaced after fixture construction")
         Files.write(root.resolve("src/main/internal-model/decisions/decision.json"), "tampered\n".getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING)
 
         When("a fresh package-bound decision admission is requested")
         val result = InternalModelDecisionRecordValidator.validate(root)
 
-        Then("the manifest raw-byte digest mismatch fails before decision parsing")
+        Then("the malformed changed payload fails strict decision parsing")
         result.isSuccess shouldBe false
       }
     }
 
-    "reject every closed-schema and canonical-byte mutation deterministically" in {
+    "reject every closed-schema mutation deterministically" in {
       Given("one canonical decision ledger and table-driven mutations at every closed object boundary")
       val base = _ledger(_realization())
-      val decision = InternalModelVerifiedDecision("decision-main", "decision", "decision.json", true, Vector.empty, InternalModelDecisionRecordCodec.encode(base).toVector)
+      val decision = InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decision.json", true, Vector.empty, InternalModelDecisionRecordCodec.encode(base).toVector)
 
       _closed_mutations(base).foreach { case (_, bytes) =>
         When("a required or unknown root, record, actor, provenance, source, scope, choice, target, evidence, alternative, or basis field is mutated")
@@ -459,7 +479,7 @@ final class InternalModelDecisionRecordValidatorSpec
         result.isLeft shouldBe true
       }
 
-      val unsupportedschema = base.copy(schemaVersion = "2.0")
+      val unsupportedschema = base.copy(schemaVersion = "1.0")
       val unsupportedactor = base.copy(records = Vector(base.records.head.copy(actor = base.records.head.actor.copy(kind = "provider"))))
       val unsupportedtarget = base.copy(records = Vector(base.records.head.copy(affectedTargets = Vector(InternalModelSemanticTarget("other", "e-customer"), base.records.head.affectedTargets(1)))))
       val providerprovenance = base.copy(records = Vector(base.records.head.copy(provenance = base.records.head.provenance.copy(authority = "provider"))))
@@ -472,9 +492,9 @@ final class InternalModelDecisionRecordValidatorSpec
       val blankalternativerationale = base.copy(records = Vector(base.records.head.copy(rejectedAlternatives = Vector(base.records.head.rejectedAlternatives.head.copy(rejectionRationale = ""), base.records.head.rejectedAlternatives(1)))))
       val blankevidenceidentity = base.copy(records = Vector(base.records.head.copy(consideredEvidence = Vector(base.records.head.consideredEvidence.head.copy(evidenceIdentity = ""), base.records.head.consideredEvidence(1), base.records.head.consideredEvidence(2)))))
       val blanktargetidentity = base.copy(records = Vector(base.records.head.copy(affectedTargets = Vector(base.records.head.affectedTargets.head.copy(semanticIdentity = ""), base.records.head.affectedTargets(1)))))
-      val uppercasedigest = base.copy(records = Vector(base.records.head.copy(provenance = base.records.head.provenance.copy(sha256 = "sha256:" + ("A" * 64)))))
-      val shortdigest = base.copy(records = Vector(base.records.head.copy(basis = base.records.head.basis.copy(sha256 = "sha256:abcd"))))
-      val duplicatedecision = base.copy(records = Vector(base.records.head, base.records.head.copy(topicIdentity = "topic-other")))
+      val invalidledgerrevision = base.copy(ledgerReference = _record_reference_unchecked(base.ledgerReference.recordId.value, 0L))
+      val invaliddecisionrevision = base.copy(records = Vector(base.records.head.copy(decisionReference = _record_reference_unchecked(base.records.head.decisionReference.recordId.value, 0L))))
+      val duplicatedecision = base.copy(records = Vector(base.records.head, base.records.head.copy(decisionReference = _record_reference("decision-current", 42), topicIdentity = "topic-other")))
       val duplicatecondition = base.copy(records = Vector(base.records.head.copy(realizationConditionIds = Vector("c-limitation", "c-limitation"))))
       val duplicateevidencecondition = base.copy(records = Vector(base.records.head.copy(consideredEvidence = base.records.head.consideredEvidence.map { evidence =>
         if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(conditionIds = Vector("c-limitation", "c-limitation")) else evidence
@@ -493,14 +513,14 @@ final class InternalModelDecisionRecordValidatorSpec
         "blank alternative rationale" -> blankalternativerationale,
         "blank evidence identity" -> blankevidenceidentity,
         "blank target identity" -> blanktargetidentity,
-        "uppercase digest" -> uppercasedigest,
-        "short digest" -> shortdigest,
+        "nonpositive ledger revision" -> invalidledgerrevision,
+        "nonpositive decision revision" -> invaliddecisionrevision,
         "duplicate decision identity" -> duplicatedecision,
         "duplicate realization condition identity" -> duplicatecondition,
         "duplicate evidence condition identity" -> duplicateevidencecondition
       )
       canonicalmutations.foreach { case (_, ledger) =>
-        When("a closed scalar, vocabulary, digest, or identity uniqueness invariant is mutated")
+        When("a closed scalar, vocabulary, revision, or identity uniqueness invariant is mutated")
         val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = InternalModelDecisionRecordCodec.encode(ledger).toVector))
 
         Then("the codec rejects the typed candidate rather than allowing encoding to become admission")
@@ -516,17 +536,16 @@ final class InternalModelDecisionRecordValidatorSpec
       rawproviderresult.isLeft shouldBe true
 
       val rawbase = base.copy(records = Vector(
-        base.records.head.copy(decisionIdentity = "decision-a", topicIdentity = "topic-a"),
-        base.records.head.copy(decisionIdentity = "decision-b", topicIdentity = "topic-b")
+        base.records.head.copy(decisionReference = _record_reference("decision-a", 41), topicIdentity = "topic-a"),
+        base.records.head.copy(decisionReference = _record_reference("decision-b", 41), topicIdentity = "topic-b")
       ))
       val rawcanonical = InternalModelDecisionRecordCodec.encode(rawbase)
       val rawmutations = Vector(
         ("malformed Unicode scalar escape", new String(rawcanonical, StandardCharsets.UTF_8).replace("\"rationale\":\"利用者の根拠と制約を保持する\"", "\"rationale\":\"\\ud800\"").getBytes(StandardCharsets.UTF_8)),
-        ("trailing bytes", rawcanonical ++ "\n".getBytes(StandardCharsets.UTF_8)),
-        ("noncanonical whitespace", rawcanonical.dropRight(1) ++ " \n".getBytes(StandardCharsets.UTF_8))
+        ("trailing non-JSON data", rawcanonical ++ "not-json".getBytes(StandardCharsets.UTF_8))
       ) ++ _unsorted_raw_mutations(rawbase)
       rawmutations.foreach { case (_, bytes) =>
-        When("malformed Unicode, trailing/noncanonical bytes, or any identity array order is supplied")
+        When("malformed Unicode, trailing non-JSON data, or any identity array order is supplied")
         val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = bytes.toVector))
 
         Then("the codec fails closed and never silently sorts the raw mutation")
@@ -534,8 +553,8 @@ final class InternalModelDecisionRecordValidatorSpec
       }
     }
 
-    "separate structural compatibility from decision readiness across inventory and digest mutations" in {
-      Given("portable package fixtures with optional, missing, duplicate, dependent, and tampered decision artifacts")
+    "separate structural compatibility from decision readiness across inventory and malformed payload mutations" in {
+      Given("portable package fixtures with optional, missing, duplicate, dependent, and malformed decision artifacts")
       val realization = _realization()
       val decision = InternalModelDecisionRecordCodec.encode(_ledger(realization))
 
@@ -551,26 +570,10 @@ final class InternalModelDecisionRecordValidatorSpec
       _with_fixture(realization, Some(decision)) { root =>
         Files.write(root.resolve("src/main/internal-model/realizations/main.json"), "tampered\n".getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING)
 
-        When("the selected realization bytes are tampered after manifest construction")
+        When("the selected realization payload is replaced by malformed JSON")
         val result = InternalModelDecisionRecordValidator.validate(root)
 
-        Then("fresh package admission fails on the captured artifact digest")
-        result.isSuccess shouldBe false
-      }
-      _with_fixture(realization, Some(decision)) { root =>
-        val path = root.resolve("src/main/internal-model/manifest.yaml")
-        val bytes = Files.readAllBytes(path)
-        val text = new String(bytes, StandardCharsets.UTF_8)
-        val marker = "\"packageDigest\":\"sha256:"
-        val offset = text.indexOf(marker) + marker.length
-        val chars = text.toCharArray
-        chars(offset) = if chars(offset) == '0' then '1' else '0'
-        Files.write(path, new String(chars).getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING)
-
-        When("the manifest packageDigest is changed without rewriting its artifacts")
-        val result = InternalModelDecisionRecordValidator.validate(root)
-
-        Then("fresh package admission fails closed on manifest digest mismatch")
+        Then("fresh realization admission rejects the malformed captured payload")
         result.isSuccess shouldBe false
       }
       _with_fixture(realization, Some(decision)) { root =>
@@ -590,6 +593,10 @@ final class InternalModelDecisionRecordValidatorSpec
       val base = _ledger(realization)
       val propertyinput = for {
         token <- _identity_gen
+        ledgerrevision <- Gen.chooseNum(1L, Long.MaxValue)
+        decisionrevision <- Gen.chooseNum(1L, Long.MaxValue)
+        artifactrevision <- Gen.chooseNum(1L, Long.MaxValue)
+        realizationrevision <- Gen.chooseNum(1L, Long.MaxValue)
         rationale <- _prose_gen
         choicedescription <- _prose_gen
         alternativedescription <- _prose_gen
@@ -601,15 +608,15 @@ final class InternalModelDecisionRecordValidatorSpec
         alternativeorder <- _permutation(Vector(0, 1))
         conditionorder <- _permutation(Vector(0, 1))
         sourceconditionorder <- _permutation(Vector(0, 1))
-      } yield (token, rationale, choicedescription, alternativedescription, rejectionrationale, prose, recordorder, targetorder, evidenceorder, alternativeorder, conditionorder, sourceconditionorder)
+      } yield (token, ledgerrevision, decisionrevision, artifactrevision, realizationrevision, rationale, choicedescription, alternativedescription, rejectionrationale, prose, recordorder, targetorder, evidenceorder, alternativeorder, conditionorder, sourceconditionorder)
 
-      forAll(propertyinput) { case (token, rationale, choicedescription, alternativedescription, rejectionrationale, prose, recordorder, targetorder, evidenceorder, alternativeorder, conditionorder, sourceconditionorder) =>
+      forAll(propertyinput) { case (token, ledgerrevision, decisionrevision, artifactrevision, realizationrevision, rationale, choicedescription, alternativedescription, rejectionrationale, prose, recordorder, targetorder, evidenceorder, alternativeorder, conditionorder, sourceconditionorder) =>
         val sourceevidence = base.records.head.consideredEvidence.map { evidence =>
           if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(conditionIds = sourceconditionorder.map(index => Vector("c-limitation", "c-source-secondary")(index))) else evidence
         }
         val logicalrecords = Vector(
           base.records.head.copy(
-            decisionIdentity = s"decision-$token-a",
+            decisionReference = _record_reference(s"decision-$token-a", decisionrevision),
             topicIdentity = s"topic-$token-a",
             rationale = rationale,
             selectedChoice = base.records.head.selectedChoice.copy(description = choicedescription),
@@ -625,14 +632,16 @@ final class InternalModelDecisionRecordValidatorSpec
             }
           ),
           base.records.head.copy(
-            decisionIdentity = s"decision-$token-b",
+            decisionReference = _record_reference(s"decision-$token-b", decisionrevision),
             topicIdentity = s"topic-$token-b",
             rationale = prose,
             selectedChoice = base.records.head.selectedChoice.copy(description = rationale)
           )
         )
-        val permuted = recordorder.map(logicalrecords)
-        val expectedrecords = logicalrecords.map { logicalrecord =>
+        val versionedbase = base.copy(ledgerReference = _record_reference(s"ledger-$token", ledgerrevision))
+        val versionedrecords = logicalrecords.map(record => record.copy(basis = record.basis.copy(realizationArtifactReference = _artifact_reference("realization-main", "realization", artifactrevision), realizationReference = _record_reference("realization-order", realizationrevision))))
+        val permuted = recordorder.map(versionedrecords)
+        val expectedrecords = versionedrecords.map { logicalrecord =>
           logicalrecord.copy(
             affectedTargets = base.records.head.affectedTargets,
             consideredEvidence = logicalrecord.consideredEvidence.sortBy(_.evidenceIdentity).map(evidence => evidence.copy(conditionIds = evidence.conditionIds.sorted)),
@@ -642,23 +651,313 @@ final class InternalModelDecisionRecordValidatorSpec
         }
 
         When("the pure codec encodes permuted records, targets, evidence, alternatives, condition IDs, and generated explanatory text")
-        val encoded = InternalModelDecisionRecordCodec.encode(base.copy(records = permuted))
-        val expected = InternalModelDecisionRecordCodec.encode(base.copy(records = expectedrecords))
-        val decoded = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision("decision-main", "decision", "decisions.json", true, Vector("realization-main"), encoded.toVector))
+        val encoded = InternalModelDecisionRecordCodec.encode(versionedbase.copy(records = permuted))
+        val expected = versionedbase.copy(records = expectedrecords)
+        val decoded = InternalModelDecisionRecordCodec.decode(InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decisions.json", true, Vector(_artifact_reference("realization-main", "realization", 13)), encoded.toVector))
 
-        Then("canonical bytes and complete retained identities are invariant while generated text remains verbatim and makes no winner inference")
-        encoded.toVector shouldBe expected.toVector
-        decoded.toOption.map(_.records.map(record => (record.decisionIdentity, record.topicIdentity))) shouldBe Some(Vector((s"decision-$token-a", s"topic-$token-a"), (s"decision-$token-b", s"topic-$token-b")))
+        Then("decoded semantic values and complete retained identities are invariant while generated text remains verbatim and makes no winner inference")
+        decoded.toOption shouldBe Some(expected)
+        decoded.toOption.map(_.records.map(record => (record.decisionReference.recordId.value, record.topicIdentity))) shouldBe Some(Vector((s"decision-$token-a", s"topic-$token-a"), (s"decision-$token-b", s"topic-$token-b")))
         decoded.toOption.map(_.records.head).map { record =>
           (record.rationale, record.selectedChoice.choiceIdentity, record.selectedChoice.description, record.rejectedAlternatives.map(_.alternativeIdentity), record.rejectedAlternatives.map(_.description), record.assumptions, record.conditions, record.limitations)
         } shouldBe Some((rationale, "choice-primary", choicedescription, Vector("choice-alternative", "choice-secondary"), Vector(alternativedescription, alternativedescription), Vector(prose, rationale, prose), Vector(rationale, prose, rationale), Vector(prose, rationale, prose)))
       }
     }
+
+    }
+
+    "typed reference and capture contracts" which {
+    "preserve semantic values across harmless JSON presentation changes" in {
+      Given("a complete typed ledger with nullable sources, Unicode prose and explicit independent revisions")
+      val base = _ledger(_realization())
+      val decision = _captured_decision(InternalModelDecisionRecordCodec.encode(base))
+      val json = _json(base)
+      val presentations = Vector(
+        Printer.spaces2.print(json),
+        _reverse_objects(json).noSpaces,
+        json.noSpaces.replace("利用者", "\\u5229\\u7528\\u8005"),
+        " \n\t" + json.noSpaces + " \n\t"
+      )
+      presentations.foreach { text =>
+        When("the same values are supplied with key, whitespace or equivalent escape variations")
+        val decoded = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = text.getBytes(StandardCharsets.UTF_8).toVector))
+        Then("admission and ordinary roundtrip retain exactly the semantic ledger")
+        decoded.toOption shouldBe Some(base)
+        decoded.flatMap(ledger => InternalModelDecisionRecordCodec.decode(decision.copy(bytes = InternalModelDecisionRecordCodec.encode(ledger).toVector))).toOption shouldBe Some(base)
+      }
+
+      Given("a nested duplicate member inside an otherwise valid actor")
+      val duplicate = new String(decision.bytes.toArray, StandardCharsets.UTF_8).replace("\"kind\":\"human\"", "\"kind\":\"human\",\"kind\":\"human\"")
+      When("the duplicate-member payload is decoded")
+      val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = duplicate.getBytes(StandardCharsets.UTF_8).toVector))
+      Then("presentation tolerance never admits duplicate members")
+      result.isLeft shouldBe true
+    }
+
+    "reject invalid lexical references and legacy fields at every decision reference depth" in {
+      Given("a codec-valid ledger whose explicit predecessor supplies every reference-bearing depth")
+      val original = _ledger(_realization())
+      val base = original.copy(records = Vector(original.records.head.copy(supersedes = Some(_record_reference("decision-prior", 40)))))
+      val decision = _captured_decision(InternalModelDecisionRecordCodec.encode(base))
+      InternalModelDecisionRecordCodec.decode(decision).toOption shouldBe Some(base)
+      val recordpaths = Vector(
+        Vector("ledgerReference"),
+        Vector("records", "decisionReference"),
+        Vector("records", "supersedes"),
+        Vector("records", "basis", "realizationReference")
+      )
+      val artifactpath = Vector("records", "basis", "realizationArtifactReference")
+      val referencepaths = recordpaths.map(path => (path, "recordRevision")) :+ (artifactpath, "artifactRevision")
+      val invalidtokens = Vector("0", "-1", "+1", "1.0", "1e0", "01", "9223372036854775808", "\"1\"", "null")
+      referencepaths.foreach { case (path, revisionkey) =>
+        invalidtokens.foreach { token =>
+          Given(s"an invalid lexical positive Long at the explicit ${path.mkString(".")} boundary")
+          val marked = _replace_at(_json(base), path :+ revisionkey, Json.fromString("invalid-revision"))
+          val bytes = _canonical(marked)
+          val content = new String(bytes, StandardCharsets.UTF_8).replace("\"invalid-revision\"", token)
+          When("the revision token is decoded through the strict reference codec")
+          val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = content.getBytes(StandardCharsets.UTF_8).toVector))
+          Then("no sign, fraction, exponent, leading zero, string, null or overflow supplies a version")
+          result.isLeft shouldBe true
+        }
+        val idkey = if revisionkey == "recordRevision" then "recordId" else "artifactId"
+        val malformed = Vector(
+          _change_object_at(_json(base), path, _.remove(revisionkey)),
+          _change_object_at(_json(base), path, _.add("unknown", Json.fromString("extra"))),
+          _change_object_at(_json(base), path, _.add("sha256", Json.fromString("obsolete"))),
+          _replace_at(_json(base), path, Json.fromString("bare-reference")),
+          _replace_at(_json(base), path :+ idkey, Json.fromString(" "))
+        )
+        malformed.foreach { json =>
+          When("an exact reference field is missing, extra, hash-bearing, bare or blank")
+          val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = _canonical(json).toVector))
+          Then("the closed reference shape rejects without defaults or aliases")
+          result.isLeft shouldBe true
+        }
+      }
+
+      val legacy = Vector(
+        _update_root(base, root => root.remove("ledgerReference").add("ledgerIdentity", Json.fromString("ledger-order"))),
+        _update_record(base, record => record.remove("decisionReference").add("decisionIdentity", Json.fromString("decision-current"))),
+        _update_record_child(base, "basis", basis => basis.remove("realizationArtifactReference").add("realizationArtifactId", Json.fromString("realization-main"))),
+        _update_record_child(base, "basis", basis => basis.remove("realizationReference").add("realizationIdentity", Json.fromString("realization-order"))),
+        _update_root(base, _.add("sha256", Json.fromString("obsolete"))),
+        _update_record_child(base, "basis", _.add("sha256", Json.fromString("obsolete"))),
+        _update_record_child(base, "provenance", _.add("sha256", Json.fromString("obsolete"))),
+        _update_evidence_child(base, 2, "source", _.add("sha256", Json.fromString("obsolete"))),
+        _replace_at(_json(base), artifactpath :+ "role", Json.fromString("projection"))
+      )
+      legacy.foreach { json =>
+        When("legacy bare IDs, hash fields or a non-realization basis role are supplied")
+        val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = _canonical(json).toVector))
+        Then("only the actual closed V2 decision grammar is admitted")
+        result.isLeft shouldBe true
+      }
+      Vector(("ccdm-decision-records-v1", "1.0"), ("ccdm-decision-records-v1", "2.0"), ("ccdm-decision-records-v2", "1.0")).foreach { case (profile, schema) =>
+        When("an old or mismatched decision profile and schema pair is supplied explicitly")
+        val result = InternalModelDecisionRecordCodec.decode(decision.copy(bytes = InternalModelDecisionRecordCodec.encode(base.copy(profile = profile, schemaVersion = schema)).toVector))
+        Then("there is no legacy reader or inferred-version fallback")
+        result.isLeft shouldBe true
+      }
+    }
+
+    "reject malformed captured decision metadata before byte content" in {
+      Given("valid decision bytes and typed selected artifact metadata")
+      val base = _captured_decision(InternalModelDecisionRecordCodec.encode(_ledger(_realization())))
+      val reference = base.reference
+      val invalidid = reference.copy(artifactId = "bad id".asInstanceOf[InternalModelArtifactId])
+      val invalidrevision = reference.copy(artifactRevision = 0L.asInstanceOf[InternalModelArtifactRevision])
+      val metadata = Vector(
+        null,
+        base.copy(reference = null),
+        base.copy(reference = invalidid),
+        base.copy(reference = invalidrevision),
+        base.copy(reference = reference.copy(role = null)),
+        base.copy(reference = reference.copy(role = InternalModelArtifactRole.Projection)),
+        base.copy(path = null),
+        base.copy(bytes = null),
+        base.copy(dependencies = null),
+        base.copy(dependencies = Vector(null)),
+        base.copy(dependencies = Vector(base.dependencies.head, base.dependencies.head)),
+        base.copy(dependencies = Vector(_artifact_reference("snapshot-model", "source-snapshot", 7), base.dependencies.head)),
+        base.copy(dependencies = Vector(reference))
+      )
+      metadata.foreach { decision =>
+        When("a null, invalid, wrong-role, duplicate, unordered or self-dependent capture is decoded")
+        val result = InternalModelDecisionRecordCodec.decode(decision)
+        Then("the codec returns a failure value before reading content")
+        result.isLeft shouldBe true
+      }
+    }
+
+    "reject malformed capture and exact dependency contradictions without partial admission" in {
+      Given("one independently admitted current realization capture and a complete decision")
+      val realization = _realization()
+      val ledger = _ledger(realization)
+      val base = _capture(realization, InternalModelDecisionRecordCodec.encode(ledger))
+      InternalModelSemanticRealizationValidator.validateVerified(base.realizationpackage).isSuccess shouldBe true
+      val selected = base.realizationpackage.realization
+      val malformed = Vector(
+        null,
+        base.copy(decision = null),
+        base.copy(realizationpackage = null),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = null)),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = null)),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = selected.copy(reference = null))),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = selected.copy(path = null))),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = selected.copy(dependencies = null))),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = selected.copy(reference = selected.reference.copy(role = InternalModelArtifactRole.Projection)))),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = selected.copy(reference = selected.reference.copy(artifactRevision = 0L.asInstanceOf[InternalModelArtifactRevision])))),
+        base.copy(realizationpackage = base.realizationpackage.copy(realization = selected.copy(bytes = null))),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = Vector(null))),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = base.realizationpackage.sourcesnapshots.map(_.copy(reference = null)))),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = base.realizationpackage.sourcesnapshots.map(_.copy(path = null)))),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = base.realizationpackage.sourcesnapshots.map(_.copy(dependencies = null)))),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = base.realizationpackage.sourcesnapshots.map(_.copy(bytes = null)))),
+        base.copy(realizationpackage = base.realizationpackage.copy(sourcesnapshots = base.realizationpackage.sourcesnapshots.map(_.copy(bytes = Some(null)))))
+      )
+      malformed.foreach { capture =>
+        When("required captured realization or decision metadata is null")
+        val result = InternalModelDecisionRecordValidator.validateVerified(capture)
+        Then("operationInvalid is returned without a partial decision account")
+        result.isSuccess shouldBe false
+      }
+
+      Vector(
+        Vector.empty,
+        Vector(_artifact_reference("realization-main", "realization", 14)),
+        Vector(_artifact_reference("realization-main", "projection", 13)),
+        Vector(_artifact_reference("realization-other", "realization", 13))
+      ).foreach { dependencies =>
+        Given("the same valid selected realization and a contradictory exact direct dependency")
+        val capture = base.copy(decision = base.decision.copy(dependencies = dependencies))
+        When("decision admission checks its selected realization reference")
+        val result = InternalModelDecisionRecordValidator.validateVerified(capture)
+        Then("ID, revision and role must all match without rebinding")
+        result.isSuccess shouldBe false
+      }
+    }
+
+    "admit explicitly allocated logical revisions independently of their carrier artifact" in {
+      Given("one exact-current basis and separate producer-allocated ledger and decision revisions")
+      val realization = _realization()
+      val base = _ledger(realization)
+      val versions = Vector(
+        base,
+        base.copy(ledgerReference = _record_reference("ledger-order", 32)),
+        base.copy(records = Vector(base.records.head.copy(decisionReference = _record_reference("decision-current", 42))))
+      )
+      versions.foreach { ledger =>
+        val capture = _capture(realization, InternalModelDecisionRecordCodec.encode(ledger))
+        InternalModelSemanticRealizationValidator.validateVerified(capture.realizationpackage).isSuccess shouldBe true
+        When("the declared logical versions are admitted against the same selected artifact and semantic basis")
+        val result = InternalModelDecisionRecordValidator.validateVerified(capture)
+        Then("the declared ledger and record references remain exact without carrier revision substitution")
+        result.toOption.map(_.ledger) shouldBe Some(ledger)
+        capture.decision.reference.artifactRevision.value shouldBe 19L
+        capture.realizationpackage.realization.reference.artifactRevision.value shouldBe 13L
+      }
+    }
+
+    "retain unknown source versions independently of known producer revisions" in {
+      Given("known package, artifact, realization, ledger and decision versions and an explicitly unknown source revision")
+      val original = _realization()
+      val realization = _canonical(_replace_source_revisions(_json_parser.parse(new String(original, StandardCharsets.UTF_8)).toOption.get))
+      val base = _ledger(realization)
+      val ledger = base.copy(records = base.records.map(record => record.copy(consideredEvidence = record.consideredEvidence.map { evidence =>
+        if evidence.kind == InternalModelDecisionEvidenceKind.RealizationSource then evidence.copy(source = evidence.source.copy(revision = None)) else evidence
+      })))
+      val originalcapture = _capture(realization, InternalModelDecisionRecordCodec.encode(ledger))
+      val snapshot = _canonical(_replace_source_revisions(_json_parser.parse(new String(_source_snapshot(), StandardCharsets.UTF_8)).toOption.get))
+      val capture = originalcapture.copy(realizationpackage = originalcapture.realizationpackage.copy(sourcesnapshots = originalcapture.realizationpackage.sourcesnapshots.map(_.copy(bytes = Some(snapshot.toVector)))))
+      InternalModelSemanticRealizationValidator.validateVerified(capture.realizationpackage).isSuccess shouldBe true
+      When("the decision account is admitted against matching unknown source metadata")
+      val result = InternalModelDecisionRecordValidator.validateVerified(capture)
+      Then("all independent declared versions remain known while the source version remains absent")
+      result.toOption.map(_.ledger.ledgerReference.recordRevision.value) shouldBe Some(31L)
+      result.toOption.map(_.ledger.records.head.decisionReference.recordRevision.value) shouldBe Some(41L)
+      result.toOption.map(_.realization.realizationReference.recordRevision.value) shouldBe Some(23L)
+      result.toOption.map(_.realization.sourceReferences.map(_.source.revision)) shouldBe Some(Vector(None, None, None))
+      result.toOption.map(_.ledger.records.head.consideredEvidence.find(_.kind == InternalModelDecisionEvidenceKind.RealizationSource).get.source.revision) shouldBe Some(None)
+    }
+    }
   }
+
+  private def _record_reference(identity: String, revision: Long): InternalModelRecordReference =
+    InternalModelRecordReference(InternalModelRecordId.from(identity).toOption.get, InternalModelRecordRevision.from(revision).toOption.get)
+
+  private def _record_reference_unchecked(identity: String, revision: Long): InternalModelRecordReference =
+    InternalModelRecordReference(identity.asInstanceOf[InternalModelRecordId], revision.asInstanceOf[InternalModelRecordRevision])
+
+  private def _artifact_reference(identity: String, rolevalue: String, revision: Long): InternalModelArtifactReference =
+    InternalModelArtifactReference(InternalModelArtifactId.from(identity).toOption.get, InternalModelArtifactRevision.from(revision).toOption.get, InternalModelArtifactRole.fromWire(rolevalue).toOption.get)
+
+  private def _fixture_artifact_revision(identity: String): Long =
+    identity match {
+      case "snapshot-model" => 7
+      case "realization-main" => 13
+      case "realization-other" => 11
+      case "decision-main" => 19
+      case "decision-other" => 17
+    }
+
+  private def _fixture_artifact_reference(identity: String): InternalModelArtifactReference =
+    _artifact_reference(identity, if identity.startsWith("snapshot-") then "source-snapshot" else if identity.startsWith("realization-") then "realization" else "decision", _fixture_artifact_revision(identity))
+
+  private def _record_reference_json(reference: InternalModelRecordReference): Json =
+    Json.obj("recordId" -> Json.fromString(reference.recordId.value), "recordRevision" -> Json.fromLong(reference.recordRevision.value))
+
+  private def _artifact_reference_json(reference: InternalModelArtifactReference): Json =
+    Json.obj("artifactId" -> Json.fromString(reference.artifactId.value), "artifactRevision" -> Json.fromLong(reference.artifactRevision.value), "role" -> Json.fromString(reference.role.wireValue))
+
+
+  private def _captured_decision(bytes: Array[Byte]): InternalModelVerifiedDecision =
+    InternalModelVerifiedDecision(_artifact_reference("decision-main", "decision", 19), "decisions/decision.json", true, Vector(_artifact_reference("realization-main", "realization", 13)), bytes.toVector)
+
+  private def _capture(realization: Array[Byte], decision: Array[Byte]): InternalModelVerifiedDecisionPackage =
+    InternalModelVerifiedDecisionPackage(
+      InternalModelVerifiedRealizationPackage(
+        InternalModelVerifiedRealization(_artifact_reference("realization-main", "realization", 13), "realizations/main.json", true, Vector(_artifact_reference("snapshot-model", "source-snapshot", 7)), realization.toVector),
+        Vector(InternalModelVerifiedSourceSnapshot(_artifact_reference("snapshot-model", "source-snapshot", 7), "snapshots/model.json", true, Vector.empty, Some(_source_snapshot().toVector)))
+      ),
+      _captured_decision(decision)
+    )
+
+  private def _replace_at(json: Json, path: Vector[String], replacement: Json): Json =
+    if path.isEmpty then replacement
+    else json.asArray match {
+      case Some(values) => Json.fromValues(values.headOption.map(value => _replace_at(value, path, replacement)).toVector ++ values.drop(1))
+      case None => json.asObject.map(objectvalue => Json.fromJsonObject(objectvalue.add(path.head, _replace_at(objectvalue(path.head).getOrElse(Json.Null), path.tail, replacement)))).getOrElse(json)
+    }
+
+  private def _change_object_at(json: Json, path: Vector[String], update: JsonObject => JsonObject): Json =
+    if path.isEmpty then json.asObject.map(objectvalue => Json.fromJsonObject(update(objectvalue))).getOrElse(json)
+    else json.asArray match {
+      case Some(values) => Json.fromValues(values.headOption.map(value => _change_object_at(value, path, update)).toVector ++ values.drop(1))
+      case None => json.asObject.map(objectvalue => Json.fromJsonObject(objectvalue.add(path.head, _change_object_at(objectvalue(path.head).getOrElse(Json.Null), path.tail, update)))).getOrElse(json)
+    }
+
+  private def _reverse_objects(json: Json): Json =
+    json.asObject match {
+      case Some(objectvalue) => Json.fromJsonObject(JsonObject.fromIterable(objectvalue.toVector.reverse.map { case (key, value) => key -> _reverse_objects(value) }))
+      case None => json.asArray.map(values => Json.fromValues(values.map(_reverse_objects))).getOrElse(json)
+    }
+
+  private def _replace_source_revisions(json: Json): Json =
+    json.asObject match {
+      case Some(objectvalue) =>
+        val fields = objectvalue.toVector.map { case (key, value) => key -> _replace_source_revisions(value) }
+        val updated = JsonObject.fromIterable(fields)
+        Json.fromJsonObject(if objectvalue.keys.toSet == Set("authority", "identity", "locator", "revision") then updated.add("revision", Json.Null) else updated)
+      case None => json.asArray.map(values => Json.fromValues(values.map(_replace_source_revisions))).getOrElse(json)
+    }
+
+  private def _admit_realization(root: Path): Unit =
+    InternalModelPackageValidator.verifiedPresentRealization(root).flatMap(InternalModelSemanticRealizationValidator.validateVerified).isSuccess shouldBe true
 
   private def _ledger(realization: Array[Byte]): InternalModelDecisionLedger = {
     val record = InternalModelDecisionRecord(
-      "decision-current",
+      _record_reference("decision-current", 41),
       "topic-current",
       InternalModelDecisionState.Accepted,
       InternalModelDecisionActor("human", "architect-1", "component architect"),
@@ -667,8 +966,8 @@ final class InternalModelDecisionRecordValidatorSpec
       "利用者の根拠と制約を保持する",
       Vector(InternalModelSemanticTarget("element", "e-customer"), InternalModelSemanticTarget("relationship", "r-uses")),
       Vector(
-        InternalModelDecisionEvidence("e-external", InternalModelDecisionEvidenceKind.ExternalHuman, InternalModelSemanticSource("external-human", "external-1", None, None, "sha256:" + ("3" * 64)), None, Vector.empty, Vector("external condition"), Vector("external limitation")),
-        InternalModelDecisionEvidence("e-provider", InternalModelDecisionEvidenceKind.ProviderProposal, InternalModelSemanticSource("provider", "provider-1", Some("provider/result"), None, "sha256:" + ("4" * 64)), None, Vector.empty, Vector.empty, Vector("proposal limitation")),
+        InternalModelDecisionEvidence("e-external", InternalModelDecisionEvidenceKind.ExternalHuman, InternalModelSemanticSource("external-human", "external-1", None, None), None, Vector.empty, Vector("external condition"), Vector("external limitation")),
+        InternalModelDecisionEvidence("e-provider", InternalModelDecisionEvidenceKind.ProviderProposal, InternalModelSemanticSource("provider", "provider-1", Some("provider/result"), None), None, Vector.empty, Vector.empty, Vector("proposal limitation")),
         InternalModelDecisionEvidence("e-realization", InternalModelDecisionEvidenceKind.RealizationSource, _source, Some("ref-relationship"), Vector("c-limitation", "c-source-secondary"), Vector("source condition", "source condition duplicate", "source condition duplicate"), Vector("source limitation", "source limitation duplicate"))
       ),
       Vector("assumption retained in supplied order", "assumption duplicate", "assumption duplicate"),
@@ -679,13 +978,13 @@ final class InternalModelDecisionRecordValidatorSpec
         InternalModelDecisionAlternative("choice-alternative", "Use an unbacked relationship", "It lacks the exact selected source witness"),
         InternalModelDecisionAlternative("choice-secondary", "Use a separately sourced relationship", "It is not the selected source-backed choice")
       ),
-      InternalModelDecisionBasis("realization-main", "realization-order", _sha256(realization), _scope, InternalModelDecisionBasisStatus.Current),
+      InternalModelDecisionBasis(_artifact_reference("realization-main", "realization", 13), _record_reference("realization-order", 23), _scope, InternalModelDecisionBasisStatus.Current),
       None
     )
-    InternalModelDecisionLedger("ccdm-decision-records-v1", "1.0", "ledger-order", _scope, Vector(record), Vector.empty)
+    InternalModelDecisionLedger("ccdm-decision-records-v2", "2.0", _record_reference("ledger-order", 31), _scope, Vector(record))
   }
 
-  private def _realization(v2: Boolean = false): Array[Byte] = {
+  private def _realization(): Array[Byte] = {
     val references = Vector(
       _reference("ref-customer", "element", "e-customer", "anchor-customer"),
       _reference("ref-relationship", "relationship", "r-uses", "anchor-relationship"),
@@ -693,9 +992,9 @@ final class InternalModelDecisionRecordValidatorSpec
     )
     _canonical(Json.obj(
       "canonicalAssertions" -> Json.fromValues(Vector(
-        _assertion("a-customer", "element", "e-customer", "ref-customer", "Customer is a party", Vector.empty, v2),
-        _assertion("a-relationship", "relationship", "r-uses", "ref-relationship", "Use case uses Customer", Vector("c-limitation"), v2),
-        _assertion("a-usecase", "element", "e-usecase", "ref-usecase", "Place an order", Vector.empty, v2)
+        _assertion("a-customer", "element", "e-customer", "ref-customer", "Customer is a party", Vector.empty),
+        _assertion("a-relationship", "relationship", "r-uses", "ref-relationship", "Use case uses Customer", Vector("c-limitation")),
+        _assertion("a-usecase", "element", "e-usecase", "ref-usecase", "Place an order", Vector.empty)
       )),
       "conditions" -> Json.fromValues(Vector(
         _condition("c-limitation", "limitation", "relationship", "r-uses", "ref-relationship", "source limitation"),
@@ -706,14 +1005,14 @@ final class InternalModelDecisionRecordValidatorSpec
         _element("e-usecase", "use-case", "Place order", Vector("a-usecase"))
       )),
       "enrichmentAssertions" -> Json.arr(),
-      "profile" -> Json.fromString(if v2 then "ccdm-realization-v2" else "ccdm-realization-v1"),
-      "realizationIdentity" -> Json.fromString("realization-order"),
+      "profile" -> Json.fromString("ccdm-realization-v3"),
+      "realizationReference" -> _record_reference_json(_record_reference("realization-order", 23)),
       "relationships" -> Json.arr(_relationship()),
-      "schemaVersion" -> Json.fromString(if v2 then "2.0" else "1.0"),
+      "schemaVersion" -> Json.fromString("3.0"),
       "scope" -> _scope_json,
       "sourceReferences" -> Json.fromValues(references),
       "successorLinks" -> Json.arr(),
-      "traceability" -> Json.obj("consumedSnapshotArtifactIds" -> Json.arr(Json.fromString("snapshot-model")))
+      "traceability" -> Json.obj("consumedSnapshotReferences" -> Json.arr(_artifact_reference_json(_artifact_reference("snapshot-model", "source-snapshot", 7))))
     ))
   }
 
@@ -727,7 +1026,7 @@ final class InternalModelDecisionRecordValidatorSpec
           _fact("relationship", "r-uses", "anchor-relationship", "Use case uses Customer", Vector("source limitation", "source limitation secondary"))
         ))
       ),
-      "schemaVersion" -> Json.fromString("1.0"),
+      "schemaVersion" -> Json.fromString("2.0"),
       "snapshotKind" -> Json.fromString("model-context"),
       "source" -> _source_json
     ))
@@ -735,14 +1034,15 @@ final class InternalModelDecisionRecordValidatorSpec
   private def _reference(referenceid: String, kindvalue: String, identity: String, anchor: String): Json =
     Json.obj(
       "referenceId" -> Json.fromString(referenceid),
-      "snapshotArtifactId" -> Json.fromString("snapshot-model"),
+      "snapshotReference" -> _artifact_reference_json(_artifact_reference("snapshot-model", "source-snapshot", 7)),
       "source" -> _source_json,
       "sourceAnchor" -> Json.fromString(anchor),
       "target" -> Json.obj("semanticIdentity" -> Json.fromString(identity), "semanticIdentityKind" -> Json.fromString(kindvalue))
     )
 
-  private def _assertion(assertionid: String, kindvalue: String, identity: String, referenceid: String, content: String, conditionids: Vector[String], v2: Boolean): Json = {
+  private def _assertion(assertionid: String, kindvalue: String, identity: String, referenceid: String, content: String, conditionids: Vector[String]): Json = {
     val fields = Vector(
+      "association" -> Json.Null,
       "assertionId" -> Json.fromString(assertionid),
       "conditionIds" -> Json.fromValues(conditionids.map(Json.fromString)),
       "content" -> Json.fromString(content),
@@ -750,7 +1050,7 @@ final class InternalModelDecisionRecordValidatorSpec
       "semanticIdentityKind" -> Json.fromString(kindvalue),
       "sourceReferenceId" -> Json.fromString(referenceid)
     )
-    Json.obj((if v2 then fields :+ ("association" -> Json.Null) else fields)*)
+    Json.obj(fields*)
   }
 
   private def _condition(conditionid: String, kindvalue: String, affectedkind: String, affectedidentity: String, referenceid: String, detail: String): Json =
@@ -813,7 +1113,9 @@ final class InternalModelDecisionRecordValidatorSpec
     val decisionartifact = decision.map(bytes => _artifact("decision-main", decisionpath, "decision", true, bytes, decisiondependencies)).toVector
     val additionaldecisionartifact = additionaldecision.map(bytes => _artifact("decision-other", "decisions/other.json", "decision", true, bytes, decisiondependencies)).toVector
     val absentdecision = if decision.isEmpty && includeabsentdecision then Vector(_artifact("decision-main", decisionpath, "decision", false, "unused\n".getBytes(StandardCharsets.UTF_8), decisiondependencies)) else Vector.empty
-    val root = Files.createTempDirectory("internal-model-decision-record-")
+    val workroot = Path.of("target/internal-model-decision-record/work")
+    Files.createDirectories(workroot)
+    val root = Files.createTempDirectory(workroot, "fixture-")
     try {
       _write(root.resolve("project.yaml"), "project:\n  namespace: org.example\n  id: decision-sample\n".getBytes(StandardCharsets.UTF_8))
       _write(root.resolve("src/main/internal-model/manifest.yaml"), _manifest(Vector(snapshotartifact, realizationartifact) ++ additionalrealizationartifact ++ decisionartifact ++ additionaldecisionartifact ++ absentdecision))
@@ -883,7 +1185,7 @@ final class InternalModelDecisionRecordValidatorSpec
     val actorunknown = _canonical(_update_record_child(ledger, "actor", _.add("unknown", Json.fromString("extra")))).toVector
     val provenancemissing = _canonical(_update_record_child(ledger, "provenance", _.remove("authority"))).toVector
     val provenanceunknown = _canonical(_update_record_child(ledger, "provenance", _.add("unknown", Json.fromString("extra")))).toVector
-    val sourcemissing = _canonical(_update_record_child(ledger, "provenance", _.remove("sha256"))).toVector
+    val sourcemissing = _canonical(_update_record_child(ledger, "provenance", _.remove("revision"))).toVector
     val sourceunknown = _canonical(_update_record_child(ledger, "provenance", _.add("unknown", Json.fromString("extra")))).toVector
     val scopemissing = _canonical(_update_root(ledger, root => root("scope").flatMap(_.asObject).map(scope => root.add("scope", Json.fromJsonObject(scope.remove("componentIdentity")))).getOrElse(root))).toVector
     val scopeunknown = _canonical(_update_root(ledger, root => root("scope").flatMap(_.asObject).map(scope => root.add("scope", Json.fromJsonObject(scope.add("unknown", Json.fromString("extra"))))).getOrElse(root))).toVector
@@ -920,7 +1222,7 @@ final class InternalModelDecisionRecordValidatorSpec
       "actor unknown field" -> actorunknown,
       "provenance missing authority" -> provenancemissing,
       "provenance unknown field" -> provenanceunknown,
-      "source missing digest" -> sourcemissing,
+      "source missing revision" -> sourcemissing,
       "source unknown field" -> sourceunknown,
       "scope missing identity" -> scopemissing,
       "scope unknown field" -> scopeunknown,
@@ -956,30 +1258,29 @@ final class InternalModelDecisionRecordValidatorSpec
   private def _artifact(id: String, path: String, rolevalue: String, required: Boolean, bytes: Array[Byte], dependencies: Vector[String]): Json =
     Json.obj(
       "artifactId" -> Json.fromString(id),
-      "dependsOn" -> Json.fromValues(dependencies.map(Json.fromString)),
+      "artifactRevision" -> Json.fromLong(_fixture_artifact_revision(id)),
+      "dependsOn" -> Json.fromValues(dependencies.sorted.map(identity => _artifact_reference_json(_fixture_artifact_reference(identity)))),
       "path" -> Json.fromString(path),
       "required" -> Json.fromBoolean(required),
-      "role" -> Json.fromString(rolevalue),
-      "sha256" -> Json.fromString(_sha256(bytes))
+      "role" -> Json.fromString(rolevalue)
     )
 
   private def _manifest(artifacts: Vector[Json]): Array[Byte] = {
     def _order_(remaining: Vector[Json], collected: Vector[Json]): Vector[Json] =
       if remaining.isEmpty then collected else {
-        val ready = remaining.filter(artifact => artifact.hcursor.get[Vector[String]]("dependsOn").toOption.getOrElse(Vector.empty).forall(id => collected.exists(_.hcursor.get[String]("artifactId").toOption.contains(id)))).sortBy(_.hcursor.get[String]("artifactId").toOption.getOrElse("")).head
+        val ready = remaining.filter(artifact => artifact.hcursor.downField("dependsOn").focus.flatMap(_.asArray).getOrElse(Vector.empty).forall(reference => collected.exists(_.hcursor.get[String]("artifactId").toOption == reference.hcursor.get[String]("artifactId").toOption))).sortBy(_.hcursor.get[String]("artifactId").toOption.getOrElse("")).head
         _order_(remaining.filterNot(_ == ready), collected :+ ready)
       }
     val root = JsonObject.fromIterable(Vector(
       "artifacts" -> Json.fromValues(_order_(artifacts, Vector.empty)),
       "lifecycleState" -> Json.fromString("draft"),
-      "packageDigest" -> Json.fromString("sha256:" + ("0" * 64)),
       "packageId" -> Json.fromString("01234567-89ab-cdef-0123-456789abcdef"),
       "projectId" -> Json.fromString("decision-sample"),
       "projectNamespace" -> Json.fromString("org.example"),
-      "revision" -> Json.fromInt(1),
-      "schemaVersion" -> Json.fromString("1.0")
+      "revision" -> Json.fromLong(5),
+      "schemaVersion" -> Json.fromString("2.0")
     ))
-    _canonical(root.add("packageDigest", Json.fromString(_sha256(_canonical(root.remove("packageDigest").toJson)))).toJson)
+    _canonical(root.toJson)
   }
 
   private def _scope_json: Json =
@@ -994,15 +1295,12 @@ final class InternalModelDecisionRecordValidatorSpec
       "authority" -> Json.fromString(_source.authority),
       "identity" -> Json.fromString(_source.identity),
       "locator" -> _source.locator.map(Json.fromString).getOrElse(Json.Null),
-      "revision" -> _source.revision.map(Json.fromString).getOrElse(Json.Null),
-      "sha256" -> Json.fromString(_source.sha256)
+      "revision" -> _source.revision.map(Json.fromString).getOrElse(Json.Null)
     )
 
   private def _canonical(json: Json): Array[Byte] =
     (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
 
-  private def _sha256(bytes: Array[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes).map(byte => f"${byte & 0xff}%02x").mkString
 
   private def _write(path: Path, bytes: Array[Byte]): Unit = {
     Files.createDirectories(path.getParent)
@@ -1010,5 +1308,9 @@ final class InternalModelDecisionRecordValidatorSpec
   }
 
   private def _delete_tree(root: Path): Unit =
-    if Files.exists(root) then Files.walk(root).iterator.asScala.toVector.sortBy(_.getNameCount).reverse.foreach(Files.delete)
+    if Files.exists(root, LinkOption.NOFOLLOW_LINKS) then {
+      val stream = Files.walk(root)
+      try stream.iterator.asScala.toVector.sortBy(_.getNameCount).reverse.foreach(Files.delete)
+      finally stream.close()
+    }
 }

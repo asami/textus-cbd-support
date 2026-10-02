@@ -2,7 +2,8 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Point-in-time applicability states derived from an immutable human decision. */
@@ -16,11 +17,10 @@ private[runtime] enum InternalModelCandidateApprovalLifecycleState(val token: St
 
 /** One portable, explicit replacement link; its bytes exclude local selection metadata. */
 private[runtime] final case class InternalModelCandidateApprovalSupersession(
-  predecessorApproval: InternalModelCandidateReviewArtifact,
-  successorApproval: InternalModelCandidateReviewArtifact,
+  predecessorApproval: InternalModelArtifactReference,
+  successorApproval: InternalModelArtifactReference,
   profile: String,
-  schemaVersion: String,
-  canonicalBytes: Vector[Byte]
+  schemaVersion: String
 )
 
 /** A link and the separately admitted successor record that it names. */
@@ -34,11 +34,12 @@ private[runtime] enum InternalModelCandidateApprovalInvalidationKind {
   case CandidateBasisChanged
   case ReviewBasisChanged
   case SemanticDiffBasisChanged
-  case ReviewedPackageChanged
+  case ReviewSubjectChanged
   case ScopeChanged
   case RulesChanged
   case ProvidersChanged
   case SourceChanged
+  case SourceIncomplete
   case SourceUnavailable
   case SourceUnauthorized
   case SourceMalformed
@@ -49,8 +50,9 @@ private[runtime] enum InternalModelCandidateApprovalInvalidationKind {
 /** One deterministic reason with its optional affected source artifact and exact dimensions. */
 private[runtime] final case class InternalModelCandidateApprovalInvalidation(
   kind: InternalModelCandidateApprovalInvalidationKind,
-  artifactId: Option[String],
-  changedDimensionNames: Vector[String]
+  artifactReference: Option[InternalModelArtifactReference],
+  changedDimensionNames: Vector[String],
+  missingDimensionNames: Vector[String]
 )
 
 /** Immutable applicability result retaining the original decision and every supplied evidence link. */

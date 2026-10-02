@@ -2,7 +2,8 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** A closed recorded human decision; P10-34 owns any later applicability state. */
@@ -16,34 +17,21 @@ private[runtime] object InternalModelCandidateHumanApprovalDecision {
   def fromToken(token: String): Option[InternalModelCandidateHumanApprovalDecision] = values.find(_.token == token)
 }
 
-private[runtime] final case class InternalModelCandidateHumanApprovalPackageBasis(
-  packageDigest: String,
-  packageId: String,
-  projectId: String,
-  projectNamespace: String,
-  revision: Long,
-  schemaVersion: String
-)
-
 private[runtime] final case class InternalModelCandidateHumanApprovalBasis(
-  candidateArtifact: InternalModelCandidateReviewArtifact,
-  candidateIdentity: String,
+  candidateArtifactReference: InternalModelArtifactReference,
+  candidateReference: InternalModelRecordReference,
   candidateModelIdentity: String,
-  candidateRevision: Int,
-  reviewArtifact: InternalModelCandidateReviewArtifact,
-  reviewIdentity: String,
-  reviewRevision: Int,
-  reviewedPackage: InternalModelCandidateHumanApprovalPackageBasis,
+  reviewArtifactReference: InternalModelArtifactReference,
+  reviewReference: InternalModelRecordReference,
+  subject: InternalModelReviewSubject,
   scope: InternalModelSemanticScope,
-  semanticDiffArtifact: InternalModelCandidateReviewArtifact,
-  semanticDiffIdentity: String,
-  semanticDiffRevision: Int
+  semanticDiffArtifactReference: InternalModelArtifactReference,
+  semanticDiffReference: InternalModelRecordReference
 )
 
 private[runtime] final case class InternalModelCandidateHumanApprovalInput(
   actor: InternalModelDecisionActor,
-  approvalIdentity: String,
-  approvalRevision: Int,
+  approvalReference: InternalModelRecordReference,
   basis: InternalModelCandidateHumanApprovalBasis,
   decision: InternalModelCandidateHumanApprovalDecision,
   provenance: InternalModelSemanticSource,
@@ -54,8 +42,7 @@ private[runtime] final case class InternalModelCandidateHumanApprovalInput(
 private[runtime] final case class InternalModelCandidateHumanApproval(
   approval: InternalModelCandidateHumanApprovalInput,
   profile: String,
-  schemaVersion: String,
-  canonicalBytes: Vector[Byte]
+  schemaVersion: String
 )
 
 private[runtime] final case class InternalModelVerifiedCandidateHumanApprovalPackage(
@@ -65,8 +52,7 @@ private[runtime] final case class InternalModelVerifiedCandidateHumanApprovalPac
 
 private[runtime] final case class InternalModelCandidateHumanApprovalAdmission(
   record: InternalModelCandidateHumanApproval,
-  approvalArtifactId: String,
-  approvalArtifactSha256: String,
+  approvalArtifactReference: InternalModelArtifactReference,
   approvalArtifactPackageRelativePath: String,
   reviewAdmission: InternalModelCandidateReviewBindingAdmission
 )

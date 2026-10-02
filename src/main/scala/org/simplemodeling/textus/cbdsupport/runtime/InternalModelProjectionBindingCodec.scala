@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.ByteBuffer
 import java.nio.charset.{CodingErrorAction, StandardCharsets}
-import java.util.Arrays
 
 import scala.util.control.NonFatal
 
@@ -11,12 +10,12 @@ import io.circe.jawn.JawnParser
 
 /*
  * @since   Sep. 28, 2026
- * @version Sep. 28, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Parses and encodes the closed projection-binding artifact without projection reconstruction. */
 private[runtime] object InternalModelProjectionBindingCodec {
-  private val _root_fields = Set("profile", "realizationArtifactId", "schemaVersion", "scope", "views")
+  private val _root_fields = Set("bindingReference", "profile", "realizationArtifactReference", "schemaVersion", "scope", "views")
   private val _scope_fields = Set("componentIdentity", "projectionContextIdentity", "selectedUseCaseElementIdentity")
   private val _view_fields = Set("family", "records")
   private val _record_fields = Set(
@@ -44,33 +43,37 @@ private[runtime] object InternalModelProjectionBindingCodec {
     "StateMachineProjection" -> (Set("StateMachineProjectionStateMachine", "StateMachineProjectionState", "StateMachineProjectionTrigger", "StateMachineProjectionGuard", "StateMachineProjectionAction", "StateMachineProjectionActivity", "StateMachineProjectionOperation", "StateMachineProjectionEvent", "StateMachineProjectionRule"), Set("StateMachineProjectionTransitionRelation", "StateMachineProjectionTransitionAdjunctRelation"))
   )
   private val _json_parser = JawnParser(allowDuplicateKeys = false)
-  private val _canonical_printer = Printer.noSpacesSortKeys
+  private val _printer = Printer.noSpacesSortKeys
 
   def decode(
     projection: InternalModelVerifiedProjection,
-    selectedRealizationArtifactId: String,
+    selectedRealizationArtifactReference: InternalModelArtifactReference,
     realization: InternalModelSemanticRealization
   ): Either[String, InternalModelProjectionBinding] =
     for {
-      _ <- Either.cond(projection.role == "projection", (), "selected artifact role must be projection")
+      _ <- Either.cond(projection != null && realization != null, (), "projection capture and realization must be present")
+      _ <- _captured_metadata(projection)
+      _ <- _reference_metadata(selectedRealizationArtifactReference)
+      _ <- Either.cond(selectedRealizationArtifactReference.role == InternalModelArtifactRole.Realization, (), "selected realization reference role must be realization")
       bytes = projection.bytes.toArray
       _ <- Either.cond(!_has_bom(bytes), (), "projection binding bytes must not contain a UTF-8 byte-order mark")
       content <- _decode_utf8(bytes, "projection binding bytes")
       json <- _json_parser.parse(content).left.map(_ => "projection binding bytes must be valid JSON without duplicate members")
       root <- json.asObject.toRight("projection binding root must be an object")
-      canonical = _canonical_bytes(json)
-      _ <- Either.cond(Arrays.equals(bytes, canonical), (), "projection binding bytes are not canonical JSON")
       _ <- _closed_fields(root, _root_fields, "projection binding root")
       profile <- _nonempty_string(root, "profile", "projection binding root")
       schema <- _nonempty_string(root, "schemaVersion", "projection binding root")
       _ <- Either.cond(
-        (realization.profile == "ccdm-realization-v1" && profile == "ccdm-projection-binding-v1" && schema == "1.0") ||
-          (realization.profile == "ccdm-realization-v2" && profile == "ccdm-projection-binding-v2" && schema == "2.0"),
+        realization.profile == "ccdm-realization-v3" && realization.schemaVersion == "3.0" &&
+          profile == "ccdm-projection-binding-v3" && schema == "3.0",
         (),
         "projection binding profile/schemaVersion must pair exactly with the selected realization version"
       )
-      bindingrealizationartifactid <- _nonempty_string(root, "realizationArtifactId", "projection binding root")
-      _ <- Either.cond(bindingrealizationartifactid == selectedRealizationArtifactId && projection.dependencies.contains(bindingrealizationartifactid), (), "projection binding realizationArtifactId is not the selected projection dependency")
+      bindingvalue <- root("bindingReference").toRight("projection bindingReference is missing")
+      bindingreference <- InternalModelTypedControlCodec.decodeRecordReference(_json_bytes(bindingvalue))
+      realizationvalue <- root("realizationArtifactReference").toRight("projection realizationArtifactReference is missing")
+      realizationreference <- InternalModelTypedControlCodec.decodeArtifactReference(_json_bytes(realizationvalue))
+      _ <- Either.cond(realizationreference == selectedRealizationArtifactReference && projection.dependencies.contains(realizationreference), (), "projection binding realizationArtifactReference is not the exact selected projection dependency")
       scope <- _scope(root)
       _ <- Either.cond(
         scope == InternalModelProjectionBindingScope(realization.scope.componentIdentity, realization.scope.projectionContextIdentity, realization.scope.selectedUseCaseElementIdentity),
@@ -78,15 +81,20 @@ private[runtime] object InternalModelProjectionBindingCodec {
         "projection binding scope does not equal selected realization scope"
       )
       views <- _views(root)
-      candidate = InternalModelProjectionBinding(profile, schema, bindingrealizationartifactid, scope, views, Vector.empty)
-      encoded = encode(candidate).toVector
-      _ <- Either.cond(encoded == canonical.toVector, (), "typed projection binding re-encoding does not match supplied canonical bytes")
-    } yield candidate.copy(canonicalBytes = encoded)
+    } yield InternalModelProjectionBinding(bindingreference, profile, schema, realizationreference, scope, views)
 
   def encode(binding: InternalModelProjectionBinding): Array[Byte] =
-    _canonical_bytes(Json.obj(
+    _json_bytes(Json.obj(
+      "bindingReference" -> Json.obj(
+        "recordId" -> Json.fromString(binding.bindingReference.recordId.value),
+        "recordRevision" -> Json.fromLong(binding.bindingReference.recordRevision.value)
+      ),
       "profile" -> Json.fromString(binding.profile),
-      "realizationArtifactId" -> Json.fromString(binding.realizationArtifactId),
+      "realizationArtifactReference" -> Json.obj(
+        "artifactId" -> Json.fromString(binding.realizationArtifactReference.artifactId.value),
+        "artifactRevision" -> Json.fromLong(binding.realizationArtifactReference.artifactRevision.value),
+        "role" -> Json.fromString(binding.realizationArtifactReference.role.wireValue)
+      ),
       "schemaVersion" -> Json.fromString(binding.schemaVersion),
       "scope" -> Json.obj(
         "componentIdentity" -> Json.fromString(binding.scope.componentIdentity),
@@ -94,7 +102,27 @@ private[runtime] object InternalModelProjectionBindingCodec {
         "selectedUseCaseElementIdentity" -> Json.fromString(binding.scope.selectedUseCaseElementIdentity)
       ),
       "views" -> Json.fromValues(binding.views.map(_view_json))
-    ))
+    )).toArray
+
+  private def _captured_metadata(projection: InternalModelVerifiedProjection): Either[String, Unit] =
+    for {
+      _ <- _reference_metadata(projection.reference)
+      _ <- Either.cond(projection.reference.role == InternalModelArtifactRole.Projection, (), "selected artifact role must be projection")
+      _ <- Either.cond(projection.path != null && projection.path.nonEmpty && projection.bytes != null && projection.dependencies != null, (), "projection capture metadata, bytes and dependencies must be present")
+      _ <- projection.dependencies.foldLeft[Either[String, Unit]](Right(())) { (result, reference) =>
+        result.flatMap(_ => _reference_metadata(reference))
+      }
+      ids = projection.dependencies.map(_.artifactId.value)
+      _ <- Either.cond(ids.distinct.size == ids.size && ids == ids.sortWith((left, right) => _compare_text(left, right) < 0), (), "projection dependency IDs must be sorted and unique")
+      _ <- Either.cond(!ids.contains(projection.reference.artifactId.value), (), "projection must not depend on itself")
+    } yield ()
+
+  private def _reference_metadata(reference: InternalModelArtifactReference): Either[String, Unit] =
+    for {
+      _ <- Either.cond(reference != null && reference.role != null, (), "artifact reference and role must be present")
+      _ <- InternalModelArtifactId.from(reference.artifactId.value)
+      _ <- InternalModelArtifactRevision.from(reference.artifactRevision.value)
+    } yield ()
 
   private def _scope(root: JsonObject): Either[String, InternalModelProjectionBindingScope] =
     for {
@@ -233,6 +261,6 @@ private[runtime] object InternalModelProjectionBindingCodec {
   private def _has_bom(bytes: Array[Byte]): Boolean =
     bytes.length >= 3 && bytes(0) == 0xef.toByte && bytes(1) == 0xbb.toByte && bytes(2) == 0xbf.toByte
 
-  private def _canonical_bytes(json: Json): Array[Byte] =
-    (_canonical_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8)
+  private def _json_bytes(json: Json): Vector[Byte] =
+    (_printer.print(json) + "\n").getBytes(StandardCharsets.UTF_8).toVector
 }

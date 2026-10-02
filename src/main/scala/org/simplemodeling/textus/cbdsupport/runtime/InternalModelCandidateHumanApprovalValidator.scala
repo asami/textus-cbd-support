@@ -1,93 +1,100 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.file.Path
-import java.security.MessageDigest
-
 import scala.util.control.NonFatal
-
 import org.goldenport.Consequence
 
 /*
  * @since   Sep. 29, 2026
- * @version Sep. 29, 2026
+ *  version Sep. 29, 2026
+ * @version Oct.  1, 2026
  * @author  ASAMI, Tomoharu
  */
-/** Admits a recorded human decision without inferring lifecycle applicability or write authority. */
+/** Admits an actual independent human input without inferring applicability or write authority. */
 private[runtime] object InternalModelCandidateHumanApprovalValidator {
   def validate(
     projectRoot: Path,
-    approvalArtifactId: String,
-    reviewArtifactId: String,
+    approvalArtifact: InternalModelArtifactReference,
+    reviewArtifact: InternalModelArtifactReference,
     expectedExecutionBasis: InternalModelCandidateReviewExecutionBasis,
     expectedHumanDecision: InternalModelCandidateHumanApprovalInput
-  ): Consequence[InternalModelCandidateHumanApprovalAdmission] =
-    try {
-      InternalModelPackageValidator.verifiedCandidateHumanApproval(projectRoot, approvalArtifactId, reviewArtifactId).flatMap(
-        validateVerified(_, expectedExecutionBasis, expectedHumanDecision)
-      )
-    } catch {
-      case NonFatal(error) => Consequence.operationInvalid(s"internal-model candidate human approval validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
-    }
+  ): Consequence[InternalModelCandidateHumanApprovalAdmission] = {
+    try InternalModelPackageValidator.verifiedCandidateHumanApproval(projectRoot, approvalArtifact, reviewArtifact).flatMap(
+      validateVerified(_, expectedExecutionBasis, expectedHumanDecision)
+    )
+    catch { case NonFatal(error) => _failure(error) }
+  }
 
-  /** Pure same-capture admission; retained handoffs are independent of later filesystem changes. */
+  /** Pure admission from one actual immutable capture; no path is reopened. */
   private[runtime] def validateVerified(
     handoff: InternalModelVerifiedCandidateHumanApprovalPackage,
     expectedExecutionBasis: InternalModelCandidateReviewExecutionBasis,
     expectedHumanDecision: InternalModelCandidateHumanApprovalInput
-  ): Consequence[InternalModelCandidateHumanApprovalAdmission] =
+  ): Consequence[InternalModelCandidateHumanApprovalAdmission] = {
     try {
-      InternalModelCandidateReviewBindingValidator.validateVerified(handoff.reviewPackage, expectedExecutionBasis).flatMap { reviewadmission =>
+      if (handoff == null || handoff.reviewPackage == null || handoff.approvalArtifact == null)
+        Consequence.operationInvalid("candidate human approval capture, review and selected approval must be present")
+      else InternalModelCandidateReviewBindingValidator.validateVerified(handoff.reviewPackage, expectedExecutionBasis).flatMap { reviewadmission =>
         _admission(handoff, reviewadmission, expectedHumanDecision).fold(Consequence.operationInvalid, Consequence.success)
       }
-    } catch {
-      case NonFatal(error) => Consequence.operationInvalid(s"internal-model candidate human approval validation failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
-    }
+    } catch { case NonFatal(error) => _failure(error) }
+  }
 
   private def _admission(
     handoff: InternalModelVerifiedCandidateHumanApprovalPackage,
     reviewadmission: InternalModelCandidateReviewBindingAdmission,
     expectedhuman: InternalModelCandidateHumanApprovalInput
-  ): Either[String, InternalModelCandidateHumanApprovalAdmission] =
+  ): Either[String, InternalModelCandidateHumanApprovalAdmission] = {
+    val artifact = handoff.approvalArtifact
     for {
-      record <- InternalModelCandidateHumanApprovalCodec.decode(handoff.approvalArtifact.bytes)
-      expected <- _validated_expected(expectedhuman)
-      _ <- Either.cond(record.approval == expected, (), "candidate human approval does not equal the independently admitted expected human input")
-      _ <- _binding(record.approval.basis, reviewadmission)
-    } yield InternalModelCandidateHumanApprovalAdmission(
-      record = record,
-      approvalArtifactId = handoff.approvalArtifact.artifactId,
-      approvalArtifactSha256 = _sha256(handoff.approvalArtifact.bytes),
-      approvalArtifactPackageRelativePath = handoff.approvalArtifact.packageRelativePath,
-      reviewAdmission = reviewadmission
-    )
+      _ <- Either.cond(artifact.reference != null && artifact.path != null && artifact.dependencies != null && artifact.dependencies.forall(_ != null) && artifact.bytes != null, (), "selected approval metadata and bytes must be present")
+      record <- InternalModelCandidateHumanApprovalCodec.decode(artifact.bytes)
+      _ <- InternalModelCandidateHumanApprovalCodec.validateValue(expectedhuman)
+      _ <- Either.cond(record.approval == expectedhuman, (), "candidate human approval does not equal the independently supplied actual human input")
+      admission = InternalModelCandidateHumanApprovalAdmission(record, artifact.reference, artifact.path, reviewadmission)
+      _ <- validateAdmission(admission)
+      selected <- _selected(admission)
+      _ <- Either.cond(selected.required == artifact.required && selected.dependencies == artifact.dependencies, (), "selected approval capture does not equal entire inventory metadata")
+    } yield admission
+  }
 
-  private def _validated_expected(value: InternalModelCandidateHumanApprovalInput): Either[String, InternalModelCandidateHumanApprovalInput] =
-    InternalModelCandidateHumanApprovalCodec.decode(
-      InternalModelCandidateHumanApprovalCodec.encode(
-        InternalModelCandidateHumanApproval(value, "ccdm-candidate-human-approval-v1", "1.0", Vector.empty)
-      ).toVector
-    ).map(_.approval)
+  /** Structural and cross-binding consistency only; callers retain original human admission ownership. */
+  private[runtime] def validateAdmission(admission: InternalModelCandidateHumanApprovalAdmission): Either[String, Unit] = {
+    try {
+      for {
+        _ <- Either.cond(admission != null && admission.record != null && admission.approvalArtifactReference != null && admission.approvalArtifactPackageRelativePath != null && admission.reviewAdmission != null, (), "candidate human approval admission is missing")
+        _ <- InternalModelCandidateHumanApprovalCodec.validateValue(admission.record)
+        _ <- InternalModelCandidateReviewBindingValidator.validateAdmission(admission.reviewAdmission)
+        _ <- _selected(admission)
+        _ <- _binding(admission.record.approval.basis, admission.reviewAdmission)
+      } yield ()
+    } catch { case NonFatal(_) => Left("candidate human approval admission contains a null or invalid object graph") }
+  }
 
-  private def _binding(
-    basis: InternalModelCandidateHumanApprovalBasis,
-    reviewadmission: InternalModelCandidateReviewBindingAdmission
-  ): Either[String, Unit] = {
+  private def _selected(admission: InternalModelCandidateHumanApprovalAdmission): Either[String, InternalModelVerifiedArtifactContext] = {
+    for {
+      _ <- Either.cond(admission.approvalArtifactReference.role == InternalModelArtifactRole.Approval, (), "selected approval must have Approval role")
+      selected <- admission.reviewAdmission.carrierPackageContext.artifacts.filter(_.reference.artifactId == admission.approvalArtifactReference.artifactId) match {
+        case Vector(value) => Right(value)
+        case _ => Left("selected approval must resolve to exactly one inventory entry")
+      }
+      _ <- Either.cond(selected.reference == admission.approvalArtifactReference && selected.present && selected.path == admission.approvalArtifactPackageRelativePath && selected.dependencies == Vector(admission.reviewAdmission.reviewArtifactReference), (), "selected approval reference, presence, path or exact review dependency is inconsistent")
+    } yield selected
+  }
+
+  private def _binding(basis: InternalModelCandidateHumanApprovalBasis, reviewadmission: InternalModelCandidateReviewBindingAdmission): Either[String, Unit] = {
     val binding = reviewadmission.binding
-    val semanticdiff = reviewadmission.semanticDiffAdmission
-    val candidate = semanticdiff.candidateAdmission
-    val reviewed = reviewadmission.reviewedPackageContext
+    val diff = reviewadmission.semanticDiffAdmission
+    val candidate = diff.candidateAdmission
     for {
-      _ <- Either.cond(basis.reviewArtifact == InternalModelCandidateReviewArtifact(reviewadmission.reviewArtifactId, reviewadmission.reviewArtifactSha256), (), "candidate human approval review artifact does not equal the selected admitted review artifact")
-      _ <- Either.cond(basis.reviewIdentity == binding.reviewIdentity && basis.reviewRevision == binding.reviewRevision, (), "candidate human approval review identity or revision does not equal the admitted review")
-      _ <- Either.cond(basis.candidateArtifact == InternalModelCandidateReviewArtifact(candidate.candidateArtifactId, candidate.candidateArtifactSha256), (), "candidate human approval candidate artifact does not equal the admitted candidate artifact")
-      _ <- Either.cond(basis.candidateIdentity == candidate.projection.candidateIdentity && basis.candidateModelIdentity == candidate.projection.candidateModelIdentity && basis.candidateRevision == candidate.projection.candidateRevision, (), "candidate human approval candidate identity, model identity, or revision does not equal the admitted candidate")
-      _ <- Either.cond(basis.semanticDiffArtifact == InternalModelCandidateReviewArtifact(semanticdiff.diffArtifactId, semanticdiff.diffArtifactSha256), (), "candidate human approval semantic diff artifact does not equal the admitted semantic diff artifact")
-      _ <- Either.cond(basis.semanticDiffIdentity == semanticdiff.diff.semanticDiffIdentity && basis.semanticDiffRevision == semanticdiff.diff.semanticDiffRevision, (), "candidate human approval semantic diff identity or revision does not equal the admitted semantic diff")
-      _ <- Either.cond(basis.scope == binding.scope && basis.scope == candidate.projection.scope && basis.scope == semanticdiff.diff.scope, (), "candidate human approval scope does not equal the complete admitted review basis")
-      _ <- Either.cond(basis.reviewedPackage == InternalModelCandidateHumanApprovalPackageBasis(reviewed.packageDigest, reviewed.packageId, reviewed.projectId, reviewed.projectNamespace, reviewed.revision, reviewed.schemaVersion), (), "candidate human approval reviewed package does not equal the complete historical reviewed package")
+      _ <- Either.cond(basis.reviewArtifactReference == reviewadmission.reviewArtifactReference && basis.reviewReference == binding.reviewReference, (), "candidate human approval review artifact or logical reference does not equal the selected admitted review")
+      _ <- Either.cond(basis.candidateArtifactReference == candidate.candidateArtifactReference && basis.candidateReference == candidate.projection.candidateReference && basis.candidateModelIdentity == candidate.projection.candidateModelIdentity, (), "candidate human approval candidate artifact, logical reference or model does not equal the admitted candidate")
+      _ <- Either.cond(basis.semanticDiffArtifactReference == diff.diffArtifactReference && basis.semanticDiffReference == diff.diff.semanticDiffReference, (), "candidate human approval semantic diff artifact or logical reference does not equal the admitted diff")
+      _ <- Either.cond(basis.scope == binding.scope && basis.scope == candidate.projection.scope && basis.scope == diff.diff.scope, (), "candidate human approval scope does not equal the complete admitted review basis")
+      _ <- Either.cond(basis.subject == binding.subject, (), "candidate human approval subject does not equal the complete admitted review subject")
     } yield ()
   }
 
-  private def _sha256(bytes: Vector[Byte]): String =
-    "sha256:" + MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
+  private def _failure(error: Throwable): Consequence[InternalModelCandidateHumanApprovalAdmission] =
+    Consequence.operationInvalid("internal-model candidate human approval validation failed: " + Option(error.getMessage).getOrElse(error.getClass.getSimpleName))
 }

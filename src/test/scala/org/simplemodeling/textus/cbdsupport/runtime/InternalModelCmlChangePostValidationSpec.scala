@@ -258,6 +258,155 @@ final class InternalModelCmlChangePostValidationSpec
       }
 
       "actual application and current native source evidence" which {
+        "fail identity revision and authority drift of an optional consumed model" in {
+          forAll(Gen.oneOf("source.identity", "source.revision", "source.authority")) { dimension =>
+            Given("real applied targets and a present consumed model marked optional with one changed live source dimension")
+            _with_applied { scenario =>
+              _edit(scenario.fixture.root, "manifest.yaml", value => _array_change(value, "artifacts",
+                _.hcursor.get[String]("artifactId").toOption.contains("snapshot-model"),
+                _.mapObject(_.add("required", Json.False))))
+              val owner = scenario.refreshed.owner
+              val changed = owner.livesources(_support.modelSnapshot) match {
+                case InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Observed(authority, identity, revision, bytes, path)) =>
+                  InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Observed(
+                    if (dimension == "source.authority") authority + "-changed" else authority,
+                    if (dimension == "source.identity") identity + "-changed" else identity,
+                    if (dimension == "source.revision") revision.map(_ + "-changed") else revision, bytes, path))
+                case _ => fail("the independently supplied model observation must be present")
+              }
+              When("post-validation compares the optional consumed model against its independent current observation")
+              val report = validate(scenario.fixture.root, scenario.request.copy(owner = Some(owner.copy(
+                livesources = owner.livesources.updated(_support.modelSnapshot, changed))))).toOption.get
+              Then("the changed source dimension fails with observable freshness and no successful continuity")
+              report.disposition shouldBe Disposition.Failed
+              report.problems.map(_.kind) should contain(ProblemKind.SourceNotFresh)
+              report.continuity shouldBe None
+              report.freshness.get.entries.find(_.reference == _support.modelSnapshot).get.result match {
+                case InternalModelPackageFreshnessResult.Compared(value) =>
+                  value.status shouldBe InternalModelSnapshotFreshnessStatus.Changed
+                  value.changedDimensionNames shouldBe Vector(dimension)
+                  value.missingDimensionNames shouldBe empty
+                case _ => fail("the optional consumed model comparison must remain observable")
+              }
+            }
+          }
+        }
+
+        "retain missing unavailable and revision-unknown optional consumed model evidence as incomplete" in {
+          forAll(Gen.oneOf("missing", "unavailable", "revision-unknown")) { variant =>
+            Given("real applied targets and a present optional consumed model with incomplete independent live evidence")
+            _with_applied { scenario =>
+              _edit(scenario.fixture.root, "manifest.yaml", value => _array_change(value, "artifacts",
+                _.hcursor.get[String]("artifactId").toOption.contains("snapshot-model"),
+                _.mapObject(_.add("required", Json.False))))
+              val owner = scenario.refreshed.owner
+              val unknown = owner.livesources(_support.modelSnapshot) match {
+                case InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Observed(authority, identity, _, bytes, path)) =>
+                  InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Observed(authority, identity, None, bytes, path))
+                case _ => fail("the independently supplied model observation must be present")
+              }
+              val sources = variant match {
+                case "missing" => owner.livesources - _support.modelSnapshot
+                case "unavailable" => owner.livesources.updated(_support.modelSnapshot,
+                  InternalModelPackageFreshnessInput.SourceObservation(InternalModelLiveSourceObservation.Unavailable("model owner unavailable")))
+                case _ => owner.livesources.updated(_support.modelSnapshot, unknown)
+              }
+              When("post-validation evaluates the optional consumed model with the incomplete live evidence")
+              val report = validate(scenario.fixture.root, scenario.request.copy(owner = Some(owner.copy(livesources = sources)))).toOption.get
+              Then("missing evidence remains incomplete with an explicit owner problem and no successful continuity")
+              report.disposition shouldBe Disposition.Incomplete
+              report.problems.map(_.kind) should contain(ProblemKind.OwnerMissing)
+              report.continuity shouldBe None
+              report.freshness.get.entries.find(_.reference == _support.modelSnapshot).get.result match {
+                case InternalModelPackageFreshnessResult.Compared(value) =>
+                  value.observedSourceRevision shouldBe None
+                  if (variant == "revision-unknown") {
+                    value.status shouldBe InternalModelSnapshotFreshnessStatus.Incomplete
+                    value.missingDimensionNames shouldBe Vector("observed.source.revision")
+                    value.changedDimensionNames shouldBe Vector("source.revision")
+                  } else {
+                    value.status shouldBe InternalModelSnapshotFreshnessStatus.Unavailable
+                    value.observedSourceAuthority shouldBe None
+                    value.observedSourceIdentity shouldBe None
+                    value.reason.nonEmpty shouldBe true
+                    value.missingDimensionNames shouldBe empty
+                  }
+                case _ => fail("the optional consumed model comparison must remain observable")
+              }
+            }
+          }
+        }
+
+        "fail unauthorized malformed and ambiguous optional consumed model observations" in {
+          forAll(Gen.oneOf("unauthorized", "malformed", "ambiguous")) { variant =>
+            Given("real applied targets and a present optional consumed model with incompatible independent live evidence")
+            _with_applied { scenario =>
+              _edit(scenario.fixture.root, "manifest.yaml", value => _array_change(value, "artifacts",
+                _.hcursor.get[String]("artifactId").toOption.contains("snapshot-model"),
+                _.mapObject(_.add("required", Json.False))))
+              val owner = scenario.refreshed.owner
+              val (observation, status) = variant match {
+                case "unauthorized" => (InternalModelLiveSourceObservation.Unauthorized("model owner denied access"), InternalModelSnapshotFreshnessStatus.Unauthorized)
+                case "malformed" => (InternalModelLiveSourceObservation.Malformed("model observation malformed"), InternalModelSnapshotFreshnessStatus.Malformed)
+                case _ => (InternalModelLiveSourceObservation.AmbiguousOrConflicting("model observations conflict"), InternalModelSnapshotFreshnessStatus.AmbiguousOrConflicting)
+              }
+              When("post-validation evaluates the incompatible optional consumed model observation")
+              val report = validate(scenario.fixture.root, scenario.request.copy(owner = Some(owner.copy(livesources =
+                owner.livesources.updated(_support.modelSnapshot, InternalModelPackageFreshnessInput.SourceObservation(observation)))))).toOption.get
+              Then("the exact existing freshness status fails without successful continuity")
+              report.disposition shouldBe Disposition.Failed
+              report.problems.map(_.kind) should contain(ProblemKind.SourceNotFresh)
+              report.continuity shouldBe None
+              report.freshness.get.entries.find(_.reference == _support.modelSnapshot).get.result match {
+                case InternalModelPackageFreshnessResult.Compared(value) =>
+                  value.status shouldBe status
+                  value.reason.nonEmpty shouldBe true
+                case _ => fail("the optional consumed model comparison must remain observable")
+              }
+            }
+          }
+        }
+
+        "retain all eight projections for an unchanged optional or required consumed model" in {
+          forAll(Gen.oneOf(false, true)) { required =>
+            Given("real applied targets and unchanged independent live evidence for a present consumed model with either inventory flag")
+            _with_applied { scenario =>
+              _edit(scenario.fixture.root, "manifest.yaml", value => _array_change(value, "artifacts",
+                _.hcursor.get[String]("artifactId").toOption.contains("snapshot-model"),
+                _.mapObject(_.add("required", Json.fromBoolean(required)))))
+              When("post-validation compares the consumed model with its unchanged independent live evidence")
+              val report = validate(scenario.fixture.root, scenario.request).toOption.get
+              Then("the shared realization rich sidecars and all eight projections remain pending acceptance")
+              _pending(report, scenario)
+              report.freshness.get.entries.find(_.reference == _support.modelSnapshot).get.result match {
+                case InternalModelPackageFreshnessResult.Compared(value) =>
+                  value.status shouldBe InternalModelSnapshotFreshnessStatus.Unchanged
+                  value.missingDimensionNames shouldBe empty
+                  value.changedDimensionNames shouldBe empty
+                case _ => fail("the consumed model comparison must remain observable")
+              }
+            }
+          }
+        }
+
+        "propagate the existing owner failure for an absent optional consumed model baseline" in {
+          Given("real applied targets and an optional consumed model absent from disk with every dependency and source reference retained")
+          _with_applied { scenario =>
+            _edit(scenario.fixture.root, "manifest.yaml", value => _array_change(value, "artifacts",
+              _.hcursor.get[String]("artifactId").toOption.contains("snapshot-model"),
+              _.mapObject(_.add("required", Json.False))))
+            Files.delete(_core.packageRoot(scenario.fixture.root).resolve("snapshots/model.json"))
+            When("the existing continuation package owner and post-validator examine the absent consumed baseline")
+            val expected = InternalModelPackageValidator.verifiedContinuation(scenario.fixture.root)
+            val result = validate(scenario.fixture.root, scenario.request)
+            Then("the same structured package-owner failure propagates without a fabricated report or continuity")
+            expected.isSuccess shouldBe false
+            result.isSuccess shouldBe false
+            result.toOption shouldBe None
+            result.show shouldBe expected.show
+          }
+        }
+
         "fail an optional selected changed-target baseline with a wrong source revision" in {
           forAll(Gen.oneOf("alpha", "beta")) { target =>
             Given("real applied targets and correct independent owner inputs with an optional selected baseline at a wrong revision")

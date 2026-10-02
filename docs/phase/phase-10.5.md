@@ -1,7 +1,7 @@
 # Phase 10.5 - Drift and CML Change Gate
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Predecessor: Phase 10.4
 - Successor: Phase 10.6
 - Development item: DEV-CBD-002
@@ -48,7 +48,8 @@ Phase startup on 2026-10-02 admitted original base
 `bbc0cf2cf3dd3420ebdb4094889e5ddfbf425ea2`, authority
 P105-AUTHORITY-001 revision 1 and Goal binding P105-GOAL-BINDING-001 revision 1.
 The parent owns that authority and all validation/review/transition decisions.
-Current status remains OPEN; startup and authoring are not acceptance.
+At startup the status was OPEN; startup and authoring were not acceptance.
+The final acceptance record below supersedes the historical pending statements.
 
 Step P105-CML-CHANGE owns the [CML change contract](../spec/internal-model-cml-change-contract.md)
 and [three-Slice design](../design/internal-model-cml-change.md). Slice
@@ -72,7 +73,8 @@ allocation, cursor/Git acceptance or closure. The consuming adapter remains an
 explicit dependency, and the repository instruction source is not installed.
 Slice A focused validation passed 40 + 70 and Slice B passed 27 + 118
 specifications. These are dependency admission only; complete Step acceptance
-is pending. Status stays OPEN.
+was pending at that dependency checkpoint. The final acceptance record below
+records the subsequent complete-Step and Phase closure.
 
 Slice P105-CML-CHANGE-C, frozen by P105-IMPLEMENT-C-001 revision 1, authors
 the private [post-validator](../../src/main/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelCmlChangePostValidation.scala),
@@ -94,6 +96,37 @@ commands exited 1/0; the test probe exited 0 after its expected-refusal checks
 passed and produced the expected `Failed` result with no projections, an
 unchanged cursor and retained applied changes; exit 1 is refusal proof, not CLI
 success. The [developer guide](../developer-guide-internal-model-cml-change.md)
-records the reproducible probe procedure. Complete Step acceptance, full Phase
-review/release and all six checklist obligations remain pending. No consuming adapter is deployed
+records the reproducible probe procedure. At that authoring checkpoint complete
+Step acceptance, full Phase review/release and the checklist remained pending.
+The final acceptance record below records their subsequent closure. No consuming adapter is deployed
 and the repository skill source remains uninstalled.
+
+## Final acceptance and release — 2026-10-03
+
+The complete A+B+C Step was independently accepted and committed as
+`7346a4cabbe09e806dc88724b55b3b34f164400b`. The one full Phase review,
+P105-PHASE-FULL-REVIEW-001 revision 1, identified CPB-P105-FULL-001.
+Repair cycle 1 fixes optional present consumed-source freshness and adds five
+behavioral scenarios without changing an API, schema, owner or acceptance
+boundary. P105-PHASE-FOCUSED-REVIEW-001 revision 1 independently passed and
+resolved that blocker with no new findings. The current affected accumulator
+passed 241 specifications in ten suites; the retained actual positive and
+expected-refusal Cozy integrations remain separately attributable evidence.
+
+The distinct validated local release is identified by
+`Phase-Closure-Binding: P105-PHASE-CLOSURE-001@1`. This closed ledger becomes
+authoritative only when that release commit succeeds with the complete forked
+repository test task, applicable CAR lint and verified committed closure
+receipt. It is not established by the earlier Step commit.
+
+All P10-50–P10-54 obligations are recorded in the
+[completed checklist](phase-10.5-checklist.md). Phase 10.6 receives the accepted
+contract only; no successor work, installed consuming adapter, canonical
+Git acceptance, publication or deployment is claimed. The component retains
+`0.1.0-SNAPSHOT`.
+
+The Phase Hygiene and Development Candidate review ledgers have no accepted
+items and no unpersisted items; no empty journals are created. The unrelated
+successor planning set and shared Strategy remain preserved. Only Strategy
+projection synchronization is deferred; the named Phase/checklist and Phase
+index are the committed completion authority.

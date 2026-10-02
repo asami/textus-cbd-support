@@ -283,7 +283,8 @@ private[runtime] object InternalModelCmlChangePostValidation {
         val selectedbaselines = owner.targetbaselines.map(_.snapshotreference).toSet
         val freshproblems = freshness.entries.flatMap { entry =>
           val required = selectedbaselines.contains(entry.reference) || snapshots.exists(snapshot => snapshot.reference == entry.reference && snapshot.required)
-          if (!required) Vector.empty else entry.result match {
+          entry.result match {
+            case InternalModelPackageFreshnessResult.MissingBaseline if !required => Vector.empty
             case InternalModelPackageFreshnessResult.MissingBaseline => Vector(_problem(ProblemKind.OwnerMissing, "freshness.baseline", "required snapshot is unavailable"))
             case InternalModelPackageFreshnessResult.Compared(report) if report.status == InternalModelSnapshotFreshnessStatus.Unchanged && report.missingDimensionNames.isEmpty => Vector.empty
             case InternalModelPackageFreshnessResult.Compared(report) =>

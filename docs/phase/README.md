@@ -24,7 +24,12 @@ planned sequence.
   fresh-process rehydration; see the [Phase 10.4 checklist](phase-10.4-checklist.md)
   for full validation and the distinct local release binding.
 
-Phase 10.5 and later remain separate not-started work. Their existing
+- [Phase 10.5](phase-10.5.md) — closed drift reconciliation, exact actual-human
+  approval and owned CML application with validated source-backed Phase 9
+  re-projection; see the [Phase 10.5 checklist](phase-10.5-checklist.md) for the
+  distinct validated local release binding and acceptance evidence.
+
+Phase 10.6 and later remain separate not-started work. Their existing
 uncommitted plans and the shared Strategy are preserved; this release does
 not execute them or claim their acceptance. Shared Strategy synchronization
 is deferred; the named Phase/checklist remain canonical completion authority.

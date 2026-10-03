@@ -28,6 +28,51 @@ This is especially important for business applications, where authoritative
 domain state normally exists and should not be reconstructed indirectly from
 copies of artifacts.
 
+## Rule and lint responsibility
+
+Appropriate generation rules remain useful, but they are a **preventive
+guideline, not the primary enforcement mechanism**.
+
+The observed hash-to-whole-copy workaround shows that a model can preserve the
+underlying implementation instinct while satisfying the literal wording of a
+rule. Adding a new prohibition for every equivalent technique would create an
+open-ended blacklist and still would not reliably prevent semantic
+workarounds.
+
+The intended defense is therefore:
+
+1. **Rule / ai-directive — short preventive guidance**
+   - communicate a small number of strong design principles;
+   - steer generation toward authoritative domain/workflow state and away from
+     invented mechanisms;
+   - keep the directive compact enough that its important rules remain cheap
+     to load and salient to the model;
+   - do not turn each newly observed failure pattern into another detailed
+     prohibition.
+
+2. **CBD Support lint — primary defense**
+   - inspect the generated result rather than trusting rule compliance;
+   - detect semantic families such as shadow state, redundant defensive
+     machinery, and AI-cost amplification even when their concrete technique
+     changes;
+   - grow the lint corpus as new recurring generation patterns are observed.
+
+3. **Review / Admission — acceptance boundary**
+   - review findings that require design judgment;
+   - prevent generated work from being accepted merely because it obeyed the
+     surface wording of the directive.
+
+In short:
+
+> Keep AI guidance simple; make deterministic/model-aware inspection strong.
+
+Directive growth is itself a cost and reliability problem. A large directive
+consumes context and disperses attention across many special cases; eventually
+the important rules can become less salient or may not be loaded/read in the
+relevant execution path. Detailed knowledge of recurring failure patterns
+therefore belongs primarily in lint rules, fixtures, and review logic rather
+than in the generation directive.
+
 ## Candidate lint family: shadow state management
 
 Flag implementation mechanisms that reconstruct, duplicate, or infer

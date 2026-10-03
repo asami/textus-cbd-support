@@ -5,8 +5,7 @@ Stage Status:
 - Predecessor: Phase 10.7
 - Development item: DEV-CBD-003
 - Owner: Textus CBD Support development
-- Update rule: completion is recorded only by `phase-11-checklist.md` with
-  reproducible evidence.
+- Update rule: completion is recorded only by `phase-11-checklist.md` with reproducible evidence.
 
 ## Purpose
 
@@ -15,37 +14,131 @@ discoverable, comparable, and traceable through Textus CBD Support. Capability
 remains a non-instantiated model IR; Phase 11 presents and queries its semantic
 contract without executing it or reconstructing CML.
 
+Phase 11 also owns the read-only demand-to-realization trace from an admitted
+Use Case/Application Capability demand to Component Capability and its explicit
+Operation/Workflow/StateMachine realization. It does not judge Use Case quality,
+create Use Case Slice structure, or edit requirements; those responsibilities
+belong to Phase 12.
+
 ## Work stack
 
 | ID | Outcome | Status |
 | --- | --- | --- |
 | CAP-11-01 | Freeze supported projection versions, ingestion, integrity, and historical/current snapshot semantics. | planned |
-| CAP-11-02 | Extend internal catalog/index models for Capability and realization traceability. | planned |
-| CAP-11-03 | Provide Capability search, provider matching, and gap/compatibility diagnostics. | planned |
-| CAP-11-04 | Provide Capability overview/detail and realization/evidence views. | planned |
+| CAP-11-02 | Extend internal catalog/index models for Capability, demand, realization, Specification, and Evidence traceability. | planned |
+| CAP-11-03 | Provide Capability search, provider matching, demand tracing, and typed gap/compatibility diagnostics. | planned |
+| CAP-11-04 | Provide Capability overview/detail and demand-to-realization/evidence views. | planned |
 | CAP-11-05 | Expose consistent Web and MCP/API semantics and prove the end-to-end fixture. | planned |
+
+## Required upstream projections
+
+Phase 11 consumes upstream-owned identifiers and relationships; it does not
+invent replacements. The consumer contract must admit, when available:
+
+- CNCF Component Capability projection: provided/required Capability identity,
+  Component/package/source identity, ABI/version, explicit compatibility and
+  realization references.
+- Application Capability projection: Application Capability identity and
+  explicit relation to required Component Capability identities.
+- Use Case demand projection: Use Case identity and explicit required
+  Application Capability identities. If this projection is not yet admitted,
+  the Use Case portion remains `UnavailableUpstreamProjection`; CBD Support
+  must not infer it from names or descriptions.
+
+## Internal read model
+
+Implementation should introduce package-private/domain values equivalent to the
+following roles; exact Scala names may follow repository conventions:
+
+```text
+CapabilityCatalogSnapshot
+CapabilityRecord
+  - capabilityRef
+  - direction: PROVIDED | REQUIRED
+  - componentRef
+  - packageRef
+  - sourceRef
+  - abiRef/version
+  - compatibilityRefs
+
+CapabilityDemandTrace
+  - useCaseRef?                 // only from admitted projection
+  - applicationCapabilityRef
+  - requiredComponentCapabilityRef
+  - providerComponentRefs
+  - realizationRefs
+  - specificationRefs
+  - evidenceRefs
+
+CapabilityRealizationRef
+  - kind: OPERATION | WORKFLOW | STATE_MACHINE
+  - targetRef
+  - source/version
+
+CapabilityGap
+  - MissingApplicationCapabilityProjection
+  - MissingRequiredComponentCapability
+  - NoProvider
+  - IncompatibleProviderVersion
+  - MissingRealization
+  - MissingSpecification
+  - MissingEvidence
+```
+
+A gap is a diagnostic over admitted facts, not a new model fact. Runtime
+Availability, Authorization and Guard results are separate diagnostics and
+must never be collapsed into `NoProvider` or `MissingRealization`.
+
+## Query/service contract
+
+The catalog/query boundary should support deterministic operations equivalent
+to:
+
+```text
+getCapability(ref)
+findProviders(requiredCapabilityRef)
+findRequirements(componentRef)
+traceApplicationCapability(applicationCapabilityRef)
+traceUseCaseDemand(useCaseRef)
+diagnoseCapabilityDemand(demandRef)
+```
+
+All identity-bearing inputs are qualified typed references. Display-name or
+description similarity may be used only as UI search assistance and must not
+establish semantic matching, compatibility, provider selection, or trace links.
+
+`traceUseCaseDemand` returns an explicit unsupported/unavailable result when
+the upstream Use Case demand projection is absent. It must not reconstruct the
+relationship from CML, Operation names, Event Storming text, or AI output.
 
 ## Ownership boundary
 
-- Consume only CNCF-admitted Capability projections and versions.
-- Preserve exact Component, package, source, Capability, realization, and ABI
-  identity.
+- Consume only CNCF/admitted upstream Capability and demand projections and versions.
+- Preserve exact Use Case, Application Capability, Component, package, source,
+  Capability, realization, and ABI identity.
 - Keep current selected snapshots distinct from historical attempts.
-- Keep Capability, Availability, Authorization, Guard, realization, and
-  execution Evidence as separate concepts.
-- Do not parse CML, define Capability syntax, execute Capability, or replace
-  upstream identity with cbd-support-local identity.
+- Keep Capability, demand, Availability, Authorization, Guard, realization,
+  Specification, and execution Evidence as separate concepts.
+- Do not parse CML, define Capability syntax, execute Capability, evaluate Use
+  Case quality, create Use Case Slice structure, or replace upstream identity
+  with cbd-support-local identity.
 
 ## Completion conditions
 
 - Design/specification define supported versions, ingestion integrity,
-  snapshot/history behavior, queries, views, and failure diagnostics.
+  snapshot/history behavior, demand trace semantics, queries, views, and typed
+  failure/gap diagnostics.
 - Executable specifications cover valid ingestion and rejection/quarantine of
   ambiguous, duplicate, malformed, stale, and incompatible projections.
 - Search finds exact provided/required Capability identities, providers,
   requirements, and gaps without display-name inference.
-- Views expose realization and Specification/Evidence traceability while
-  avoiding false runtime availability or execution claims.
+- An admitted Use Case/Application Capability demand can be traced through
+  required Component Capability to explicit provider and realization links.
+- Missing upstream demand projection, provider, compatible version,
+  realization, Specification, and Evidence produce distinct deterministic
+  outcomes.
+- Views expose demand, realization and Specification/Evidence traceability
+  while avoiding false runtime availability, authorization or execution claims.
 - Web and MCP/API surfaces return consistent semantics for a real Cozy -> CNCF
   fixture with exact provenance.
 
@@ -53,6 +146,8 @@ contract without executing it or reconstructing CML.
 
 - Capability source authoring or CML parsing.
 - CNCF Capability contract or ABI ownership.
+- Use Case quality/coverage review, Actor Goal review, Use Case Slice creation,
+  Executable Specification ownership, or ticket management.
 - Runtime Capability execution, Authorization decisions, or Guard evaluation.
 - AI-based semantic merging of unrelated Capability identities.
 - Closing CNCF Phase 78 or Cozy Phase 64 from this repository.
@@ -62,3 +157,4 @@ contract without executing it or reconstructing CML.
 - [Development note](../notes/capability-catalog-and-traceability-proposal.md)
 - [Development item journal](../journal/2026/09/2026-09-16-capability-catalog-development-item.md)
 - [Phase 11 Checklist](phase-11-checklist.md)
+- [Phase 12](phase-12.md)

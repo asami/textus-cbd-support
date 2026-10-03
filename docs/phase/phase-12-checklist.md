@@ -14,33 +14,63 @@ their scope exceeds the normal focused work-unit boundary.
   operations/parameters/targets, preconditions, validation, diff, typed approval
   dependencies, failure, abandonment, and concurrency, including shared Actor
   Goal and Goal-to-Use-Case semantics.
+- [ ] Define stable `UseCaseSlice` identity/lifecycle as an implementation slice
+  of a Use Case; explicitly prohibit treating a Slice as a UI group, generated
+  hash or ticket alias.
+- [ ] Define `UseCaseDevelopmentTrace`, typed Executable Specification refs and
+  external `TicketRef` (provider/repository/project + immutable ticket id).
+- [ ] Define deterministic candidate operations for create/refine Slice and
+  link/unlink Slice-Specification and Slice-Ticket relationships.
+- [ ] Specify one-to-many cardinalities and exact-reference validation; no
+  name/description/AI-based trace construction.
 
 ## EDIT-12-02: Candidate Model Edit Service (Stage 12.2)
 
 - [ ] Implement common candidate mutation and prove stable identities,
   authorization, and unchanged canonical CML during provisional editing.
+- [ ] Implement Use Case Slice candidate mutation through the same service; no
+  view-local Slice store or ticket-owned model state.
+- [ ] Prove failed/dangling Specification or Ticket refs are typed validation
+  failures and do not partially mutate candidate state.
 
 ## EDIT-12-03: Candidate projection and confirmation (Stage 12.3)
 
 - [ ] Admit the required projection follow-up contracts and project candidate
   Actor Goal List/Event Storming through shared Views; clearly distinguish
   candidate/canonical state and confirm accumulated candidate edits.
+- [ ] Add Use Case development trace projection:
+  Actor Goal -> Use Case -> Use Case Slice -> Executable Specification -> Ticket.
+- [ ] Join Phase 11 Use Case/Application Capability demand trace as read-only
+  evidence when admitted; distinguish unavailable projection from empty demand.
+- [ ] Add deterministic Review findings at least for GoalWithoutUseCase,
+  UseCaseWithoutSlice, SliceWithoutExecutableSpecification, SliceWithoutTicket,
+  dangling Specification/Ticket and admitted behavioral/capability coverage gaps.
 
 ## EDIT-12-04: Update Palette and direct commands (Stage 12.4)
 
 - [ ] Implement contextual deterministic Actor Goal List, Mono-Koto, and
   Event Storming operations through the same candidate Edit Session service.
+- [ ] Add Use Case detail commands for create/refine Slice and explicit
+  Specification/Ticket link/unlink operations.
+- [ ] Keep external ticket creation/update behind a separate authorized adapter;
+  linking a TicketRef has no implicit external side effect.
 
 ## EDIT-12-05: Conversational adapter (Stage 12.5)
 
 - [ ] Convert conversational intent into authorized candidate operations and
   validation without implying canonical promotion or fabricating model facts.
+- [ ] Allow AI to propose Slice structure/links only as candidate operations;
+  require explicit existing Specification/Ticket identities for links and reject
+  fabricated external identities.
 
 ## EDIT-12-06: External client boundary (Stage 12.6)
 
 - [ ] Expose semantic inspection, applicable operations, candidate read/edit,
   and View/diff inspection through Plugin/MCP; validate ChatGPT and Codex as
   ordinary authorized clients with no privileged canonical mutation path.
+- [ ] Expose Use Case development trace, Review findings and applicable Slice
+  operations through the same typed API; do not expose arbitrary ticket-system
+  mutation as part of the core Model Edit Service.
 
 ## EDIT-12-07: Actor Goal to solo Event Storming E2E (Stage 12.7)
 
@@ -48,6 +78,11 @@ their scope exceeds the normal focused work-unit boundary.
   cross-view direct/AI edits, Review/refinement/confirmation, explicit approval
   of the exact typed candidate revision, and promotion only through the
   canonical gate.
+- [ ] Create/refine at least one stable Use Case Slice, link it to an executable
+  specification and external ticket reference, intentionally exercise and clear
+  a missing trace Review finding, and preserve exact identities through approval.
+- [ ] When Phase 11 demand evidence is available, display it in the same Use Case
+  context and prove Phase 12 cannot mutate that evidence.
 
 ## EDIT-12-08: Cross-view reuse and closure (Stage 12.8)
 
@@ -55,5 +90,9 @@ their scope exceeds the normal focused work-unit boundary.
   one engineering view such as Workflow or Structure.
 - [ ] Validate governance, durable continuation, auditability, abandonment,
   failure recovery, and consistent documentation with executable evidence.
+- [ ] Prove Use Case/Slice/Specification/Ticket identities and Review state
+  survive Phase 10 package continuation/resume and canonical promotion.
+- [ ] Prove cross-view Review uses explicit semantic identities and never closes
+  a finding solely from display-name/text similarity.
 - [ ] Complete independent review and close only when every required item is
   checked or explicitly relocated; no synchronization commit closes Phase 12.

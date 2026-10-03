@@ -13,40 +13,68 @@ Stage Status:
 - Update rule: Close only after supported versions, integrity checks, and
   current/history snapshot semantics have executable specification coverage.
 
-- [ ] Define supported CNCF Capability projection versions.
-- [ ] Preserve exact Component, package, source, Capability, and ABI identity.
+- [ ] Define supported CNCF Component Capability, Application Capability, and
+      Use Case demand projection versions independently.
+- [ ] Preserve exact Use Case, Application Capability, Component, package,
+      source, Capability, realization, and ABI identity supplied upstream.
 - [ ] Reject or quarantine ambiguous, duplicate, malformed, stale, and
-      incompatible projections.
+      incompatible projections without repairing identity by name.
 - [ ] Separate current selected state from historical ingestion attempts.
+- [ ] Represent a missing/not-yet-supported upstream Use Case demand projection
+      explicitly; do not reconstruct it from CML, names, descriptions or AI.
+- [ ] Add executable fixtures for valid, stale, incompatible, duplicate,
+      ambiguous and unavailable-upstream cases.
 
-## CAP-11-02: Internal catalog and traceability model
+## CAP-11-02: Internal catalog and demand/realization traceability model
 
 Stage Status:
 - Current status: OPEN
 - Owner: CBD Support catalog/model owner
 - Update rule: Close only after internal projections preserve upstream meaning
-  without introducing a competing Capability identity.
+  without introducing competing Use Case/Application/Component Capability identity.
 
-- [ ] Model provided and required Capability records.
-- [ ] Model explicit Operation, Workflow, and StateMachine realization links.
-- [ ] Model Specification and Evidence references separately from Capability
-      state.
-- [ ] Keep Availability, Authorization, and Guard distinct.
+- [ ] Model provided and required `CapabilityRecord` values with typed qualified
+      references and exact source/version/ABI provenance.
+- [ ] Model `CapabilityDemandTrace` (or repository-equivalent) joining only
+      explicit upstream Use Case -> Application Capability -> required Component
+      Capability references.
+- [ ] Model explicit Operation, Workflow, and StateMachine realization links as
+      typed `CapabilityRealizationRef` values; prohibit Operation-name inference.
+- [ ] Model Specification and Evidence references separately from Capability,
+      demand and realization state.
+- [ ] Keep Availability, Authorization, Guard and execution result distinct.
+- [ ] Preserve one-to-many demand/provider/realization cardinalities; do not
+      assume one Use Case, one Capability, one provider or one realization.
+- [ ] Add codec/validator/executable specifications proving round-trip identity,
+      cardinality preservation and rejection of dangling/ambiguous explicit refs.
 
-## CAP-11-03: Search, matching, and gap analysis
+## CAP-11-03: Search, matching, demand trace, and gap analysis
 
 Stage Status:
 - Current status: OPEN
 - Owner: CBD Support query owner
-- Update rule: Close only after exact-identity search/matching and gap behavior
-  are specified and executable.
+- Update rule: Close only after exact-identity search/matching, trace and typed
+  gap behavior are specified and executable.
 
-- [ ] Search by qualified Capability identity and semantic metadata.
+- [ ] Provide deterministic query operations equivalent to `getCapability`,
+      `findProviders`, `findRequirements`, `traceApplicationCapability`,
+      `traceUseCaseDemand`, and `diagnoseCapabilityDemand`.
+- [ ] Search by qualified Capability identity and non-authoritative semantic
+      metadata while keeping semantic matching identity/compatibility based.
 - [ ] Find Components providing or requiring a Capability.
-- [ ] Report unmet requirements and incompatible versions explicitly.
-- [ ] Prohibit matching by display name or description similarity alone.
+- [ ] Trace an admitted Use Case demand through Application Capability and
+      required Component Capability to all explicit provider/realization refs.
+- [ ] Return a typed unavailable/unsupported result when Use Case demand input
+      is not supplied by an admitted upstream projection.
+- [ ] Distinguish at least: missing Application Capability projection, missing
+      required Component Capability, no provider, incompatible provider version,
+      missing realization, missing Specification, and missing Evidence.
+- [ ] Prohibit semantic matching, provider selection, compatibility or trace
+      construction by display-name/description similarity alone.
+- [ ] Add executable specifications for multi-provider, multi-realization,
+      incompatible-version, partial-evidence and zero-provider cases.
 
-## CAP-11-04: Capability views
+## CAP-11-04: Capability and demand trace views
 
 Stage Status:
 - Current status: OPEN
@@ -55,10 +83,18 @@ Stage Status:
   traceability without implying runtime execution or authorization.
 
 - [ ] Add Component Capability overview and detail projections.
-- [ ] Navigate between Capability, Component, and realization targets.
+- [ ] Add a read-only demand trace projection:
+      Use Case -> Application Capability -> Component Capability -> realization.
+- [ ] Navigate between admitted Use Case/Application Capability, Capability,
+      Component, and realization targets using exact references.
 - [ ] Show source/version/provenance and Specification/Evidence links.
-- [ ] Distinguish missing realization, unavailable deployment, unauthorized
-      principal, unsatisfied Guard, and missing Evidence.
+- [ ] Render typed gaps independently; do not collapse missing realization,
+      unavailable deployment, unauthorized principal, unsatisfied Guard and
+      missing Evidence into a generic unavailable state.
+- [ ] Clearly label absent upstream Use Case demand projection as unavailable,
+      not as an empty/no-demand Use Case.
+- [ ] Add view-model tests proving Web rendering cannot manufacture trace links
+      absent from the query result.
 
 ## CAP-11-05: Web/MCP consistency and end-to-end acceptance
 
@@ -69,10 +105,16 @@ Stage Status:
   one real upstream fixture with reproducible evidence.
 
 - [ ] Consume one Cozy-generated, CNCF-admitted Capability projection.
-- [ ] Verify consistent Web and MCP/API search/detail results.
-- [ ] Prove no CML reparsing or local identity replacement occurs.
-- [ ] Record exact Cozy, CNCF ABI, and cbd-support revisions plus focused
-      validation and review evidence.
+- [ ] When an admitted demand fixture is available, include at least one
+      Use Case -> Application Capability -> Component Capability -> explicit
+      realization path and one typed gap path.
+- [ ] Verify Web and MCP/API return the same qualified identities, provider sets,
+      realization sets, gap kinds and provenance for identical queries.
+- [ ] Prove no CML reparsing, AI reconstruction or local identity replacement occurs.
+- [ ] Prove Phase 11 surfaces are read/query only and cannot create Use Case
+      Slice, approve candidate state or mutate canonical CML.
+- [ ] Record exact Cozy, CNCF ABI, demand-projection producer and cbd-support
+      revisions plus focused validation and review evidence.
 
 ## Closure
 

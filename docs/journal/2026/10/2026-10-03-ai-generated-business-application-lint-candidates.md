@@ -108,7 +108,21 @@ Candidate detections:
      textual/binary diff rather than represented as an explicit state or
      operation result.
 
-6. **Model-unjustified state machinery**
+6. **Integrity/immutability-only comparison**
+   - Historical copies, hashes, digests, fingerprints, snapshots, or complete
+     serialized values are retained and compared solely to prove that an
+     application artifact or business value has not been altered or changed.
+   - A particularly useful heuristic is the data flow:
+     `store -> hash/copy/snapshot -> reread -> equality check -> unchanged`,
+     when the comparison result has no business meaning beyond proving
+     sameness.
+   - Do not flag legitimate security, digital-signature, audit, release/artifact
+     integrity, or explicitly modeled infrastructure boundaries merely because
+     they perform integrity checks.
+   - For ordinary business application logic, require an explicit model or
+     requirement justification for such a mechanism.
+
+7. **Model-unjustified state machinery**
    - New version markers, caches, ledgers, snapshots, fallback state, retry
      state, duplicate lifecycle flags, or reconciliation machinery appear
      without a traceable requirement/model concept.

@@ -1,6 +1,6 @@
 ---
-status: authored-unvalidated
-decision_scope: P106-STEP-03
+status: accepted
+decision_scope: PHASE-10.6
 updated_at: 2026-10-04
 ---
 
@@ -142,11 +142,14 @@ its [persistence](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runt
 and [API](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelContinuationApiSpec.scala)
 specifications passed six suites / 99 tests and focused review 002 PASS, accepted
 at `f82b5e4dfe5638b5334877d9ac99cef844ebf745`. This historical acceptance does not
-validate the authored Step 03 output proof.
+validate Step 03 by itself. Step 03 separately passed seven suites / 106 tests
+and independent review, accepted at
+`5f7e7f80760a77291f752faa6d549b1d76456c5a`. Final repository validation passed
+129 suites / 1032 tests; the Phase checklist binds its distinct validated release.
 
 ## Actual default-output proof
 
-Step 03 is authored-unvalidated. A consuming fixture places distinguishable private
+Step 03 is independently accepted. A consuming fixture places distinguishable private
 CML, Scala, description and evidence beside ordinary public source/resource roots.
 The explicit package manifest records those inputs without authorizing their use.
 Source-root separation lets the existing CML loader, generator, API producer and
@@ -204,6 +207,7 @@ evidence. Temporary detector inputs live under target and are removed after use.
 
 The [evidence executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEvidencePolicySpec.scala)
 and [history executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelRetainedHistoryValidatorSpec.scala)
-cover the accepted pure boundary. Step 03 execution and independent review remain
-pending; remaining P10-60–63 acceptance evidence, checklist closure and
-[Phase 10.6 acceptance](../phase/phase-10.6-checklist.md) remain outstanding.
+cover the accepted pure boundary. Step 03 execution and independent review passed.
+The sole full Phase review, focused ABI closure and P10-60–63 acceptance evidence
+are recorded in the [Phase checklist](../phase/phase-10.6-checklist.md).
+Phase acceptance is effective only with its distinct validated release binding.

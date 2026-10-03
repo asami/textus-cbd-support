@@ -1,19 +1,24 @@
 ---
-status: authored-unvalidated
-decision_scope: P106-STEP-03
+status: accepted
+decision_scope: PHASE-10.6
 updated_at: 2026-10-04
 ---
 
 # Internal-model Retained-state Security Contract
 
-This contract specifies the accepted Step 01 history/evidence policy and Step 02
-integration, and the authored, unvalidated Step 03 output-exclusion proof for
+This contract specifies the accepted Step 01 history/evidence policy, Step 02
+integration, and Step 03 output-exclusion proof for
 [Phase 10.6](../phase/phase-10.6.md).
 Step 01 passed 3 suites / 36 tests and independent review and was committed as
 `3b24ec7bb3fc914a6bc782d9fc684e8682e61aaa`. Step 02 passed six suites / 99 tests
 and focused review 002 PASS and was accepted at
 `f82b5e4dfe5638b5334877d9ac99cef844ebf745`. That historical evidence does not
-validate Step 03. [Typed control references](internal-model-typed-control-contract.md)
+validate Step 03. Step 03 separately passed seven suites / 106 tests and
+independent review and was committed as
+`5f7e7f80760a77291f752faa6d549b1d76456c5a`. Final repository validation passed
+129 suites / 1032 tests. The distinct validated Phase release is bound by the
+[Phase checklist](../phase/phase-10.6-checklist.md).
+[Typed control references](internal-model-typed-control-contract.md)
 and [repository rules](../rules/repository-rules.md) govern identities and
 revisions. The [design](../design/internal-model-retained-state-security.md)
 records responsibility boundaries.
@@ -160,7 +165,7 @@ supersession and encounter order. Their authoring is not passing validation.
 
 Step 02 persistence/API and the linked specifications below are accepted under
 the historical evidence above. Step 03 actual-output validation and independent
-review remain required. There is no public transport or MCP endpoint.
+review passed separately as recorded above. There is no public transport or MCP endpoint.
 
 ## Exact optional Entity storage
 
@@ -316,7 +321,7 @@ The recorded Step 02 acceptance does not establish whole-Phase acceptance.
 
 ## Default consuming-project output exclusion
 
-Step 03 is authored-unvalidated. The non-aggregated
+Step 03 is independently accepted. The non-aggregated
 `internalModelExclusionFixture` consumes the repository's normal Cozy plugin,
 project-identity helper, default source/resource roots and Scala/Cozy/CNCF
 configuration. Its public CML and ordinary resource are siblings of private
@@ -390,7 +395,7 @@ scanned boundary totals at most 2 GiB. Missing, unreadable, corrupt, symlink or
 over-limit evidence fails the proof. Every stream, archive and walk is closed.
 Small temporary synthetic archives support X6/X7 only and do not replace producers.
 
-Parent execution and independent review remain pending for Step 03. All
-P10-60–63 obligations, release to Phase 10.7, checklist
-completion and Phase acceptance remain subject to the
+Parent execution and independent review passed for Step 03. The sole full
+Phase review and focused ABI closure review are recorded in the
 [Phase checklist](../phase/phase-10.6-checklist.md).
+Phase acceptance is effective only with its distinct validated release binding.

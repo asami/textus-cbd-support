@@ -1,7 +1,7 @@
 # Phase 10.6 - Retained-state and Security Integration
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Predecessor: Phase 10.5
 - Successor: Phase 10.7
 - Development item: DEV-CBD-002
@@ -15,6 +15,14 @@ It inherits the sequence-wide authority and storage boundaries in `phase-10.md`.
 ## Closure boundary
 
 Close only with reproducible evidence for its own checklist. Release the accepted Phase 10.6 contract as the frozen input to Phase 10.7.
+
+Closure prepared on 2026-10-04 under `P106-PHASE-CLOSURE-001@1`; it becomes
+authoritative with the distinct validated local release carrying that binding.
+The [checklist](phase-10.6-checklist.md) records the accepted Steps, independent
+full/focused review, full validation and preserved planning projections.
+The [contract](../spec/internal-model-retained-state-security-contract.md) and
+[design](../design/internal-model-retained-state-security.md) are the frozen
+handoff to Phase 10.7; no successor execution is included.
 
 ## Non-goals
 

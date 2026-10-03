@@ -136,6 +136,10 @@
           "fields": []
         },
         {
+          "name": "InternalModelHistoryEntry",
+          "fields": []
+        },
+        {
           "name": "ReviewDiagnosis",
           "fields": []
         },

@@ -29,7 +29,19 @@ planned sequence.
   re-projection; see the [Phase 10.5 checklist](phase-10.5-checklist.md) for the
   distinct validated local release binding and acceptance evidence.
 
-Phase 10.6 and later remain separate not-started work. Their existing
-uncommitted plans and the shared Strategy are preserved; this release does
-not execute them or claim their acceptance. Shared Strategy synchronization
-is deferred; the named Phase/checklist remain canonical completion authority.
+Phase 10.6 and later remain separate not-started work. Their plans are retained
+by repository synchronization, which does not execute or accept them. The named
+Phase/checklist remain canonical completion authority; historical Strategy
+completion projections are not new acceptance evidence.
+
+- [Phase 10.6](phase-10.6.md) — planned retained-state, API, and security work;
+  [checklist](phase-10.6-checklist.md).
+- [Phase 10.7](phase-10.7.md) — planned end-to-end validation and closure;
+  [checklist](phase-10.7-checklist.md).
+- [Phase 11](phase-11.md) — planned Capability Catalog, Discovery, and
+  Traceability (DEV-CBD-003); [checklist](phase-11-checklist.md).
+- [Phase 12](phase-12.md) — planned Interactive View and Model Editing,
+  relocated from the remote Phase 11 proposal;
+  [checklist](phase-12-checklist.md).
+- [Projection follow-up](phase-9-projection-followup.md) — unchecked remote
+  additions to the completed Phase 9 contract; not a reopening of Phase 9.

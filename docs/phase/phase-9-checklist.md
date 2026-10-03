@@ -1,6 +1,6 @@
 # Phase 9 Checklist: Evidence-Backed Component Composition and Dashboard
 
-Status: OPEN
+Status: CLOSED
 phase=[Phase 9](phase-9.md)
 
 This checklist is the authoritative Phase 9 state ledger. Each item remains
@@ -432,3 +432,12 @@ final full suite, `P9-73-SBT-001`, passed 457 tests in 100 suites with zero
 failures and emitted its terminal `lock=released` marker. This release commit
 therefore closes Phase 9; Phase 10 remains planned successor work and is not
 started by this closure.
+
+## Post-closure planning relocation
+
+The summary status above reflects the existing P9-73 closure record; no item
+or accepted evidence has been newly completed by repository synchronization.
+Remote-added P9-44 through P9-47 and expanded analysis/Workflow requirements
+are explicitly retained as open follow-up work in
+[Projection follow-up planning](phase-9-projection-followup.md), not as reopened
+or retroactively accepted Phase 9 items.

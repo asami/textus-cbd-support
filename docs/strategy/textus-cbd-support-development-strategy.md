@@ -123,6 +123,25 @@ semantic handoff.
 
 ## Current Priority
 
+### Repository-sync planning reconciliation (2026-10-03)
+
+The current Phase/checklist ledgers preserve the accepted Phase 9 and Phase 10
+through 10.5 boundaries. Phase 10.6 and 10.7 remain not started. The historical
+planning narrative below is retained, not a replacement for those ledgers.
+
+After the Phase 10 sequence, [Phase 11](../phase/phase-11.md) remains Capability
+Catalog, Discovery, and Traceability (DEV-CBD-003). The independent remote
+Interactive View and Model Editing plan is retained as
+[Phase 12](../phase/phase-12.md), also not started. New Actor Goal, terminology,
+Event Storming, Aggregate/View, Designed/Observed navigation, and Workflow
+requirements are retained in
+[post-Phase 9 follow-up planning](../phase/phase-9-projection-followup.md), with
+an unchecked ledger and explicit upstream dependencies. They do not reopen or
+retroactively expand completed Phase 9. Phase 12 consumes these additional
+contracts only after their own implementation and acceptance evidence exists.
+
+### Historical Phase 9 / Phase 10 planning position
+
 Phases 1 through 9 are complete. Phase 9 established the semantic,
 projection, candidate-design, and semantic-diff contracts consumed by planned
 Phase 10. Its Stage 9.7 cross-view feedback and evidence-integration work

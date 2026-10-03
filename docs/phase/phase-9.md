@@ -462,3 +462,11 @@ a CBD Support workaround.
 Phase 10 consumes the accepted Phase 9 semantic/model contracts. A Phase 10
 storage need does not by itself authorize Phase 9 to add a parallel semantic
 model or infer missing upstream metadata.
+
+## Post-closure planning relocation
+
+The additional Actor Goal, terminology, Event Storming, CQRS navigation, and
+Workflow refinement proposal from the remote planning history is retained in
+[Projection follow-up planning](phase-9-projection-followup.md). Its unchecked
+follow-up ledger does not reopen Phase 9 or replace any accepted evidence here.
+Interactive editing is planned separately in [Phase 12](phase-12.md).

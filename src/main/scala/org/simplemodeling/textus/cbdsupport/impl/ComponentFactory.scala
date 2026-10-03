@@ -23,6 +23,7 @@ import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeQuery, Reso
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.configuration.Configuration
 import org.goldenport.protocol.operation.OperationResponse
+import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ServiceDefinition}
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
@@ -45,10 +46,63 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  * @since   Jul. 14, 2026
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
- * @version Sep. 27, 2026
+ *  version Sep. 27, 2026
+ * @version Oct.  4, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
+  override protected def create_Core(params: ComponentCreate, comp: Component): Component.Core = {
+    import CbdSupportComponent.{AggregateService, EntityService, ViewService}
+    spec_create(CbdSupportComponent.name, CbdSupportComponent.componentId, Vector(
+      CbdRetrievalService,
+      CbdCatalogAdminService,
+      CbdReviewAdminService,
+      _without_history_operations(AggregateService, Vector(
+        AggregateService.CreateInternalModelHistoryEntryOperation,
+        AggregateService.LoadInternalModelHistoryEntryOperation,
+        AggregateService.SaveInternalModelHistoryEntryOperation,
+        AggregateService.UpdateInternalModelHistoryEntryOperation,
+        AggregateService.DeleteInternalModelHistoryEntryOperation,
+        AggregateService.SearchInternalModelHistoryEntryOperation
+      )),
+      _without_history_operations(ViewService, Vector(
+        ViewService.LoadInternalModelHistoryEntryOperation,
+        ViewService.LoadInternalModelHistoryEntryByViewOperation,
+        ViewService.SearchInternalModelHistoryEntryOperation,
+        ViewService.SearchInternalModelHistoryEntryRecordOperation,
+        ViewService.LoadInternalModelHistoryEntrySummaryOperation,
+        ViewService.SearchInternalModelHistoryEntrySummaryOperation,
+        ViewService.SearchInternalModelHistoryEntrySummaryRecordOperation,
+        ViewService.LoadInternalModelHistoryEntryDetailOperation,
+        ViewService.SearchInternalModelHistoryEntryDetailOperation,
+        ViewService.SearchInternalModelHistoryEntryDetailRecordOperation
+      )),
+      _without_history_operations(EntityService, Vector(
+        EntityService.CreateInternalModelHistoryEntryOperation,
+        EntityService.CreateInternalModelHistoryEntryRecordOperation,
+        EntityService.LoadInternalModelHistoryEntryOperation,
+        EntityService.LoadInternalModelHistoryEntryRecordOperation,
+        EntityService.SaveInternalModelHistoryEntryOperation,
+        EntityService.SaveInternalModelHistoryEntryRecordOperation,
+        EntityService.UpdateInternalModelHistoryEntryOperation,
+        EntityService.UpdateInternalModelHistoryEntryRecordOperation,
+        EntityService.DeleteInternalModelHistoryEntryOperation,
+        EntityService.DeleteInternalModelHistoryEntryHardOperation,
+        EntityService.SearchInternalModelHistoryEntryOperation,
+        EntityService.SearchInternalModelHistoryEntryRecordOperation
+      ))
+    ))
+  }
+
+  private def _without_history_operations(
+    service: ServiceDefinition,
+    excluded: Vector[OperationDefinition]
+  ): ServiceDefinition = {
+    val names = excluded.map(_.name).toSet
+    val retained = service.operations.operations.toVector.filterNot(operation => names.contains(operation.name))
+    ServiceDefinition.Instance(service.specification.copy(operations = OperationDefinitionGroup.create(retained)))
+  }
+
   private final case class RuntimeCache(
     configuration: CbdRuntime.Configuration,
     clock: java.time.Clock,

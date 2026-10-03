@@ -1702,6 +1702,18 @@ Stable cross-component handoff record shared with SIE. CBD supplies catalogId; S
 |------|------|--------------|
 | value | string | 1 |
 
+## InternalModelHistoryDocument
+
+### DESCRIPTION
+
+One closed private retained-history document owned by the Entity persistence boundary.
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| value | ContentBody | 1 |
+
 ## ReviewSubmissionDocument
 
 ### DESCRIPTION
@@ -1943,6 +1955,22 @@ Versioned server-defined identity algorithm for one reusable Review diagnosis.
 | name | type | multiplicity |
 |------|------|--------------|
 | id | entityid | 1 |
+
+## InternalModelHistoryEntry
+
+### FEATURES
+
+extends = ["SimpleEntity"]
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| history_document | InternalModelHistoryDocument | 1 |
 
 ## ReviewDiagnosis
 

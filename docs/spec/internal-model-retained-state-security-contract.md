@@ -1,14 +1,16 @@
 ---
 status: authored-unvalidated
-decision_scope: P106-STEP-01
-updated_at: 2026-10-03
+decision_scope: P106-STEP-02
+updated_at: 2026-10-04
 ---
 
 # Internal-model Retained-state Security Contract
 
-This contract specifies the pure Step 01 history and evidence policy for
-[Phase 10.6](../phase/phase-10.6.md). Validation and independent review remain
-pending. [Typed control references](internal-model-typed-control-contract.md)
+This contract specifies the accepted Step 01 history/evidence policy and the
+authored, unvalidated Step 02 integration for [Phase 10.6](../phase/phase-10.6.md).
+Step 01 passed 3 suites / 36 tests and independent review and was committed as
+`3b24ec7bb3fc914a6bc782d9fc684e8682e61aaa`. That historical evidence does not
+validate Step 02. [Typed control references](internal-model-typed-control-contract.md)
 and [repository rules](../rules/repository-rules.md) govern identities and
 revisions. The [design](../design/internal-model-retained-state-security.md)
 records responsibility boundaries.
@@ -118,6 +120,10 @@ exactly; provider token rules do not apply to logical IDs.
 | Subject | Valid ID/revision, package, scope and artifacts |
 | Time | Non-null caller-supplied Instant |
 
+Historical actor kind is descriptive nonblank attribution, not a closed schema
+discriminator. The authenticated adapter separately derives new actor kinds from
+trusted SubjectKind; decoding historical attribution does not authenticate it.
+
 Review's three logical references must be distinct. Alternative and Supersession
 each require distinct logical endpoint references. Proposal must name a Projection
 artifact whose exact full reference occurs in its subject selections. Evidence
@@ -149,14 +155,161 @@ author Given/When/Then behavior and ScalaCheck properties for all payload famili
 policy pairings, null graphs, limits, exact identities/revisions, tombstones,
 supersession and encounter order. Their authoring is not passing validation.
 
-Step 02 persistence/API is **NOT YET IMPLEMENTED**: P10-60 still requires optional
-Entity/UnitOfWork persistence across independent reads, exact selections and
-payload expiry/deletion with tombstones, plus package-only resume with absent,
-unavailable, different or stale history. P10-61 still requires authenticated,
-bounded read/propose/review/resume/record operations without implicit approval or
-arbitrary mutation. P10-62 still requires integration of this evidence policy
-through that authorized caller and persistence, preserving unavailable evidence.
-No DB persistence or public/MCP endpoint is claimed here.
+Step 02 persistence/API and the linked specifications below are authored and
+unvalidated. Parent generation, focused validation and independent review remain
+required. There is no public transport or MCP endpoint.
+
+## Exact optional Entity storage
+
+`InternalModelHistoryEntry` extends SimpleEntity and stores one mandatory
+`history_document: InternalModelHistoryDocument`; the VALUE wraps ContentBody.
+It uses task usage/operation and system application domain. The generated Entity
+and its standard codecs are the sole storage owner through Entity/UnitOfWork.
+Disabled configuration is `None` and returns Unavailable, with no memory fallback.
+
+`InternalModelHistoryStorageId` is an opaque String admitted as an exact canonical
+lowercase UUID. It is independently allocated, never derived from content or
+logical references. A selection comprises storageId, reference, packageReference
+and scope. Its EntityId bridges the generated collection, StableTimestamp and
+the UUID's delimiter-free 32 lowercase hexadecimal digits as entropy. Only the
+four fixed canonical UUID separators are removed at this physical-ID bridge;
+the canonical hyphenated UUID remains exact in selections, documents and results.
+The bridge is injective over admitted UUIDs and issues neither a timestamp nor
+a content-derived identity. A different logical reference on the same admitted
+storage UUID leaves the physical EntityId unchanged; logical attribution is
+checked separately. Every storage call admits the whole selection before access; every
+read cross-checks the EntityId, stored selection and record/tombstone attribution.
+Callers retain the exact returned selection. No logical-ID uniqueness, head,
+latest, search, listing or enumeration contract exists.
+
+Claim/create is immutable: an occupied storageId rejects even for equal content
+or a tombstone, without returning the occupied data. New records require a new
+explicit storageId. No comparison of document bytes, content or digests controls
+claims, revisions, identity or permission.
+
+The closed document state is Retained(record, retainedAt) or Removed(tombstone).
+Actor and occurredAt come from authenticated server context; retainedAt is the
+server storage time. Retention is 30 days from retainedAt. Before expiry, read
+returns Retained; at/after expiry it returns only reference, packageReference,
+scope, kind and expiresAt as ExpiryRequired. Reads never mutate.
+
+Explicit operator/admin expire rejects before the boundary and atomically
+replaces the entire document with an Expired tombstone at server now at/after it.
+Delete replaces it immediately with Deleted. Each uses the loaded snapshot's
+exact Entity revision; a conflict fails without retry or overwrite. Removed
+returns the existing tombstone unchanged. Missing is explicit; backend failure
+is a generic structured storage failure, never Missing or success. Tombstones
+retain no actor, evidence or payload. No resurrection or automatic scheduler
+exists. Logical-current-record deletion does not promise physical erasure of
+old database backups or transaction pages.
+
+Supersession requires two explicit endpoint selections and exactly those two
+live retained records. Missing, expired, removed, mismatched reference/package/
+scope/kind endpoints reject. The accepted validateSupersession contract owns the
+relation. Later endpoint deletion preserves the historical relation and grants
+no current-state authority.
+
+## Closed bounded document codec
+
+Top-level keys are exactly format, schemaVersion, selection, content. Format is
+`textus.internal-model.retained-history` and numeric schemaVersion is 1.
+Selection keys are storageId, reference, packageReference, scope. Content is
+`{kind:"retained",record,retainedAt}` or `{kind:"removed",tombstone}`. Record,
+tombstone, scope and each payload retain the exact Step 01 field names. Payload
+and evidence tokens use exact Scala case names; only the document content tokens
+are lowercase. Evidence keys are reference, kind, payload; retained payload is
+Identity(value), RedactedText(value, redactionReference), or Omitted(reason).
+Reference objects reuse the typed control codec; their layout is not identity.
+
+Input and output are strict UTF-8, at most 1,048,576 bytes before parsing or
+persistence. Duplicate keys, unknown/missing/null fields, wrong primitive types,
+unknown tokens/version/state, noncanonical/nonpositive/fractional/overflowing
+revisions, invalid ISO-8601 Instants and invalid object graphs reject. Exact key
+sets apply recursively. Accepted Step 01 limits and validators apply before
+encoding and after decoding. Retention timestamps must permit the 30-day
+calculation. There is no migration, raw evidence or compatibility fallback.
+Invalid-operation diagnostics identify dimensions without echoing rejected data.
+
+## Authenticated runtime-internal continuation API
+
+The trusted embedding server supplies ActionCall.Core, a verified captured
+package, an independently selected subject, an exact principalId, admitted
+redaction references and optional store. Requests cannot construct grants,
+roles, subjects, timestamps, approval or server configuration. The factory
+validateVerified-admits the actual capture and binds package/carrier, realization
+scope, positive subject revision and every exact subject artifact to it. This
+is reference admission, not semantic-completeness or approval proof.
+
+Every call safely validates the trusted ExecutionContext security graph before
+using CarReviewAuthorization.roles. SubjectKind must be User, Service or
+Subsystem; the nonblank principalId must exactly match the server binding.
+Present sessions must be nonexpired and must not have future authenticatedAt.
+An already authenticated service principal need not have a session. Anonymous,
+Unspecified, null and malformed contexts reject. A default test user, system,
+internal or unrelated role alone grants nothing. Denial is a generic structured
+securityPermissionDenied before storage or source actions.
+
+| Operation | Admitted roles |
+| --- | --- |
+| read, resume | viewer, reviewer, operator, admin |
+| propose, review, record | reviewer, operator, admin |
+| expire, delete | operator, admin |
+
+Propose accepts only Proposal; review only Review; record only Alternative,
+Supersession or Evidence. Input contains storageId, logical record reference,
+typed payload and at most 64 evidence inputs. Server subject is fixed; actor
+kind is the trusted SubjectKind lowercase token, identity is principalId and role
+uses priority admin > operator > reviewer > viewer. Server clock supplies time.
+All evidence passes the accepted policy before Entity work. Narrative RedactedText
+also requires exact redactionReference membership in the server-admitted set.
+Wrong kinds, malformed/oversized inputs and package/scope mismatches reject
+without side effects. Safe identity is metadata, never authentication.
+
+Resume uses evaluateVerified with the exact server capture and the independently
+supplied continuation request. It neither reads nor writes history, including
+health probes, and preserves every typed eligibility/problem dimension. Absent,
+disabled, unrelated and stale history cannot change its report. Missing independent
+decisions or human approval remain incomplete; recorded AcceptedAsReview or
+SelectedAsProposal never supplies human approval. There is no filesystem,
+provider, execution, cursor mutation or canonical CML write capability.
+
+## Generated protocol boundary and executable integration
+
+The actual implementation Factory create_Core preserves the same six generated
+services in order, followed by the framework's unchanged meta and system defaults.
+An independent Component.Core.create baseline with the same component identity,
+default ComponentInstanceId and Protocol.empty supplies those default service
+specifications. CbdRetrieval, CbdCatalogAdmin and CbdReviewAdmin stay unchanged. Copies
+of Entity, Aggregate and View specifications remove exactly the new history
+Entity's 28 generated operations: 12 Entity, 6 Aggregate and 10 View. The View
+inventory includes four generic routes plus three default-generated Summary and
+three default-generated Detail routes, even without authored named views. The
+six named routes are `loadInternalModelHistoryEntrySummary`,
+`searchInternalModelHistoryEntrySummary`, `searchInternalModelHistoryEntrySummaryRecord`,
+`loadInternalModelHistoryEntryDetail`, `searchInternalModelHistoryEntryDetail` and
+`searchInternalModelHistoryEntryDetailRecord`. These routes must be absent from
+the actual constructed protocol listing and service-qualified resolution;
+distinct excluded names must also fail unqualified resolution with
+`Taxonomy.operationNotFound`. Each original generated owner's full history
+inventory must exactly match its frozen exclusions, preventing omitted defaults.
+
+All other operation definitions, service content/metadata/useDefault and service
+order remain exact, including framework defaults from the independent baseline.
+Catalog operations and unrelated ReviewDiagnosis Entity, Aggregate, generic View,
+Summary and Detail operations provide positive controls. Entity descriptors/codecs
+remain for internal persistence; task/system classification and mcpReadyServices
+alone do not hide generated history routes. Authorized internal history access
+continues through the exact-selection, role and retention policy of its adapter.
+
+[Persistence specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelRetainedHistoryPersistenceSpec.scala)
+authors codec variants/strictness, an injective UUID bridge property preserving
+canonical selections, independent SQLite reopen, claims, exact selections/revisions,
+retention and supersession. [API specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelContinuationApiSpec.scala)
+authors the closed role/security matrix, server attribution/evidence admission,
+history-independent resume, the independently derived 28-operation generated
+inventory, actual factory protocol listing/resolution exclusions with unrelated
+Summary/Detail positive controls and unchanged package/cursor/CML source state. These are authored
+specifications, not passing-test or Phase acceptance claims.
 
 Step 03 exclusion proof is **NOT YET IMPLEMENTED**: P10-63 requires actual-owner
 positive-control evidence that internal-model source is excluded by default from

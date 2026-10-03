@@ -1,6 +1,6 @@
 ---
 status: authored-unvalidated
-decision_scope: P106-STEP-02
+decision_scope: P106-STEP-03
 updated_at: 2026-10-04
 ---
 
@@ -72,7 +72,7 @@ or deletion. Step 01 defines these values without implementing retention mutatio
 
 ## Entity document and authenticated adapter
 
-Step 02 authors optional durable history and the authenticated runtime-internal
+Step 02 integrates optional durable history and the authenticated runtime-internal
 adapter. The normative contract owns the exact schema, limits, operation matrix
 and retention behavior. The generated InternalModelHistoryEntry/Document codecs
 remain the only persistence owner through Entity/UnitOfWork. The domain codec
@@ -140,19 +140,70 @@ Step 01's 3 suites / 36 tests, independent PASS and accepted commit
 `3b24ec7bb3fc914a6bc782d9fc684e8682e61aaa` are historical evidence. Step 02 and
 its [persistence](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelRetainedHistoryPersistenceSpec.scala)
 and [API](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelContinuationApiSpec.scala)
-specifications are authored-unvalidated; parent generation/validation and fresh
-independent review remain pending.
+specifications passed six suites / 99 tests and focused review 002 PASS, accepted
+at `f82b5e4dfe5638b5334877d9ac99cef844ebf745`. This historical acceptance does not
+validate the authored Step 03 output proof.
 
-## Deferred integration owned by subsequent Steps
+## Actual default-output proof
 
-Step 03 exclusion proof is **NOT YET IMPLEMENTED**. P10-63 needs distinguishable
-sentinels and positive controls exercised through actual generation/publication/
-packaging owners for runtime JARs, public APIs, ordinary CML, documentation and
-CAR/SAR artifacts. Step 01 defines the pure policy without installing unused
-packaging filters or changing upstream owners.
+Step 03 is authored-unvalidated. A consuming fixture places distinguishable private
+CML, Scala, description and evidence beside ordinary public source/resource roots.
+The explicit package manifest records those inputs without authorizing their use.
+Source-root separation lets the existing CML loader, generator, API producer and
+packagers retain their responsibilities. No new production exclusion filter,
+replacement archive or unused runtime helper is introduced.
+
+The actual-owner chain is `cozyGenerate` -> normal `Compile / packageBin` and
+generated provided/publicTypes descriptor -> `cozyComponentApiJar`, actual
+`Compile / doc` staging and `cozyBuildCar`. `cozyBuildSar` independently consumes
+loader-selected public CML. `cozyPublishProject` consumes fixture public identity
+and page metadata, plus minimal literal `build.sbt` metadata input, into local
+`target/publish.d`. The fixture is not aggregated and both publication skips are
+true. This local generation is not artifact publication.
+
+The fixture reuses the normal plugin and typed project-identity helper. Its
+effective Scala, Cozy runtime command and CNCF dependency must agree with the
+root's typed configuration. Source-manifest publication is explicitly disabled in
+both public `project.yaml` declarations and the actual root and fixture
+`conf/cozy/config.yaml` operation defaults, reflecting this repository's selected
+default. Public metadata is not read as operation defaults by the publication
+owner. The preparation task uses the existing YAML parser to require each exact
+operational file to be regular, non-symlink and explicitly false before the normal
+task DAG runs. The selected profile has no higher-priority project-local `.cozy`
+override; these input checks establish readiness, while final output supplies the
+independent behavior proof. The generic Cozy enabled
+fallback lacks internal-model exclusion; testing this disabled profile cannot
+establish a generic upstream guarantee. Public project/page metadata remain
+positive controls even with source manifests disabled.
+
+X4 interprets the actual final
+`target/publish.d/fixture-internal-model-output-control.json` bundle rather than
+staged metadata files. It requires the exact `cozy.publish-project.v1` schema,
+`publication-bundle` type, fixture publication name and nonempty entries. Exact
+unique project/page keys and paths select their real embedded metadata, preserving
+schema/type, public marker and `public-control` page controls. Entry paths and
+metadata types exclude source manifests, and the project's publication metadata
+has no `sourceManifest` reference. Complete publication scanning and Scaladoc
+index/search/public API controls remain necessary.
+
+Root Test resource generation consumes the actual task-returned locators as a
+normal prerequisite; root Compile stays independent of the test fixture. A closed
+path-only Properties receipt locates complete generated/metadata trees, runtime
+and API JARs, Scaladoc, local publication and both final archives. It supplies no
+content-derived identity, permission, output replacement or acceptance stamp.
+
+The [output executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelOutputExclusionSpec.scala)
+requires present private inputs and public controls across every actual owner.
+Names and content are scanned recursively through every nested JAR/ZIP/CAR/SAR,
+without extraction or evidence copying. Depth 8, uncompressed entry 256 MiB and
+boundary total 2 GiB bound inspection. Invalid locators, missing/unreadable or
+symlink evidence, corrupt archives and exceeded limits fail closed. Resource
+lifetimes are explicit. Secondary small synthetic ZIP properties and invalid
+evidence scenarios exercise the detector only; they cannot replace actual output
+evidence. Temporary detector inputs live under target and are removed after use.
 
 The [evidence executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEvidencePolicySpec.scala)
 and [history executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelRetainedHistoryValidatorSpec.scala)
-cover the accepted pure boundary. Step 02 validation and independent review remain
+cover the accepted pure boundary. Step 03 execution and independent review remain
 pending; remaining P10-60–63 acceptance evidence, checklist closure and
 [Phase 10.6 acceptance](../phase/phase-10.6-checklist.md) remain outstanding.

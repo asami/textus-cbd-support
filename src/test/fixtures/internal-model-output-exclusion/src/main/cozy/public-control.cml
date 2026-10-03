@@ -1,0 +1,63 @@
+# COMPONENT
+
+## Domain
+
+### PACKAGE
+
+domain
+
+### DESCRIPTION
+
+P106_PUBLIC_OUTPUT_CONTROL
+
+### SERVICE
+
+#### PublicOutput
+
+- spi-direction :: provides
+- spi-socket :: true
+- spi-api-name :: PublicOutput
+
+# VALUE
+
+## PublicRequest
+
+- input-kind :: QUERY
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------+--------+--------------|
+| value | string | 1            |
+
+## PublicResponse
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------+--------+--------------|
+| value | string | 1            |
+
+# SERVICE
+
+## PublicOutput
+
+### OPERATION
+
+#### echo
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+PublicRequest
+
+##### OUTPUT
+
+###### TYPE
+
+PublicResponse

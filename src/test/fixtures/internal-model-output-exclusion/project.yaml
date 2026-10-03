@@ -1,0 +1,37 @@
+project:
+  namespace: "org.simplemodeling.textus.fixture"
+  id: "InternalModelOutputControl"
+  name: "fixture-internal-model-output-control"
+  title: "Internal-model Output Control"
+  kind: car
+  scalaPackage: "org.simplemodeling.textus.fixture.internalmodeloutputcontrol"
+  component:
+    name: "InternalModelOutputControl"
+    className: "InternalModelOutputControlComponent"
+    displayName: "Internal-model Output Control"
+    version: "0.1.0-SNAPSHOT"
+  summary: "P106_PUBLIC_OUTPUT_CONTROL public output fixture."
+  description: "P106_PUBLIC_OUTPUT_CONTROL verifies the normal public output owners."
+build:
+  scalaVersion: "3.3.8"
+  cozyVersion: "0.3.3-SNAPSHOT"
+  dependencies:
+    compile:
+      - "org.goldenport::goldenport-cncf:0.5.3-SNAPSHOT"
+publication:
+  pages:
+    - path: "public-control"
+      title: "Public Output Control"
+      summary: "P106_PUBLIC_OUTPUT_CONTROL public page metadata."
+      description: "P106_PUBLIC_OUTPUT_CONTROL documents the public fixture."
+  source_manifest:
+    enabled: false
+packaging:
+  kind: car
+  car:
+    runtime:
+      cncf:
+        minimum: "0.5.3-SNAPSHOT"
+        excluded: []
+        tested:
+          - "0.5.3-SNAPSHOT"

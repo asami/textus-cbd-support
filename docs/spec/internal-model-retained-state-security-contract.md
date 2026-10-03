@@ -1,16 +1,19 @@
 ---
 status: authored-unvalidated
-decision_scope: P106-STEP-02
+decision_scope: P106-STEP-03
 updated_at: 2026-10-04
 ---
 
 # Internal-model Retained-state Security Contract
 
-This contract specifies the accepted Step 01 history/evidence policy and the
-authored, unvalidated Step 02 integration for [Phase 10.6](../phase/phase-10.6.md).
+This contract specifies the accepted Step 01 history/evidence policy and Step 02
+integration, and the authored, unvalidated Step 03 output-exclusion proof for
+[Phase 10.6](../phase/phase-10.6.md).
 Step 01 passed 3 suites / 36 tests and independent review and was committed as
-`3b24ec7bb3fc914a6bc782d9fc684e8682e61aaa`. That historical evidence does not
-validate Step 02. [Typed control references](internal-model-typed-control-contract.md)
+`3b24ec7bb3fc914a6bc782d9fc684e8682e61aaa`. Step 02 passed six suites / 99 tests
+and focused review 002 PASS and was accepted at
+`f82b5e4dfe5638b5334877d9ac99cef844ebf745`. That historical evidence does not
+validate Step 03. [Typed control references](internal-model-typed-control-contract.md)
 and [repository rules](../rules/repository-rules.md) govern identities and
 revisions. The [design](../design/internal-model-retained-state-security.md)
 records responsibility boundaries.
@@ -26,8 +29,8 @@ references may outlive their presence in the current package. Structural history
 validity makes no current artifact-admission or subject-completeness claim.
 
 Raw prompts and responses are excluded from project-source defaults and retained
-history defaults. This Step implements the pure history policy; it does not prove
-project-source or build-output exclusion.
+history defaults. The pure history policy alone does not prove project-source or
+build-output exclusion; Step 03 specifies that separate actual-output boundary below.
 
 ## Immutable history vocabulary
 
@@ -155,9 +158,9 @@ author Given/When/Then behavior and ScalaCheck properties for all payload famili
 policy pairings, null graphs, limits, exact identities/revisions, tombstones,
 supersession and encounter order. Their authoring is not passing validation.
 
-Step 02 persistence/API and the linked specifications below are authored and
-unvalidated. Parent generation, focused validation and independent review remain
-required. There is no public transport or MCP endpoint.
+Step 02 persistence/API and the linked specifications below are accepted under
+the historical evidence above. Step 03 actual-output validation and independent
+review remain required. There is no public transport or MCP endpoint.
 
 ## Exact optional Entity storage
 
@@ -308,12 +311,86 @@ retention and supersession. [API specification](../../src/test/scala/org/simplem
 authors the closed role/security matrix, server attribution/evidence admission,
 history-independent resume, the independently derived 28-operation generated
 inventory, actual factory protocol listing/resolution exclusions with unrelated
-Summary/Detail positive controls and unchanged package/cursor/CML source state. These are authored
-specifications, not passing-test or Phase acceptance claims.
+Summary/Detail positive controls and unchanged package/cursor/CML source state.
+The recorded Step 02 acceptance does not establish whole-Phase acceptance.
 
-Step 03 exclusion proof is **NOT YET IMPLEMENTED**: P10-63 requires actual-owner
-positive-control evidence that internal-model source is excluded by default from
-runtime packaging, public APIs, ordinary CML generation, documentation publication
-and CAR/SAR artifacts. All P10-60–63 obligations, release to Phase 10.7, checklist
+## Default consuming-project output exclusion
+
+Step 03 is authored-unvalidated. The non-aggregated
+`internalModelExclusionFixture` consumes the repository's normal Cozy plugin,
+project-identity helper, default source/resource roots and Scala/Cozy/CNCF
+configuration. Its public CML and ordinary resource are siblings of private
+`src/main/internal-model` inputs, which include a strict schema 2.0 manifest,
+same-basename CML, valid private Scala API, description and explicit private
+prompt evidence. Their presence is a negative control, not selection, admission
+or permission. Public API, record, operation, resource and publication markers
+are positive controls.
+
+| Boundary | Actual owner consumed by the fixture |
+| --- | --- |
+| Ordinary CML generation | `cozyGenerate` over the scoped default `cozySourceDir`, with generated Scala/model/API metadata |
+| Runtime JAR | Normal `Compile / packageBin`, including the ordinary public resource and generated classes |
+| Public API | Generated nonempty provided/publicTypes descriptor and actual `cozyComponentApiJar` |
+| Documentation and local publication | Actual `Compile / doc` through `cozyScaladocArchive`, and `cozyPublishProject` metadata/page generation |
+| CAR and SAR | Actual `cozyBuildCar` runtime/SPI/descriptors and `cozyBuildSar` loader-selected public CML |
+
+At the task boundary, fixture effective Scala, Cozy runtime command and CNCF
+dependency must match the root's typed configuration. Both typed configurations
+must explicitly disable `publication.source_manifest.enabled`. The public
+`project.yaml` declarations are metadata, not operation defaults. Actual
+publication operation defaults come from root `conf/cozy/config.yaml` and fixture
+`src/test/fixtures/internal-model-output-exclusion/conf/cozy/config.yaml`; both
+must be regular, non-symlink files whose existing YAML parser admits the flag as
+false before the fixture task DAG runs. This selected default profile has no
+higher-priority project-local `.cozy` override. These readiness checks do not
+replace final-output exclusion evidence. Public project and declared page
+metadata remain required.
+Cozy's generic fallback enables source-manifest publication and does not exclude
+internal-model in its generic exclusion set; this proof makes no safety claim
+for that different profile.
+
+Root `Test / resourceGenerators` depends on the actual fixture production task,
+so ordinary `testOnly` and `test` consume that DAG. Root Compile has no fixture
+dependency. Fixture publication tasks are skipped; `cozyPublishProject` here
+only generates local `target/publish.d` output and distributes no artifact.
+The minimal fixture `build.sbt` supplies literal public metadata to that compiler;
+the parent subproject retains the generator/packager settings.
+
+X4 consumes the actual final
+`target/publish.d/fixture-internal-model-output-control.json` publication bundle,
+with schema `cozy.publish-project.v1`, type `publication-bundle` and exact
+publication name `fixture-internal-model-output-control`. Nonempty entries must
+contain exactly one project key
+`projects/fixture-internal-model-output-control/metadata` with path
+`metadata/projects/fixture-internal-model-output-control/metadata.json`, and
+exactly one page key `publication-pages/fixture-internal-model-output-control`
+with path `metadata/publication-pages/fixture-internal-model-output-control.json`.
+Their embedded metadata supplies project/page schema, type, public marker and
+`public-control` page controls; the staged metadata files are not final-output
+locators. Entry paths and metadata types must lack `source-manifest`, and project
+publication metadata must have no `sourceManifest` reference. Complete publication
+and Scaladoc scans remain independent evidence, including index/search and public
+API symbol controls.
+
+The closed `cbdsupport.output-exclusion.v1` Properties receipt contains only
+`schema`, `projectRoot`, `mainJar`, `apiJar`, `generatedRoot`, `metadataRoot`,
+`scaladocRoot`, `car`, `sar` and `publicationRoot`. Each output locator is an
+absolute normalized actual task-returned file or directory under fixture target.
+It is neither a PASS stamp nor identity, approval, content snapshot or transit proof.
+Missing, extra, duplicate, unsupported-schema, invalid or unavailable fields reject.
+
+The [output-exclusion executable specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelOutputExclusionSpec.scala)
+authors X1–X5 over all five actual boundaries, X6 as secondary detector properties,
+and X7 as fail-closed evidence admission. Every output name and content is scanned,
+including all nested JAR/ZIP/CAR/SAR members without extraction or evidence copies.
+Private marker, API/record names and `src/main/internal-model/` paths are forbidden;
+benign fixture names and production InternalModel classes are not forbidden.
+Maximum archive depth is 8, each uncompressed entry is at most 256 MiB and each
+scanned boundary totals at most 2 GiB. Missing, unreadable, corrupt, symlink or
+over-limit evidence fails the proof. Every stream, archive and walk is closed.
+Small temporary synthetic archives support X6/X7 only and do not replace producers.
+
+Parent execution and independent review remain pending for Step 03. All
+P10-60–63 obligations, release to Phase 10.7, checklist
 completion and Phase acceptance remain subject to the
 [Phase checklist](../phase/phase-10.6-checklist.md).

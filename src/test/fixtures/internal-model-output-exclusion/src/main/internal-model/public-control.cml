@@ -1,0 +1,63 @@
+# COMPONENT
+
+## PrivateDomain
+
+### PACKAGE
+
+privatedomain
+
+### DESCRIPTION
+
+P106_PRIVATE_MODEL_SENTINEL
+
+### SERVICE
+
+#### InternalPrivate
+
+- spi-direction :: provides
+- spi-socket :: true
+- spi-api-name :: InternalPrivate
+
+# VALUE
+
+## PrivateRequest
+
+- input-kind :: QUERY
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------+--------+--------------|
+| value | string | 1            |
+
+## PrivateResponse
+
+### ATTRIBUTE
+
+| name  | type   | multiplicity |
+|-------+--------+--------------|
+| value | string | 1            |
+
+# SERVICE
+
+## InternalPrivate
+
+### OPERATION
+
+#### privateEcho
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+PrivateRequest
+
+##### OUTPUT
+
+###### TYPE
+
+PrivateResponse

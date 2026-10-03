@@ -32,5 +32,16 @@ lazy val root = project
     cozyCarName := CbdSupportProjectYamlBuild.carBaseName(projectIdentityEvidence.value),
     cozyManifestMetadata ++=
       cozyProjectMetadata.value.mapUnder("packaging.car.manifest_metadata") ++
-        CbdSupportProjectYamlBuild.manifestMetadata(projectIdentityEvidence.value)
+        CbdSupportProjectYamlBuild.manifestMetadata(projectIdentityEvidence.value),
+    Test / resourceGenerators += Def.task {
+      val receipt = (internalModelExclusionFixture / InternalModelExclusionBuild.prepareInternalModelExclusionEvidence).value
+      val resource = (Test / resourceManaged).value / "internal-model-output-exclusion.properties"
+      IO.copyFile(receipt, resource)
+      Seq(resource)
+    }.taskValue
   )
+
+lazy val internalModelExclusionFixture = project
+  .in(file("src/test/fixtures/internal-model-output-exclusion"))
+  .enablePlugins(org.goldenport.cozy.CozyPlugin)
+  .settings(InternalModelExclusionBuild.settings)

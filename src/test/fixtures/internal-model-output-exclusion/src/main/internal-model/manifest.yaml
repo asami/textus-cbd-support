@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "2.0",
+  "packageId": "8ab18442-5b2b-4c76-a5d6-d906020ac2de",
+  "projectNamespace": "org.simplemodeling.textus.fixture",
+  "projectId": "InternalModelOutputControl",
+  "revision": 1,
+  "lifecycleState": "draft",
+  "artifacts": [
+    {"artifactId":"a-cml","artifactRevision":1,"role":"source-snapshot","path":"public-control.cml","required":true,"dependsOn":[]},
+    {"artifactId":"b-scala","artifactRevision":1,"role":"source-snapshot","path":"InternalPrivateApi.scala","required":true,"dependsOn":[]},
+    {"artifactId":"c-description","artifactRevision":1,"role":"source-snapshot","path":"private-description.md","required":true,"dependsOn":[]},
+    {"artifactId":"d-evidence","artifactRevision":1,"role":"source-snapshot","path":"private-evidence.json","required":true,"dependsOn":[]}
+  ]
+}

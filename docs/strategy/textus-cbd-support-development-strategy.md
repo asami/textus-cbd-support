@@ -100,16 +100,26 @@ candidate design and semantic diff, but Phase 9 keeps the working state
 transient and Git-governed rather than introducing a second durable design
 source.
 
-### Phase 10: Durable Model Development and Continuation
+### Phase 10 sequence: Durable Model Development and Continuation
 
-Make Phase 9 modeling work durable without changing its semantics. Introduce a
-project-owned, hash-bound internal-model package that stores the source basis,
-selected semantic state, decisions, open issues, candidate CML projection,
-review/approval evidence, validation, and continuation cursor. A fresh CBD
-Support process must be able to validate and rehydrate the package into the same
-Phase 9 Canonical Component Design Model and projections, detect source drift,
-and continue only the permitted next action. Exact human approval gates any CML
-mutation; CML and Git remain the canonical design and acceptance authorities.
+Phase 10 was applied as the ordered sequence `10`, `10.1`, `10.2`,
+`10.3`, `10.4`, `10.5`, `10.6`, and `10.7` after its verified
+pre-goal entry gate reported `SPLIT_REQUIRED` for the original 48-hour
+scope. The children retain DEV-CBD-002 but independently close around the
+six-hour target and eight-hour ceiling. Each successor consumes its
+predecessor's accepted release contract; no ordinary local commit is a
+semantic handoff.
+
+| Phase | Focus | Recommended parent profile |
+| --- | --- | --- |
+| 10 | package identity, manifest, and integrity | Terra/xhigh |
+| 10.1 | source snapshots and freshness | Terra/high |
+| 10.2 | durable semantic state and traceability | Terra/xhigh |
+| 10.3 | candidate projection, review, and approval | Terra/xhigh |
+| 10.4 | continuation and rehydration | Terra/high |
+| 10.5 | drift and exact CML change gate | Terra/xhigh |
+| 10.6 | retained-state, API, and security integration | Terra/xhigh |
+| 10.7 | end-to-end validation and closure | Terra/high |
 
 ## Current Priority
 
@@ -119,21 +129,22 @@ Phase 10. Its Stage 9.7 cross-view feedback and evidence-integration work
 (P9-60 through P9-63), plus the Stage 9.8 validation, documentation, and
 deferred-work accounting work (P9-70 through P9-72), are accepted. P9-73's
 full-review finding was repaired, focused re-review is clean, and the final CAR
-lint and full SBT suite passed. Phase 10 is planned under DEV-CBD-002 and must
-not pull durability or approval-lifecycle concerns back into the closed Phase 9
-boundary.
+lint and full SBT suite passed. The Phase 10 sequence is planned under
+DEV-CBD-002 and must not pull durability or approval-lifecycle concerns back
+into the closed Phase 9 boundary.
 
 The detailed historical completion evidence for Phases 1 through 8 remains in
-their phase ledgers and journals. Phase 9 and Phase 10 planning is authoritative
-in `docs/phase/phase-9.md`, `docs/phase/phase-9-checklist.md`,
-`docs/phase/phase-10.md`, and `docs/phase/phase-10-checklist.md`.
+their phase ledgers and journals. Phase 9 and the Phase 10 sequence planning
+are authoritative in `docs/phase/phase-9.md`,
+`docs/phase/phase-9-checklist.md`, and the ordered
+`docs/phase/phase-10*.md` plus `docs/phase/phase-10*-checklist.md` ledgers.
 
 ## 9. Development Item Status
 
 | ID | Source | Development item | Disposition | Target | Status |
 | --- | --- | --- | --- | --- | --- |
 | DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions; Phase 9 also establishes the Canonical Component Design Model and stakeholder/engineering projection architecture without turning inference into fact. | ACCEPTED_PHASE_WORK | Phase 9 | CLOSED |
-| DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Phase 9 semantic state, Use Case Realization, candidate design, semantic diff, and CML projection work. | ACTIVE_PHASE_WORK | Phase 10 | PLANNED |
+| DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Phase 9 semantic state, Use Case Realization, candidate design, semantic diff, and CML projection work. | ACTIVE_PHASE_WORK | Phase 10 sequence (10–10.7) | PLANNED |
 
 ### 9.1 Use Case-driven component composition and Dashboard
 
@@ -152,11 +163,11 @@ to Phase 10.
 
 ### 9.2 Project-local internal-model continuation
 
-DEV-CBD-002 is promoted to Phase 10. It owns the source layout, schema,
-lifecycle, integrity, freshness, approval, build exclusion, and resume semantics
-of a project-local internal-model package. Its semantic input is the accepted
-Phase 9 model/projection/candidate contract; it must persist and rehydrate those
-identities rather than define a parallel storage-only model.
+DEV-CBD-002 is promoted to the Phase 10 sequence. It owns the source layout,
+schema, lifecycle, integrity, freshness, approval, build exclusion, and resume
+semantics of a project-local internal-model package. Its semantic input is the
+accepted Phase 9 model/projection/candidate contract; it must persist and
+rehydrate those identities rather than define a parallel storage-only model.
 
 Phase 10's central continuity requirement is:
 
@@ -173,4 +184,4 @@ Phase 9 Canonical Component Design Model
 
 The portable minimum package, sensitive-data policy, CBD Support API, skill
 authority, validation boundary, and build/publication exclusion are Phase 10
-contract work and are tracked by `docs/phase/phase-10-checklist.md`.
+sequence contract work and are tracked by its ordered Phase checklists.

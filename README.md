@@ -40,6 +40,38 @@ and the provider/developer boundary, see the [user guide](docs/user-guide.md),
 [CAR manual](src/main/car/manual/index.md), and
 [developer guide](docs/developer-guide-car-review.md).
 
+## Durable internal-model development
+
+CBD Support can reconstruct a consuming project's selected CCDM state from its
+portable internal-model package and freshly admit exact human/source-owner inputs
+before applying an approved CML candidate. Accepted Phase 10.7 Steps 01/02 prove
+this through a test-only terminal producer/fresh consumer and actual Cozy lint
+and generation. Positive re-projection remains `ReprojectedPendingAcceptance`;
+Git acceptance and cursor advancement are separate owner actions. No consuming
+adapter or public apply command is deployed. See the
+[current Phase ledger](docs/phase/phase-10.7-checklist.md),
+[user guidance](docs/user-guide.md#durable-resume-and-approved-cml-application),
+[developer reproduction](docs/developer-guide-internal-model-cml-change.md#end-to-end-reproduction),
+[end-to-end contract](docs/spec/internal-model-end-to-end-contract.md) and
+[actual evidence](docs/validation/phase-10.7-end-to-end-evidence.md).
+
+| Source or output | Role |
+| --- | --- |
+| `src/main/cml/` | CBD Support's own requirement CML, including its application-component-composition use case. |
+| `src/main/cozy/` | This component's Cozy model used by normal component generation. |
+| A consuming project's `src/main/internal-model/` | Portable, versioned selected-state package; this repository does not ship a consuming package. |
+| Optional Entity-backed history | Audit/collaboration evidence, never selected-state or approval authority. |
+| `src/main/scala/` | Production implementation; views project the shared CCDM rather than a parallel model. |
+| `src/test/scala/`, `src/test/fixtures/`, `scripts/test/` | Executable specifications, declared owner fixtures and test orchestration. |
+| `target/` | Disposable generated/build/test outputs, never continuation authority. |
+
+The [package contract](docs/spec/internal-model-package-contract.md),
+[typed control contract](docs/spec/internal-model-typed-control-contract.md) and
+[retained-state/security contract](docs/spec/internal-model-retained-state-security-contract.md)
+define the separate identity, admission and storage boundaries. Typed declared
+references and independent inputs govern control; hashes or stored approval
+claims do not authenticate a source/person or authorize mutation.
+
 ## Catalogs
 
 The default source is:

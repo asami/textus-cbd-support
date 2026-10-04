@@ -23,7 +23,8 @@ adapter must call the actual rooted engine through registered runtime execution.
 There is no deployed consuming adapter or public CLI/MCP/UI endpoint in this
 Slice. Missing exact input, source-owner authority or adapter is a dependency
 stop; neither fabricated command lines nor generated test sources supply it.
-Phase 10.7 owns the complete end-user workflow.
+Phase 10.7 composes the accepted owners in a test-only end-to-end proof; it
+does not provide a deployed end-user adapter.
 
 ## Ownership and results
 
@@ -65,11 +66,15 @@ source-owner Git-governed work after the required evidence succeeds.
 The runtime-private test decorator substitutes only truncate/write/flush
 syscalls while preserving real gate, opening/stat and close. Production always
 uses actual native operations. Unsupported platform/ABI is an explicit failure,
-not a successful simulation. A/B focused dependency validation passed A 40 + 70
-and B 27 + 118 specifications; complete Step acceptance and Phase review/release
-remain pending. C focused validation passed 17 specifications and the
-215-specification accumulator; real positive and expected-negative integration
-validation passed.
+not a successful simulation. Historical Slice evidence passed A 40 + 70,
+B 27 + 118, and C 17 plus the 215-specification accumulator, with real positive
+and expected-negative integration. Those earlier counts are not current Phase
+10.7/full-suite evidence. As of 2026-10-04, Phase 10.6 is released at `f0f91f7`
+under its [canonical checklist](phase/phase-10.6-checklist.md), including
+retained-state/security and actual output exclusion. Phase 10.7 Steps 01/02
+are separately accepted as recorded in the
+[current ledger](phase/phase-10.7.md#accepted-step-evidence--2026-10-04);
+final Phase validation, review and release remain pending.
 
 ## Slice C validation and test observation transport
 
@@ -147,3 +152,116 @@ means all expected mode predicates were observed; negative exit 0 proves refusal
 not positive validation. Exceptions or false predicates fail. Evidence/root
 is retained for the parent. Neither test transport nor probe is a deployed
 adapter; missing consuming adapter remains the application dependency stop.
+
+## End-to-end reproduction
+
+The accepted [end-to-end specification](../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndSpec.scala)
+and [Probe](../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndProbe.scala)
+compose actual package/continuation, human gate, native application,
+post-validation and Phase 9 owners. The
+[session wrapper](../scripts/test/run-internal-model-end-to-end-session.py)
+owns external orchestration, associated observations and child cleanup; the
+[readiness specification](../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndReadinessSpec.scala)
+covers ten scenarios, partial-publication properties and actual wrapper-bytecode
+absence. The [evidence report](validation/phase-10.7-end-to-end-evidence.md)
+is the detailed method/result reference; its pending-Step paragraphs are the
+historical pre-commit snapshot, superseded for acceptance status by the dated
+[canonical Step record](phase/phase-10.7.md#accepted-step-evidence--2026-10-04).
+
+Reproduction requires existing managed CPython >=3.12, the explicitly selected
+Temurin/JDK 21 executable, and the existing SBT-produced Test classpath export.
+`REPO`, `JAVA` and `COZY` below are concrete admitted root/executable locators;
+do not infer them from shell defaults. Prepare any required SBT through the
+registered serial command owner. The wrapper does not build or guess its
+classpath. The parent separately selects the registered runtime-session owner
+and registered Cozy command owner, freezing absolute arguments and readiness
+bindings. These are test instructions, not a public application command.
+
+Each run root must be a new direct child of
+`target/internal-model-end-to-end/work/`. The following exact evidence-report
+template describes the original positive001 arguments; replace the root with a
+fresh admitted direct-child name when reproducing it, never reuse retained runs.
+
+```text
+uv run --no-cache --managed-python --no-python-downloads --script \
+  scripts/test/run-internal-model-end-to-end-session.py run \
+  --run-root REPO/target/internal-model-end-to-end/work/p107-s02-positive-001 \
+  --java JAVA \
+  --classpath-file REPO/target/streams/test/fullClasspath/_global/streams/export \
+  --label 'actual α' --reverse false --carrier 43 --cml-mode success
+```
+
+The second positive selects label `再開の別表示 😀`, reverse `true`, carrier `79`
+and `success`. The negative selects label `actual failed validation`, reverse
+`false`, carrier `43` and `lint-failure`. Original completed roots were
+positive001, positive002 and negative002; negative001 was interrupted and
+supplies no fourth successful scenario. The producer must exit 0 within
+60 seconds before the isolated fresh consumer starts. The consumer retains
+its actual ApplicationReport in memory with a 1,800-second observation ceiling;
+the wrapper permits at most 1,860 seconds for terminal consumer completion.
+
+For each ready target, the separate Cozy owner executes lint from the ready
+project cwd. After admitting the actual complete native terminal v6 result,
+the associated observation client uses:
+
+```text
+COZY --runtime 0.3.3-SNAPSHOT lint cml READY_ABSOLUTE_TARGET --format json
+uv run --no-cache --managed-python --no-python-downloads --script \
+  scripts/test/run-internal-model-end-to-end-session.py observe \
+  --run-root RUN_ABSOLUTE --target-id target-alpha --receipt ACTUAL_V6_RESULT_ABSOLUTE
+```
+
+Use `target-beta` for beta. `cml-alpha`/`cml-beta` identify sources and are not
+target IDs. `observe` admits `cozy.exact-cli-command-result.v6`, including
+timeout state, native integer exit, exact cwd/executable/argv and ready binding,
+and reads the complete UTF-8 stdout/stderr files. A tail, synthesized outcome,
+hash or byte seal supplies neither terminal evidence nor permission.
+
+Both positive targets require actual lint success. Negative alpha requires
+actual exit 1/FAIL while beta passes; expected-negative wrapper exit 0 proves
+the refusal predicates, not successful lint. For each positive run, generate
+both alpha and beta from their actual applied CML:
+
+```text
+COZY --runtime 0.3.3-SNAPSHOT modeler-scala-value READY_ABSOLUTE_TARGET \
+  --save RUN_ABSOLUTE/generated/alpha
+```
+
+Use `generated/beta` for beta. Retain complete terminal results/raw outputs
+and inspect nonempty `AlphaValue`/`BetaValue` declarations. Generation proves
+output existence, not generated Scala compilation. The existing compatibility
+checker result proves CNCF declaration consistency only, not new live ABI
+certification. Actual selections were Cozy `0.3.3-SNAPSHOT`, sbt-cozy
+`0.1.18-SNAPSHOT`, CNCF `0.5.3-SNAPSHOT` and Scala `3.3.8`/JDK 21.
+
+An interrupted run uses its observed wrapper PID through the same session owner:
+
+```text
+uv run --no-cache --managed-python --no-python-downloads --script \
+  scripts/test/run-internal-model-end-to-end-session.py stop \
+  --run-root RUN_ABSOLUTE --wrapper-pid OBSERVED_WRAPPER_PID
+```
+
+The client writes only an associated stop request; the wrapper terminates only
+its own children. Require `terminal-summary.json`, actual terminal exits and
+owned cleanup. Retain wrapper/process/producer/ready/consumer/observation
+records and complete stdout/stderr under the disposable run root.
+
+Accepted Step01 `272f59d` passed six representative and 185 accumulator tests;
+its command observations are synthetic composition proof. Accepted Step02
+`6f7cef8` passed two suites / 16 tests and the three external sessions, six
+actual lint and four generation results. Both positives retained before/post
+counts `[3,1,1,3,1,2,3,5]` in Mono-Koto, Use Case, Entity, Event, Structure,
+Classification, Workflow, StateMachine order, all 24 predicates and complete
+own-producer semantics, plus cross-positive selection equality. They remain
+`ReprojectedPendingAcceptance`. Negative002 retained all 22 predicates, lint
+`[1,0]`, `Failed`, post `[]`, no continuity and actual file/cursor evidence.
+All three wrapper/producer/consumer exits were 0 with owned cleanup.
+
+Graph, refresh, source revisions and original/current human/owner decisions
+are independently supplied typed test inputs through existing owners. They
+are not inferred from CML/output/provider state and do not authenticate a
+human or source. No installed adapter, public endpoint, retained producer
+session, automatic Git/cursor acceptance or deployment was exercised.
+[Phase 10.7](phase/phase-10.7-checklist.md) remains OPEN; documentation is
+prepared/review-pending, and full-suite/current lint/full review/release remain owed.

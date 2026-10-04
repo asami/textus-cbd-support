@@ -11,7 +11,8 @@ exists.
 
 - Java 21
 - sbt 1.9.7 or later
-- Cozy/sbt-cozy `0.3.4-SNAPSHOT` development environment
+- Cozy runtime `0.3.3-SNAPSHOT`
+- sbt-cozy plugin `0.1.18-SNAPSHOT`
 - CNCF `0.5.3-SNAPSHOT`
 - Network access to simplemodeling.org or one configured component catalog
 
@@ -24,6 +25,68 @@ exists.
 5. Call `CbdRetrieval.searchComponents` with a concrete requirement.
 6. Pass the returned `ComponentReference` to `getComponent`, `getUsage`, or
    `resolveDependencies` by using its identity fields, including `kind`.
+
+## Durable resume and approved CML application
+
+Use the exact normalized consuming-project root and its `project.yaml` identity
+with the complete selected `src/main/internal-model/` inventory. The package
+carries required source snapshots, realization, continuity, decisions/issues,
+candidate/diff, review/approval, validation and derived resume selections.
+CBD Support's own `src/main/cml/` requirement model and `src/main/cozy/`
+component model have separate roles; optional Entity audit history and disposable
+`target/` output cannot select the current state or replace missing inputs.
+See the [package](spec/internal-model-package-contract.md),
+[typed control](spec/internal-model-typed-control-contract.md) and
+[retained-state/security](spec/internal-model-retained-state-security-contract.md)
+contracts.
+
+Current admission uses the complete `ReviewSubject(subjectId, subjectRevision,
+packageReference, scope, artifacts)`: scope names component/context/selected
+Use Case identities, and artifacts contain the complete reviewed semantic basis
+and required transitive dependencies. Every selected artifact binds its exact
+`artifactId`, positive `artifactRevision` and role. Each logical
+`RecordReference(recordId, recordRevision)` is independent of the artifact,
+subject and carrier revision domains. Current review is independently admitted
+with its exact candidate/diff/review/approval selections and rule/provider basis.
+Required decisions/mappings must be accepted and blocking human items resolved.
+No hash, byte seal, latest-record inference or stored provider approval supplies
+control authority.
+
+Original approval evidence and the current actual independent human decision
+remain separate inputs. The latter supplies actor/provenance, decision,
+rationale and unresolved items against that exact basis and is reevaluated
+immediately before application. Separately admitted source-owner authority names
+the consuming root/package/scope, provenance, complete existing target set,
+current live source authority/identity/revisions and explicit next revisions.
+Missing versions remain incomplete; CML, generated instructions, command output
+or an AI provider cannot allocate versions or authenticate those inputs.
+
+A reviewed consuming-project internal adapter must invoke the rooted engine.
+This repository provides versioned skill instructions and test code, but no
+deployed adapter or public apply CLI/MCP endpoint. Missing adapter, exact input
+or owner authority is a dependency stop; a fabricated CLI or shell overwrite
+cannot supply it. `Rejected` performs no write. `Failed` preserves any actual
+partial file effects and primary/cleanup causes for owner direction. Complete
+application yields only `AppliedPendingValidation`.
+
+Post-validation requires actual terminal Cozy lint observations for every applied
+target and independently refreshed owner sources/realization/continuity matching
+the approved next revisions. Missing evidence remains `Incomplete`; failed lint
+or incompatible evidence remains `Failed`, retaining effects. Only complete
+source-backed CCDM and all eight views yield `ReprojectedPendingAcceptance`.
+Source-owner Git acceptance and cursor advancement still require separate action.
+See the [application contract](spec/internal-model-cml-change-contract.md) and
+[developer guide](developer-guide-internal-model-cml-change.md#end-to-end-reproduction).
+
+As of 2026-10-04, [accepted Steps 01/02](phase/phase-10.7.md#accepted-step-evidence--2026-10-04)
+prove test-owner composition and three completed external sessions with actual
+lint/generation. Human/source-owner and refresh inputs are independently declared
+typed test evidence. Generated Scala compilation, new live ABI certification,
+authenticated human/source interaction and a deployed adapter are unverified;
+[Phase 10.7 final acceptance](phase/phase-10.7-checklist.md) remains pending.
+The prerequisite coordinate correction above carries forward
+`HYG-P9-70-USER-GUIDE-COZY-COORDINATE-001`; this documentation preparation does
+not retrospectively close that Phase 9 finding.
 
 ## Review Run Operations
 

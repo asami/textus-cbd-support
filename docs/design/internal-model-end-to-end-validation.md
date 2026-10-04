@@ -1,5 +1,5 @@
 ---
-status: authored-unvalidated
+status: accepted-test-contract
 decision_scope: PHASE-10.7 / P107-STEP-01 / P107-S01-A / P107-IMPLEMENT-001
 updated_at: 2026-10-04
 ---
@@ -7,10 +7,14 @@ updated_at: 2026-10-04
 # Internal-model End-to-end Validation Design
 
 The [paired contract](../spec/internal-model-end-to-end-contract.md) fixes this
-test-only validation boundary. Four new test programs compose existing owners
+test-only validation boundary. Four test programs compose existing owners
 without changing production declarations or accepted predecessor semantics.
 The parent owns validation, independent review, Git acceptance and transitions.
-No passing run or external proof has been claimed by authoring these files.
+Accepted Step01 `272f59d` and Step02 `6f7cef8`, dated 2026-10-04 in the
+[canonical ledger](../phase/phase-10.7.md#accepted-step-evidence--2026-10-04),
+establish focused test evidence; the
+[report](../validation/phase-10.7-end-to-end-evidence.md) supplies actual external
+proof. This status does not establish final Phase acceptance.
 
 ## Cohesive test responsibilities
 
@@ -20,6 +24,8 @@ No passing run or external proof has been claimed by authoring these files.
 | [InternalModelEndToEndSupport](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndSupport.scala) | Keep caller transport outside the project; start sequential isolated actual JVMs; retain process/output evidence under one explicit private run. |
 | [InternalModelEndToEndProbe](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndProbe.scala) | Produce to terminal exit or consume the existing project; retain actual application in the consumer; compose explicit synthetic or separate external observations with the unchanged C owner. |
 | [InternalModelEndToEndSpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndSpec.scala) | Describe E1–E6 using grouped Given/When/Then semantic results, actual source effects and bounded generated variants. |
+| [Session wrapper](../../scripts/test/run-internal-model-end-to-end-session.py) | Own external producer/consumer orchestration, associated complete terminal observation transport and bounded cleanup of its own children; execute no Cozy command or semantic acceptance. |
+| [InternalModelEndToEndReadinessSpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/InternalModelEndToEndReadinessSpec.scala) | Specify ten readiness scenarios and partial-publication properties with existing semantic/lifecycle guards and actual wrapper-bytecode absence; controlled fixtures are not external Cozy proof. |
 
 Each lifecycle runs only beneath
 `target/internal-model-end-to-end/work/<explicit-run>/`. The shared legacy
@@ -116,7 +122,7 @@ are decoded through the existing acceptance support transport and admitted by
 the unchanged C owner; raw outcome and bound target/reference/argv values survive.
 The resulting complete ordinary report is retained at `consumer-result.json`.
 
-Step 02 separately selects/runs the actual registered Cozy lint commands and
+Step 02 separately selected/ran the actual registered Cozy lint commands and
 value-model generation against those applied files. The probe executes neither
 command group nor Git acceptance. No source/person authentication, provider
 session, optional DB, public API/CLI/MCP, installed skill, latest selection,
@@ -133,9 +139,22 @@ of shrinking outside that domain. Outer tuple shrinking retains every position,
 including both enforced explicit carrier/control-addition cases, with the
 existing `minSuccessful(1)` batch and all semantic comparisons.
 
-E1–E6 are authored executable obligations. The frozen parent selects the
-representative `InternalModelEndToEndSpec` and its ten-suite affected accumulator,
-mechanical source/document checks and diff verification. Those executions and
-independent Step review are still required. Step 02 actual external validation
-and later repository/Phase acceptance remain distinct; this adapter is test-only,
-uninstalled and undeployed, with no automatic checklist or cursor closure.
+E1–E6 retain their accepted executable meaning. Step01 passed six representative
+tests and its ten-suite / 185-test accumulator with compilation, terminal
+SBT/wrapper exit 0 and lock release; independent review001 and exact M0
+amendment001 accepted that boundary. Step02 separately passed two suites / 16
+tests and independent focused002 review, with three completed sequential external
+sessions, six real lint and four generation results and owned terminal cleanup.
+Both positives retain complete all-eight semantics and sidecars, before/post
+`[3,1,1,3,1,2,3,5]`, own-producer comparisons and cross-positive selection
+equality. They remain `ReprojectedPendingAcceptance`. Negative002 retains actual
+lint `[1,0]`, `Failed`, post `[]`, no continuity and actual file/cursor effects;
+interrupted negative001 has no semantic result.
+
+These are test-only owner declarations and observations. Generated Scala
+compilation, new live ABI certification, authenticated human/source interaction
+and a deployed consuming adapter are not proven. The remaining full suite,
+current applicable lint, one full Phase review and distinct release belong to
+the [canonical final checklist](../phase/phase-10.7-checklist.md).
+Step03 documentation is prepared/review-pending. No result automatically closes
+the checklist or advances a cursor.

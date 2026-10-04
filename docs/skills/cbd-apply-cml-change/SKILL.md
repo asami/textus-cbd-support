@@ -11,7 +11,8 @@ deployed public command. The engine is package-private
 applicationReference)` in Textus CBD Support. A reviewed consuming-project
 internal adapter must invoke that actual rooted engine through registered
 runtime execution. No consuming adapter, public CLI, MCP endpoint or UI is
-deployed by this source. Phase 10.7 owns the complete end-user workflow.
+deployed by this source. Phase 10.7's accepted Steps 01/02 establish test-only
+composition and real external lint/generation evidence, not a consuming adapter.
 
 ## Required exact inputs
 
@@ -26,6 +27,19 @@ deployed by this source. Phase 10.7 owns the complete end-user workflow.
   opaque owner-supplied next revisions, plus explicit application RecordReference.
 - A reviewed consuming-project internal adapter and its admitted execution
   scope for that root and those targets.
+
+Keep the reference domains distinct: `ReviewSubject(subjectId,
+subjectRevision, packageReference, scope, artifacts)` contains the complete
+reviewed semantic input/dependency set and exact component/context/selected
+Use Case scope. Its stable package reference names package/project identity;
+carrier revision is separate. Every selected `ArtifactReference` binds
+`artifactId`, positive `artifactRevision` and exact role; every logical
+`RecordReference` independently binds `recordId` and `recordRevision`.
+Source authority/identity/current/next revision belongs to the source owner,
+not any artifact, logical-record or subject revision. The
+[typed contract](../../spec/internal-model-typed-control-contract.md) governs
+complete admission. No hash, whole-file byte comparison or stored approval
+claim supplies control or authentication.
 
 If an exact input, owner authority or adapter is missing, stop and name that
 dependency. The skill text authenticates no person/source and supplies no
@@ -84,12 +98,18 @@ return ReprojectedPendingAcceptance. Stop on every other result and preserve
 the actual changed files and evidence for owner direction. Repository Git
 acceptance remains separate.
 
-The [test-only specification and positive/negative probe plan](../../developer-guide-internal-model-cml-change.md#slice-c-validation-and-test-observation-transport)
-does not supply a consuming adapter or deployed command. A/B focused dependency
-checks passed (40 + 70 and 27 + 118); C focused validation passed 17 specifications
-and the 215-specification accumulator, and actual positive and expected-negative
-integration validation passed. Step/Phase
-acceptance remains pending. This instruction source remains uninstalled.
+The [end-to-end reproduction guide](../../developer-guide-internal-model-cml-change.md#end-to-end-reproduction)
+and [actual evidence report](../../validation/phase-10.7-end-to-end-evidence.md)
+describe test-only proof, not a consuming adapter or deployed command.
+As of 2026-10-04, Phase 10.6 is released and Phase 10.7 Steps 01/02 are accepted
+under the [canonical ledger](../../phase/phase-10.7.md#accepted-step-evidence--2026-10-04).
+Step01 passed six representative/185 accumulator tests; Step02 passed 16 tests,
+three completed external sessions, six real lint and four generation results.
+Positive outcomes remain pending acceptance; negative Failed retains effects.
+Refresh and human/source-owner inputs are independent typed test evidence, not
+authenticated interaction. Generated Scala compilation and new live ABI proof
+are unverified. Final Phase gates remain pending. This instruction source remains
+uninstalled; documentation preparation is review-pending.
 
 See the [contract](../../spec/internal-model-cml-change-contract.md),
 [design](../../design/internal-model-cml-change.md), and

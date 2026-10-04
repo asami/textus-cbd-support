@@ -407,3 +407,51 @@ Disposition: ACTIVE_PHASE_WORK
 Strategy Record: docs/strategy/textus-cbd-support-development-strategy.md#9-development-item-status
 Target Phase: Phase 10
 Triaged On: 2026-09-09
+
+## DEV-CBD-002 outcome update — 2026-10-04
+
+The original DEV-CBD-002 identity and ACTIVE_PHASE_WORK disposition remain.
+The direction, provisional decisions and hash proposals above are historical
+2026-08-17 chronology. Current management/control follows
+[repository rules](../../../rules/repository-rules.md) and the
+[typed contract](../../../spec/internal-model-typed-control-contract.md): declared
+package inventory/dependencies, complete semantic subject, exact artifact
+ID/revision/role, independent logical record ID/revision and separate source-owner
+authority/identity/current/next revisions supersede hash/digest approval and
+freshness proposals. No byte seal or stored human/provider claim supplies control
+authority or authentication. The project package owns selected continuation
+state; optional Entity history is audit/collaboration only and target is disposable.
+
+The accepted Phase9 CCDM handoff and original first-child Phase10 closure remain
+intact. [Phase10.6](../../../phase/phase-10.6-checklist.md) released
+retained-state/security and actual output exclusion at `f0f91f7`.
+[Phase10.7 Steps01/02](../../../phase/phase-10.7.md#accepted-step-evidence--2026-10-04)
+were accepted at `272f59d` and `6f7cef8`. Step01 passed six representative and
+185 accumulator tests with synthetic command observations; Step02 passed
+16 tests, three completed external sessions, six actual lint and four generation
+results with owned terminal cleanup. Interrupted negative001 remains historical
+interruption, not a fourth passed scenario.
+
+The fresh consumer preserves the same selected semantic identities, all eight
+actual CCDM projection owners, complete sidecars and Phase9 impact/candidate/diff
+semantics without original producer/provider state. Both positives retain
+before/post `[3,1,1,3,1,2,3,5]`, all 24 predicates and cross-positive selection
+equality, but only `ReprojectedPendingAcceptance`. Negative002 retains all
+22 expected-refusal predicates, actual lint `[1,0]`, Failed, post `[]`, no
+continuity and actual application/file/cursor effects. Fresh actual human and
+source-owner/refresh inputs remain separately supplied typed test declarations,
+not CML/output-derived facts or authenticated interaction. Generated AlphaValue/
+BetaValue output exists; generated-code compilation and new live ABI proof
+are unverified. No public endpoint, installed adapter, deployment or Git/cursor
+acceptance was exercised. Detailed method/proof is in the
+[evidence report](../../../validation/phase-10.7-end-to-end-evidence.md).
+
+Step03 documentation is prepared/review-pending. DEV-CBD-002 terminal work,
+Phase10.7 and the Phase10 sequence are not completed: full suite, current
+applicable lint, one full Phase review and distinct release remain under the
+[canonical pending final ledger](../../../phase/phase-10.7-checklist.md).
+The exact shared Phase index and strategy projections are
+[synchronization-deferred](../../../phase/phase-10.7.md#shared-projection-synchronization-deferred--2026-10-04)
+because of concurrent Phase11/12 planning. Canonical10.7 owns current progress;
+a separate future synchronization owner must reconcile those projections.
+This append neither creates another DEV identity nor assigns new successor work.

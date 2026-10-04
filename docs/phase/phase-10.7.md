@@ -5,6 +5,7 @@ Stage Status:
 - Predecessor: Phase 10.6
 - Successor: none within the applied Phase 10 split
 - Development item: DEV-CBD-002
+- Current step: Steps 01/02 accepted; Step03 documentation prepared/review-pending.
 - Owner: Textus CBD Support development
 - Update rule: completion is recorded only by `phase-10.7-checklist.md` with reproducible evidence.
 
@@ -21,9 +22,9 @@ Use Case / Mono-Koto stakeholder review
   -> project-local internal-model package
   -> process/session termination
   -> fresh CBD Support process
-  -> package integrity and freshness validation
+  -> typed inventory/dependency admission and source-owner freshness validation
   -> same selected semantic state and Phase 9 projections
-  -> human approval for exact candidate hash
+  -> complete exact subject/artifact/logical selections and current independent human input
   -> approved CML change
   -> Cozy generation/validation
   -> CBD Support re-analysis and Review
@@ -31,7 +32,79 @@ Use Case / Mono-Koto stakeholder review
 ```
 
 Phase 10.7 is not complete unless this loop is reproducible without the
-original AI/provider session.
+original AI/provider session and all final acceptance gates pass. The current
+proof uses test-only adapters and independent fixture-owner declarations;
+it does not promise a deployed end-user application surface.
+
+## Current control boundary — 2026-10-04
+
+The [typed contract](../spec/internal-model-typed-control-contract.md) and
+[repository rules](../rules/repository-rules.md) supersede historical
+package-integrity/hash-approval management wording. The complete
+`ReviewSubject(subjectId, subjectRevision, packageReference, scope, artifacts)`
+names the exact component/context/selected Use Case and full reviewed semantic
+input/dependency set. Selected artifacts bind ID, positive revision and role;
+logical record ID/revision, subject revision, carrier revision and source-owner
+authority/identity/current/next revisions remain distinct. Independently admitted
+current review and actual current human input are freshly evaluated with separate
+source-owner authority and exact target/next-version evidence. No hash, byte seal,
+provider approval, inferred version or optional retained history supplies control.
+
+## Accepted Step evidence — 2026-10-04
+
+Predecessor [Phase 10.6](phase-10.6-checklist.md) released at `f0f91f7`, including
+retained-state/security and actual output exclusion. Its accepted scope is consumed.
+
+- Step01 `272f59d`: six representative and ten-suite / 185 accumulator tests
+  passed with compilation, SBT/wrapper exit 0 and terminal lock release;
+  independent `P107-S01-REVIEW-001` plus exact M0 amendment001 accepted the
+  [E1–E6 contract](../spec/internal-model-end-to-end-contract.md). Command
+  observations were synthetic owner-composition evidence, not external Cozy.
+- Step02 `6f7cef8`: two suites / 16 tests passed and independent
+  `P107-S02-FOCUSED-REVIEW-002` accepted the complete boundary. The
+  [evidence report](../validation/phase-10.7-end-to-end-evidence.md) records
+  three completed external sessions, six actual lint/four generation results,
+  wrapper/producer/consumer exit 0 and owned cleanup. Both positives passed
+  all 24 predicates, before/post `[3,1,1,3,1,2,3,5]` in Mono-Koto, Use Case,
+  Entity, Event, Structure, Classification, Workflow, StateMachine order,
+  complete own-producer/Phase9 semantics and cross-positive selection equality.
+  They remain `ReprojectedPendingAcceptance`. Negative002 passed all 22
+  expected-refusal predicates, retained actual lint `[1,0]`, `Failed`, post
+  `[]`, no continuity and real application/file/cursor effects. Negative001
+  remains interrupted, not a fourth passed scenario.
+- Step03: documentation prepared/review-pending under P107-S03-IMPLEMENT-001;
+  no independent acceptance or Step commit yet. Report pending-Step paragraphs
+  retain their pre-commit chronology; this dated record supplies later actual
+  Step01/02 acceptance without rewriting that report.
+
+Actual selections remain Cozy `0.3.3-SNAPSHOT`, sbt-cozy `0.1.18-SNAPSHOT`,
+CNCF `0.5.3-SNAPSHOT`, Scala `3.3.8` and JDK 21. Nonempty generated
+AlphaValue/BetaValue declarations are output evidence; compilation of that
+generated Scala is unverified. Compatibility checking establishes declaration
+consistency only, not new live ABI certification. Human/source-owner/refresh
+inputs are independent typed test inputs, not authentication or CML-derived
+semantics. No public endpoint, installed adapter, deployment or Git acceptance
+was exercised. [Final P10-70–P10-73/Closure](phase-10.7-checklist.md) remain
+unchecked: full suite, current applicable lint, one full Phase review and
+distinct release are still required.
+
+## Shared projection synchronization deferred — 2026-10-04
+
+Synchronization of [the Phase index](README.md) and
+[development strategy](../strategy/textus-cbd-support-development-strategy.md)
+is explicitly deferred because they coexist with concurrent Phase11/12 planning.
+Those shared projections are not synchronized by Step03 and do not select the
+current state. This Phase document and [canonical checklist](phase-10.7-checklist.md)
+own current Phase10.7 progress; [Phase10](phase-10.md) projects terminal sequence
+progress. The separate future shared-projection synchronization owner must
+reconcile the index/strategy with these canonical records after coordinating
+that planning, without reopening accepted contracts.
+
+All seven concurrent paths remain outside this Step: `docs/phase/README.md`,
+`docs/phase/phase-11.md`, `docs/phase/phase-11-checklist.md`,
+`docs/phase/phase-12.md`, `docs/phase/phase-12-checklist.md`,
+`docs/strategy/textus-cbd-support-development-strategy.md` and
+`docs/notes/phase-11-12-local-execution-preparation.md`.
 
 ## Closure boundary
 

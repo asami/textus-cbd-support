@@ -28,6 +28,8 @@ second Entity/Event/Workflow or Mono-Koto model, nor a storage-only
 interpretation. Rehydration must reconstruct the identities needed by Phase 9
 projections or report an explicit incompatibility or gap.
 
+The following layout is the original first-child release description; current
+typed control supersession and sequence progress are recorded below.
 The project-owned continuation root is provisionally
 `src/main/internal-model/`. It must support stopping, committing, transferring,
 and resuming the selected work in another process or developer's checkout
@@ -55,7 +57,10 @@ src/main/internal-model/
       validation.yaml
 ```
 
-## Sequence-wide storage and integrity boundaries
+## Historical sequence-wide storage and integrity boundaries
+
+This original split/release wording is retained as history. Its hash-based
+management/approval clauses are superseded by the dated current boundary below.
 
 - Project-owned `src/main/internal-model/` is the portable, versioned minimum
   complete continuation package: semantic state, source basis, decisions,
@@ -94,6 +99,9 @@ Missing Cozy or CNCF contracts remain explicit upstream gaps, not license for
 local semantic reconstruction. Any dedicated CML-application skill must
 preserve the exact approval/hash gate and Phase 9 Git-governed acceptance
 policy. The terminal Phase 10.7 acceptance scenario validates this full loop.
+
+The preceding approval/hash phrase is historical, not a current sequence
+requirement; the current typed gate below governs application.
 
 Planning sources: `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md`,
 `docs/phase/phase-9.md`, `docs/phase/phase-9-checklist.md`,
@@ -146,3 +154,37 @@ Apply-mode invocation: `$cncf-split-phase Phase 10`. The verified pre-goal entry
 The applied order is `10`, `10.1`, `10.2`, `10.3`, `10.4`, `10.5`, `10.6`, and `10.7`. Every original item was OPEN; no completed history, accepted evidence, or journal record moved. Each child owns one original Stage and hands off only its accepted release. Every adjacent merge is 720 expected minutes and exceeds the ceiling; no profile-cost-only rejection was used.
 
 Terra/xhigh owns unresolved package, semantic-identity, approval/CML-gate, and API/security kernels (10, 10.2, 10.3, 10.5, 10.6). Terra/high owns bounded snapshot, rehydration, and closure work (10.1, 10.4, 10.7).
+
+## Current sequence control and progress — 2026-10-04
+
+The retained first child Phase10 stays CLOSED with its original accepted
+commits/checklist. Historical canonical-byte/digest evidence above records that
+release, not current management authority. The
+[typed control contract](../spec/internal-model-typed-control-contract.md) and
+[repository rules](../rules/repository-rules.md) supersede historical hash
+requirements. Current package admission uses declared inventory/dependencies;
+complete `ReviewSubject` package/scope/input selections, exact artifact
+ID/revision/role and independent logical record ID/revision bind review and
+approval. Carrier, subject, artifact, logical and source-owner revisions stay
+distinct. Actual current independent human input and source-owner authority,
+complete existing targets and explicit next source revisions are freshly
+evaluated by the rooted gate. No hash, byte seal, inferred version or stored
+approval claim establishes applicability or authentication.
+
+[Phase10.6](phase-10.6-checklist.md) released retained-state/security and actual
+output exclusion at `f0f91f7`. [Phase10.7's dated record](phase-10.7.md#accepted-step-evidence--2026-10-04)
+records accepted Step01 `272f59d` (six representative/185 accumulator tests,
+synthetic owner-composition observations) and Step02 `6f7cef8` (16 tests,
+three completed external sessions, six actual lint/four generation results).
+The same CCDM and all eight actual view owners preserve semantic selection;
+positive re-projection is pending acceptance and negative Failed retains
+actual effects/cursor. Step03 documentation is prepared/review-pending.
+The terminal sequence remains pending the
+[Phase10.7 final ledger](phase-10.7-checklist.md): full suite, current applicable
+lint, one full Phase review and distinct release. No generated-code compilation,
+new live ABI, human/source authentication or deployed-adapter proof is implied.
+
+Shared Phase index/strategy synchronization is explicitly
+[deferred in canonical Phase10.7](phase-10.7.md#shared-projection-synchronization-deferred--2026-10-04)
+because of concurrent Phase11/12 planning. Those projections do not select
+current sequence state; separate future synchronization retains responsibility.

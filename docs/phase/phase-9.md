@@ -470,3 +470,25 @@ Workflow refinement proposal from the remote planning history is retained in
 [Projection follow-up planning](phase-9-projection-followup.md). Its unchecked
 follow-up ledger does not reopen Phase 9 or replace any accepted evidence here.
 Interactive editing is planned separately in [Phase 12](phase-12.md).
+
+## Successor handoff consumption — 2026-10-04
+
+Phase9 remains CLOSED under its original checklist/review identities. Its
+historical successor-planned records remain chronological facts, not current
+successor status. The [Phase10 sequence](phase-10.md#current-sequence-control-and-progress--2026-10-04)
+has consumed the handoff through released Phase10.6 `f0f91f7` and accepted
+[Phase10.7 Steps01/02](phase-10.7.md#accepted-step-evidence--2026-10-04),
+`272f59d` / `6f7cef8`. Actual terminal producer/fresh consumer reconstructs the
+same semantic identities, complete realization/binding sidecars, Phase9 impact
+and candidate/diff semantics, and all eight actual owners: Mono-Koto, Use Case,
+Entity, Event, Structure, Classification, Workflow and StateMachine.
+
+Current control uses declared typed inventory/dependencies, complete subject,
+exact artifact/logical/source revisions and independent human/owner inputs under
+the [typed contract](../spec/internal-model-typed-control-contract.md), without
+hash-based management or a parallel semantic model. Both positives retain
+`ReprojectedPendingAcceptance`; negative Failed retains actual effects/cursor.
+These accepted tests add no Phase9 behavior, new acceptance or authentication.
+Original carried-forward findings remain recorded in the Phase9 checklist.
+Step03 documentation is prepared/review-pending; terminal Phase10.7 and sequence
+closure remain pending its [final ledger](phase-10.7-checklist.md).

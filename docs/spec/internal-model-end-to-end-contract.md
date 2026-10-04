@@ -1,5 +1,5 @@
 ---
-status: authored-unvalidated
+status: accepted-test-contract
 decision_scope: PHASE-10.7 / P107-STEP-01 / P107-S01-A / P107-IMPLEMENT-001
 updated_at: 2026-10-04
 ---
@@ -12,8 +12,11 @@ application and re-analysis boundary. Its executable counterpart is
 and its companion is the
 [validation design](../design/internal-model-end-to-end-validation.md).
 It changes no production contract, public API, schema, installed skill or CLI.
-Authoring does not establish a passing validation, Step acceptance, P10-70
-external proof, or Phase closure.
+As of 2026-10-04, accepted Step01 `272f59d` and Step02 `6f7cef8` establish
+the focused executable and external test evidence recorded in the
+[canonical Step ledger](../phase/phase-10.7.md#accepted-step-evidence--2026-10-04)
+and [evidence report](../validation/phase-10.7-end-to-end-evidence.md).
+This operational status does not close P10-70–P10-73 or Phase 10.7.
 
 The existing [typed control contract](internal-model-typed-control-contract.md),
 [continuation contract](internal-model-continuation-and-rehydration-contract.md),
@@ -59,7 +62,7 @@ conversation is transferred. The retained work root is one
 explicit run below `target/internal-model-end-to-end/work/`.
 The producer takes an explicit ordinary candidate-payload mode, `success` or
 `lint-failure`, through the existing acceptance fixture. The latter supplies
-the already declared invalid alpha Entity attribute for the next Step's real
+the already declared invalid alpha Entity attribute for the separate real
 expected-negative lint run; it does not fabricate that command's outcome.
 
 Only the admitted present package inventory, `project.yaml`, the two existing
@@ -152,8 +155,24 @@ Four explicit draws still form the outer fixed four-position tuple, and the
 existing `minSuccessful(1)` batch executes four actual producer/consumer pairs
 with all semantic comparisons retained.
 
-Parent-selected compilation, focused representative/accumulator validation and
-independent review remain outstanding. Real Cozy positive/negative/generation
-execution belongs to P107-STEP-02. The adapter is repository-private test code,
-uninstalled and undeployed; no public application surface or terminal Phase
-acceptance is claimed.
+Accepted Step01 passed main/test compilation, six representative tests and the
+ten-suite / 185-test accumulator, with SBT/wrapper exit 0 and terminal lock
+release, independent review001 and its exact M0 amendment001. Its synthetic
+command observations establish owner composition only. Accepted Step02 passed
+two suites / 16 tests and independent focused002 review over its complete
+boundary, separately completing two positive and one negative external session,
+six actual lint and four actual generation results with owned terminal cleanup.
+Positive before/post vectors `[3,1,1,3,1,2,3,5]`, complete all-eight sidecars,
+own-producer comparisons and cross-positive selection equality passed;
+`ReprojectedPendingAcceptance` remains the only positive disposition.
+Negative002 retained actual lint `[1,0]`, `Failed`, post `[]`, no continuity and
+actual effects/cursor. Interrupted negative001 supplies no passed scenario.
+
+Generated output declarations do not prove generated Scala compilation; the
+compatibility checker proves declarations only, not new live ABI certification.
+Human/source-owner and refresh declarations remain independent typed test inputs,
+not authentication or a model inferred from CML/command/provider output. The
+adapter remains repository-private test code, uninstalled and undeployed.
+Full repository suite, current applicable lint, one full Phase review and the
+distinct release remain required by the [final checklist](../phase/phase-10.7-checklist.md).
+Step03 documentation is prepared/review-pending, not accepted by this status.

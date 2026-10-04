@@ -441,3 +441,23 @@ Remote-added P9-44 through P9-47 and expanded analysis/Workflow requirements
 are explicitly retained as open follow-up work in
 [Projection follow-up planning](phase-9-projection-followup.md), not as reopened
 or retroactively accepted Phase 9 items.
+
+## Successor handoff consumed — 2026-10-04
+
+The original CLOSED Phase9 ledger, review identities, historical planned-successor
+paragraphs and carried-forward findings above are preserved. The
+[dated handoff record](phase-9.md#successor-handoff-consumption--2026-10-04)
+records released Phase10.6 `f0f91f7` and accepted Phase10.7 Step01 `272f59d` /
+Step02 `6f7cef8` consuming the same CCDM identities and all eight actual
+Mono-Koto, Use Case, Entity, Event, Structure, Classification, Workflow and
+StateMachine owners with complete sidecars and Phase9 impact/diff semantics.
+Current typed subject/artifact/logical/source control and independent human/owner
+inputs create no parallel model and supply no hash-based approval authority.
+
+Positive re-projection remains pending acceptance; negative Failed retains
+effects/cursor. No Phase9 item, behavior, review identity or finding is newly
+closed by this successor consumption. In particular the carried-forward
+`HYG-P9-70-USER-GUIDE-COZY-COORDINATE-001` retains its historical identity;
+the Step03 guide correction is prepared/review-pending, not retrospective
+Phase9 closure. Terminal [Phase10.7](phase-10.7-checklist.md) and sequence
+acceptance still require the remaining full-suite/lint/full-review/release gates.

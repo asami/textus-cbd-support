@@ -458,6 +458,7 @@ Positive re-projection remains pending acceptance; negative Failed retains
 effects/cursor. No Phase9 item, behavior, review identity or finding is newly
 closed by this successor consumption. In particular the carried-forward
 `HYG-P9-70-USER-GUIDE-COZY-COORDINATE-001` retains its historical identity;
-the Step03 guide correction is prepared/review-pending, not retrospective
+the Step03 guide correction is accepted at `3f22573`, not retrospective
 Phase9 closure. Terminal [Phase10.7](phase-10.7-checklist.md) and sequence
-acceptance still require the remaining full-suite/lint/full-review/release gates.
+acceptance record full002 1,048 tests / 131 suites, current CAR lint0, sole
+full-review PASS and distinct release binding `P107-PHASE-CLOSURE-001@1`.

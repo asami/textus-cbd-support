@@ -490,5 +490,7 @@ hash-based management or a parallel semantic model. Both positives retain
 `ReprojectedPendingAcceptance`; negative Failed retains actual effects/cursor.
 These accepted tests add no Phase9 behavior, new acceptance or authentication.
 Original carried-forward findings remain recorded in the Phase9 checklist.
-Step03 documentation is prepared/review-pending; terminal Phase10.7 and sequence
-closure remain pending its [final ledger](phase-10.7-checklist.md).
+Step03 `3f22573` is independently accepted. Terminal Phase10.7 and sequence
+closure are recorded by its [final ledger](phase-10.7-checklist.md): full002
+1,048 tests / 131 suites, final CAR lint0, sole full-review PASS and distinct
+local release binding `P107-PHASE-CLOSURE-001@1`. Phase9 history is not reopened.

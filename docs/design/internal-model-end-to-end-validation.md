@@ -14,7 +14,8 @@ Accepted Step01 `272f59d` and Step02 `6f7cef8`, dated 2026-10-04 in the
 [canonical ledger](../phase/phase-10.7.md#accepted-step-evidence--2026-10-04),
 establish focused test evidence; the
 [report](../validation/phase-10.7-end-to-end-evidence.md) supplies actual external
-proof. This status does not establish final Phase acceptance.
+proof. The [terminal closure record](../phase/phase-10.7.md#terminal-closure--2026-10-04)
+separately establishes final Phase acceptance; this design alone does not.
 
 ## Cohesive test responsibilities
 
@@ -153,8 +154,8 @@ interrupted negative001 has no semantic result.
 
 These are test-only owner declarations and observations. Generated Scala
 compilation, new live ABI certification, authenticated human/source interaction
-and a deployed consuming adapter are not proven. The remaining full suite,
-current applicable lint, one full Phase review and distinct release belong to
-the [canonical final checklist](../phase/phase-10.7-checklist.md).
-Step03 documentation is prepared/review-pending. No result automatically closes
-the checklist or advances a cursor.
+and a deployed consuming adapter are not proven. The
+[closed canonical checklist](../phase/phase-10.7-checklist.md) records accepted
+Step03 `3f22573`, sole full-review PASS, full002 1,048 tests / 131 suites,
+current CAR lint0 and distinct local release binding `P107-PHASE-CLOSURE-001@1`.
+No test result automatically accepts CML/Git changes or advances a cursor.

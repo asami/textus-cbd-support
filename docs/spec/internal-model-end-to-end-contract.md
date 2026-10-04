@@ -16,7 +16,9 @@ As of 2026-10-04, accepted Step01 `272f59d` and Step02 `6f7cef8` establish
 the focused executable and external test evidence recorded in the
 [canonical Step ledger](../phase/phase-10.7.md#accepted-step-evidence--2026-10-04)
 and [evidence report](../validation/phase-10.7-end-to-end-evidence.md).
-This operational status does not close P10-70–P10-73 or Phase 10.7.
+The [terminal closure record](../phase/phase-10.7.md#terminal-closure--2026-10-04)
+separately records accepted Step03, sole full-review PASS, final full-suite/CAR
+lint and distinct release. This specification alone does not close the Phase.
 
 The existing [typed control contract](internal-model-typed-control-contract.md),
 [continuation contract](internal-model-continuation-and-rehydration-contract.md),
@@ -173,6 +175,7 @@ compatibility checker proves declarations only, not new live ABI certification.
 Human/source-owner and refresh declarations remain independent typed test inputs,
 not authentication or a model inferred from CML/command/provider output. The
 adapter remains repository-private test code, uninstalled and undeployed.
-Full repository suite, current applicable lint, one full Phase review and the
-distinct release remain required by the [final checklist](../phase/phase-10.7-checklist.md).
-Step03 documentation is prepared/review-pending, not accepted by this status.
+The [closed final checklist](../phase/phase-10.7-checklist.md) records accepted
+Step03 `3f22573`, sole full-review PASS, final full002 1,048 tests / 131 suites,
+current CAR lint0 and distinct local release binding `P107-PHASE-CLOSURE-001@1`.
+These operational facts do not change this test-only contract or its proof limits.

@@ -64,10 +64,11 @@ Historical hash/canonical-byte release wording is not current control authority.
 
 Predecessor [Phase10.6](phase-10.6-checklist.md) released at `f0f91f7`.
 Terminal [Phase10.7](phase-10.7.md#accepted-step-evidence--2026-10-04) has accepted
-Steps01 `272f59d` and 02 `6f7cef8`; Step03 documentation is prepared/review-pending.
-All final [P10-70–P10-73/Closure boxes](phase-10.7-checklist.md) remain unchecked.
-Full suite/current applicable lint/one full Phase review/distinct release are
-owed; accepted test proof does not close the terminal sequence or grant Git/cursor
-acceptance. [Shared index/strategy synchronization](phase-10.7.md#shared-projection-synchronization-deferred--2026-10-04)
+Steps01 `272f59d`, 02 `6f7cef8` and 03 `3f22573`.
+All final [P10-70–P10-73/Closure boxes](phase-10.7-checklist.md) are checked:
+1,048 full-suite tests / 131 suites, final CAR lint0/zero FAIL, sole full-review
+PASS and distinct release binding `P107-PHASE-CLOSURE-001@1` close the terminal
+sequence, not CML/Git/cursor acceptance.
+[Shared index/strategy synchronization](phase-10.7.md#shared-projection-synchronization-deferred--2026-10-04)
 is explicitly deferred for concurrent Phase11/12 planning, with future
 synchronization separately owned and canonical10.7 controlling current progress.

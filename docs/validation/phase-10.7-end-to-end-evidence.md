@@ -232,3 +232,46 @@ truth/static preflight, diff verification, independent complete-Step review
 and separate typed local Step commit remain required. Step 03 and final Phase
 lint/full-suite/full review/checklist closure and a distinct release remain
 outstanding. This report cannot close the Phase or substitute for those gates.
+
+## Terminal validation and closure — 2026-10-04
+
+This later acceptance record supersedes only pending execution status in the
+historical Step02 report above. Accepted Steps are `272f59d`, `6f7cef8` and
+`3f22573`; the sole independent `P107-PHASE-FULL-REVIEW-001/1` is PASS over
+67 inputs / 20 Phase-owned paths and whole-file compliance for all six programs.
+The original PLAN epoch/base and review/repair history are retained.
+
+Final actual command `P107-PHASE-FULL-VALIDATION-002/1` used
+`sbt --batch 'set Test / fork := true' test`: 1,048 succeeded, zero failed,
+canceled, ignored or pending; 131 completed suites / zero aborted; SBT0,
+wrapper0 and terminal lock released. No excluded test or program change was
+needed. The earlier full001 ran without the required forked Test runtime and
+failed 25 class-loading tests; it remains failed evidence, not coverage.
+Full002's one-use same-child pre-submission retention recovery submitted the
+retained request once; its initial procedural deviation remains recorded.
+
+Actual successful result and serial summary are retained at:
+
+- `/private/tmp/skill.cncf.d/a-ea5abc77-390d-47d7-9706-9b43643e12eb/command-result.json`
+- `/private/tmp/skill.cncf.d/a-84b5f4f4-edb7-4b18-94fd-19de91e0c3bc/44856-20261004T071027Z.summary.json`
+
+Current final CAR lint, native parent command
+`exec-9bbb4d58-645f-447e-bbd2-4c3cfe275a6e` / session6358, exited0 with zero
+FAIL/four known WARN. Retained owners are
+`DEV-P10-04-FILESYSTEM-CAPABILITY-001`,
+`DEV-P10.1-STEP-02-CAR-FILESYSTEM-001`, `HYG-P9-20A-CAR-ABI-BASELINE` and
+`HYG-P9-20A-CAR-SBT-COZY-SNAPSHOT`; none is new Phase10.7 debt. The accepted
+manual/CML/service/operation descriptions and user/developer/repository skill
+instructions match the bounded test-only surface. Public CLI/Web help and
+configured CBD review endpoints remain unverified.
+
+[The canonical checklist](../phase/phase-10.7-checklist.md) closes P10-70–P10-73
+and the Phase10 sequence in the distinct local release carrying
+`Phase-Closure-Binding: P107-PHASE-CLOSURE-001@1`. Accepted Hygiene and
+Development Candidate lists are empty; their two canonical follow-up journals
+are absent-no-items. Exact shared index/strategy synchronization is deferred,
+and all seven concurrent future planning paths are preserved outside staging.
+This closure adds no proof of generated Scala compilation, new live ABI,
+authenticated fixture inputs, deployed adapter, CML/Git/cursor acceptance,
+rollback, transaction or crash/racing-writer safety. All original positive and
+negative dispositions and independently declared semantic inputs remain intact.

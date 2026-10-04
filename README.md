@@ -48,7 +48,10 @@ before applying an approved CML candidate. Accepted Phase 10.7 Steps 01/02 prove
 this through a test-only terminal producer/fresh consumer and actual Cozy lint
 and generation. Positive re-projection remains `ReprojectedPendingAcceptance`;
 Git acceptance and cursor advancement are separate owner actions. No consuming
-adapter or public apply command is deployed. See the
+adapter or public apply command is deployed. Phase10.7 and the applied Phase10
+sequence are CLOSED under the [final canonical checklist](docs/phase/phase-10.7-checklist.md),
+with 1,048 full-suite tests / 131 suites, final CAR lint and sole full-review PASS
+bound to the distinct local release `P107-PHASE-CLOSURE-001@1`. See the
 [current Phase ledger](docs/phase/phase-10.7-checklist.md),
 [user guidance](docs/user-guide.md#durable-resume-and-approved-cml-application),
 [developer reproduction](docs/developer-guide-internal-model-cml-change.md#end-to-end-reproduction),

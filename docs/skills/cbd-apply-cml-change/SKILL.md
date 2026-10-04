@@ -108,8 +108,11 @@ three completed external sessions, six real lint and four generation results.
 Positive outcomes remain pending acceptance; negative Failed retains effects.
 Refresh and human/source-owner inputs are independent typed test evidence, not
 authenticated interaction. Generated Scala compilation and new live ABI proof
-are unverified. Final Phase gates remain pending. This instruction source remains
-uninstalled; documentation preparation is review-pending.
+are unverified. The [closed final checklist](../../phase/phase-10.7-checklist.md)
+records accepted Step03 `3f22573`, sole full-review PASS, full002 1,048 tests /
+131 suites, final CAR lint0 and distinct local release binding
+`P107-PHASE-CLOSURE-001@1`. This accepted instruction source remains uninstalled;
+Phase closure does not install an adapter or authorize a consuming CML change.
 
 See the [contract](../../spec/internal-model-cml-change-contract.md),
 [design](../../design/internal-model-cml-change.md), and

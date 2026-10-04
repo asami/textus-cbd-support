@@ -1,11 +1,11 @@
 # Phase 10.7 - End-to-end Validation and Closure
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Predecessor: Phase 10.6
 - Successor: none within the applied Phase 10 split
 - Development item: DEV-CBD-002
-- Current step: Steps 01/02 accepted; Step03 documentation prepared/review-pending.
+- Current step: Steps 01/02/03 accepted; terminal release bound by P107-PHASE-CLOSURE-001@1.
 - Owner: Textus CBD Support development
 - Update rule: completion is recorded only by `phase-10.7-checklist.md` with reproducible evidence.
 
@@ -72,10 +72,9 @@ retained-state/security and actual output exclusion. Its accepted scope is consu
   expected-refusal predicates, retained actual lint `[1,0]`, `Failed`, post
   `[]`, no continuity and real application/file/cursor effects. Negative001
   remains interrupted, not a fourth passed scenario.
-- Step03: documentation prepared/review-pending under P107-S03-IMPLEMENT-001;
-  no independent acceptance or Step commit yet. Report pending-Step paragraphs
-  retain their pre-commit chronology; this dated record supplies later actual
-  Step01/02 acceptance without rewriting that report.
+- Step03 `3f22573`: independent `P107-S03-REVIEW-001` accepted the
+  documentation boundary. Report pending-Step paragraphs retain their
+  pre-commit chronology; this dated record supplies later acceptance.
 
 Actual selections remain Cozy `0.3.3-SNAPSHOT`, sbt-cozy `0.1.18-SNAPSHOT`,
 CNCF `0.5.3-SNAPSHOT`, Scala `3.3.8` and JDK 21. Nonempty generated
@@ -84,9 +83,34 @@ generated Scala is unverified. Compatibility checking establishes declaration
 consistency only, not new live ABI certification. Human/source-owner/refresh
 inputs are independent typed test inputs, not authentication or CML-derived
 semantics. No public endpoint, installed adapter, deployment or Git acceptance
-was exercised. [Final P10-70–P10-73/Closure](phase-10.7-checklist.md) remain
-unchecked: full suite, current applicable lint, one full Phase review and
-distinct release are still required.
+was exercised. [Final P10-70–P10-73/Closure](phase-10.7-checklist.md) are
+accepted by the terminal closure record below, not by automatic CML acceptance.
+
+## Terminal closure — 2026-10-04
+
+The sole independent `P107-PHASE-FULL-REVIEW-001/1` passed the complete
+original-base `f0f91f7` through Step03 `3f22573` integration: 20 owned paths,
+67 review inputs and whole-file compliance for all six target programs.
+Current Phase blockers, accepted Phase Hygiene and Development Candidates are
+empty. Neither empty follow-up journal is created.
+
+Final `P107-PHASE-FULL-VALIDATION-002/1` ran
+`sbt --batch 'set Test / fork := true' test`: 131 suites and 1,048 tests passed,
+zero failures/aborts/skips, SBT/wrapper exit 0 and terminal `lock=released`.
+The initial full001 failed 25 tests because the parent omitted the required
+forked Test classpath; it remains failed evidence, not acceptance. No product
+change or test exclusion was needed. Current final CAR lint exited 0, zero
+FAIL and four pre-existing warnings with separately retained owners.
+
+[The final evidence record](../validation/phase-10.7-end-to-end-evidence.md#terminal-validation-and-closure--2026-10-04)
+names actual results and limitations. Distinct local Phase release carries
+`Phase-Closure-Binding: P107-PHASE-CLOSURE-001@1`; its verified committed
+canonical paths establish CLOSED. This closes Phase10.7 and the applied
+Phase10 sequence, including DEV-CBD-002's frozen internal-model boundary.
+It does not close CML/Git/cursor acceptance, deploy an adapter, authenticate
+fixture inputs or certify generated-code compilation/live ABI/public help.
+The exact deferred shared projections and seven preserved future paths below
+remain outside the release. Phase11/12, push and publication are not performed.
 
 ## Shared projection synchronization deferred — 2026-10-04
 

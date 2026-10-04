@@ -455,3 +455,23 @@ The exact shared Phase index and strategy projections are
 because of concurrent Phase11/12 planning. Canonical10.7 owns current progress;
 a separate future synchronization owner must reconcile those projections.
 This append neither creates another DEV identity nor assigns new successor work.
+
+## Terminal DEV-CBD-002 acceptance — 2026-10-04
+
+This later record supersedes only the pending execution status in the preceding
+dated entry, preserving its chronology and the original August exploration.
+Steps01 `272f59d`, 02 `6f7cef8` and 03 `3f22573` are independently accepted.
+The sole full Phase review passed the original-base integration and all six
+target programs; final full002 passed 1,048 tests / 131 suites with SBT/wrapper0
+and lock released. Current CAR lint0 has zero FAIL/four carried warnings.
+The [canonical closure](../../../phase/phase-10.7-checklist.md), committed in
+the distinct local release bound by `P107-PHASE-CLOSURE-001@1`, closes
+DEV-CBD-002's frozen Phase10 internal-model boundary and the terminal sequence.
+
+This does not install a consuming adapter, authenticate independent fixture
+human/source inputs, certify generated-code compilation/new live ABI, accept
+actual CML into Git or advance a cursor. Positive continuity remains
+`ReprojectedPendingAcceptance`; negative Failed retains actual effects.
+The exact shared index/strategy synchronization remains deferred to the separate
+future owner, preserving all seven Phase11/12 planning paths. No successor work,
+new DEV identity, deployment, push or publication is performed by this closure.

@@ -74,7 +74,8 @@ under its [canonical checklist](phase/phase-10.6-checklist.md), including
 retained-state/security and actual output exclusion. Phase 10.7 Steps 01/02
 are separately accepted as recorded in the
 [current ledger](phase/phase-10.7.md#accepted-step-evidence--2026-10-04);
-final Phase validation, review and release remain pending.
+final Phase validation, review and distinct local release are recorded by the
+[closed canonical checklist](phase/phase-10.7-checklist.md).
 
 ## Slice C validation and test observation transport
 
@@ -263,5 +264,7 @@ are independently supplied typed test inputs through existing owners. They
 are not inferred from CML/output/provider state and do not authenticate a
 human or source. No installed adapter, public endpoint, retained producer
 session, automatic Git/cursor acceptance or deployment was exercised.
-[Phase 10.7](phase/phase-10.7-checklist.md) remains OPEN; documentation is
-prepared/review-pending, and full-suite/current lint/full review/release remain owed.
+[Phase 10.7](phase/phase-10.7-checklist.md) is CLOSED: Step03 `3f22573`, sole
+full-review PASS, full002 1,048 tests / 131 suites, final CAR lint0 and distinct
+local release binding `P107-PHASE-CLOSURE-001@1`. These gates close the frozen
+test-only Phase boundary, not Git/cursor acceptance or the unverified surfaces.

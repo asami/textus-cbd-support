@@ -30,6 +30,21 @@ belong to Phase 12.
 | CAP-11-04 | Provide Capability overview/detail and demand-to-realization/evidence views. | planned |
 | CAP-11-05 | Expose consistent Web and MCP/API semantics and prove the end-to-end fixture. | planned |
 
+## Local execution preparation
+
+The GitHub refinement through `a3c3de2` is incorporated. Implementation remains
+not started. Consume the accepted Phase 10.7 handoff after Phase 10.6 and 10.7
+close; their current ledgers remain open. Use the
+[local preparation note](../notes/phase-11-12-local-execution-preparation.md)
+for existing integration points and evidence still to be obtained.
+
+Begin CAP-11-01 by admitting exact upstream contracts and fixtures, then promote
+the planned ingestion/query behavior into design, specification, and executable
+specifications. Treat CAP-11-01–05 as ordered work boundaries; size and split
+each before implementation under the current workflow and model policy.
+The existing CAR Review capability taxonomy is not the upstream Component
+Capability model and cannot supply its identities or demand relationships.
+
 ## Required upstream projections
 
 Phase 11 consumes upstream-owned identifiers and relationships; it does not
@@ -44,6 +59,14 @@ invent replacements. The consumer contract must admit, when available:
   Application Capability identities. If this projection is not yet admitted,
   the Use Case portion remains `UnavailableUpstreamProjection`; CBD Support
   must not infer it from names or descriptions.
+
+Record producer, projection/schema version, source revision, scope, and actual
+fixture availability separately for each projection. The real Cozy-generated,
+CNCF-admitted Component Capability fixture is required for CAP-11-05 closure.
+Application/Use Case demand availability is an explicit admission decision:
+when supported, prove the positive trace and gap cases; when unavailable, prove
+the typed unavailable branch and record the unexercised positive path. Neither
+synthetic fixtures nor an unavailable result prove a real upstream demand trace.
 
 ## Internal read model
 
@@ -89,6 +112,14 @@ A gap is a diagnostic over admitted facts, not a new model fact. Runtime
 Availability, Authorization and Guard results are separate diagnostics and
 must never be collapsed into `NoProvider` or `MissingRealization`.
 
+The field sketch describes one trace path, not a flattened set of interchangeable
+endpoints. Preserve each explicit demand/provider/realization edge, its scope,
+source and revision across multiple paths; do not form a Cartesian product from
+independent reference lists. Distinguish unsupported, unavailable, unauthorized,
+stale and ambiguous input from an admitted empty relationship. `NoProvider`
+means no provider in the declared successfully queried catalog scope, not
+universal nonexistence. Failed source acquisition cannot establish that result.
+
 ## Query/service contract
 
 The catalog/query boundary should support deterministic operations equivalent
@@ -132,8 +163,10 @@ relationship from CML, Operation names, Event Storming text, or AI output.
   ambiguous, duplicate, malformed, stale, and incompatible projections.
 - Search finds exact provided/required Capability identities, providers,
   requirements, and gaps without display-name inference.
-- An admitted Use Case/Application Capability demand can be traced through
-  required Component Capability to explicit provider and realization links.
+- When upstream demand is admitted, an admitted Use Case/Application Capability
+  demand can be traced through required Component Capability to explicit provider
+  and realization links. Otherwise the recorded unavailable branch is verified
+  without claiming the positive upstream integration passed.
 - Missing upstream demand projection, provider, compatible version,
   realization, Specification, and Evidence produce distinct deterministic
   outcomes.
@@ -150,6 +183,8 @@ relationship from CML, Operation names, Event Storming text, or AI output.
   Executable Specification ownership, or ticket management.
 - Runtime Capability execution, Authorization decisions, or Guard evaluation.
 - AI-based semantic merging of unrelated Capability identities.
+- Management hashes or content-derived identity, revision, approval or dependency
+  control; apply [repository rules](../rules/repository-rules.md).
 - Closing CNCF Phase 78 or Cozy Phase 64 from this repository.
 
 ## References

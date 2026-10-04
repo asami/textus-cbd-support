@@ -5,6 +5,9 @@ phase=[Phase 11](phase-11.md)
 predecessor=[Phase 10.7](phase-10.7.md)
 development-item=DEV-CBD-003
 
+Execution preparation: [local evidence and integration points](../notes/phase-11-12-local-execution-preparation.md).
+All items remain unstarted. Phase 10.7 is the execution predecessor.
+
 ## CAP-11-01: Projection ingestion and integrity
 
 Stage Status:
@@ -15,6 +18,9 @@ Stage Status:
 
 - [ ] Define supported CNCF Component Capability, Application Capability, and
       Use Case demand projection versions independently.
+- [ ] Record each producer/schema/source revision and real fixture availability;
+      promote the consumer design/specification before implementation, using
+      explicit typed control under repository rules.
 - [ ] Preserve exact Use Case, Application Capability, Component, package,
       source, Capability, realization, and ABI identity supplied upstream.
 - [ ] Reject or quarantine ambiguous, duplicate, malformed, stale, and
@@ -45,6 +51,8 @@ Stage Status:
 - [ ] Keep Availability, Authorization, Guard and execution result distinct.
 - [ ] Preserve one-to-many demand/provider/realization cardinalities; do not
       assume one Use Case, one Capability, one provider or one realization.
+- [ ] Preserve explicit edge attribution across multiple trace paths; prove
+      independent endpoint lists cannot manufacture provider/realization joins.
 - [ ] Add codec/validator/executable specifications proving round-trip identity,
       cardinality preservation and rejection of dangling/ambiguous explicit refs.
 
@@ -66,6 +74,8 @@ Stage Status:
       required Component Capability to all explicit provider/realization refs.
 - [ ] Return a typed unavailable/unsupported result when Use Case demand input
       is not supplied by an admitted upstream projection.
+- [ ] Preserve unauthorized, unavailable, stale and ambiguous source outcomes;
+      establish an empty/no-provider result only within an admitted query scope.
 - [ ] Distinguish at least: missing Application Capability projection, missing
       required Component Capability, no provider, incompatible provider version,
       missing realization, missing Specification, and missing Evidence.
@@ -108,6 +118,10 @@ Stage Status:
 - [ ] When an admitted demand fixture is available, include at least one
       Use Case -> Application Capability -> Component Capability -> explicit
       realization path and one typed gap path.
+- [ ] Record the supported or unavailable demand branch explicitly. If no real
+      demand fixture is admitted, verify unavailable behavior and identify the
+      unexercised positive integration; do not label synthetic proof as upstream
+      integration. The real Component Capability fixture remains mandatory.
 - [ ] Verify Web and MCP/API return the same qualified identities, provider sets,
       realization sets, gap kinds and provenance for identical queries.
 - [ ] Prove no CML reparsing, AI reconstruction or local identity replacement occurs.

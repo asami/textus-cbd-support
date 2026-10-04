@@ -140,6 +140,13 @@ an unchecked ledger and explicit upstream dependencies. They do not reopen or
 retroactively expand completed Phase 9. Phase 12 consumes these additional
 contracts only after their own implementation and acceptance evidence exists.
 
+The 2026-10-03 GitHub refinements add read-only Use Case/Application Capability
+demand traces to Phase 11 and explicit Use Case Slice/Specification/Ticket
+editing and Review to Phase 12. Their
+[local preparation](../notes/phase-11-12-local-execution-preparation.md) retains
+that order, upstream admission and the Phase 10 approval/continuation boundary;
+neither refinement changes the current unstarted status or accepts new behavior.
+
 ### Historical Phase 9 / Phase 10 planning position
 
 Phases 1 through 9 are complete. Phase 9 established the semantic,

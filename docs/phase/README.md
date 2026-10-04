@@ -39,9 +39,15 @@ completion projections are not new acceptance evidence.
 - [Phase 10.7](phase-10.7.md) — planned end-to-end validation and closure;
   [checklist](phase-10.7-checklist.md).
 - [Phase 11](phase-11.md) — planned Capability Catalog, Discovery, and
-  Traceability (DEV-CBD-003); [checklist](phase-11-checklist.md).
+  read-only Use Case/Application demand-to-realization Traceability
+  (DEV-CBD-003); [checklist](phase-11-checklist.md).
 - [Phase 12](phase-12.md) — planned Interactive View and Model Editing,
+  including Use Case Slice, Specification and Ticket trace editing;
   relocated from the remote Phase 11 proposal;
   [checklist](phase-12-checklist.md).
 - [Projection follow-up](phase-9-projection-followup.md) — unchecked remote
   additions to the completed Phase 9 contract; not a reopening of Phase 9.
+
+The [Phase 11/12 local preparation note](../notes/phase-11-12-local-execution-preparation.md)
+records the imported refinements, current integration points and unverified
+upstream inputs. The next execution boundary remains Phase 10.6, then 10.7.

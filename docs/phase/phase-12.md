@@ -17,6 +17,22 @@ Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current planned identity. No stage has started.
 
+## Local execution preparation
+
+The GitHub refinement through `a3c3de2` is incorporated. Follow the accepted
+Phase 10.7 and Phase 11 handoffs, then admit the required
+[projection follow-up](phase-9-projection-followup.md) contracts: FU-01 and FU-03
+with the applicable FU-07 evidence for the initial Actor Goal/Event Storming
+scenario. Other follow-up items are dependencies only where a selected view
+consumes them; completion is recorded in their own ledger.
+
+Start EDIT-12-01 with source ownership, typed session/operation contracts, and
+design/specification promotion. Use the
+[local preparation note](../notes/phase-11-12-local-execution-preparation.md)
+to connect the existing candidate, package, approval and CML application owners.
+Confirm each stage's bounded execution scope before implementation; no new
+Phase numbering or completed checklist item is introduced by this preparation.
+
 ## Purpose
 
 Phase 12 turns CBD Support views from read/review-only model projections into safe interaction surfaces for intentional model development, without making each view an independent editor or weakening canonical CML governance.
@@ -25,7 +41,7 @@ The phase introduces a shared semantic Model Edit Service and treats the CBD Sup
 
 Editing is explicitly provisional. Model Editing Clients develop a Candidate Object Model. The candidate is projected through normal Views, inspected by the user, optionally reviewed, and only an explicitly approved exact candidate revision may be promoted through the existing canonical change gate.
 
-The first end-to-end validation scenario is **solo Event Storming**, with **Actor Goal List** providing an intent-oriented starting context: Actor -> Goal -> Use Case -> Event Storming. Phase 12 also introduces the development-realization confirmation chain **Actor Goal -> Use Case -> Use Case Slice -> Executable Specification -> Ticket**. This chain is explicit traceability, not an inferred one-to-one hierarchy.
+The first end-to-end validation scenario is **solo Event Storming**, with **Actor Goal List** providing an intent-oriented starting context: Actor -> Goal -> Use Case -> Event Storming. Phase 12 also introduces **Actor Goal -> Use Case -> Use Case Slice**, with explicit Slice links to Executable Specifications and Tickets. These relationships provide development-realization traceability without an inferred one-to-one hierarchy.
 
 ## Interaction model
 
@@ -86,8 +102,8 @@ Phase 12 owns review/edit behavior for the development-realization chain:
 Actor Goal
   -> Use Case
       -> Use Case Slice
-          -> Executable Specification
-              -> Ticket
+          +-> Executable Specification reference(s)
+          +-> Ticket reference(s)
 ```
 
 A `UseCaseSlice` is a stable identified implementation slice of a Use Case,
@@ -95,6 +111,11 @@ sized to fit an iteration/work unit. It is not a UI grouping, generated hash,
 or ticket alias. One Use Case may have multiple slices; a slice may have
 multiple executable specifications and multiple implementation tickets when
 explicitly modeled.
+
+The arrows describe explicit relationships, not containment or a required
+Specification-to-Ticket edge. Retain each Slice-to-Specification and
+Slice-to-Ticket relation with its endpoints and attribution; flattened lists
+in a summary do not establish which Specification relates to which Ticket.
 
 The internal candidate/read model should provide repository-equivalent typed
 roles:
@@ -149,6 +170,16 @@ reference contains provider/repository/project identity plus immutable external
 ticket identity and optional observed status/version. Creating or updating an
 external issue tracker ticket is outside the core model service unless a
 separate authorized adapter is explicitly invoked.
+
+Freeze reference resolution in EDIT-12-01: a Specification reference identifies
+its owning repository/project, stable specification identity, and applicable
+source revision; a path or display name alone is not that identity. Resolve
+references only through admitted bounded sources. An offline, unauthorized,
+redacted or unsupported source is unresolved/unavailable, not proof of a
+dangling target or a missing relationship. Missing-link findings require an
+admitted complete relationship scope; severity and blocking behavior follow an
+explicit project policy. Reference presence alone proves neither specification
+execution nor ticket completion.
 
 ## Architectural principles
 
@@ -205,6 +236,13 @@ deterministic operations equivalent to `createUseCaseSlice`,
 `unlinkSliceSpecification`, `linkSliceTicket`, and `unlinkSliceTicket`.
 All operations target candidate state and require typed subject references.
 
+Identify the source owner and supported projection/schema for each new Slice
+and relationship before freezing edits. Extend the admitted Phase 10 semantic
+payload, typed subject, codecs and continuation contract where needed, preserving
+existing identities. Do not hide new semantics in opaque sidecars or assume the
+current closed schema already supports them. Unsupported canonical projection
+stays explicit candidate work until the upstream/source contract is admitted.
+
 ### Stage 12.2 - Candidate Model Edit Service
 
 Stage Status:
@@ -225,10 +263,10 @@ Stage Status:
 
 Project candidate state through existing View machinery, including Actor Goal List and Event Storming. Clearly distinguish provisional content and support confirmation of an accumulated candidate model.
 
-Add a Use Case development trace projection showing Goal -> Use Case -> Slice ->
-Executable Specification -> Ticket plus read-only Phase 11 capability-demand
-trace where available. The projection must distinguish absent upstream data
-from an explicitly empty relationship.
+Add a Use Case development trace projection showing Goal -> Use Case -> Slice,
+with independent Slice links to Executable Specifications and Tickets, plus
+read-only Phase 11 capability-demand trace where available. The projection must
+distinguish absent upstream data from an explicitly empty relationship.
 
 ### Stage 12.4 - Update Palette and direct commands
 

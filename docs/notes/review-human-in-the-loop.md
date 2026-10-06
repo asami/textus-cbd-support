@@ -147,3 +147,36 @@ The operational principle is:
 > **Review Up, Drill Down on Anomaly.**
 
 This preserves the value of a constrained AI-development environment. Routine line-by-line human code review should not become an alternate implementation authority that bypasses or weakens the harness.
+
+
+## CNCF Validation/Test Metadata ABI as static review evidence
+
+CBD Support consumes the CNCF Validation/Test Metadata ABI as the canonical semantic view of executable-specification/test declarations. It MUST NOT define a competing annotation grammar or independent suite registry.
+
+The same source metadata used by sm-workflow for runtime selection becomes static Test Architecture evidence for Review:
+
+~~~text
+Executable Specification/Test Operation
+  + CNCF Validation Metadata
+       -> sm-workflow: runtime selection/execution/evidence
+       -> cbd-support: static analysis/lint/KPI/change review
+~~~
+
+Useful static analysis includes:
+
+- executable specification/test operations with missing or invalid purpose/feature metadata where project policy requires it;
+- feature areas with weak or absent SMOKE/ADMISSION/FOCUSED coverage;
+- suspicious concentration in FULL/HEAVY with little routine validation;
+- purpose/feature distribution by Component/Feature/Use Case Slice;
+- metadata changes that reduce ADMISSION or FOCUSED coverage without corresponding rationale/evidence;
+- HEAVY/long-running declarations without appropriate expected-duration/rationale metadata when required by policy;
+- declared expected duration compared with admitted sm-workflow runtime evidence when that evidence is available;
+- Test Architecture deltas across Candidate/baseline revisions.
+
+These are review indicators/findings, not an opaque quality score. The existing principle remains: expose measurable shape and delta so a human can judge whether the Test Architecture is appropriate.
+
+CBD Support should present metadata changes as first-class architecture changes even when test logic is unchanged. For example, changing an operation from ADMISSION+FULL to FULL reduces routine admission coverage and should be visible in diff review.
+
+Runtime observations remain owned by their source system. CBD Support may correlate CNCF metadata with sm-workflow execution receipts/duration/warnings, but it does not rewrite annotations from observations or become the runtime Test Suite authority.
+
+This extends Review Up, Drill Down on Anomaly: a reviewer can inspect validation coverage at Component/Feature/Slice level and drill down to the exact executable specification/test operation and metadata only when an imbalance or anomaly deserves attention.

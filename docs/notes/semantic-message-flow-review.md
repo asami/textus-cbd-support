@@ -78,3 +78,20 @@ Do not assume every difference is an error. Findings should be surfaced for huma
 ## Follow-up
 
 Integrate this into the review roadmap after the current phase work rather than introducing an ad-hoc diagram-specific implementation. Reuse the existing Human-in-the-Loop review/disposition mechanisms.
+
+## Cozy grammar v4 alignment
+
+The Cozy-owned reference grammar is now fixed around ordinary Draw Editor primitives:
+
+- one semantic relationship = one line;
+- filled arrowhead = Control + Data;
+- open arrowhead = Control only;
+- hollow arrowhead = Data only;
+- synchronous = solid line;
+- asynchronous = dashed line;
+- Continuation/IoC = circled `I` on the same solid or dashed relationship line;
+- timing and IoC are orthogonal, so asynchronous IoC is valid;
+- color is supplementary only;
+- arrowheads do not overlap component shapes.
+
+cbd-support renderers and review views must consume these semantics from structured Message Flow data rather than infer them from SVG/image appearance. Generated review/infographic views must not introduce new flow symbols.

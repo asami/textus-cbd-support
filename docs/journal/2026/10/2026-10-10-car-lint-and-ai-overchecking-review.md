@@ -53,3 +53,35 @@ The objective is for AI Review to discover new classes of overengineering while 
 Routine commit/admission latency must not depend on a heavy AI overchecking scan. sm-workflow may use CAR lint at its normal deterministic gate, while semantic overchecking review runs through the ordinary Review path, explicit hygiene work, or lower-frequency/nightly quality activity.
 
 This avoids the paradox of adding excessive checking to detect excessive checking.
+
+
+## 2026-10-11: assurance-overhead and complexity-induced defect risk
+
+Overchecking review must evaluate harm, not merely identify redundant checks. Excessive assurance has four coupled costs:
+
+1. direct engineering and AI execution cost;
+2. completion cost when defensive work prevents the current Phase/task from closing and blocks subsequent valuable work;
+3. main-route complexity cost from added state, branching, synchronization, recovery, replay, verification, and duplicated tests;
+4. complexity-induced defect risk when the implementation becomes too difficult to reason about and the defensive machinery itself causes real bugs in the normal path.
+
+Review must therefore ask whether the guarantee itself is required before judging whether its implementation is technically correct. In particular, accidental duplicate answers/submissions, competing responses, intermediate-state consistency, winner selection, complete replay, and clean recovery are not automatically important use cases.
+
+When an operational accident is outside the declared Failure Model or is user responsibility, acceptable behavior may be to stop or abandon the affected execution and start a new one. The essential boundary is protection of authoritative external assets from catastrophic destruction plus the availability of the specified fresh-start path; preservation of a clean intermediate execution is not implied.
+
+### Review signals
+
+CAR Review should report, where useful:
+
+- **assurance overhead**: implementation/test effort devoted to guarantees not justified by an authoritative requirement;
+- **main-route intrusion**: exceptional-path state or branches that materially complicate the ordinary use case;
+- **completion obstruction**: newly invented assurance requirements or tests that expand the current Phase/task completion boundary;
+- **complexity-induced defect risk**: defensive state-space growth that increases the probability of bugs, especially in the normal path;
+- **duplicated assurance testing**: repeated large tests of a common lower-level guarantee when only connection/wiring evidence is needed at the higher layer.
+
+These are review findings, not a demand for a new heavy analyzer. Deterministic lint should absorb only recurring patterns that can be detected cheaply and with useful precision.
+
+### Quality interpretation
+
+Removing unnecessary defensive machinery is a positive quality change when authoritative requirements remain satisfied. Review must not assume that more concurrency control, verification, recovery, or exceptional-path testing means higher quality.
+
+Main-route reliability, simplicity, cost, and the ability to finish the work are first-class quality properties. The objective is sufficient assurance for the declared model, not maximum possible assurance.

@@ -1,16 +1,19 @@
 # Phase 11 Checklist: Capability Ingestion, Catalog, and Queries
 
-Status: OPEN / IN_PROGRESS (CAP-11-01/02 accepted; CAP-11-03 OPEN)
+Status: OPEN / IN_PROGRESS (CAP-11-01/02/03 accepted; Phase closure pending)
 phase=[Phase 11](phase-11.md)
 predecessor=[Phase 10.7](phase-10.7.md)
 successor=[Phase 11.1](phase-11.1.md)
 development-item=DEV-CBD-003
 
 This authoritative ledger owns CAP-11-01–03 after the applied 2026-10-04 split.
-CAP-11-01 and CAP-11-02 are accepted; see
-[CAP-11-01 acceptance](phase-11.md#cap-11-01-acceptance--2026-10-15) and
-[CAP-11-02 acceptance](phase-11.md#cap-11-02-acceptance--2026-10-15).
-CAP-11-03 remains OPEN and not started. CAP-11-04–05 retain their IDs in the
+All three primary Steps are accepted; see
+[CAP-11-01 acceptance](phase-11.md#cap-11-01-acceptance--2026-10-15),
+[CAP-11-02 acceptance](phase-11.md#cap-11-02-acceptance--2026-10-15) and
+[CAP-11-03 acceptance](phase-11.md#cap-11-03-acceptance--2026-10-15).
+The original CAP-11-01/02 bodies remain literal historical records; their pending
+statements are superseded only by independently accepted owner Steps.
+CAP-11-04–05 retain their IDs in the
 [Phase 11.1 checklist](phase-11.1-checklist.md); no acceptance is inferred.
 Execution preparation: [local evidence and integration points](../notes/phase-11-12-local-execution-preparation.md).
 
@@ -133,29 +136,40 @@ retain their separate ownership; no acceptance is inferred for them.
 ## CAP-11-03: Search, matching, demand trace, and gap analysis
 
 Stage Status:
-- Current status: OPEN
+- Current status: DONE
 - Owner: CBD Support query owner
 - Update rule: Close only after exact-identity search/matching, trace and typed
   gap behavior are specified and executable.
 
-- [ ] Provide deterministic query operations equivalent to `getCapability`,
+Current acceptance — 2026-10-15: all nine original criteria below are accepted
+through focused validation, independent whole-Step conformance and mechanical
+local naming closure; see
+[CAP-11-03 acceptance](phase-11.md#cap-11-03-acceptance--2026-10-15).
+The local Step commit binds this acceptance. The original conditional forward
+UseCase demand criterion is accepted only through its typed unavailable branch;
+the positive projection and trace remain unadmitted and unexercised. Phase 11
+remains OPEN with all four Closure boxes unchecked. Whole-Phase review/local
+release and participant own closures remain pending; aggregate full-suite
+validation remains deferred-not-run to Phase 11.1.
+
+- [x] Provide deterministic query operations equivalent to `getCapability`,
       `findProviders`, `findRequirements`, `traceApplicationCapability`,
       `traceUseCaseDemand`, and `diagnoseCapabilityDemand`.
-- [ ] Search by qualified Capability identity and non-authoritative semantic
+- [x] Search by qualified Capability identity and non-authoritative semantic
       metadata while keeping semantic matching identity/compatibility based.
-- [ ] Find Components providing or requiring a Capability.
-- [ ] Trace an admitted Use Case demand through Application Capability and
+- [x] Find Components providing or requiring a Capability.
+- [x] Trace an admitted Use Case demand through Application Capability and
       required Component Capability to all explicit provider/realization refs.
-- [ ] Return a typed unavailable/unsupported result when Use Case demand input
+- [x] Return a typed unavailable/unsupported result when Use Case demand input
       is not supplied by an admitted upstream projection.
-- [ ] Preserve unauthorized, unavailable, stale and ambiguous source outcomes;
+- [x] Preserve unauthorized, unavailable, stale and ambiguous source outcomes;
       establish an empty/no-provider result only within an admitted query scope.
-- [ ] Distinguish at least: missing Application Capability projection, missing
+- [x] Distinguish at least: missing Application Capability projection, missing
       required Component Capability, no provider, incompatible provider version,
       missing realization, missing Specification, and missing Evidence.
-- [ ] Prohibit semantic matching, provider selection, compatibility or trace
+- [x] Prohibit semantic matching, provider selection, compatibility or trace
       construction by display-name/description similarity alone.
-- [ ] Add executable specifications for multi-provider, multi-realization,
+- [x] Add executable specifications for multi-provider, multi-realization,
       incompatible-version, partial-evidence and zero-provider cases.
 
 ## Closure

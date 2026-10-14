@@ -40,7 +40,7 @@ real producer/consumer end-to-end acceptance belong to
 | --- | --- | --- |
 | CAP-11-01 | Freeze supported projection versions, ingestion, integrity, and historical/current snapshot semantics. | closed |
 | CAP-11-02 | Extend internal catalog/index models for Capability, demand, realization, Specification, and Evidence traceability. | closed |
-| CAP-11-03 | Provide Capability search, provider matching, demand tracing, and typed gap/compatibility diagnostics. | planned |
+| CAP-11-03 | Provide Capability search, provider matching, demand tracing, and typed gap/compatibility diagnostics. | closed |
 
 CAP-11-04 and CAP-11-05 are owned exactly once by the
 [Phase 11.1 checklist](phase-11.1-checklist.md); their original IDs are retained.
@@ -52,7 +52,8 @@ ingestion and actual normal producer/public Factory interoperability are accepte
 see [CAP-11-01 acceptance](#cap-11-01-acceptance--2026-10-15).
 CAP-11-02 catalog is independently accepted; see
 [CAP-11-02 acceptance](#cap-11-02-acceptance--2026-10-15).
-CAP-11-03 remains planned and not started.
+CAP-11-03 is independently accepted; see
+[CAP-11-03 acceptance](#cap-11-03-acceptance--2026-10-15).
 The canonical Phase 10.6 and Phase 10.7 ledgers are CLOSED;
 consume the accepted [Phase 10.7 handoff](phase-10.7.md). Use the
 [local preparation note](../notes/phase-11-12-local-execution-preparation.md)
@@ -124,6 +125,40 @@ superseded only by later independently accepted Steps within their own ownership
 this acceptance establishes no retrospective acceptance of other owners. The
 original dated authoring and validation-ownership bodies below remain historical
 and their contracts remain unchanged.
+
+### CAP-11-03 acceptance — 2026-10-15
+
+Stage Status:
+- Current status: DONE
+- Owner: CBD Support query owner
+- Update rule: acceptance is recorded against the
+  [original nine criteria](phase-11-checklist.md#cap-11-03-search-matching-demand-trace-and-gap-analysis).
+
+CAP-11-03 is accepted after focused validation, independent whole-Step
+conformance and mechanical local naming closure. The local Step commit binds
+this acceptance. The [query contract](../spec/capability-query-contract.md) and
+[query design](../design/capability-queries.md) record six deterministic queries,
+exact qualified identity and opaque-version matching with explicit directed
+compatibility, and separate DiscoveryOnly text assistance. Original nested
+Application/Required/provider paths retain attribution and each provider's own
+realizations. Seven typed gaps and the distinct Unknown Availability,
+Authorization, Guard and execution result observations remain separate, without
+activation or extra acquisition.
+
+The original conditional forward UseCase demand criterion is accepted only
+through its typed unavailable branch. A positive forward UseCase projection and
+trace remain unadmitted and unexercised.
+
+All three primary Steps are accepted. Phase 11 remains in-progress / OPEN;
+one whole-Phase review and local release remain owed. CBD aggregate full-suite
+validation remains deferred-not-run to Phase 11.1. Participant own full
+validations, reviews and releases, and authorized later Cozy main integration
+remain owed. Phase 14 failed Job behavior remains unaccepted.
+
+The preceding dated CAP-11-01/02 pending or unstarted statements are historical,
+superseded only by independently accepted Steps within their own ownership.
+Their actual text and the original normative and dated authoring bodies remain
+preserved; this acceptance establishes no acceptance for other owners or successors.
 
 ### CAP-11-01 consumer contract authoring — 2026-10-14
 

@@ -26,9 +26,14 @@ Detect where evidence is statically reliable:
 - mutation Operation exposed as GET;
 - request-to-Entity direct binding / undeclared mass-assignment paths;
 - direct filesystem/network/process/native/unsafe-deserialization escape use;
+- recognizable Capability Laundering, especially Process Execution used to reproduce denied filesystem/network/datastore effects (for example file utilities, curl-like HTTP escape, database CLI escape) instead of the CNCF-managed capability/DSL;
 - Execution Boundary Escape: component/application-defined `main`, Scala `@main`, App-style launcher, or direct invocation of program entry points inside an ordinary CAR;
 - credential/secret values projected to logging/Display/serialization where
   metadata makes this deterministically knowable.
+
+### Phase 6 early rule slice
+
+A concrete sm-workflow Phase 6 defect used Process Execution for external file I/O. Add the minimum deterministic classification needed by that correction as an early consumer of CNCF Phase 110: distinguish typed/registered Git/SBT execution from generic process use and flag recognizable Process-to-filesystem/network/datastore Capability Laundering. This bounded rule slice may be delivered before the rest of Phase 16; do not block the sm-workflow fix on unrelated application-security review families.
 
 ### sm-workflow-driven delivery
 

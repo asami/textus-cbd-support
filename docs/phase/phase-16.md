@@ -29,6 +29,10 @@ Detect where evidence is statically reliable:
 - credential/secret values projected to logging/Display/serialization where
   metadata makes this deterministically knowable.
 
+### sm-workflow-driven delivery
+
+Deliver the Safety Sandbox review rules incrementally with CNCF Phase 110 and real sm-workflow adoption. Prioritize classifications actually encountered by the vertical slices (worktree/filesystem, managed Git/SBT process versus arbitrary shell, provider/network, then remaining packaged-CAR escape routes). Each CBD rule must consume the CNCF-owned classification and be re-exercised from the sm-workflow scenario that exposed the need. Do not require completion of unrelated security-review families before a useful Safety Sandbox slice can close.
+
 ### CNCF Safety Sandbox integration
 
 Consume CNCF Phase 110 External Effect / escape classifications rather than defining a CBD-private sandbox taxonomy. CAR lint is the early developer-feedback layer; CNCF CAR Loading Admission is the runtime-entry enforcement layer; CNCF Runtime Sandbox is the effect enforcement layer. A lint disposition or developer acceptance does not by itself grant runtime authority or bypass Loading Admission.

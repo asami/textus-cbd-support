@@ -1,15 +1,16 @@
 # Phase 11 Checklist: Capability Ingestion, Catalog, and Queries
 
-Status: OPEN / IN_PROGRESS (CAP-11-01 accepted; CAP-11-02/03 OPEN)
+Status: OPEN / IN_PROGRESS (CAP-11-01/02 accepted; CAP-11-03 OPEN)
 phase=[Phase 11](phase-11.md)
 predecessor=[Phase 10.7](phase-10.7.md)
 successor=[Phase 11.1](phase-11.1.md)
 development-item=DEV-CBD-003
 
 This authoritative ledger owns CAP-11-01–03 after the applied 2026-10-04 split.
-CAP-11-01 is accepted; see the
-[accepted Step](phase-11.md#cap-11-01-acceptance--2026-10-15).
-CAP-11-02/03 remain OPEN and not started. CAP-11-04–05 retain their IDs in the
+CAP-11-01 and CAP-11-02 are accepted; see
+[CAP-11-01 acceptance](phase-11.md#cap-11-01-acceptance--2026-10-15) and
+[CAP-11-02 acceptance](phase-11.md#cap-11-02-acceptance--2026-10-15).
+CAP-11-03 remains OPEN and not started. CAP-11-04–05 retain their IDs in the
 [Phase 11.1 checklist](phase-11.1-checklist.md); no acceptance is inferred.
 Execution preparation: [local evidence and integration points](../notes/phase-11-12-local-execution-preparation.md).
 
@@ -98,26 +99,35 @@ full-suite deferral to Phase 11.1 retain their existing owners.
 ## CAP-11-02: Internal catalog and demand/realization traceability model
 
 Stage Status:
-- Current status: OPEN
+- Current status: DONE
 - Owner: CBD Support catalog/model owner
 - Update rule: Close only after internal projections preserve upstream meaning
   without introducing competing Use Case/Application/Component Capability identity.
 
-- [ ] Model provided and required `CapabilityRecord` values with typed qualified
+Current acceptance — 2026-10-15: all eight original criteria below are DONE
+through focused validation and independent whole-Step conformance; see
+[CAP-11-02 acceptance](phase-11.md#cap-11-02-acceptance--2026-10-15).
+The local Step commit binds this acceptance. Portable transport retains static
+semantic references; the live catalog retains original accepted Snapshot native
+objects without establishing execution. The unavailable forwardUseCase positive
+branch remains unadmitted. Phase closure, CAP-11-03 and participant acceptance
+retain their separate ownership; no acceptance is inferred for them.
+
+- [x] Model provided and required `CapabilityRecord` values with typed qualified
       references and exact source/version/ABI provenance.
-- [ ] Model `CapabilityDemandTrace` (or repository-equivalent) joining only
+- [x] Model `CapabilityDemandTrace` (or repository-equivalent) joining only
       explicit upstream Use Case -> Application Capability -> required Component
       Capability references.
-- [ ] Model explicit Operation, Workflow, and StateMachine realization links as
+- [x] Model explicit Operation, Workflow, and StateMachine realization links as
       typed `CapabilityRealizationRef` values; prohibit Operation-name inference.
-- [ ] Model Specification and Evidence references separately from Capability,
+- [x] Model Specification and Evidence references separately from Capability,
       demand and realization state.
-- [ ] Keep Availability, Authorization, Guard and execution result distinct.
-- [ ] Preserve one-to-many demand/provider/realization cardinalities; do not
+- [x] Keep Availability, Authorization, Guard and execution result distinct.
+- [x] Preserve one-to-many demand/provider/realization cardinalities; do not
       assume one Use Case, one Capability, one provider or one realization.
-- [ ] Preserve explicit edge attribution across multiple trace paths; prove
+- [x] Preserve explicit edge attribution across multiple trace paths; prove
       independent endpoint lists cannot manufacture provider/realization joins.
-- [ ] Add codec/validator/executable specifications proving round-trip identity,
+- [x] Add codec/validator/executable specifications proving round-trip identity,
       cardinality preservation and rejection of dangling/ambiguous explicit refs.
 
 ## CAP-11-03: Search, matching, demand trace, and gap analysis

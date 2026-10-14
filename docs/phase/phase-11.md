@@ -39,7 +39,7 @@ real producer/consumer end-to-end acceptance belong to
 | ID | Outcome | Status |
 | --- | --- | --- |
 | CAP-11-01 | Freeze supported projection versions, ingestion, integrity, and historical/current snapshot semantics. | closed |
-| CAP-11-02 | Extend internal catalog/index models for Capability, demand, realization, Specification, and Evidence traceability. | planned |
+| CAP-11-02 | Extend internal catalog/index models for Capability, demand, realization, Specification, and Evidence traceability. | closed |
 | CAP-11-03 | Provide Capability search, provider matching, demand tracing, and typed gap/compatibility diagnostics. | planned |
 
 CAP-11-04 and CAP-11-05 are owned exactly once by the
@@ -50,7 +50,9 @@ CAP-11-04 and CAP-11-05 are owned exactly once by the
 The GitHub refinement through `a3c3de2` is incorporated. CAP-11-01 private
 ingestion and actual normal producer/public Factory interoperability are accepted;
 see [CAP-11-01 acceptance](#cap-11-01-acceptance--2026-10-15).
-CAP-11-02 and CAP-11-03 remain planned and not started.
+CAP-11-02 catalog is independently accepted; see
+[CAP-11-02 acceptance](#cap-11-02-acceptance--2026-10-15).
+CAP-11-03 remains planned and not started.
 The canonical Phase 10.6 and Phase 10.7 ledgers are CLOSED;
 consume the accepted [Phase 10.7 handoff](phase-10.7.md). Use the
 [local preparation note](../notes/phase-11-12-local-execution-preparation.md)
@@ -87,6 +89,41 @@ Phase 14 failed Job behavior remains unaccepted. No commit is claimed here.
 The dated 2026-10-14 authoring and validation-ownership sections below preserve
 historical pending/unchecked states. This acceptance supersedes those states only
 for current CAP-11-01 status; their contracts and other owners remain unchanged.
+
+### CAP-11-02 acceptance — 2026-10-15
+
+Stage Status:
+- Current status: DONE
+- Owner: CBD Support catalog/model owner
+- Update rule: acceptance is recorded against the
+  [original eight criteria](phase-11-checklist.md#cap-11-02-internal-catalog-and-demandrealization-traceability-model).
+
+CAP-11-02 is accepted after focused validation and independent whole-Step review.
+The local Step commit binds this acceptance. The
+[catalog contract](../spec/capability-catalog-contract.md) and
+[catalog design](../design/capability-catalog.md) record exact typed qualified
+Provided/Required records and their independent provenance, complete separate
+Application projections, and attributed Required paths with preserved demand/
+provider/realization cardinalities. Operation, Workflow and StateMachine remain
+three explicit declaration-owned realization kinds. Specification and Evidence
+remain separate, while Availability, Authorization, Guard and execution result
+retain four distinct Unknown observation domains. The strict portable codec and
+validator preserve semantic identity and attribution; the live catalog retains
+the original native objects from the selected accepted Snapshot.
+
+Phase 11 remains in-progress / OPEN; CAP-11-03 has not started. The unavailable
+forward UseCase positive branch remains unadmitted. Aggregate full-suite
+validation remains deferred-not-run to Phase 11.1. Participant own-Phase full
+tests, full reviews and releases, authorized eventual Cozy main integration,
+and CBD Phase review/release remain pending. Phase 14 transferred Job failed
+behavior remains unaccepted.
+
+The preceding dated CAP-11-01 acceptance's pending participant and unstarted
+catalog statements are historical before this CAP-11-02 acceptance. They are
+superseded only by later independently accepted Steps within their own ownership;
+this acceptance establishes no retrospective acceptance of other owners. The
+original dated authoring and validation-ownership bodies below remain historical
+and their contracts remain unchanged.
 
 ### CAP-11-01 consumer contract authoring — 2026-10-14
 

@@ -1,34 +1,98 @@
-# Phase 11 Checklist: Capability Catalog, Discovery, and Traceability
+# Phase 11 Checklist: Capability Ingestion, Catalog, and Queries
 
-Status: OPEN
+Status: OPEN / IN_PROGRESS (CAP-11-01 accepted; CAP-11-02/03 OPEN)
 phase=[Phase 11](phase-11.md)
 predecessor=[Phase 10.7](phase-10.7.md)
+successor=[Phase 11.1](phase-11.1.md)
 development-item=DEV-CBD-003
 
+This authoritative ledger owns CAP-11-01–03 after the applied 2026-10-04 split.
+CAP-11-01 is accepted; see the
+[accepted Step](phase-11.md#cap-11-01-acceptance--2026-10-15).
+CAP-11-02/03 remain OPEN and not started. CAP-11-04–05 retain their IDs in the
+[Phase 11.1 checklist](phase-11.1-checklist.md); no acceptance is inferred.
 Execution preparation: [local evidence and integration points](../notes/phase-11-12-local-execution-preparation.md).
-All items remain unstarted. Phase 10.7 is the execution predecessor.
 
 ## CAP-11-01: Projection ingestion and integrity
 
 Stage Status:
-- Current status: OPEN
+- Current status: DONE
 - Owner: CBD Support ingestion/model owner
 - Update rule: Close only after supported versions, integrity checks, and
   current/history snapshot semantics have executable specification coverage.
 
-- [ ] Define supported CNCF Component Capability, Application Capability, and
+Current acceptance — 2026-10-15: all seven original criteria below are DONE
+after focused validation, independent whole-Step review and mechanical naming
+closure; see [CAP-11-01 acceptance](phase-11.md#cap-11-01-acceptance--2026-10-15).
+The following contract handoff, validation-ownership and S02/S03 authoring notes
+are historical as at 2026-10-14. Their pending/unchecked statements are superseded
+only for current CAP-11-01 status. Participant acceptance and closures, CAP-11-02/03,
+Phase closure and Phase 14 failed Job behavior retain their separate boundaries.
+
+Contract authoring handoff:
+[consumer specification](../spec/capability-ingestion-contract.md) and
+[ingestion design](../design/capability-ingestion.md) record the frozen
+supported-version/selection/wire/failure/current-history and catalog/query
+semantics. S01 supplies documentation only; all seven criteria below remain
+unchecked. Actual producer -> Scala 3/native CNCF Factory -> CBD no-CML-reparse
+ingestion, full Application consumer roundtrip and typed unavailable forward
+Use Case demand proof remain pending. Cozy CAP-64-05 retains four unchecked
+criteria; participant and CBD Step/Phase acceptance, validation, review and
+release remain separately owed. CBD repository full-suite validation stays
+deferred-not-run to Phase 11.1; successor execution has not started.
+
+S02 kernel authoring handoff — 2026-10-14:
+[private API and 28-case map](../spec/capability-ingestion-contract.md#s02-ingestion-kernel-authoring--2026-10-14)
+records nine production sources, two synthetic fixture sources and three
+AnyWordSpec/GivenWhenThen/should suites. C11A11/C11S07 properties are authored
+with minimum 100 successes and zero discards; no validation result is asserted.
+Full Application roundtrip, exact provenance, original public Factory readouts
+and accepted/rejected history are authored kernel behaviors awaiting parent
+focused validation/review. Synthetic transport/native fixtures do not replace
+actual normal Cozy -> Scala 3/native CNCF Factory -> CBD producer proof, which
+remains mandatory later same-Step work. All seven criteria below remain open.
+
+Validation ownership — 2026-10-14: complete configured Compile/Test source
+compilation includes preserved transferred Job sources/specifications. The original
+Capability/typed-control/output-exclusion behavior, exact projection ingestion,
+current/history semantics and real normal Cozy -> generated Scala 3/native
+Directory/CAR public Factory -> CBD no-CML-reparse proof, including full Application
+roundtrip, remain owed. Transferred Job/Provider/Entity runtime execution and
+correction belong to [Phase 14](phase-14.md) / DEV-CBD-004 and remain unaccepted;
+native Job success adds no CAP-11-01 criterion. Preserve failed evidence without
+skipping tests, accepting unavailable input as empty, substituting a producer or
+reducing property obligations. All criteria and statuses remain unchanged.
+
+S03 real producer authoring handoff — 2026-10-14:
+[actual Test harness and eight-case map](../spec/capability-ingestion-contract.md#s03-real-producer-interoperability-authoring--2026-10-14)
+records the explicit `textus.cbd.capabilityProducerRoot` opt-in, four separate
+single-source dedicated normal CLI products, six configured Scala 3 accessor
+products, independent original three-kind native metadata and actual Directory/
+normal CAR public Factory intake. Complete primary/secondary Application products
+remain separate; source-free CBD intake retains full fields, Provided/Required,
+External evidence, current/history and original failure semantics. Store+Remote
+and Archive+Remote are positive selections; complete primary Application with
+Store+Archive+Remote is the explicit Local Ambiguous branch with both witnesses
+retained. C11R01–08 have actual Given/When/Then and should clauses. Fixture commands
+are authored and await parent-owned validation; no executed result or acceptance
+is asserted. All seven criteria remain unchecked. The original five-suite
+49-case accumulator/properties, participant Step/Phase closures, authorized
+eventual Cozy main integration, Phase 14 unaccepted failed evidence and aggregate
+full-suite deferral to Phase 11.1 retain their existing owners.
+
+- [x] Define supported CNCF Component Capability, Application Capability, and
       Use Case demand projection versions independently.
-- [ ] Record each producer/schema/source revision and real fixture availability;
+- [x] Record each producer/schema/source revision and real fixture availability;
       promote the consumer design/specification before implementation, using
       explicit typed control under repository rules.
-- [ ] Preserve exact Use Case, Application Capability, Component, package,
+- [x] Preserve exact Use Case, Application Capability, Component, package,
       source, Capability, realization, and ABI identity supplied upstream.
-- [ ] Reject or quarantine ambiguous, duplicate, malformed, stale, and
+- [x] Reject or quarantine ambiguous, duplicate, malformed, stale, and
       incompatible projections without repairing identity by name.
-- [ ] Separate current selected state from historical ingestion attempts.
-- [ ] Represent a missing/not-yet-supported upstream Use Case demand projection
+- [x] Separate current selected state from historical ingestion attempts.
+- [x] Represent a missing/not-yet-supported upstream Use Case demand projection
       explicitly; do not reconstruct it from CML, names, descriptions or AI.
-- [ ] Add executable fixtures for valid, stale, incompatible, duplicate,
+- [x] Add executable fixtures for valid, stale, incompatible, duplicate,
       ambiguous and unavailable-upstream cases.
 
 ## CAP-11-02: Internal catalog and demand/realization traceability model
@@ -84,53 +148,13 @@ Stage Status:
 - [ ] Add executable specifications for multi-provider, multi-realization,
       incompatible-version, partial-evidence and zero-provider cases.
 
-## CAP-11-04: Capability and demand trace views
-
-Stage Status:
-- Current status: OPEN
-- Owner: Component Dashboard owner
-- Update rule: Close only after overview/detail views expose provenance and
-  traceability without implying runtime execution or authorization.
-
-- [ ] Add Component Capability overview and detail projections.
-- [ ] Add a read-only demand trace projection:
-      Use Case -> Application Capability -> Component Capability -> realization.
-- [ ] Navigate between admitted Use Case/Application Capability, Capability,
-      Component, and realization targets using exact references.
-- [ ] Show source/version/provenance and Specification/Evidence links.
-- [ ] Render typed gaps independently; do not collapse missing realization,
-      unavailable deployment, unauthorized principal, unsatisfied Guard and
-      missing Evidence into a generic unavailable state.
-- [ ] Clearly label absent upstream Use Case demand projection as unavailable,
-      not as an empty/no-demand Use Case.
-- [ ] Add view-model tests proving Web rendering cannot manufacture trace links
-      absent from the query result.
-
-## CAP-11-05: Web/MCP consistency and end-to-end acceptance
-
-Stage Status:
-- Current status: OPEN
-- Owner: CBD Support Web/MCP owners with CNCF Phase 78 and Cozy Phase 64
-- Update rule: Close only after Web and MCP/API expose the same semantics for
-  one real upstream fixture with reproducible evidence.
-
-- [ ] Consume one Cozy-generated, CNCF-admitted Capability projection.
-- [ ] When an admitted demand fixture is available, include at least one
-      Use Case -> Application Capability -> Component Capability -> explicit
-      realization path and one typed gap path.
-- [ ] Record the supported or unavailable demand branch explicitly. If no real
-      demand fixture is admitted, verify unavailable behavior and identify the
-      unexercised positive integration; do not label synthetic proof as upstream
-      integration. The real Component Capability fixture remains mandatory.
-- [ ] Verify Web and MCP/API return the same qualified identities, provider sets,
-      realization sets, gap kinds and provenance for identical queries.
-- [ ] Prove no CML reparsing, AI reconstruction or local identity replacement occurs.
-- [ ] Prove Phase 11 surfaces are read/query only and cannot create Use Case
-      Slice, approve candidate state or mutate canonical CML.
-- [ ] Record exact Cozy, CNCF ABI, demand-projection producer and cbd-support
-      revisions plus focused validation and review evidence.
-
 ## Closure
 
-- [ ] Close Phase 11 only after every item is checked or explicitly relocated
-      under successor authority.
+- [ ] Close only CAP-11-01–03 after their executable specifications, focused
+      validation, independent Step acceptance and full Phase review pass.
+- [ ] Bind the admitted producer/schema/source revisions and fixture evidence;
+      hand off the settled typed query/result/gap and presentation contract.
+- [ ] Record repository-full validation as deferred-not-run to Phase 11.1,
+      retaining focused validation, review, closure ledger and release commit.
+- [ ] Save the exact split planning set with normal Phase acceptance or
+      management-data commits; preserve unrelated work and planned successors.

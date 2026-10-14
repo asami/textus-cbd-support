@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 1,
+  "producer": {
+    "id": "cozy",
+    "version": "${PRODUCER_VERSION}"
+  },
+  "sources": [
+    {
+      "modelAuthority": "Other:能力/B",
+      "path": "model/capability-model-secondary.cml",
+      "sourceRevision": "${HEADER_REVISION}",
+      "line": 2
+    }
+  ],
+  "scope": {
+    "scopeId": "explicit-production-fixture",
+    "source": {
+      "modelAuthority": "Model:能力/A",
+      "path": "model/capability-model.cml",
+      "sourceRevision": "scope:r1",
+      "line": null
+    },
+    "modelFacts": [
+      {
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "usecase:one"
+        },
+        "kind": "USE_CASE",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "fact:usecase:one",
+          "line": null
+        }
+      },
+      {
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "goal:two"
+        },
+        "kind": "GOAL",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "fact:goal:two",
+          "line": null
+        }
+      },
+      {
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "scenario:one"
+        },
+        "kind": "SCENARIO",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "fact:scenario:one",
+          "line": null
+        }
+      },
+      {
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "concept:Order"
+        },
+        "kind": "DOMAIN_CONCEPT",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "fact:concept:Order",
+          "line": null
+        }
+      }
+    ],
+    "termFacts": [
+      {
+        "identity": {
+          "vocabularyId": "BoK:語彙",
+          "termId": "term:注文|α"
+        },
+        "source": {
+          "modelAuthority": "BoK:語彙",
+          "path": "catalog/terms.cml",
+          "sourceRevision": "term:r8",
+          "line": null
+        }
+      }
+    ],
+    "relationFacts": [
+      {
+        "identity": {
+          "vocabularyId": "vocab:关系",
+          "relationId": "rel:uses|α"
+        },
+        "source": {
+          "modelAuthority": "vocab:关系",
+          "path": "catalog/relations.cml",
+          "sourceRevision": "relation:r3",
+          "line": null
+        }
+      }
+    ],
+    "profileFacts": [
+      {
+        "identity": {
+          "vocabularyId": "profile:scope",
+          "profileId": "profile:one"
+        },
+        "source": {
+          "modelAuthority": "profile:scope",
+          "path": "catalog/profiles.cml",
+          "sourceRevision": "profile:r7",
+          "line": null
+        }
+      }
+    ],
+    "applicationContracts": [],
+    "componentContracts": [
+      {
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "Component:Store|α"
+        },
+        "contractVersion": "contract:一",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "history:contract:一",
+          "line": null
+        }
+      },
+      {
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "Component:Store|α"
+        },
+        "contractVersion": "contract:三",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "history:contract:三",
+          "line": null
+        }
+      }
+    ],
+    "targetContracts": [
+      {
+        "kind": "OPERATION",
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "operation:save"
+        },
+        "component": {
+          "namespace": "org.simplemodeling.textus",
+          "id": "Store"
+        },
+        "contractVersion": "operation:v3",
+        "generatedAbiVersion": "operation.abi:v7",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "target:operation:save",
+          "line": null
+        }
+      },
+      {
+        "kind": "WORKFLOW",
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "workflow:save"
+        },
+        "component": {
+          "namespace": "org.simplemodeling.textus",
+          "id": "Store"
+        },
+        "contractVersion": "workflow:v4",
+        "generatedAbiVersion": "workflow.abi:v8",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "target:workflow:save",
+          "line": null
+        }
+      },
+      {
+        "kind": "STATE_MACHINE",
+        "identity": {
+          "modelId": "Model:能力/A",
+          "elementId": "state:store"
+        },
+        "component": {
+          "namespace": "org.simplemodeling.textus",
+          "id": "Store"
+        },
+        "contractVersion": "state:v5",
+        "generatedAbiVersion": "state.abi:v9",
+        "source": {
+          "modelAuthority": "Model:能力/A",
+          "path": "model/capability-model.cml",
+          "sourceRevision": "target:state:store",
+          "line": null
+        }
+      }
+    ]
+  },
+  "contexts": [
+    {
+      "projectionGeneration": 1,
+      "schemaVersion": 1,
+      "generatedAbiVersion": "cncf.component-capability.v1",
+      "producer": {
+        "id": "cozy",
+        "version": "${PRODUCER_VERSION}"
+      },
+      "component": {
+        "namespace": "org.simplemodeling.textus",
+        "id": "Remote",
+        "version": "1.2.3-SNAPSHOT"
+      },
+      "package": {
+        "coordinate": "pkg:Remote|日本語",
+        "version": "package:r9"
+      },
+      "source": {
+        "modelAuthority": "Other:能力/B",
+        "path": "model/capability-model-secondary.cml",
+        "sourceRevision": "${HEADER_REVISION}",
+        "line": 2
+      }
+    }
+  ],
+  "packages": [
+    {
+      "component": {
+        "namespace": "org.simplemodeling.textus",
+        "id": "Remote",
+        "version": "1.2.3-SNAPSHOT"
+      },
+      "package": {
+        "coordinate": "pkg:Remote|日本語",
+        "version": "package:r9"
+      },
+      "path": "target/bundles/Remote",
+      "resources": [
+        {
+          "snapshot": {
+            "source": {
+              "modelAuthority": "Other:能力/B",
+              "path": "model/capability-model-secondary.cml"
+            },
+            "component": {
+              "namespace": "org.simplemodeling.textus",
+              "id": "Remote"
+            }
+          },
+          "filename": "Remote.json"
+        }
+      ]
+    }
+  ],
+  "scalaOutputs": [
+    {
+      "snapshot": {
+        "source": {
+          "modelAuthority": "Other:能力/B",
+          "path": "model/capability-model-secondary.cml"
+        },
+        "component": {
+          "namespace": "org.simplemodeling.textus",
+          "id": "Remote"
+        }
+      },
+      "path": "target/generated/Remote${SUFFIX}.scala",
+      "packageName": [
+        "org",
+        "simplemodeling",
+        "textus",
+        "cbdsupport",
+        "generated",
+        "capabilityproducer"
+      ],
+      "objectName": "Remote${SUFFIX}Metadata"
+    }
+  ],
+  "applicationOutput": "target/products/application.json"
+}

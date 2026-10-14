@@ -26,6 +26,7 @@ Detect where evidence is statically reliable:
 - mutation Operation exposed as GET;
 - request-to-Entity direct binding / undeclared mass-assignment paths;
 - direct filesystem/network/process/native/unsafe-deserialization escape use;
+- Execution Boundary Escape: component/application-defined `main`, Scala `@main`, App-style launcher, or direct invocation of program entry points inside an ordinary CAR;
 - credential/secret values projected to logging/Display/serialization where
   metadata makes this deterministically knowable.
 
@@ -36,6 +37,8 @@ Deliver the Safety Sandbox review rules incrementally with CNCF Phase 110 and re
 ### CNCF Safety Sandbox integration
 
 Consume CNCF Phase 110 External Effect / escape classifications rather than defining a CBD-private sandbox taxonomy. CAR lint is the early developer-feedback layer; CNCF CAR Loading Admission is the runtime-entry enforcement layer; CNCF Runtime Sandbox is the effect enforcement layer. A lint disposition or developer acceptance does not by itself grant runtime authority or bypass Loading Admission.
+
+Execution Boundary Escape is a structural finding even if the custom entry point has not yet performed another forbidden effect: ordinary CAR execution lifecycle belongs to CNCF Runtime. Reusable behavior must be exposed through Service/Operation/API; a separate executable uses admitted ProcessExec/Docker execution.
 
 Direct JVM filesystem/network/process/native/raw-persistence use remains attributable even when the CAR requests a related CNCF capability: capability declarations authorize the managed CNCF route, not ambient JVM access.
 

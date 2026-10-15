@@ -1,6 +1,6 @@
 # Phase 11 Checklist: Capability Ingestion, Catalog, and Queries
 
-Status: OPEN / IN_PROGRESS (CAP-11-01/02/03 and CAP-11-PKG01 accepted; Phase closure pending)
+Status: CLOSED
 phase=[Phase 11](phase-11.md)
 predecessor=[Phase 10.7](phase-10.7.md)
 successor=[Phase 11.1](phase-11.1.md)
@@ -16,6 +16,27 @@ statements are superseded only by independently accepted owner Steps.
 CAP-11-04–05 retain their IDs in the
 [Phase 11.1 checklist](phase-11.1-checklist.md); no acceptance is inferred.
 Execution preparation: [local evidence and integration points](../notes/phase-11-12-local-execution-preparation.md).
+
+## Current Phase closure — 2026-10-16
+
+Closure binding: `cbd11-phase-closure-20261016-01@1`.
+The four declared Steps are independently accepted and locally committed.
+The current epoch2 whole-Phase review passed all 30 behavior criteria and the
+four closure obligations without current blockers or new follow-up findings.
+The latest normal configured focused run passed 102 tests in 12 suites with
+no failed or aborted cases. CAR lint returned zero errors and six retained
+warnings. All nine accepted Hygiene records and one Development Candidate are
+present in their canonical journals. The local release binds this completion
+and the complete split planning set.
+
+See the [current closure and successor handoff](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
+for exact producer inputs, real Directory/CAR evidence, the typed internal
+query/result/gap handoff and the completed participant releases/Cozy main merge.
+CBD repository-full validation remains deferred-not-run to Phase 11.1 under
+the existing reciprocal final-only declarations. Forward UseCase positive
+demand, public Capability surfaces and transferred Job runtime are not accepted
+by this closure. Successors remain planned; earlier dated sections below
+retain their historical pending statements.
 
 ## CAP-11-PKG01: Component Usage model and Component-owned Directory/CAR
 
@@ -207,11 +228,11 @@ validation remains deferred-not-run to Phase 11.1.
 
 ## Closure
 
-- [ ] Close CAP-11-01–03 and CAP-11-PKG01 after their executable specifications, focused
+- [x] Close CAP-11-01–03 and CAP-11-PKG01 after their executable specifications, focused
       validation, independent Step acceptance and full Phase review pass.
-- [ ] Bind the admitted producer/schema/source revisions and fixture evidence;
+- [x] Bind the admitted producer/schema/source revisions and fixture evidence;
       hand off the settled typed query/result/gap and presentation contract.
-- [ ] Record repository-full validation as deferred-not-run to Phase 11.1,
+- [x] Record repository-full validation as deferred-not-run to Phase 11.1,
       retaining focused validation, review, closure ledger and release commit.
-- [ ] Save the exact split planning set with normal Phase acceptance or
+- [x] Save the exact split planning set with normal Phase acceptance or
       management-data commits; preserve unrelated work and planned successors.

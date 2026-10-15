@@ -1,6 +1,6 @@
 # Phase 11 - Capability Ingestion, Catalog, and Queries
 
-status=in-progress
+status=closed
 split_full_test_policy=final-only
 split_full_validation_method=sbt-full-suite
 split_validation_bootstrap=none
@@ -11,12 +11,70 @@ depends_on=phase-10.7.md
 successor=phase-11.1.md
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED
 - Predecessor: Phase 10.7
 - Successor: Phase 11.1
 - Development item: DEV-CBD-003
 - Owner: Textus CBD Support development
 - Update rule: completion is recorded only by `phase-11-checklist.md` with reproducible evidence.
+
+## Current Phase closure and successor handoff — 2026-10-16
+
+Closure binding: `cbd11-phase-closure-20261016-01@1`.
+
+CAP-11-01, CAP-11-02, CAP-11-03 and CAP-11-PKG01 have independent acceptance
+and local Step commits. The current ComponentUsage contract passed the independent
+epoch2 whole-Phase review over the three admitted original-base accumulators,
+all 30 behavior criteria and the four closure obligations. No current blocker
+or new follow-up finding remained. The local Phase release binds this completion
+and the complete split planning set. Earlier dated Step sections retain their
+historical pending statements; this section records the current state.
+
+The latest configured focused validation passed 102 tests in 12 suites with
+zero failures, aborted suites, canceled, ignored or pending tests. It compiled
+the normal configured source graph and generated callers, and exercised normal
+Cozy production, native CNCF Directory/CAR acquisition and CBD ingestion,
+catalog and query behavior. CAR lint completed with no errors and six retained
+warnings. The project version remains `0.1.0-SNAPSHOT`.
+
+Actual producer inputs are Cozy `0.3.3-SNAPSHOT` and CNCF `0.5.3-SNAPSHOT`.
+Cozy Phase 64 release `0ccbbd8396f39a2c3ef76919ae841b5c18fdc660` is integrated
+into canonical main at `834198b5c864c1599f29bc84effad2cc64146031`; its dedicated
+full suite passed 2,992 tests and the merged main passed 3,769 tests. CNCF
+Phase 78 is locally released on its dedicated branch at
+`fe70da40aae343e63b0eef4db688f9d5958ec621`, with 4,568 successful full-suite
+tests. Canceled, ignored and pending participant cases retain their original
+nonexecuted states; these results do not claim a CBD full-suite pass.
+
+The accepted [Component Usage contract](../spec/component-usage-capability-adoption.md),
+[ingestion contract](../spec/capability-ingestion-contract.md),
+[catalog contract](../spec/capability-catalog-contract.md) and
+[query contract](../spec/capability-query-contract.md) are the successor inputs.
+They retain explicit Component ownership, independent producer/schema/source/ABI
+revisions, inductive Usage evidence, separate deductive Component contracts,
+attributed many-to-many mappings and the six typed query/result/gap operations.
+The real producer fixtures and compiled accessors demonstrate the normal package
+routes. Query results preserve failure provenance and keep runtime availability,
+authorization, guard satisfaction and execution evidence independent.
+
+Forward UseCase demand remains explicitly unavailable and unadmitted; no positive
+forward trace is claimed. Phase 11.1 owns shared views, public Web/MCP/API mapping,
+authorization/result presentation and its original real cross-surface acceptance.
+It consumes the settled internal contracts rather than inferring new joins.
+
+`repository_full_suite=deferred-not-run`: retain final-only aggregate entry
+`phase11-aggregate-entry-20261004-02@1`, method `sbt-full-suite`, bootstrap `none`,
+owner `PHASE-11.1` and sequence `PHASE-11 -> PHASE-11.1`. The local release
+message carries the typed aggregate handoff. Phase 11.1 must verify this committed
+handoff and run the complete configured suite on its final tree. It remains
+PLANNED / NOT STARTED, as do Phases 12 and 14. Transferred Job runtime evidence
+remains 39 successful / 14 failed tests, unaccepted and owned by Phase 14.
+The original bases, review history and repair accounting remain unchanged.
+
+The nine accepted Hygiene records and one Development Candidate remain in the
+[canonical Hygiene journal](../journal/2026/10/2026-10-04-phase-11-hygiene-follow-up.md)
+and [canonical Development Candidate journal](../journal/2026/10/2026-10-04-phase-11-development-candidate-follow-up.md).
+No source publication, remote push or deployment is part of this local closure.
 
 ## Package metadata amendment — 2026-10-15
 

@@ -37,7 +37,7 @@ records and supplies no new acceptance evidence.
   [checklist](phase-10.6-checklist.md).
 - [Phase 10.7](phase-10.7.md) — closed end-to-end validation and closure;
   [checklist](phase-10.7-checklist.md).
-- [Phase 11](phase-11.md) — accepted Steps and whole review; local closure pending for Capability ingestion, catalog, queries and
+- [Phase 11](phase-11.md) — closed Capability ingestion, catalog, queries and
   read-only Component Usage demand-to-realization traceability
   (DEV-CBD-003); [checklist](phase-11-checklist.md).
 - [Phase 11.1](phase-11.1.md) — planned Capability views, Web/MCP consistency
@@ -58,9 +58,8 @@ records and supplies no new acceptance evidence.
 
 The [Phase 11/12 local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 records the imported refinements, current integration points and unverified
-upstream inputs. Phase 11 has accepted Steps and a passing whole review; its
-local release remains pending. The successor execution boundary is Phase 11.1,
-then the unchanged Phase 12. Phase 11.1 remains planned/not started
+upstream inputs. Phase 11 is closed; the next documented execution boundary is
+Phase 11.1, then the unchanged Phase 12. Phase 11.1 remains planned/not started
 and owns the deferred full validation for the Capability sequence. See the
 [Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
 for the accepted ComponentUsage amendment, participant inputs and exact handoff.

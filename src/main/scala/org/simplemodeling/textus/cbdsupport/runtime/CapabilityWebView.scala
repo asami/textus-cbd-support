@@ -61,6 +61,22 @@ private[runtime] object CapabilityWebView {
       "<section class=\"unavailable-projection\"><h1>UnavailableProjection</h1>" + _unavailable(value) + "</section>"
   }
 
+  def providers(result: QueryResult[ProviderSearch]): String =
+    "<main><h1>Capability providers</h1>" + _scope(result.scope) + _search(result.value) +
+      _collection(result.value.matches)(p => "<section class=\"provider\"><dl>" + _fact("Match basis", p.basis) + "</dl>" + _record(p.provider) + "</section>") + "</main>"
+
+  def requirements(result: QueryResult[RequirementSearch]): String =
+    "<main><h1>Component requirements</h1>" + _scope(result.scope) + "<dl>" +
+      _fact("Exact Component", result.value.component) + "</dl>" + _collection(result.value.records)(_record) + "</main>"
+
+  def diagnosis(result: QueryResult[DemandDiagnosis]): String =
+    "<main><h1>Capability demand diagnosis</h1>" + _scope(result.scope) + "<dl>" +
+      _fact("Selection", result.value.selection) + "</dl>" +
+      _collection(result.value.usages)(u => _usage(u.usage) + _collection(u.paths)(p => _mapping(p.path) +
+        _collection(p.required)(r => _record(r.required) + _search(r.providers) + _collection(r.providers.matches)(m => _record(m.provider))))) +
+      _collection(result.value.required)(r => _record(r.required) + _search(r.providers) + _collection(r.providers.matches)(m => _record(m.provider))) +
+      _collection(result.value.gaps)(_gap) + "</main>"
+
   private def _record(record: CapabilityRecord): String = {
     val definition = record.definition
     "<article class=\"capability-record\">" + _reference("Component contract", record.key, record.key.context) +

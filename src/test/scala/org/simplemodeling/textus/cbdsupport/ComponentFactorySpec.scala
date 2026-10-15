@@ -18,7 +18,8 @@ import org.scalatest.wordspec.AnyWordSpec
 /*
  * @since   Jul. 14, 2026
  *  version Jul. 26, 2026
- * @version Aug. 15, 2026
+ *  version Aug. 15, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -87,9 +88,9 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val usageschema = tools.find(_.name.endsWith(".getUsage")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
       val toolprefix = s"${CbdSupportComponent.name}.CbdRetrieval"
-      val descriptions = component.operationDefinitions.flatMap { operation =>
+      val descriptions = component.protocol.services.services.filter(_.name == "CbdRetrieval").flatMap(_.operations.operations.toVector).flatMap { operation =>
         val toolname = s"$toolprefix.${operation.name}"
-        operation.summary.filter(_ => names.contains(toolname)).map(toolname -> _)
+        operation.specification.summary.map(_.displayMessage.trim).filter(_.nonEmpty).map(toolname -> _)
       }.toMap
 
       Then("all retrieval tools are visible and administrative refresh is absent")
@@ -105,7 +106,14 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         s"$toolprefix.getReviewReport",
         s"$toolprefix.listReviewFindings",
         s"$toolprefix.listReviewAssurances",
-        s"$toolprefix.getReviewViews"
+        s"$toolprefix.getReviewViews",
+        s"$toolprefix.getCapabilityOverview",
+        s"$toolprefix.getCapability",
+        s"$toolprefix.findProviders",
+        s"$toolprefix.findRequirements",
+        s"$toolprefix.traceComponentUsageCapability",
+        s"$toolprefix.traceUseCaseDemand",
+        s"$toolprefix.diagnoseCapabilityDemand"
       )
       tools.map(x => x.name -> x.description).toMap shouldBe descriptions
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
@@ -118,6 +126,33 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       )
       usageschema.hcursor.downField("properties").keys.get.toSet should contain("intent")
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
+      val capabilitynames = Set("getCapabilityOverview", "getCapability", "findProviders", "findRequirements",
+        "traceComponentUsageCapability", "traceUseCaseDemand", "diagnoseCapabilityDemand")
+      val capabilitytools = tools.filter(t => capabilitynames.contains(t.name.split('.').last))
+      capabilitytools.size shouldBe 7
+      capabilitytools.foreach { tool =>
+        tool.inputSchema.hcursor.downField("properties").keys.get.toSet shouldBe Set("selector")
+        tool.inputSchema.hcursor.downField("properties").downField("selector").get[String]("type") shouldBe Right("string")
+        tool.inputSchema.hcursor.get[Vector[String]]("required") shouldBe Right(Vector("selector"))
+      }
+      val capabilitydefinitions = component.operationDefinitions.filter(o => capabilitynames.contains(o.name))
+      capabilitydefinitions.size shouldBe 7
+      capabilitydefinitions.map(_.kind).toSet shouldBe Set("QUERY")
+      capabilitydefinitions.map(o => o.name -> o.inputType).toMap shouldBe Map(
+        "getCapabilityOverview" -> "GetCapabilityOverviewRequest",
+        "getCapability" -> "GetCapabilityRequest",
+        "findProviders" -> "FindProvidersRequest",
+        "findRequirements" -> "FindRequirementsRequest",
+        "traceComponentUsageCapability" -> "TraceComponentUsageCapabilityRequest",
+        "traceUseCaseDemand" -> "TraceUseCaseDemandRequest",
+        "diagnoseCapabilityDemand" -> "DiagnoseCapabilityDemandRequest"
+      )
+      capabilitydefinitions.map(_.outputType).toSet shouldBe Set("CapabilityReadResponse")
+      capabilitydefinitions.foreach { definition =>
+        definition.resultFields.map(f => (f.name, f.datatype, f.multiplicity)) shouldBe
+          Vector(("status", "string", "1"), ("resultJson", "string", "1"), ("html", "string", "1"))
+      }
+
     }
 
     "align static Web forms with generated service ownership" in {

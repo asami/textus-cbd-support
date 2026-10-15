@@ -13,7 +13,7 @@ import CapabilityComponentUsageReferenceJsonPart._model_reference
 
 /*
  * @since   Oct. 15, 2026
- * @version Oct. 15, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityCatalogComponentJsonPart {
@@ -25,12 +25,12 @@ private[runtime] object CapabilityCatalogComponentJsonPart {
     _ <- Either.cond(component.namespace.value() == namespace && component.localId.value() == id, (), _malformed(path, "Separate canonical Component fields are required."))
   } yield component
   def _component_ref(json: Json, path: String): Either[Diagnostic, ComponentId] = _component_identity(json, Vector("namespace", "id"), path)
-  private def _coordinate(json: Json, path: String): Either[Diagnostic, ComponentCoordinate] = for {
+  def _coordinate(json: Json, path: String): Either[Diagnostic, ComponentCoordinate] = for {
     component <- _component_identity(json, Vector("namespace", "id", "version"), path)
     obj <- _object(json, Vector("namespace", "id", "version"), path)
     version <- _read(obj, "version", path)(_string)
   } yield ComponentCoordinate(component, version)
-  private def _package_coordinate(json: Json, path: String): Either[Diagnostic, PackageCoordinate] = for {
+  def _package_coordinate(json: Json, path: String): Either[Diagnostic, PackageCoordinate] = for {
     obj <- _object(json, Vector("coordinate", "version"), path)
     coordinate <- _read(obj, "coordinate", path)(_string)
     version <- _read(obj, "version", path)(_string)
@@ -54,7 +54,7 @@ private[runtime] object CapabilityCatalogComponentJsonPart {
     identity <- _read(obj, "identity", path)(_model_id)
     version <- _read(obj, "contractVersion", path)(_string)
   } yield CapabilityReference(identity, version)
-  private def _key(json: Json, path: String): Either[Diagnostic, DeclarationKey] = for {
+  def _key(json: Json, path: String): Either[Diagnostic, DeclarationKey] = for {
     obj <- _object(json, Vector("component", "direction", "capability"), path)
     component <- _read(obj, "component", path)(_component_ref)
     direction <- _read(obj, "direction", path)((j, p) => _tag(j, p, Direction.values.toVector.map(x => x.tag -> x)))

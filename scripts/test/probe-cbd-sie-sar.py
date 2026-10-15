@@ -22,6 +22,13 @@ CBD_TOOLS = {
     "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listReviewFindings",
     "org.simplemodeling.textus.CbdSupport.CbdRetrieval.listReviewAssurances",
     "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getReviewViews",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getCapabilityOverview",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.getCapability",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.findProviders",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.findRequirements",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.traceComponentUsageCapability",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.traceUseCaseDemand",
+    "org.simplemodeling.textus.CbdSupport.CbdRetrieval.diagnoseCapabilityDemand",
 }
 SIE_TOOLS = {
     "org.simplemodeling.textus.SemanticIntegrationEngine.SemanticRetrieval.query",

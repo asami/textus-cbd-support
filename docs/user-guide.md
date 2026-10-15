@@ -26,6 +26,26 @@ exists.
 6. Pass the returned `ComponentReference` to `getComponent`, `getUsage`, or
    `resolveDependencies` by using its identity fields, including `kind`.
 
+## Capability First Success
+
+Supply already admitted portable catalog metadata through the server-only
+`textus.cbd.capability.projection` configuration and independently configure
+`textus.cbd.capability.selection` with its exact snapshot reference and
+provenance. These inputs do not ingest arbitrary CML or filesystem paths.
+The actual caller needs `viewer`, `reviewer`, `operator`, or `admin`;
+authorization runs before selector decoding and configuration access.
+
+With authenticated access, open
+`/form/textus-cbd-support/cbd-retrieval/get-capability-overview` and enter `{}`
+as the required `selector` string. The equivalent MCP tool is
+`org.simplemodeling.textus.CbdSupport.CbdRetrieval.getCapabilityOverview`,
+called with `{"selector":"{}"}`. Its response contains `status`, compact
+semantic JSON in `result_json`, and HTML from the same typed result.
+Source failures retain typed `Malformed`, `Stale`, `Ambiguous`, or `Unavailable`
+diagnostics; forward UseCase remains explicitly unavailable.
+The [Capability read surface contract](spec/capability-read-surface-contract.md)
+defines all seven operations, qualified selectors, and typed failure shapes.
+
 ## Durable resume and approved CML application
 
 Use the exact normalized consuming-project root and its `project.yaml` identity
@@ -186,8 +206,8 @@ CNCF_VERSION=0.5.3-SNAPSHOT scripts/test/check-cbd-sie-sar.sh
 The command resolves four locally published snapshot CARs, creates a temporary
 descriptor-only `textus-cbd-sie` SAR for each policy profile, and checks each
 through a separately owned loopback CNCF server. Success requires exact CBD/SIE
-counts of baseline `12/7`, global disable `0/0`, SIE service disable `12/0`, and
-status-operation disable `11/6`. Representative disabled calls must return
+counts of baseline `19/7`, global disable `0/0`, SIE service disable `19/0`, and
+status-operation disable `18/6`. Representative disabled calls must return
 JSON-RPC `-32602`. CBD catalog administration, SIE mutation/administration, the
 legacy SIE MCP facade, and all other unexpected tools must remain absent. Each
 server and temporary SAR is removed on exit.

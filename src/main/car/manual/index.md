@@ -118,8 +118,8 @@ the Scraper, Semantic Integration Engine, and BoK CARs. After publishing
 Scraper, SIE, BoK, and CBD Support locally in dependency order through the
 caller's serialized SBT workflow, run `scripts/test/check-cbd-sie-sar.sh` from
 the repository checkout to resolve them and verify four temporary live
-JSON-RPC `/mcp` profiles. Exact CBD/SIE counts must be `12/7` at baseline, `0/0`
-under global disable, `12/0` under SIE service disable, and `11/6` when both
+JSON-RPC `/mcp` profiles. Exact CBD/SIE counts must be `19/7` at baseline, `0/0`
+under global disable, `19/0` under SIE service disable, and `18/6` when both
 status operations are disabled. Disabled calls must return `-32602`. CBD
 catalog administration, Review start/cancellation, SIE
 mutation/administration, the legacy SIE facade, and any other tool are
@@ -145,12 +145,32 @@ rather than treating a mutable SNAPSHOT label as immutable evidence.
 The source-managed CAR ABI is `src/main/car/abi-manifest.json`, using
 `cozy.car.abi-manifest.v2` component identity
 `org.simplemodeling.textus` / `CbdSupport`. Run `scripts/check-car-abi.sh` to
-require its nineteen operation signatures and eight entity exports to match
+require its twenty-six operation signatures and eight entity exports to match
 generated CML model metadata and the packaged CAR. The same check proves that a
 minor operation addition is compatible, a minor removal is rejected, and an
 intentional major transition retains the breaking finding as a permitted
 decision. No historical Textus CBD Support release exists, so the current
 first-release baseline remains explicitly pending instead of being fabricated.
+
+## Capability First Success
+
+Configure the server-only `textus.cbd.capability.projection` with already
+admitted portable catalog metadata and independently supply
+`textus.cbd.capability.selection` with its exact snapshot reference and
+provenance. These inputs do not ingest arbitrary CML or filesystem paths.
+The actual caller must have `viewer`, `reviewer`, `operator`, or `admin`;
+authorization precedes selector decoding and configuration access.
+
+Open `/form/textus-cbd-support/cbd-retrieval/get-capability-overview` with
+authenticated access and enter `{}` in the required `selector` string field.
+For MCP, call `org.simplemodeling.textus.CbdSupport.CbdRetrieval.getCapabilityOverview`
+with `{"selector":"{}"}`. The response carries `status`, compact semantic JSON
+in `result_json`, and HTML rendered from the same typed value. Source failures
+retain typed diagnostics, including `Malformed`, `Stale`, `Ambiguous`, and
+`Unavailable`; forward UseCase remains explicitly unavailable.
+For development from the repository checkout, `docs/spec/capability-read-surface-contract.md`
+defines all seven operations, qualified selectors, and failure shapes. That
+repository specification is separate from this packaged manual.
 
 ## Source Precedence
 

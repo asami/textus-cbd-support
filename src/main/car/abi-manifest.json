@@ -88,6 +88,48 @@
           "output": "ReviewViewsResponse"
         },
         {
+          "name": "getCapabilityOverview",
+          "kind": "QUERY",
+          "input": "GetCapabilityOverviewRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
+          "name": "getCapability",
+          "kind": "QUERY",
+          "input": "GetCapabilityRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
+          "name": "findProviders",
+          "kind": "QUERY",
+          "input": "FindProvidersRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
+          "name": "findRequirements",
+          "kind": "QUERY",
+          "input": "FindRequirementsRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
+          "name": "traceComponentUsageCapability",
+          "kind": "QUERY",
+          "input": "TraceComponentUsageCapabilityRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
+          "name": "traceUseCaseDemand",
+          "kind": "QUERY",
+          "input": "TraceUseCaseDemandRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
+          "name": "diagnoseCapabilityDemand",
+          "kind": "QUERY",
+          "input": "DiagnoseCapabilityDemandRequest",
+          "output": "CapabilityReadResponse"
+        },
+        {
           "name": "refreshCatalog",
           "kind": "COMMAND",
           "input": "CatalogRefreshRequest",

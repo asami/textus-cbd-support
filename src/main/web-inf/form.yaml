@@ -57,6 +57,69 @@ form:
           - capability
       itemId:
         type: text
+  textus-cbd-support.cbd-retrieval.get-capability-overview:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
+  textus-cbd-support.cbd-retrieval.get-capability:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
+  textus-cbd-support.cbd-retrieval.find-providers:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
+  textus-cbd-support.cbd-retrieval.find-requirements:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
+  textus-cbd-support.cbd-retrieval.trace-component-usage-capability:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
+  textus-cbd-support.cbd-retrieval.trace-use-case-demand:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
+  textus-cbd-support.cbd-retrieval.diagnose-capability-demand:
+    enabled: true
+    access: authenticated
+    stayOnError: true
+    resultTemplate: |
+      <article>
+        <textus-error-panel source="error"></textus-error-panel>
+        <textus-html-field source="result.body" field="html"></textus-html-field>
+      </article>
 admin:
   entity.component-reference:
     totalCount: optional

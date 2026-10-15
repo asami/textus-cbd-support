@@ -294,6 +294,160 @@ ReviewViewsResponse
 
 Return canonical CNCF, implementation, and quality views plus catalog-driven named quality views for one exact Report ID. Named views are discovered from capability definitions rather than fixed response fields. Each item keeps canonical Evidence/Observation IDs and provider/location navigation links.
 
+#### getCapabilityOverview
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetCapabilityOverviewRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Inspect original Component contracts, Component Usage and unavailable UseCase in the selected snapshot.
+
+#### getCapability
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetCapabilityRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Read exact qualified Capability records or explicitly discovery-only literal search.
+
+#### findProviders
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+FindProvidersRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Find all exact or explicitly compatible providers with their own realization witnesses.
+
+#### findRequirements
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+FindRequirementsRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Read Required declarations for one exact versioned Component.
+
+#### traceComponentUsageCapability
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+TraceComponentUsageCapabilityRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Trace original Component Usage mappings through Required and Provided Capability records.
+
+#### traceUseCaseDemand
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+TraceUseCaseDemandRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Read the original forward UseCase demand outcome including explicit projection unavailability.
+
+#### diagnoseCapabilityDemand
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+DiagnoseCapabilityDemandRequest
+
+##### OUTPUT
+
+###### TYPE
+
+CapabilityReadResponse
+
+##### DESCRIPTION
+
+Diagnose seven typed static Capability gaps without inferring runtime observations.
+
 ## CbdCatalogAdmin
 
 ### DESCRIPTION
@@ -541,6 +695,62 @@ Private HTTP gateway envelope for one exact Review submission document.
 
 # QUERY
 
+## GetCapabilityOverviewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
+## GetCapabilityRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
+## FindProvidersRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
+## FindRequirementsRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
+## TraceComponentUsageCapabilityRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
+## TraceUseCaseDemandRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
+## DiagnoseCapabilityDemandRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| selector | string | 1 |
+
 ## ComponentSearchRequest
 
 ### ATTRIBUTE
@@ -715,6 +925,16 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | itemId | CbdWarning | 1 |
 
 # VALUE
+
+## CapabilityReadResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | string | 1 |
+| resultJson | string | 1 |
+| html | string | 1 |
 
 ## CatalogRefreshResponse
 

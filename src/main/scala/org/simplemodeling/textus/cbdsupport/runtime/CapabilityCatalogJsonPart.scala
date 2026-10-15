@@ -11,10 +11,15 @@ import CapabilityCatalogComponentJsonPart.{_input, _component_ref, _capability_r
 /*
  * Closed internal envelopes; embedded upstream transports retain their codecs.
  * @since   Oct. 15, 2026
- * @version Oct. 15, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityCatalogJsonPart {
+  def decodeSelection(json: Json): Either[Diagnostic, CatalogSelection] = for {
+    obj <- _object(json, Vector("snapshotReference", "provenance"), "/")
+    reference <- _read(obj, "snapshotReference", "/")(_snapshot_reference)
+    provenance <- _read(obj, "provenance", "/")(_provenance)
+  } yield CatalogSelection(reference, provenance)
   def decode(json: Json): Either[Diagnostic, PortableProjection] = for {
     header <- json.asObject.toRight(_malformed("/", "A catalog projection object is required."))
     schema <- _read(header, "schemaVersion", "/")(_integer)
@@ -107,7 +112,7 @@ private[runtime] object CapabilityCatalogJsonPart {
       case _ => _read(obj, "reference", path)(_usage_reference).map(ExternalTarget.ComponentUsageCapability(_))
     }
   } yield target
-  private def _usage_reference(json: Json, path: String): Either[Diagnostic, ComponentUsageCapabilityReference] = for {
+  def _usage_reference(json: Json, path: String): Either[Diagnostic, ComponentUsageCapabilityReference] = for {
     obj <- _object(json, Vector("kind", "identity", "contractVersion"), path)
     _ <- _read(obj, "kind", path)((j, p) => _tag(j, p, Vector("COMPONENT_USAGE" -> ())))
     identity <- _read(obj, "identity", path)(_model_id)

@@ -17,6 +17,7 @@ lazy val cncfSourceRoot = sys.props.get("textus.cbd.cncfSourceRoot")
   }
 
 lazy val cozyGeneratorRoot = sys.props.get("textus.cbd.cozyGeneratorRoot")
+  .orElse(sys.props.get("cncf.cozyGeneratorRoot"))
   .map { selected =>
     require(selected.trim.nonEmpty, "textus.cbd.cozyGeneratorRoot requires an explicit generator directory")
     val directory = file(selected).getCanonicalFile
@@ -26,7 +27,7 @@ lazy val cozyGeneratorRoot = sys.props.get("textus.cbd.cozyGeneratorRoot")
     directory
   }
 
-// The dedicated Capability producer is an explicit Test input, separate from service generation.
+// Source-mode service generation and producer acceptance share the selected Cozy input.
 lazy val capabilityProducerRoot = sys.props.get("textus.cbd.capabilityProducerRoot")
   .map { selected =>
     require(selected.trim.nonEmpty, "textus.cbd.capabilityProducerRoot requires an explicit producer directory")
@@ -36,7 +37,7 @@ lazy val capabilityProducerRoot = sys.props.get("textus.cbd.capabilityProducerRo
       directory.toPath.resolve("build.sbt"), java.nio.file.LinkOption.NOFOLLOW_LINKS),
       "textus.cbd.capabilityProducerRoot requires a canonical Cozy source directory with build.sbt")
     directory
-  }
+  }.orElse(if (cncfSourceRoot.nonEmpty) cozyGeneratorRoot else None)
 
 lazy val root = project
   .in(file("."))

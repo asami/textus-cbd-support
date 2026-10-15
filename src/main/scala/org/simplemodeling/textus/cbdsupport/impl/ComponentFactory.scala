@@ -1,6 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.impl
 
 import java.time.Instant
+import org.simplemodeling.textus.cbdsupport.runtime.CapabilityReadApplication
 
 import cats.syntax.all.*
 import org.goldenport.Consequence
@@ -47,7 +48,8 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- * @version Oct.  4, 2026
+ *  version Oct.  4, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -1212,6 +1214,41 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     extends CbdSupportComponent.CbdRetrievalServiceFactory {
     import CbdRetrievalService.*
 
+    override def createGetCapabilityOverviewActionCall(
+      core: ActionCall.Core,
+      action: GetCapabilityOverviewRequest
+    ): GetCapabilityOverviewActionCall = GetCapabilityOverviewActionCallImpl(core, action)
+
+    override def createGetCapabilityActionCall(
+      core: ActionCall.Core,
+      action: GetCapabilityRequest
+    ): GetCapabilityActionCall = GetCapabilityActionCallImpl(core, action)
+
+    override def createFindProvidersActionCall(
+      core: ActionCall.Core,
+      action: FindProvidersRequest
+    ): FindProvidersActionCall = FindProvidersActionCallImpl(core, action)
+
+    override def createFindRequirementsActionCall(
+      core: ActionCall.Core,
+      action: FindRequirementsRequest
+    ): FindRequirementsActionCall = FindRequirementsActionCallImpl(core, action)
+
+    override def createTraceComponentUsageCapabilityActionCall(
+      core: ActionCall.Core,
+      action: TraceComponentUsageCapabilityRequest
+    ): TraceComponentUsageCapabilityActionCall = TraceComponentUsageCapabilityActionCallImpl(core, action)
+
+    override def createTraceUseCaseDemandActionCall(
+      core: ActionCall.Core,
+      action: TraceUseCaseDemandRequest
+    ): TraceUseCaseDemandActionCall = TraceUseCaseDemandActionCallImpl(core, action)
+
+    override def createDiagnoseCapabilityDemandActionCall(
+      core: ActionCall.Core,
+      action: DiagnoseCapabilityDemandRequest
+    ): DiagnoseCapabilityDemandActionCall = DiagnoseCapabilityDemandActionCallImpl(core, action)
+
     override def createSearchComponentsActionCall(
       core: ActionCall.Core,
       action: ComponentSearchRequest
@@ -1316,6 +1353,87 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       core: ActionCall.Core,
       action: ReviewDiagnosisRequest
     ): GetReviewDiagnosisActionCall = GetReviewDiagnosisActionCallImpl(core, action)
+  }
+
+  private def _capability_configuration(core: ActionCall.Core): ComponentConfigurationAccess =
+    ComponentConfigurationAccess(ComponentConfigurationSources(
+      core.component.flatMap(_.applicationConfig.config).getOrElse(Configuration.empty),
+      core.component.flatMap(_.subsystem).map(_.configuration.configuration).getOrElse(Configuration.empty),
+      _runtime_configuration(core.executionContext.scope)
+    ))
+
+  // Generated required-string validation owns presence; retain blanks for authorization-first bridge decoding.
+  private def _capability_selector(record: Record): String =
+    record.getAny("selector").flatMap(_scalar_string).get
+
+  private def _capability_read(core: ActionCall.Core, operation: String, selector: String): Consequence[OperationResponse] = {
+    given org.goldenport.cncf.context.ExecutionContext = core.executionContext
+    CapabilityReadApplication.read(operation, selector, _capability_configuration(core)).map { response =>
+      OperationResponse(Record.dataAuto("status" -> response.status, "resultJson" -> response.resultJson, "html" -> response.html))
+    }
+  }
+
+  private final case class GetCapabilityOverviewActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.GetCapabilityOverviewRequest
+  ) extends CbdRetrievalService.GetCapabilityOverviewActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "getCapabilityOverview", _capability_selector(action.record))
+    }
+  }
+
+  private final case class GetCapabilityActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.GetCapabilityRequest
+  ) extends CbdRetrievalService.GetCapabilityActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "getCapability", _capability_selector(action.record))
+    }
+  }
+
+  private final case class FindProvidersActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.FindProvidersRequest
+  ) extends CbdRetrievalService.FindProvidersActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "findProviders", _capability_selector(action.record))
+    }
+  }
+
+  private final case class FindRequirementsActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.FindRequirementsRequest
+  ) extends CbdRetrievalService.FindRequirementsActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "findRequirements", _capability_selector(action.record))
+    }
+  }
+
+  private final case class TraceComponentUsageCapabilityActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.TraceComponentUsageCapabilityRequest
+  ) extends CbdRetrievalService.TraceComponentUsageCapabilityActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "traceComponentUsageCapability", _capability_selector(action.record))
+    }
+  }
+
+  private final case class TraceUseCaseDemandActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.TraceUseCaseDemandRequest
+  ) extends CbdRetrievalService.TraceUseCaseDemandActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "traceUseCaseDemand", _capability_selector(action.record))
+    }
+  }
+
+  private final case class DiagnoseCapabilityDemandActionCallImpl(
+    core: ActionCall.Core,
+    override val action: CbdRetrievalService.DiagnoseCapabilityDemandRequest
+  ) extends CbdRetrievalService.DiagnoseCapabilityDemandActionCall {
+    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+      _capability_read(core, "diagnoseCapabilityDemand", _capability_selector(action.record))
+    }
   }
 
   private final case class SearchComponentsActionCallImpl(

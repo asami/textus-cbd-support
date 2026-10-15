@@ -11,12 +11,12 @@ import sbt.Keys._
 /*
  * Explicit Test-only normal producer inputs and generated Scala source products.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 object CapabilityProducerIntegrationBuild {
   val selectedProducerRoot = settingKey[Option[File]]("Explicit dedicated Capability producer source root")
-  val prepareCapabilityProducer = taskKey[Option[Products]]("Four actual single-source normal Capability productions")
+  val prepareCapabilityProducer = taskKey[Option[Products]]("Five actual single-source normal Capability productions")
   final case class Products(sources: Seq[File], resource: File)
 
   val settings: Seq[Def.Setting[_]] = Seq(
@@ -87,11 +87,13 @@ object CapabilityProducerIntegrationBuild {
       ("primary", "First", "header:primary-r42", "capability-model.cml", Vector("Store", "Archive")),
       ("secondary", "First", "header:secondary-r43", "capability-model-secondary.cml", Vector("Remote")),
       ("primary", "Second", "header:primary-r44", "capability-model.cml", Vector("Store", "Archive")),
-      ("secondary", "Second", "header:secondary-r45", "capability-model-secondary.cml", Vector("Remote")))
+      ("secondary", "Second", "header:secondary-r45", "capability-model-secondary.cml", Vector("Remote")),
+      ("primary", "Contracts", "header:primary-r46", "capability-model.cml", Vector("Store", "Archive")))
     val sources = variants.flatMap { case (family, suffix, header, name, components) =>
       val output = runroot / (family + suffix)
       val request = runroot / (family + suffix + "-request.json")
-      val text = IO.read(resources / "requests" / (family + ".json"))
+      val requestname = if (suffix == "Contracts") "primary-contract-only" else family
+      val text = IO.read(resources / "requests" / (requestname + ".json"))
         .replace("${PRODUCER_VERSION}", cozyversion).replace("${HEADER_REVISION}", header)
         .replace("${SUFFIX}", suffix)
       IO.write(request, text, StandardCharsets.UTF_8)

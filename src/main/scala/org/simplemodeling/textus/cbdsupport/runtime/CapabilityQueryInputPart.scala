@@ -7,7 +7,7 @@ import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.*
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
 import CapabilityQueryModel.*
-import CapabilityApplicationJsonPart.{_check_model_id, _text, _path, _malformed}
+import CapabilityComponentUsageJsonPart.{_check_model_id, _text, _path, _malformed}
 
 /*
  * @since   Oct. 15, 2026
@@ -21,9 +21,9 @@ private[runtime] object CapabilityQueryInputPart {
   } yield (), scope)
   def component(coordinate: ComponentCoordinate, scope: QueryScope): Either[Diagnostic, Unit] =
     _context(_text(coordinate.version, "/query/component/version"), scope, Some(coordinate.componentId))
-  def application(reference: ApplicationCapabilityReference, scope: QueryScope): Either[Diagnostic, Unit] = _context(for {
-    _ <- _check_model_id(reference.identity, "/query/application/identity")
-    _ <- _text(reference.contractVersion, "/query/application/contractVersion")
+  def usage(reference: ComponentUsageCapabilityReference, scope: QueryScope): Either[Diagnostic, Unit] = _context(for {
+    _ <- _check_model_id(reference.identity, "/query/usage/identity")
+    _ <- _text(reference.contractVersion, "/query/usage/contractVersion")
   } yield (), scope)
   def useCase(reference: ModelElementId, scope: QueryScope): Either[Diagnostic, Unit] =
     _context(_check_model_id(reference, "/query/useCase"), scope)

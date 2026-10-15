@@ -18,6 +18,38 @@ Stage Status:
 - Owner: Textus CBD Support development
 - Update rule: completion is recorded only by `phase-11-checklist.md` with reproducible evidence.
 
+## Package metadata amendment — 2026-10-15
+
+Current corrected work: **CAP-11-PKG01**. This replaces the earlier
+Application-owned package assumption; it does not create another parallel item.
+
+The [Component Usage adoption contract](../spec/component-usage-capability-adoption.md)
+replaces the old Application family and package owner. Migrate ingestion, catalog,
+query references/selectors/results/gaps, portable schemas and generated interfaces
+as one affected path. Use explicit Component ownership, inductive evidence and
+many-to-many mappings while preserving the separate deductive Component contract.
+Consume the Component's normal Directory first, then verify the same CAR results.
+See the [corrected handoff](../journal/2026/10/2026-10-15-capability-package-metadata-handoff.md).
+
+Execution order: settle the corrected typed model and owner/source mapping ->
+Cozy source/IR/request and CNCF Directory acquisition -> CBD ingestion/catalog/query
+through one real Directory path -> normal CAR and parity -> Phase 11.1 Web/MCP.
+Migrate affected producer/consumer call sites together. Delete old symbols and
+use compilation to expose missed callers; do not retain aliases, deprecated
+forwarders, dual readers or automatic old-format conversion. This is pre-release
+work, so update CML/JSON fixtures and regenerate outputs instead of maintaining
+compatibility. Existing Component provided/required compatibility semantics are
+unchanged; they are not compatibility with the removed Application model.
+
+Earlier accepted CAP-11-01–03 Steps keep their historical evidence. The current
+CAP-11-PKG01 amendment is independently accepted after focused new-contract
+validation and whole-Step conformance; the local Step commit binds this acceptance.
+See [CAP-11-PKG01 acceptance](#cap-11-pkg01-acceptance--2026-10-15).
+This accepts the corrected current inputs only. Each owner retains its existing
+review/full-validation duties; CBD aggregate full validation remains
+deferred-not-run to Phase 11.1. Phase review and local release remain owed.
+No live plan JSON or approval record is changed by this document update.
+
 ## Purpose
 
 Consume the CNCF Component Capability projection and make Capability
@@ -27,7 +59,7 @@ contract without executing it or reconstructing CML. It retains the original
 Phase identity as the first unit of the applied `11 -> 11.1` split.
 
 Phase 11 also owns the read-only demand-to-realization trace from an admitted
-Use Case/Application Capability demand to Component Capability and its explicit
+Use Case/Component Usage Capability demand to Component Capability and its explicit
 Operation/Workflow/StateMachine realization. It does not judge Use Case quality,
 create Use Case Slice structure, or edit requirements; those responsibilities
 belong to Phase 12. Capability views, public Web/MCP delivery and the original
@@ -38,6 +70,7 @@ real producer/consumer end-to-end acceptance belong to
 
 | ID | Outcome | Status |
 | --- | --- | --- |
+| CAP-11-PKG01 | Adopt ComponentUsageCapability across intake/catalog/query and Component-owned Directory/CAR. | closed |
 | CAP-11-01 | Freeze supported projection versions, ingestion, integrity, and historical/current snapshot semantics. | closed |
 | CAP-11-02 | Extend internal catalog/index models for Capability, demand, realization, Specification, and Evidence traceability. | closed |
 | CAP-11-03 | Provide Capability search, provider matching, demand tracing, and typed gap/compatibility diagnostics. | closed |
@@ -159,6 +192,33 @@ The preceding dated CAP-11-01/02 pending or unstarted statements are historical,
 superseded only by independently accepted Steps within their own ownership.
 Their actual text and the original normative and dated authoring bodies remain
 preserved; this acceptance establishes no acceptance for other owners or successors.
+
+### CAP-11-PKG01 acceptance — 2026-10-15
+
+Stage Status:
+- Current status: DONE
+- Owner: CBD ingestion/catalog/query owner
+- Update rule: acceptance is recorded against the
+  [original six criteria](phase-11-checklist.md#cap-11-pkg01-component-usage-model-and-component-owned-directorycar).
+
+CAP-11-PKG01 is accepted after focused new-contract validation and independent
+whole-Step conformance. The local Step commit binds this acceptance. The
+[Component Usage adoption contract](../spec/component-usage-capability-adoption.md)
+records explicit Component-owned Usage, separate inductive Usage and deductive
+Component Capability semantics, and full source, owner and package attribution
+through ingestion, catalog and queries. Metadata-only input retains its acquired
+package witness without fabricating a native provider. Public CNCF acquisition
+supplies the real generated Directory and normal CAR consumer paths; querying
+the same image preserves equivalent semantic meaning and distinct acquisition
+locations.
+
+The original CAP-11-01–03 evidence remains historical; CAP-11-PKG01 accepts only
+the corrected current inputs. Forward UseCase positive demand remains unadmitted.
+Phase 11 remains in-progress / OPEN, with its Phase review and local release
+still owed. Participant own PKG01 and Phase acceptance, full validation, reviews
+and releases, and authorized Cozy main integration remain owed. CBD aggregate
+full-suite validation remains deferred-not-run to Phase 11.1. This acceptance
+establishes no Phase 11.1 or Phase 14 acceptance.
 
 ### CAP-11-01 consumer contract authoring — 2026-10-14
 

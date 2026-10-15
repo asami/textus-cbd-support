@@ -1,7 +1,94 @@
 # Capability Query and Demand Diagnosis Contract
 
-Status: CAP-11-03 accepted after focused validation, independent whole-Step review and mechanical naming closure.
+Status: CAP-11-PKG01 accepted after focused validation and independent whole-Step conformance; Phase acceptance pending.
 Scope: PHASE-11 / CAP-11-03 / S02-query-implementation
+
+## Current Step acceptance — 2026-10-15
+
+The current Component-owned Usage implementation and real Directory/normal CAR
+consumer query path are accepted after focused validation and independent
+whole-Step conformance; see
+[CAP-11-PKG01 acceptance](../phase/phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+This acceptance supersedes earlier pending/authored-only annotations only for
+CAP-11-PKG01. The existing normative text and historical records below remain
+preserved. Participant own PKG01/Phase acceptance, full validation, reviews and
+releases, CBD full Phase review/release and authorized Cozy main integration
+remain pending. CBD aggregate full-suite validation remains deferred-not-run to
+Phase 11.1; no successor acceptance is established.
+
+## CAP-11-PKG01 current authored contract — 2026-10-15
+
+The six immutable-session operations retain their original finite-scope matching
+and source-failure behavior. The current Usage operation is
+`traceComponentUsageCapability(reference: ComponentUsageCapabilityReference):
+Either[QueryFailure, QueryResult[Vector[ComponentUsageTrace]]]`.
+`DemandSelection.ComponentUsage(reference)` replaces the former Application
+selector; `ComponentUsageTrace(usage,paths)`, `ComponentUsageRequirementPath` and
+`DemandPath(usage,mapping,required,provider)` retain complete owner records and
+attributed nested mappings/Required/provider/own-realization branches. No old API,
+selector alias or wire conversion is retained. Exact matching includes every
+record with the versioned reference across full Component/package/resource/source
+keys, never a label-derived winner or a Cartesian join.
+
+With no available selected Usage package, trace returns typed
+UnavailableProjection. Diagnosis retains the complete original
+`Vector[ComponentUsagePackage]` in
+`MissingComponentUsageCapabilityProjection(scope,reference,reason,families)`
+with `MissingComponentUsageReason.ProjectionNotSupplied`. If any family is
+available, an absent exact reference traces as scoped successful empty. Its
+diagnosis reason is ProjectionNotSupplied if any selected package is unavailable,
+otherwise AbsentSelectedReference. An acquired empty projection is Available,
+therefore differs from optional absence. A matching available record remains
+traceable alongside an unavailable package, preserving both owners' witnesses.
+An original source Left prevents a session and cannot become a missing-Usage gap.
+
+The remaining six gap variants preserve existing known-fact boundaries:
+MissingRequiredComponentCapability, NoProvider, IncompatibleProviderVersion,
+MissingRealization, MissingSpecification and MissingEvidence. Provider matching
+remains equal opaque version or an explicit directed same-identity compatibility
+edge; all provider witnesses and only their own realizations remain ordered.
+No reverse/transitive/default/semver/name inference is introduced. Specification
+and Evidence remain separate; all four runtime observations stay Unknown.
+`traceUseCaseDemand` and UseCase diagnosis retain the exact not-yet-admitted
+unavailable value. Reverse Usage demand/discovery links supply no forward facts.
+
+[C11Q26](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityDemandDiagnosisSpec.scala)
+proves equal references across owners, mixed availability and acquired-empty
+versus absent-reference diagnosis. Existing C11Q01–24 retain their exact original
+matching/gap/attribution responsibilities, including active C11Q24 with at least
+100 successful applicable cases and zero discards.
+[C11Q25](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityQueryProducerIntegrationSpec.scala)
+uses real Store/Remote/UsageOnly Directory intake and normal Contracts Store/Archive
+for direct multiple-provider and Archive-own-empty-realization diagnosis.
+C11Q27 packages the same First Store/Remote images through normal package-car,
+then public CNCF -> accepted CBD -> catalog/query. It compares Usage definitions,
+keys, sources, versions, mappings, Required/provider witnesses and gaps while
+retaining distinct Directory/CAR input locations. Reading/catalog/querying starts
+no producer and invokes no native procedure. All clauses are authored pending
+parent validation and fresh independent Step/Phase acceptance; old acceptance
+counts below remain historical, with no new release or main-merge claim.
+
+## Historical baseline and authoring record
+
+The remaining sections preserve the original CAP-11-01/02/03 designs, dated
+authoring decisions and acceptance history. Old Application descriptions, old
+module signatures and earlier suite/case counts describe those prior boundaries;
+they are superseded for current implementation by CAP-11-PKG01 above and do not
+claim acceptance of changed current inputs or provide compatibility behavior.
+
+## Current Component Usage adoption — 2026-10-15
+
+The [Component Usage adoption contract](component-usage-capability-adoption.md)
+supersedes Application-family names, ownership, wire and query APIs in the
+baseline below. The Usage family is inductive and Component-owned, separate
+from the deductive Component contract. Implement the naming map, explicit owner
+context and source/mapping provenance through this document's original semantic
+operations; do not flatten either family or derive provider contracts from usage.
+Delete old symbols instead of retaining aliases or forwarding APIs. Stale typed
+call sites must fail compilation; update fixtures/portable data with the producer.
+CAP-11-PKG01 owns the pending migration and focused acceptance. Earlier accepted
+case counts, module signatures and review history describe the old implementation
+and do not claim new acceptance or authorize backward compatibility.
 
 ## Authority and accepted ingestion/catalog handoff
 

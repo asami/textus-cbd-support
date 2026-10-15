@@ -11,7 +11,7 @@ import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
 import CapabilityProducerIntegrationFixtures.*
 import CapabilityProducerNativeFixtures.{operation, workflow, stateMachine, snapshots, bindings}
-import CapabilityApplicationJsonPart._items
+import CapabilityComponentUsageJsonPart._items
 
 /*
  * Actual configured normal producer -> public Factory ingestion -> catalog.
@@ -23,16 +23,19 @@ import CapabilityApplicationJsonPart._items
 final class CapabilityCatalogProducerIntegrationSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "Actual accepted producer Capability catalog" should {
     "retain original native observations in the live wrapper" which {
-      "C11C15 preserve accepted Store/Remote semantics, complete Application paths and exact native instances without rereading or execution" in {
+      "C11C15 preserve accepted Store/Remote semantics, complete ComponentUsage paths and exact native instances without rereading or execution" in {
         withIntake { fixture =>
-          Given("source-free real normal First Store/Remote products, configured compiled accessors, independent original native inputs and full primary Application")
+          Given("source-free real normal First Store/Remote products, configured compiled accessors, independent original native inputs and owned Store, UsageOnly and Remote ComponentUsage")
           val storeprovider = provider("Store")
           val remoteprovider = provider("Remote")
           val selected = fixture.selection(Vector(fixture.directory("Store", "First", storeprovider),
-            fixture.directory("Remote", "First", remoteprovider)), fixture.application("primary", "First"))
+            fixture.directory("Remote", "First", remoteprovider),
+            fixture.selected("UsageOnly", "First", None, ComponentCapabilityPackageSource.Location.Directory(fixture.bundle("UsageOnly", "First")))))
           val reference = snapshot("producer-catalog-first-snapshot", 93)
           val compiled = Vector(accessor("Store", "First"), accessor("Remote", "First"))
-          val fullapp = fixture.decodedApplication("primary", "First")
+          val storeusage = fixture.usageProjection("Store", "First")
+          val independentusage = fixture.usageProjection("UsageOnly", "First")
+          val remoteusage = fixture.usageProjection("Remote", "First")
           fixture.cmlInputs shouldBe Vector.empty
           When("original ingestion uses public Factory and readCurrent selects its accepted Snapshot, then catalog capture and semantic roundtrip consume only that value")
           val transition = right(CapabilityIngestion.ingest(State.empty, attempt("producer-catalog-first-attempt", 93, selected, reference)))
@@ -99,28 +102,41 @@ final class CapabilityCatalogProducerIntegrationSpec extends AnyWordSpec with Ma
               value.normalized.get.transitions.head should be theSameInstanceAs stateMachine.normalized.get.transitions.head
             case _ => fail("The original StateMachine contract is required.")
           }
-          val application = available(accepted.application)
+          val usage = available(accepted.usage, "Store")
           portable shouldBe live.catalog
-          portable.projection.application shouldBe application
-          application.projection shouldBe fullapp
-          portable.applications.map(_.definition) shouldBe fullapp.documents.flatMap(_.applicationCapabilities)
-          portable.applications.map(_.key.document) shouldBe Vector.fill(3)(SourceKey("Model:能力/A", "model/capability-model.cml", "header:primary-r42"))
-          portable.applications.map(_.definition.identity) shouldBe Vector("Application:Independent", "Application:One", "Application:Two").map(ModelElementId("Model:能力/A", _))
-          portable.applications.head.definition.componentMappings shouldBe Present(Vector.empty)
-          portable.applications.head.definition.dependencies shouldBe Absent(AbsenceReason.NotDeclared, "No dependency declared.")
-          portable.applications.map(_.definition.source.sourceRevision) shouldBe Vector.fill(3)("definition-r1")
-          val paths = portable.demandTrace.applicationPaths
+          portable.projection.usage shouldBe accepted.usage
+          usage.projection shouldBe storeusage
+          accepted.componentPackages.last shouldBe a[ComponentPackage.MetadataOnly]
+          accepted.provenance.packages.last.resources shouldBe Vector.empty
+          selected.packages.last.provider shouldBe None
+          portable.projection.packages.last.resources shouldBe Vector.empty
+          portable.projection.packages.last.targetContracts shouldBe Vector.empty
+          portable.usages.map(_.definition) shouldBe Vector(storeusage, remoteusage, independentusage).flatMap(_.documents.flatMap(_.componentUsageCapabilities))
+          portable.usages.map(_.key.component) shouldBe Vector(coordinate("Store"), coordinate("Store"), coordinate("Remote"), coordinate("UsageOnly"))
+          portable.usages.map(_.key.packageCoordinate) shouldBe Vector(packageCoordinate("Store"), packageCoordinate("Store"), packageCoordinate("Remote"), packageCoordinate("UsageOnly"))
+          portable.usages.map(_.key.resourcePath).distinct shouldBe Vector("meta/component-usage-capability/usage.json")
+          portable.usages.map(_.input) shouldBe Vector(selected.packages(0).expected.input, selected.packages(0).expected.input,
+            selected.packages(1).expected.input, selected.packages(2).expected.input)
+          portable.usages.map(_.key.document) shouldBe Vector.fill(2)(SourceKey("Model:能力/A", "model/capability-model.cml", "header:primary-r42")) ++
+            Vector(SourceKey("Other:能力/B", "model/capability-model-secondary.cml", "header:secondary-r43"),
+              SourceKey("Model:能力/A", "model/capability-model.cml", "header:primary-r42"))
+          portable.usages.map(_.definition.identity) shouldBe Vector("ComponentUsage:One", "ComponentUsage:Two").map(ModelElementId("Model:能力/A", _)) ++
+            Vector(ModelElementId("Other:能力/B", "ComponentUsage:Remote"), ModelElementId("Model:能力/A", "ComponentUsage:Independent"))
+          portable.usages.last.definition.componentMappings shouldBe Present(Vector.empty)
+          portable.usages.last.definition.dependencies shouldBe Absent(AbsenceReason.NotDeclared, "No dependency declared.")
+          portable.usages.take(2).map(_.definition.source.sourceRevision) shouldBe Vector.fill(2)("definition-r1")
+          val paths = portable.demandTrace.usagePaths
           paths.size shouldBe 4
-          paths.map(_.owner) shouldBe Vector.fill(2)(portable.applications(1).key) ++ Vector.fill(2)(portable.applications(2).key)
+          paths.map(_.owner) shouldBe Vector.fill(2)(portable.usages(0).key) ++ Vector.fill(2)(portable.usages(1).key)
           paths.map(_.requiredEndpoint) shouldBe Vector(RequiredEndpoint.Resolved(Vector(store(1).key)),
             RequiredEndpoint.Unresolved(CapabilityReference(ModelElementId("Other:能力/B", "Component:Remote"), "contract:二"), ReferenceBoundary.External),
             RequiredEndpoint.Resolved(Vector(store(1).key)),
             RequiredEndpoint.Unresolved(CapabilityReference(ModelElementId("Other:能力/B", "Component:Remote"), "contract:二"), ReferenceBoundary.External))
-          paths.map(_.mapping) shouldBe fullapp.documents.flatMap(_.applicationCapabilities.flatMap(a => _items(a.componentMappings)))
-          available(portable.projection.application).unresolvedExternal shouldBe application.unresolvedExternal
-          application.unresolvedExternal.map(_.target) should contain allOf (
+          paths.map(_.mapping) shouldBe storeusage.documents.flatMap(_.componentUsageCapabilities.flatMap(a => _items(a.componentMappings)))
+          available(portable.projection.usage, "Store").unresolvedExternal shouldBe usage.unresolvedExternal
+          usage.unresolvedExternal.map(_.target) should contain allOf (
             ExternalTarget.ComponentCapability(CapabilityReference(ModelElementId("Other:能力/B", "Component:Remote"), "contract:二")),
-            ExternalTarget.ApplicationCapability(ApplicationCapabilityReference(ModelElementId("Other:能力/B", "Application:Remote"), "app:v1")),
+            ExternalTarget.ComponentUsageCapability(ComponentUsageCapabilityReference(ModelElementId("Other:能力/B", "ComponentUsage:Remote"), "app:v1")),
             ExternalTarget.Term(TermId("BoK:語彙", "term:注文|α")))
           portable.projection.useCase shouldBe accepted.useCase
           portable.demandTrace.useCase shouldBe useCase

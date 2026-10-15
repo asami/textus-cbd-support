@@ -1,7 +1,90 @@
 # Capability Ingestion Consumer Contract
 
-Status: CAP-11-01 accepted
-Scope: PHASE-11 / CAP-11-01 / S01-consumer-contract + S02-ingestion-kernel + S03-real-producer-interoperability
+Status: CAP-11-PKG01 accepted after focused validation and independent whole-Step conformance; Phase acceptance pending.
+Scope: PHASE-11 / CAP-11-01 baseline + CAP-11-PKG01 package acquisition amendment
+
+## Current Step acceptance — 2026-10-15
+
+The current Component-owned Usage implementation and real Directory/normal CAR
+consumer query path are accepted after focused validation and independent
+whole-Step conformance; see
+[CAP-11-PKG01 acceptance](../phase/phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+This acceptance supersedes earlier pending/authored-only annotations only for
+CAP-11-PKG01. The existing normative text and historical records below remain
+preserved. Participant own PKG01/Phase acceptance, full validation, reviews and
+releases, CBD full Phase review/release and authorized Cozy main integration
+remain pending. CBD aggregate full-suite validation remains deferred-not-run to
+Phase 11.1; no successor acceptance is established.
+
+## CAP-11-PKG01 current authored contract — 2026-10-15
+
+`Selection(scope, packages, useCase)` and `Provenance(scope, packages, useCase)`
+have no loose family input. Each `PackageExpectation(input, resources, usage)`
+selects `usage: Option[ComponentUsageExpectation]`; Some names exact producer,
+schema/ABI and ordered document Sources, while None selects actual absence.
+`ComponentFactory.acquireUsageCapabilities(input)` supplies the original optional
+CNCF acquired witness for every selected package. CBD consumes its content,
+selected input and canonical `meta/component-usage-capability/usage.json` path;
+it does no file/archive/process acquisition. CNCF retains transport/descriptor
+and resource guarantees and its original Left Diagnostic is propagated unchanged.
+Absent + None retains an Unavailable package family; absent + Some is Unavailable;
+present + None is Incompatible. Present malformed or semantically invalid data
+retains its actual failure instead of being converted into optional absence.
+
+`ComponentUsageProjection` has exactly schemaVersion, generatedAbiVersion,
+producer, component coordinate, package coordinate and ordered documents. Its ABI
+is `cozy.component-usage-capability.v1`, schema is 1, document collection is
+`componentUsageCapabilities`, and every `ComponentUsageDefinition` has the explicit
+canonical ComponentId `component` plus kind `COMPONENT_USAGE` and all original
+identity/version, Presence, source and edge fields. The definition owner equals
+the envelope owner, and envelope component/package equal the selected input.
+Document/header, definition, edge, producer, release, package and contract revisions
+remain independent. Local references bind against the complete selected Component
+and Usage candidate set; exact competing candidates remain Ambiguous and External
+evidence remains attributed. Old Application capability APIs/wire/readers are
+removed without aliases or conversion; unrelated Application Model/Tier remains.
+
+For nonempty expected Component resources, original public native discovery and
+the original provider/Discovered objects remain mandatory. For empty resources,
+`ComponentCapabilityPackageLoader.load` must establish an empty index/projection
+selection. `ComponentPackage.MetadataOnly(acquired)` preserves that original
+witness without calling a provider or fabricating native metadata;
+`ComponentPackage.Native(discovered)` preserves native discovery. Candidate and
+Snapshot retain ordered `componentPackages` and a once-derived native-only
+`components` vector. Their ordered `usage: Vector[ComponentUsagePackage]` retains
+input, canonical resourcePath and Available/Unavailable family once per package.
+Immutable attempt/current/history semantics and original failures remain intact.
+
+The real schema-2 requests explicitly select Store's One/Two, UsageOnly's
+Independent and secondary Remote Usage from owner-partitioned normal generation.
+UsageOnly has resources=[] and no Scala output/provider; Archive selects no Usage.
+First/Second retain independent headers. A fifth primary Contracts production
+uses header:primary-r46 and empty Usage selections, with the original native
+contracts/contexts and StoreContractsMetadata/ArchiveContractsMetadata accessors.
+All eight normal generated accessors are compiled through the configured Test
+graph. The source-free intake copies full canonical Directory images only.
+Normal package-car packages the same First Store/Remote images and optional bytes;
+raw codec inspection uses CNCF's acquired witness. Reading an image starts no
+producer, CAR build or publication.
+
+Authored executable obligations are
+[C11A01–11](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityComponentUsageProjectionCodecSpec.scala),
+[C11K01–11](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityIngestionSpec.scala),
+[C11S01–07](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityIngestionStateSpec.scala)
+and [C11R01–08](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityProducerIntegrationSpec.scala).
+Actual Given/When/Then surround operations and assertions; all existing active
+properties retain at least 100 successful applicable examples and zero discards.
+These authored changes await parent validation, fresh independent Step review
+and separate participant/Phase acceptance. They claim no new executed result,
+release, main merge or positive forward UseCase integration.
+
+## Historical baseline and authoring record
+
+The remaining sections preserve the original CAP-11-01/02/03 designs, dated
+authoring decisions and acceptance history. Old Application descriptions, old
+module signatures and earlier suite/case counts describe those prior boundaries;
+they are superseded for current implementation by CAP-11-PKG01 above and do not
+claim acceptance of changed current inputs or provide compatibility behavior.
 
 This contract records the frozen consumer decisions C11I-D01–16. The
 [design](../design/capability-ingestion.md) explains their structure. Progress
@@ -20,11 +103,42 @@ and CBD Phase closure remain outstanding. Forward UseCase demand stays
 not-yet-admitted, with its positive path unexercised; full-suite validation remains
 deferred-not-run to Phase 11.1 and Phase 14 failed Job behavior remains unaccepted.
 
+## Package acquisition amendment — 2026-10-15 (C11I-D17)
+
+Status: corrected target specification; CAP-11-PKG01 implementation pending.
+The [Component Usage adoption contract](component-usage-capability-adoption.md)
+supersedes the Application family, its standalone JSON handoff and the withdrawn
+Application-owned package proposal. `ComponentUsageCapability` is the inductive
+usage model of the reviewed Component; `ComponentCapability` remains the separate
+deductive provided/required contract model. Neither family name denotes an
+Application Model/Tier. The new contract owns the source/wire/typed API migration.
+
+Acquire `meta/component-usage-capability/index.json` and its `usage.json` sibling
+from the reviewed Component's Directory/CAR through CNCF. The index is
+`{"schemaVersion":1,"projections":["usage.json"]}`; payload ABI is
+`cozy.component-usage-capability.v1`. Preserve explicit Component/package ownership,
+source, derivation evidence and attributed many-to-many mappings. No wholesale
+copy of a multi-Component model into every package, no Application-only owner.
+
+The generated Directory is the normal development input before CAR creation.
+The same image is packaged for distribution. Missing optional family is unavailable;
+present but invalid/unreadable data retains the upstream failure. No loose JSON
+fallback, archive reader, process-based file read or duplicate resource validation
+is added in CBD. Component/native discovery retains its independent requirements.
+
+This pre-release change removes old Application types/APIs and readers. Do not
+keep aliases or forwarders: stale typed callers must fail compilation. Update
+source/fixtures/JSON/consumer codecs together; old serialized data is not silently
+reinterpreted. Prior accepted Steps remain historical evidence only for their
+original boundary. The original implementation descriptions below are retained
+as baseline, with changed naming/ownership/wire/query requirements superseded
+by the adoption contract. See the [handoff](../journal/2026/10/2026-10-15-capability-package-metadata-handoff.md).
+
 ## Authority and failure model — C11I-D01
 
 CBD owns a package-private read-only ingestion and query model for CAP-11-01–03.
 CNCF owns Component admission, native binding and public discovery. Cozy owns
-source normalization, generation and the separate Application format. Capability
+source normalization, generation and the separate Component Usage format. Capability
 is a non-instantiated contract; references and metadata observations do not
 execute it. Existing CatalogRuntime cache, Job/Review programs, CAR Review
 capability taxonomy and Phase 10 durable approval retain their separate owners.
@@ -43,7 +157,7 @@ durable-store mechanism is introduced. Apply the
 | --- | --- | --- |
 | Component projection | Integer `schemaVersion=1`; exact `generatedAbiVersion=cncf.component-capability.v1` | Original CNCF public Discovery result only. |
 | Canonical package index | Integer `schemaVersion=1`; exact keys `schemaVersion,projections` | `meta/component-capability/index.json`; ordered flat sibling JSON resource names; existing schema-3 canonical CAR descriptor. |
-| Application projection | Integer `schemaVersion=1`; exact `generatedAbiVersion=cozy.application-capability.v1` | Separately acquired complete Cozy JSON, or explicit unavailable/rejected acquisition. |
+| Component Usage projection | Integer `schemaVersion=1`; exact `generatedAbiVersion=cozy.component-usage-capability.v1` | C11I-D17: the reviewed Component’s Usage metadata from its Directory/CAR through CNCF, or explicit unavailable/rejected acquisition; implementation pending. |
 | Forward Use Case demand | No admitted producer or schema | `UnavailableUpstreamProjection`, reason `not-yet-admitted`; positive path unexercised. |
 
 Producer identity/version must equal the independently observed caller selection.
@@ -110,7 +224,7 @@ has an inferred default or arbitrary field bag.
 | Package coordinate | Literal coordinate plus independently supplied package version. |
 | Each resource expectation | Literal canonical resource path; producer id/version; schema/ABI; full `Source(modelAuthority,path,sourceRevision,line)` and coordinate context. |
 | Acquisition provenance | Selected Directory root or CAR location, retained separately from model Source. |
-| Application family selection | Separately acquired JSON with expected producer/schema/ABI and ordered full document Source headers, or explicit unavailable/rejected branch. |
+| Component Usage family selection | C11I-D17: reviewed Component/package/location and canonical Usage resource, expected producer/schema/ABI and ordered source headers; acquired through CNCF or explicit unavailable/rejected branch. |
 | Use Case family | Explicit not-yet-admitted unavailable projection; no fabricated forward demand records. |
 
 Compare required expected declarations with actual discovered data before

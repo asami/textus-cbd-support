@@ -18,17 +18,19 @@ import CapabilityProducerNativeFixtures.{CountingProvider, operation, workflow, 
 /*
  * Normal producer -> configured Scala 3 -> public Factory -> CBD behavior.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers with GivenWhenThen {
   "Actual normal Capability production and public intake" should {
     "retain separately compiled products and native ownership" which {
-      "C11R01 agree across all six compiled accessors and Directory discovery" in {
+      "C11R01 agree across all eight compiled accessors and Directory discovery" in {
         withIntake { fixture =>
-          Given("four actual single-source normal productions, six configured Scala 3 accessors and independently authored original native metadata")
+          Given("five actual single-source normal productions, eight configured Scala 3 accessors and independently authored original native metadata")
           fixture.cmlInputs shouldBe Vector.empty
-          val selected = for { suffix <- Vector("First", "Second"); id <- Vector("Store", "Archive", "Remote") } yield {
+          val contexts = Vector("First", "Second").flatMap(suffix => Vector("Store", "Archive", "Remote").map(_ -> suffix)) ++
+            Vector("Store" -> "Contracts", "Archive" -> "Contracts")
+          val selected = contexts.map { (id, suffix) =>
             val nativeprovider = provider(id)
             (id, suffix, nativeprovider, fixture.directory(id, suffix, nativeprovider))
           }
@@ -37,7 +39,7 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
             (id, suffix, nativeprovider, right(ComponentFactory.discoverCapabilities(pkg.expected.input, nativeprovider)), accessor(id, suffix))
           }
           Then("each complete projection agrees while independent domains and all three Store native originals survive without execution")
-          results.size shouldBe 6
+          results.size shouldBe 8
           results.foreach { (id, suffix, nativeprovider, discovered, compiled) =>
             nativeprovider.reads shouldBe 1
             discovered.nativeInput should be theSameInstanceAs nativeprovider.input
@@ -55,20 +57,21 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
         }
       }
 
-      "C11R02 ingest actual Store and Remote Directory products with complete primary Application without CML" in {
+      "C11R02 ingest actual Store and Remote Directory products with complete primary ComponentUsage without CML" in {
         withIntake { fixture =>
-          Given("source-free normal Store/Remote bundles and the separately acquired complete primary Application with explicit unavailable forward UseCase")
+          Given("source-free normal Store/Remote bundles and the separately acquired complete primary ComponentUsage with explicit unavailable forward UseCase")
           fixture.cmlInputs shouldBe Vector.empty
           val storeprovider = provider("Store")
           val remoteprovider = provider("Remote")
           val selected = fixture.selection(Vector(fixture.directory("Store", "First", storeprovider),
-            fixture.directory("Remote", "First", remoteprovider)), fixture.application("primary", "First"))
+            fixture.directory("Remote", "First", remoteprovider),
+            fixture.selected("UsageOnly", "First", None, Location.Directory(fixture.bundle("UsageOnly", "First")))))
           val reference = snapshot("producer-first-snapshot", 77)
           When("CBD ingests that exact complete candidate through its sole public Factory acquisition facade")
           val transition = right(CapabilityIngestion.ingest(State.empty, attempt("producer-first-attempt", 77, selected, reference)))
           val accepted = right(CapabilityIngestion.readCurrent(transition.state,
             CurrentSelection(reference, transition.state.snapshots.head.provenance, Right(()))))
-          Then("the full Application, Provided/Required semantics, native originals and external evidence are retained as one accepted snapshot")
+          Then("the full ComponentUsage, Provided/Required semantics, native originals and external evidence are retained as one accepted snapshot")
           transition.outcome shouldBe Outcome.Accepted(reference)
           Vector(storeprovider.reads, remoteprovider.reads) shouldBe Vector(1, 1)
           accepted.components.map(_.acquired.input.component) shouldBe Vector(coordinate("Store"), coordinate("Remote"))
@@ -78,11 +81,15 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
           declarations.map(_.direction) shouldBe Vector(Direction.Provided, Direction.Required)
           _present(declarations.head.realizations).map(_.targetKind) shouldBe Vector(TargetKind.Operation, TargetKind.Workflow, TargetKind.StateMachine)
           declarations(1).realizations shouldBe Absent(AbsenceReason.NotRepresented, "No required realization representation.")
-          val application = available(accepted.application)
-          _assert_primary(application.projection, header("Store", "First"))
-          application.unresolvedExternal.map(_.target) should contain allOf(
+          val usage = available(accepted.usage, "Store")
+          _assert_primary(usage.projection, header("Store", "First"))
+          _assert_independent(available(accepted.usage, "UsageOnly").projection, header("UsageOnly", "First"))
+          accepted.componentPackages.last shouldBe a[ComponentPackage.MetadataOnly]
+          accepted.usage.map(_.input.component) shouldBe Vector(coordinate("Store"), coordinate("Remote"), coordinate("UsageOnly"))
+          accepted.usage.map(_.resourcePath).distinct shouldBe Vector("meta/component-usage-capability/usage.json")
+          usage.unresolvedExternal.map(_.target) should contain allOf(
             ExternalTarget.ComponentCapability(CapabilityReference(ModelElementId("Other:能力/B", "Component:Remote"), "contract:二")),
-            ExternalTarget.ApplicationCapability(ApplicationCapabilityReference(ModelElementId("Other:能力/B", "Application:Remote"), "app:v1")),
+            ExternalTarget.ComponentUsageCapability(ComponentUsageCapabilityReference(ModelElementId("Other:能力/B", "ComponentUsage:Remote"), "app:v1")),
             ExternalTarget.Term(TermId("BoK:語彙", "term:注文|α")))
           accepted.useCase shouldBe useCase
           accepted.useCase.reason shouldBe "not-yet-admitted"
@@ -93,14 +100,14 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
 
       "C11R03 discover and ingest normal Store and Remote CARs with actual compiled carriers after source removal" in {
         withIntake { fixture =>
-          Given("normal package-car products built from the real six compiled Scala 3 carriers, selected CNCF JAR and complete original generated projects")
+          Given("normal package-car products built from the real eight compiled Scala 3 carriers, selected CNCF JAR and complete original generated projects")
           val archives = fixture.packageCars()
           fixture.cmlInputs shouldBe Vector.empty
           val selected = Vector("Store", "Remote").zip(archives).map { (id, archive) =>
             val nativeprovider = provider(id)
             fixture.selected(id, "First", Some(nativeprovider), Location.Car(archive))
           }
-          When("public Factory discovers the source-free CAR and Directory pairs and CBD ingests the two CARs with the complete primary Application")
+          When("public Factory discovers the source-free CAR and Directory pairs and CBD ingests the two CARs with the complete primary ComponentUsage")
           val pairs = Vector("Store", "Remote").zip(selected).map { (id, pkg) =>
             val directoryprovider = provider(id)
             val car = right(ComponentFactory.discoverCapabilities(pkg.expected.input, pkg.provider.get))
@@ -109,7 +116,7 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
           }
           val intake = fixture.selection(Vector("Store", "Remote").zip(archives).map { (id, archive) =>
             fixture.selected(id, "First", Some(provider(id)), Location.Car(archive))
-          }, fixture.application("primary", "First"))
+          })
           val reference = snapshot("producer-car-snapshot", 79)
           val transition = right(CapabilityIngestion.ingest(State.empty, attempt("producer-car-attempt", 79, intake, reference)))
           Then("normal CAR metadata agrees with actual Directory/accessor semantics and keeps original native procedures without Component activation")
@@ -121,7 +128,7 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
           }
           val accepted = transition.state.snapshots.head
           _assert_native(accepted.components.head)
-          _assert_primary(available(accepted.application).projection, header("Store", "First"))
+          _assert_primary(available(accepted.usage, "Store").projection, header("Store", "First"))
           accepted.provenance.packages.map(_.input.location) shouldBe archives.map(Location.Car(_))
           intake.packages.map(_.provider.get.asInstanceOf[CountingProvider].reads) shouldBe Vector(1, 1)
           fixture.cmlInputs shouldBe Vector.empty
@@ -130,34 +137,44 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
     }
   }
 
-  "Complete separately produced Application records" should {
+  "Complete separately produced ComponentUsage records" should {
     "preserve authored fields and availability" which {
       "C11R04 roundtrip and store each complete primary and secondary product separately" in {
         withIntake { fixture =>
-          for { suffix <- Vector("First", "Second"); family <- Vector("primary", "secondary") } {
-            Given("the complete actual " + family + " " + suffix + " Application product and its independent one-document header")
-            val selected = fixture.directories(if (family == "primary") Vector("Store", "Remote") else Vector("Remote"),
-              suffix, fixture.application(family, suffix))
-            val id = family + "-" + suffix
-            val reference = snapshot("application-" + id, 80)
-            When("the strict codec decodes, encodes, decodes and admits the full product and CBD stores its complete intake")
-            val projection = fixture.decodedApplication(family, suffix)
-            val roundtrip = right(CapabilityApplicationProjectionCodec.decode(right(CapabilityApplicationProjectionCodec.encode(projection))))
-            val transition = right(CapabilityIngestion.ingest(State.empty, attempt("application-attempt-" + id, 80, selected, reference)))
-            val stored = available(transition.state.snapshots.head.application)
-            val admitted = right(CapabilityApplicationProjectionCodec.admit(projection, CapabilityProducerNativeFixtures.scope,
-              transition.state.snapshots.head.components.flatMap(_.entries.flatMap(_.loaded.projection.capabilities))))
-            Then("every definition, Presence, qualified identity, ordered origin and independent source remains in that original product")
+          for { suffix <- Vector("First", "Second"); id <- Vector("Store", "UsageOnly", "Remote") } {
+            Given("the actual owned " + id + " " + suffix + " Usage product and its independent source header")
+            val selected = fixture.directories(if (id == "UsageOnly") Vector("UsageOnly") else Vector("Store", "Remote"), suffix)
+            val context = id + "-" + suffix
+            val reference = snapshot("usage-" + context, 80)
+            When("the public acquired witness supplies the strict codec and CBD stores the complete selected package set")
+            val projection = fixture.usageProjection(id, suffix)
+            val roundtrip = right(CapabilityComponentUsageProjectionCodec.decode(right(CapabilityComponentUsageProjectionCodec.encode(projection))))
+            val transition = right(CapabilityIngestion.ingest(State.empty, attempt("usage-attempt-" + context, 80, selected, reference)))
+            val accepted = transition.state.snapshots.head
+            val stored = available(accepted.usage, id)
+            val allusage = accepted.usage.collect { case ComponentUsagePackage(_, _, ComponentUsageFamily.Available(value, _)) => value }
+            val admitted = right(CapabilityComponentUsageProjectionCodec.admit(projection, CapabilityProducerNativeFixtures.scope,
+              accepted.components.flatMap(_.entries.flatMap(_.loaded.projection.capabilities)), allusage))
+            Then("the owner partition, all Presence and attributed edges, package and independent document header survive")
             transition.outcome shouldBe Outcome.Accepted(reference)
             projection.documents.size shouldBe 1
             projection.producer shouldBe Producer("cozy", fixture.products.cozyVersion)
             projection.schemaVersion shouldBe 1
-            projection.generatedAbiVersion shouldBe "cozy.application-capability.v1"
+            projection.generatedAbiVersion shouldBe "cozy.component-usage-capability.v1"
+            projection.component shouldBe coordinate(id)
+            projection.packageCoordinate shouldBe packageCoordinate(id)
+            projection.documents.flatMap(_.componentUsageCapabilities).map(_.component).distinct shouldBe Vector(coordinate(id).componentId)
             roundtrip shouldBe projection
             stored shouldBe admitted
             stored.projection shouldBe projection
-            if (family == "primary") _assert_primary(stored.projection, header("Store", suffix))
-            else _assert_secondary(stored.projection, header("Remote", suffix))
+            if (id == "Store") _assert_primary(stored.projection, header(id, suffix))
+            else if (id == "UsageOnly") {
+              _assert_independent(stored.projection, header(id, suffix))
+              accepted.components shouldBe Vector.empty
+              accepted.componentPackages.head shouldBe a[ComponentPackage.MetadataOnly]
+              selected.packages.head.provider shouldBe None
+              accepted.provenance.packages.head.resources shouldBe Vector.empty
+            } else _assert_secondary(stored.projection, header(id, suffix))
           }
         }
       }
@@ -168,7 +185,7 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
           val archiveprovider = provider("Archive")
           val remoteprovider = provider("Remote")
           val selected = fixture.selection(Vector(fixture.directory("Archive", "First", archiveprovider),
-            fixture.directory("Remote", "First", remoteprovider)), fixture.application("primary", "First"))
+            fixture.directory("Remote", "First", remoteprovider)))
           val missing = selected.copy(packages = selected.packages.updated(0, selected.packages.head.copy(provider = None)))
           val storeprovider = provider("Store")
           When("CBD acquires the honest empty-native selection, Factory discovers Store and the same selection lacks its Archive provider")
@@ -186,7 +203,8 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
           candidate.components.head.entries.head.realizations shouldBe Vector.empty
           val required = store.entries.head.loaded.projection.declarations.find(_.direction == Direction.Required).get
           required.realizations shouldBe Absent(AbsenceReason.NotRepresented, "No required realization representation.")
-          available(candidate.application).projection.documents.head.applicationCapabilities.size shouldBe 3
+          available(candidate.usage, "Remote").projection.documents.head.componentUsageCapabilities.size shouldBe 1
+          candidate.usage.head.family shouldBe a[ComponentUsageFamily.Unavailable]
           rejected.kind shouldBe DiagnosticKind.Unavailable
           rejected.location shouldBe "/packages/0/provider"
         }
@@ -199,20 +217,22 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
       "C11R06 retain Store and Archive witnesses but reject complete primary Local ambiguity without a winner" in {
         withIntake { fixture =>
           Given("an accepted Store/Remote snapshot and three actual separately discoverable Store/Archive/Remote packages witnessing one Local definition twice")
-          val baseline = fixture.directories(Vector("Store", "Remote"), "First", fixture.application("primary", "First"))
+          val baseline = fixture.directories(Vector("Store", "Remote"), "First")
           val reference = snapshot("ambiguity-prior-snapshot", 81)
           val prior = right(CapabilityIngestion.ingest(State.empty, attempt("ambiguity-prior-attempt", 81, baseline, reference))).state
-          val unavailable = fixture.directories(Vector("Store", "Archive", "Remote"), "First", applicationUnavailable)
-          val ambiguous = unavailable.copy(application = fixture.application("primary", "First"))
-          When("CBD retains all Component witnesses with Application explicitly unavailable and then tries the complete primary Application Local mapping")
-          val retained = right(CapabilityIngestion.acquire(unavailable))
+          val contracts = fixture.selection(Vector("Store", "Archive").map(id => fixture.directory(id, "Contracts", provider(id))) :+
+            fixture.directory("Remote", "First", provider("Remote")))
+          val ambiguous = fixture.directories(Vector("Store", "Archive", "Remote"), "First")
+          When("CBD retains actual Contracts witnesses and then tries the normal First Usage Local mapping against two exact definitions")
+          val retained = right(CapabilityIngestion.acquire(contracts))
           val transition = right(CapabilityIngestion.ingest(prior, attempt("ambiguity-rejected-attempt", 82, ambiguous, snapshot("ambiguity-rejected-snapshot", 82))))
           Then("both exact-definition contexts survive independently and ambiguity appends one failure without changing accepted current or history")
           retained.components.map(_.acquired.input.component) shouldBe Vector(coordinate("Store"), coordinate("Archive"), coordinate("Remote"))
           retained.components.take(2).map(_.entries.head.loaded.projection.capabilities.head.identity) shouldBe
             Vector.fill(2)(ModelElementId("Model:能力/A", "Component:Store|α"))
           retained.components.take(2).map(_.entries.head.loaded.projection.capabilities.head.contractVersion) shouldBe Vector.fill(2)("contract:二")
-          retained.application shouldBe ApplicationFamily.Unavailable(applicationUnavailable.asInstanceOf[ApplicationInput.Unavailable].value)
+          retained.usage.take(2).map(_.family).foreach(_ shouldBe a[ComponentUsageFamily.Unavailable])
+          available(retained.usage, "Remote").projection.component shouldBe coordinate("Remote")
           _assert_native(retained.components.head)
           val diagnostic = _rejected(transition.outcome)
           diagnostic.kind shouldBe DiagnosticKind.Ambiguous
@@ -225,16 +245,16 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
         }
       }
 
-      "C11R07 select Second current while retaining exact First historical native and Application objects" in {
+      "C11R07 select Second current while retaining exact First historical native and ComponentUsage objects" in {
         withIntake { fixture =>
           Given("First and Second actual normal products with independently supplied local references 77 and 78 and unchanged authored definitions/native contracts")
-          val firstselection = fixture.directories(Vector("Store", "Remote"), "First", fixture.application("primary", "First"))
-          val secondselection = fixture.directories(Vector("Store", "Remote"), "Second", fixture.application("primary", "Second"))
+          val firstselection = fixture.directories(Vector("Store", "Remote"), "First")
+          val secondselection = fixture.directories(Vector("Store", "Remote"), "Second")
           val firstref = snapshot("history-first-snapshot", 77)
           val secondref = snapshot("history-second-snapshot", 78)
           val first = right(CapabilityIngestion.ingest(State.empty, attempt("history-first-attempt", 77, firstselection, firstref)))
           val firstsnapshot = first.state.snapshots.head
-          val firstapplication = available(firstsnapshot.application).projection
+          val firstusage = available(firstsnapshot.usage, "Store").projection
           When("CBD ingests the independently selected Second production and explicitly reads Second current and First history")
           val second = right(CapabilityIngestion.ingest(first.state, attempt("history-second-attempt", 78, secondselection, secondref)))
           val historical = right(CapabilityIngestion.readHistorical(second.state, firstref))
@@ -247,14 +267,14 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
           second.state.attempts.map(_.attempt.reference.value.recordRevision.value) shouldBe Vector(77L, 78L)
           historical should be theSameInstanceAs firstsnapshot
           historical.candidate should be theSameInstanceAs firstsnapshot.candidate
-          available(historical.application).projection should be theSameInstanceAs firstapplication
+          available(historical.usage, "Store").projection should be theSameInstanceAs firstusage
           historical.components should be theSameInstanceAs firstsnapshot.components
           historical.components.head.nativeInput should be theSameInstanceAs CapabilityProducerNativeFixtures.storeInput
           _assert_native(historical.components.head)
           _assert_native(current.components.head)
           historical.components.map(_.entries.head.loaded.projection.source) shouldBe Vector(header("Store", "First"), header("Remote", "First"))
           current.components.map(_.entries.head.loaded.projection.source) shouldBe Vector(header("Store", "Second"), header("Remote", "Second"))
-          _assert_primary(available(current.application).projection, header("Store", "Second"))
+          _assert_primary(available(current.usage, "Store").projection, header("Store", "Second"))
           current.components.head.entries.head.loaded.projection.capabilities.head.source.sourceRevision shouldBe "definition-r1"
           current.components.head.entries.head.realizations.map(_.target.source.sourceRevision) shouldBe
             Vector("target:operation:save", "target:workflow:save", "target:state:store")
@@ -267,8 +287,8 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
       "C11R08 retain stale header/current and original Unauthorized or Unavailable native failures without historical fallback" in {
         withIntake { fixture =>
           Given("an accepted First then Second state and independent stale expectations and original rejected native acquisition observations")
-          val firstselection = fixture.directories(Vector("Store", "Remote"), "First", fixture.application("primary", "First"))
-          val secondselection = fixture.directories(Vector("Store", "Remote"), "Second", fixture.application("primary", "Second"))
+          val firstselection = fixture.directories(Vector("Store", "Remote"), "First")
+          val secondselection = fixture.directories(Vector("Store", "Remote"), "Second")
           val firstref = snapshot("failure-first-snapshot", 77)
           val secondref = snapshot("failure-second-snapshot", 78)
           val first = right(CapabilityIngestion.ingest(State.empty, attempt("failure-first-attempt", 77, firstselection, firstref))).state
@@ -372,26 +392,22 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
     portable should not include ("PoisonFinishAction")
   }
 
-  private def _assert_primary(projection: ApplicationProjection, source: Source): Unit = {
+  private def _assert_primary(projection: ComponentUsageProjection, source: Source): Unit = {
+    projection.component shouldBe coordinate("Store")
+    projection.packageCoordinate shouldBe packageCoordinate("Store")
     projection.documents.map(_.source) shouldBe Vector(source)
-    val definitions = projection.documents.head.applicationCapabilities
-    definitions.map(_.identity) shouldBe Vector("Application:Independent", "Application:One", "Application:Two")
+    val definitions = projection.documents.head.componentUsageCapabilities
+    definitions.map(_.component).distinct shouldBe Vector(coordinate("Store").componentId)
+    definitions.map(_.identity) shouldBe Vector("ComponentUsage:One", "ComponentUsage:Two")
       .map(element => ModelElementId("Model:能力/A", element))
-    definitions.map(_.name) shouldBe Vector.fill(3)("Same presentation")
-    definitions.map(_.contractVersion) shouldBe Vector.fill(3)("app:v1")
-    definitions.map(_.source) shouldBe Vector.fill(3)(Source("Model:能力/A", "model/capability-model.cml", "definition-r1", Some(12)))
-    definitions.map(_.summary) shouldBe Vector.fill(3)(Present("Summary = literal"))
-    definitions.map(_.description) shouldBe Vector.fill(3)(Absent(AbsenceReason.NotRepresented, "No detailed prose."))
-    val independent = definitions.head
-    independent.demandReferences shouldBe Present(Vector.empty)
-    independent.discoveryReferences shouldBe Absent(AbsenceReason.Unsupported, "Discovery not represented.")
-    independent.componentMappings shouldBe Present(Vector.empty)
-    independent.dependencies shouldBe Absent(AbsenceReason.NotDeclared, "No dependency declared.")
-    independent.grounding shouldBe Absent(AbsenceReason.NotApplicable, "Grounding does not apply.")
-    independent.traceability shouldBe Present(Vector.empty)
+    definitions.map(_.name) shouldBe Vector.fill(2)("Same presentation")
+    definitions.map(_.contractVersion) shouldBe Vector.fill(2)("app:v1")
+    definitions.map(_.source) shouldBe Vector.fill(2)(Source("Model:能力/A", "model/capability-model.cml", "definition-r1", Some(12)))
+    definitions.map(_.summary) shouldBe Vector.fill(2)(Present("Summary = literal"))
+    definitions.map(_.description) shouldBe Vector.fill(2)(Absent(AbsenceReason.NotRepresented, "No detailed prose."))
     val foreign = Vector(Source("Other:能力/B", "model/capability-model-secondary.cml", "foreign-edge-r9", Some(8)),
       Source("Model:能力/A", "model/capability-model.cml", "evidence-r2", Some(91)))
-    definitions.tail.foreach { definition =>
+    definitions.foreach { definition =>
       val demand = _present(definition.demandReferences)
       val discovery = _present(definition.discoveryReferences)
       val mappings = _present(definition.componentMappings)
@@ -414,7 +430,7 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
       mappings.map(_.boundary) shouldBe Vector(ReferenceBoundary.Local, ReferenceBoundary.External)
       mappings.map(_.source.sourceRevision) shouldBe Vector("mapping-r10", "mapping-r11")
       mappings.map(_.origin) shouldBe Vector(Declared, Derived("rule:discovery|α", foreign))
-      dependencies.head.target shouldBe ApplicationCapabilityReference(ModelElementId("Other:能力/B", "Application:Remote"), "app:v1")
+      dependencies.head.target shouldBe ComponentUsageCapabilityReference(ModelElementId("Other:能力/B", "ComponentUsage:Remote"), "app:v1")
       dependencies.head.boundary shouldBe ReferenceBoundary.External
       dependencies.head.source.sourceRevision shouldBe "dependency-r12"
       dependencies.head.origin shouldBe Declared
@@ -446,11 +462,35 @@ final class CapabilityProducerIntegrationSpec extends AnyWordSpec with Matchers 
         .map(_.line) shouldBe Vector.fill(6)(None)
     }
   }
-  private def _assert_secondary(projection: ApplicationProjection, source: Source): Unit = {
+  private def _assert_independent(projection: ComponentUsageProjection, source: Source): Unit = {
+    projection.component shouldBe coordinate("UsageOnly")
+    projection.packageCoordinate shouldBe packageCoordinate("UsageOnly")
     projection.documents.map(_.source) shouldBe Vector(source)
-    projection.documents.head.applicationCapabilities.size shouldBe 1
-    val definition = projection.documents.head.applicationCapabilities.head
-    definition.identity shouldBe ModelElementId("Other:能力/B", "Application:Remote")
+    val definitions = projection.documents.head.componentUsageCapabilities
+    definitions.size shouldBe 1
+    definitions.head.component shouldBe coordinate("UsageOnly").componentId
+    definitions.head.identity shouldBe ModelElementId("Model:能力/A", "ComponentUsage:Independent")
+    definitions.head.contractVersion shouldBe "app:v1"
+    definitions.head.name shouldBe "Same presentation"
+    definitions.head.summary shouldBe Present("Summary = literal")
+    definitions.head.description shouldBe Absent(AbsenceReason.NotRepresented, "No detailed prose.")
+    definitions.head.source shouldBe Source("Model:能力/A", "model/capability-model.cml", "definition-r1", Some(12))
+    val independent = definitions.head
+    independent.demandReferences shouldBe Present(Vector.empty)
+    independent.discoveryReferences shouldBe Absent(AbsenceReason.Unsupported, "Discovery not represented.")
+    independent.componentMappings shouldBe Present(Vector.empty)
+    independent.dependencies shouldBe Absent(AbsenceReason.NotDeclared, "No dependency declared.")
+    independent.grounding shouldBe Absent(AbsenceReason.NotApplicable, "Grounding does not apply.")
+    independent.traceability shouldBe Present(Vector.empty)
+  }
+  private def _assert_secondary(projection: ComponentUsageProjection, source: Source): Unit = {
+    projection.documents.map(_.source) shouldBe Vector(source)
+    projection.documents.head.componentUsageCapabilities.size shouldBe 1
+    val definition = projection.documents.head.componentUsageCapabilities.head
+    definition.component shouldBe coordinate("Remote").componentId
+    projection.component shouldBe coordinate("Remote")
+    projection.packageCoordinate shouldBe packageCoordinate("Remote")
+    definition.identity shouldBe ModelElementId("Other:能力/B", "ComponentUsage:Remote")
     definition.contractVersion shouldBe "app:v1"
     definition.name shouldBe "Remote"
     definition.summary shouldBe Absent(AbsenceReason.NotDeclared, "No summary declared.")

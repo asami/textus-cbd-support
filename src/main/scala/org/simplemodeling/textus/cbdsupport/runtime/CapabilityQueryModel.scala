@@ -33,32 +33,32 @@ private[runtime] object CapabilityQueryModel {
     incompatible: Vector[CapabilityRecord], consideredCompatibility: Vector[CompatibilityRecord])
   final case class RequirementSearch(component: ComponentCoordinate, records: Vector[CapabilityRecord])
   final case class RequiredProviderTrace(required: CapabilityRecord, providers: ProviderSearch)
-  final case class RequirementPathTrace(path: ApplicationRequirementPath, required: Vector[RequiredProviderTrace])
-  final case class ApplicationTrace(application: ApplicationRecord, paths: Vector[RequirementPathTrace])
+  final case class RequirementPathTrace(path: ComponentUsageRequirementPath, required: Vector[RequiredProviderTrace])
+  final case class ComponentUsageTrace(usage: ComponentUsageCapabilityRecord, paths: Vector[RequirementPathTrace])
   enum DemandSelection {
-    case Application(reference: ApplicationCapabilityReference)
+    case ComponentUsage(reference: ComponentUsageCapabilityReference)
     case Required(key: DeclarationRecordKey)
     case UseCase(reference: ModelElementId)
   }
-  final case class DemandPath(application: Option[ApplicationRecord], mapping: Option[ApplicationRequirementPath],
+  final case class DemandPath(usage: Option[ComponentUsageCapabilityRecord], mapping: Option[ComponentUsageRequirementPath],
     required: CapabilityRecord, provider: Option[ProviderMatch])
   final case class OwnerTraceability(owner: TraceabilityOwner, traceability: Presence[Vector[Traceability]])
   enum CoverageBoundary { case RequiredPathOnly, ProviderPath }
   final case class RoleCoverage(boundary: CoverageBoundary, owners: Vector[OwnerTraceability],
     specification: Vector[AttributedTraceability], evidence: Vector[AttributedTraceability])
-  enum MissingApplicationReason(val tag: String) {
-    case AbsentSelectedReference extends MissingApplicationReason("absent-selected-reference")
-    case ProjectionNotSupplied extends MissingApplicationReason("projection-not-supplied")
+  enum MissingComponentUsageReason(val tag: String) {
+    case AbsentSelectedReference extends MissingComponentUsageReason("absent-selected-reference")
+    case ProjectionNotSupplied extends MissingComponentUsageReason("projection-not-supplied")
   }
   enum CapabilityGap {
-    case MissingApplicationCapabilityProjection(scope: QueryScope, reference: ApplicationCapabilityReference, reason: MissingApplicationReason, family: ApplicationFamily)
-    case MissingRequiredComponentCapability(scope: QueryScope, application: ApplicationRecord, path: ApplicationRequirementPath)
+    case MissingComponentUsageCapabilityProjection(scope: QueryScope, reference: ComponentUsageCapabilityReference, reason: MissingComponentUsageReason, families: Vector[ComponentUsagePackage])
+    case MissingRequiredComponentCapability(scope: QueryScope, usage: ComponentUsageCapabilityRecord, path: ComponentUsageRequirementPath)
     case NoProvider(scope: QueryScope, path: DemandPath, search: ProviderSearch)
     case IncompatibleProviderVersion(scope: QueryScope, path: DemandPath, search: ProviderSearch)
     case MissingRealization(scope: QueryScope, path: DemandPath, original: Presence[Vector[Realization]])
     case MissingSpecification(scope: QueryScope, path: DemandPath, coverage: RoleCoverage)
     case MissingEvidence(scope: QueryScope, path: DemandPath, coverage: RoleCoverage)
   }
-  final case class DemandDiagnosis(selection: DemandSelection, applications: Vector[ApplicationTrace],
+  final case class DemandDiagnosis(selection: DemandSelection, usages: Vector[ComponentUsageTrace],
     required: Vector[RequiredProviderTrace], gaps: Vector[CapabilityGap])
 }

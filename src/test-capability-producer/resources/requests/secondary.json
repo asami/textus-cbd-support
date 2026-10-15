@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "producer": {
     "id": "cozy",
     "version": "${PRODUCER_VERSION}"
@@ -116,7 +116,6 @@
         }
       }
     ],
-    "applicationContracts": [],
     "componentContracts": [
       {
         "identity": {
@@ -203,7 +202,8 @@
           "line": null
         }
       }
-    ]
+    ],
+    "usageContracts": []
   },
   "contexts": [
     {
@@ -257,6 +257,16 @@
           },
           "filename": "Remote.json"
         }
+      ],
+      "usageCapabilities": [
+        {
+          "kind": "COMPONENT_USAGE",
+          "identity": {
+            "modelId": "Other:能力/B",
+            "elementId": "ComponentUsage:Remote"
+          },
+          "contractVersion": "app:v1"
+        }
       ]
     }
   ],
@@ -283,6 +293,5 @@
       ],
       "objectName": "Remote${SUFFIX}Metadata"
     }
-  ],
-  "applicationOutput": "target/products/application.json"
+  ]
 }

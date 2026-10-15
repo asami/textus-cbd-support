@@ -3,7 +3,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScope.Diagnostic
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
-import CapabilityApplicationJsonPart._nonnull
+import CapabilityComponentUsageJsonPart._nonnull
 
 /*
  * Capture accepted values without reacquisition or native construction.
@@ -14,13 +14,14 @@ import CapabilityApplicationJsonPart._nonnull
 private[runtime] object CapabilityCatalog {
   def fromSnapshot(snapshot: Snapshot, schemaVersion: Int): Either[Diagnostic, LiveCatalog] = for {
     original <- _nonnull(snapshot, "/snapshot")
-    packages = original.components.map { discovered =>
-      PackageProjection(discovered.acquired.input, discovered.nativeInput.bindings.map(_.target), discovered.entries.map { entry =>
+    packages = original.componentPackages.map {
+      case ComponentPackage.MetadataOnly(acquired) => PackageProjection(acquired.input, Vector.empty, Vector.empty)
+      case ComponentPackage.Native(discovered) => PackageProjection(discovered.acquired.input, discovered.nativeInput.bindings.map(_.target), discovered.entries.map { entry =>
         ResourceProjection(entry.loaded.resourcePath, entry.loaded.projection, entry.admitted.capabilities,
           entry.admitted.realizations.map(r => ResolvedRealizationFact(r.edge, r.target)))
       })
     }
-    projection = PortableProjection(schemaVersion, original.reference, original.provenance, packages, original.application, original.useCase)
+    projection = PortableProjection(schemaVersion, original.reference, original.provenance, packages, original.usage, original.useCase)
     catalog <- CapabilityCatalogBindingPart.bind(projection, CatalogSelection(original.reference, original.provenance))
   } yield {
     val observations = original.components.flatMap { discovered => discovered.entries.flatMap { entry =>

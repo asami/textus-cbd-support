@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 import java.util.jar.{JarEntry, JarOutputStream}
 import scala.jdk.CollectionConverters.*
 import io.circe.Json
-import org.goldenport.cncf.component.ComponentId
+import org.goldenport.cncf.component.{ComponentId, ComponentFactory}
 import org.goldenport.cncf.component.identity.ComponentReleaseCoordinate
 import org.goldenport.cncf.component.capability.*
 import ComponentCapabilityAdmissionScope.*
@@ -22,18 +22,19 @@ import org.simplemodeling.textus.cbdsupport.generated.capabilityproducer.*
 /*
  * Actual generated product locations, source-free intake and normal CAR inputs.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityProducerIntegrationFixtures {
   final case class Products(productionRoot: Path, inputRoot: Path, classDirectory: Path,
     cncfJar: Path, cozyVersion: String, cncfVersion: String, runtimeClasspath: String,
-    primaryFirst: Path, secondaryFirst: Path, primarySecond: Path, secondarySecond: Path) {
+    primaryFirst: Path, secondaryFirst: Path, primarySecond: Path, secondarySecond: Path, primaryContracts: Path) {
     def output(family: String, suffix: String): Path = (family, suffix) match {
       case ("primary", "First") => primaryFirst
       case ("secondary", "First") => secondaryFirst
       case ("primary", "Second") => primarySecond
       case ("secondary", "Second") => secondarySecond
+      case ("primary", "Contracts") => primaryContracts
       case _ => throw new IllegalArgumentException("An explicit primary/secondary First/Second product is required.")
     }
   }
@@ -49,7 +50,7 @@ private[runtime] object CapabilityProducerIntegrationFixtures {
     def _path_(key: String): Path = Paths.get(_text_(key))
     Products(_path_("productionRoot"), _path_("inputRoot"), _path_("classDirectory"), _path_("cncfJar"),
       _text_("cozyVersion"), _text_("cncfVersion"), _text_("runtimeClasspath"),
-      _path_("primaryFirst"), _path_("secondaryFirst"), _path_("primarySecond"), _path_("secondarySecond"))
+      _path_("primaryFirst"), _path_("secondaryFirst"), _path_("primarySecond"), _path_("secondarySecond"), _path_("primaryContracts"))
   }
 
   def accessor(id: String, suffix: String): Projection = {
@@ -60,14 +61,17 @@ private[runtime] object CapabilityProducerIntegrationFixtures {
       case ("Store", "Second") => StoreSecondMetadata.projectionJson
       case ("Archive", "Second") => ArchiveSecondMetadata.projectionJson
       case ("Remote", "Second") => RemoteSecondMetadata.projectionJson
+      case ("Store", "Contracts") => StoreContractsMetadata.projectionJson
+      case ("Archive", "Contracts") => ArchiveContractsMetadata.projectionJson
       case _ => throw new IllegalArgumentException("An explicit generated accessor is required.")
     }
     right(ComponentCapabilityProjectionCodec.decode(json))
   }
 
   def header(id: String, suffix: String): Source = (id, suffix) match {
-    case ("Store" | "Archive", "First") => Source("Model:能力/A", "model/capability-model.cml", "header:primary-r42", None)
-    case ("Store" | "Archive", "Second") => Source("Model:能力/A", "model/capability-model.cml", "header:primary-r44", None)
+    case ("Store" | "Archive" | "UsageOnly", "First") => Source("Model:能力/A", "model/capability-model.cml", "header:primary-r42", None)
+    case ("Store" | "Archive" | "UsageOnly", "Second") => Source("Model:能力/A", "model/capability-model.cml", "header:primary-r44", None)
+    case ("Store" | "Archive" | "UsageOnly", "Contracts") => Source("Model:能力/A", "model/capability-model.cml", "header:primary-r46", None)
     case ("Remote", "First") => Source("Other:能力/B", "model/capability-model-secondary.cml", "header:secondary-r43", Some(2))
     case ("Remote", "Second") => Source("Other:能力/B", "model/capability-model-secondary.cml", "header:secondary-r45", Some(2))
     case _ => throw new IllegalArgumentException("An explicit independently selected header is required.")
@@ -82,31 +86,31 @@ private[runtime] object CapabilityProducerIntegrationFixtures {
   })
   val useCase: UnavailableUpstreamProjection = UnavailableUpstreamProjection(ProjectionFamily.UseCase,
     "not-yet-admitted", "Positive forward UseCase demand path remains unexercised.")
-  val applicationUnavailable: ApplicationInput = ApplicationInput.Unavailable(UnavailableUpstreamProjection(
-    ProjectionFamily.Application, "not-selected", "Application projection is explicitly unavailable."))
-
   final class Intake(val root: Path, val products: Products) {
     def bundle(id: String, suffix: String): Path = root.resolve(suffix + "/" + id)
-    def applicationPath(family: String, suffix: String): Path = root.resolve(suffix + "/" + family + "-application.json")
-    def application(family: String, suffix: String): ApplicationInput = {
-      val selected = family match { case "primary" => "Store"; case "secondary" => "Remote"
-        case _ => throw new IllegalArgumentException("An explicit Application family is required.") }
-      ApplicationInput.Acquired(Files.readString(applicationPath(family, suffix), StandardCharsets.UTF_8),
-        ApplicationExpectation(Producer("cozy", products.cozyVersion), 1, "cozy.application-capability.v1", Vector(header(selected, suffix))))
+    def usageProjection(id: String, suffix: String): ComponentUsageProjection = {
+      val input = PackageInput.Selected(CapabilityProducerNativeFixtures.scope.scopeId, Location.Directory(bundle(id, suffix)), coordinate(id), packageCoordinate(id))
+      val acquired = right(ComponentFactory.acquireUsageCapabilities(input)).getOrElse(
+        throw new IllegalArgumentException("Expected actual normally produced Usage metadata."))
+      right(CapabilityComponentUsageProjectionCodec.decode(acquired.content))
     }
-    def decodedApplication(family: String, suffix: String): ApplicationProjection =
-      right(CapabilityApplicationProjectionCodec.decode(Files.readString(applicationPath(family, suffix), StandardCharsets.UTF_8)))
     def selected(id: String, suffix: String, nativeProvider: Option[ComponentCapabilityMetadataProvider],
-      location: Location): PackageSelection = PackageSelection(
-      PackageExpectation(PackageInput.Selected(CapabilityProducerNativeFixtures.scope.scopeId, location, coordinate(id), packageCoordinate(id)),
-        Vector(ResourceExpectation("meta/component-capability/" + id + ".json", Producer("cozy", products.cozyVersion),
-          1, "cncf.component-capability.v1", header(id, suffix)))), nativeProvider)
+      location: Location): PackageSelection = {
+      val resources = if (id == "UsageOnly") Vector.empty else Vector(ResourceExpectation("meta/component-capability/" + id + ".json",
+        Producer("cozy", products.cozyVersion), 1, "cncf.component-capability.v1", header(id, suffix)))
+      val usage = if (id == "Archive" || suffix == "Contracts") None else Some(ComponentUsageExpectation(
+        Producer("cozy", products.cozyVersion), 1, "cozy.component-usage-capability.v1", Vector(header(id, suffix))))
+      PackageSelection(PackageExpectation(PackageInput.Selected(CapabilityProducerNativeFixtures.scope.scopeId, location, coordinate(id), packageCoordinate(id)),
+        resources, usage), nativeProvider)
+    }
     def directory(id: String, suffix: String, nativeProvider: CountingProvider): PackageSelection =
       selected(id, suffix, Some(nativeProvider), Location.Directory(bundle(id, suffix)))
-    def selection(packages: Vector[PackageSelection], application: ApplicationInput): Selection =
-      Selection(CapabilityProducerNativeFixtures.scope, packages, application, useCase)
-    def directories(ids: Vector[String], suffix: String, application: ApplicationInput): Selection =
-      selection(ids.map(id => directory(id, suffix, provider(id))), application)
+    def selection(packages: Vector[PackageSelection]): Selection =
+      Selection(CapabilityProducerNativeFixtures.scope, packages, useCase)
+    def directories(ids: Vector[String], suffix: String): Selection = selection(ids.map { id =>
+      if (id == "UsageOnly") selected(id, suffix, None, Location.Directory(bundle(id, suffix)))
+      else directory(id, suffix, provider(id))
+    })
     def cmlInputs: Vector[Path] = {
       val stream = Files.walk(root)
       try stream.iterator().asScala.filter(path => Files.isRegularFile(path) && path.toString.endsWith(".cml")).toVector
@@ -174,14 +178,11 @@ private[runtime] object CapabilityProducerIntegrationFixtures {
     Files.createDirectories(parent)
     val root = Files.createTempDirectory(parent, "selected-")
     try {
-      Vector("First", "Second").foreach { suffix =>
-        Vector("Store", "Archive", "Remote").foreach { id =>
+      Vector("First", "Second", "Contracts").foreach { suffix =>
+        val ids = if (suffix == "Contracts") Vector("Store", "Archive", "UsageOnly") else Vector("Store", "Archive", "UsageOnly", "Remote")
+        ids.foreach { id =>
           val family = if (id == "Remote") "secondary" else "primary"
           _copy_tree(selected.output(family, suffix).resolve("target/bundles/" + id), root.resolve(suffix + "/" + id))
-        }
-        Vector("primary", "secondary").foreach { family =>
-          val destination = root.resolve(suffix + "/" + family + "-application.json")
-          Files.copy(selected.output(family, suffix).resolve("target/products/application.json"), destination)
         }
       }
       body(new Intake(root, selected))
@@ -209,7 +210,7 @@ private[runtime] object CapabilityProducerIntegrationFixtures {
     val prefix = "org/simplemodeling/textus/cbdsupport/generated/capabilityproducer"
     val directory = classdirectory.resolve(prefix)
     val symbols = Vector("StoreFirstMetadata", "ArchiveFirstMetadata", "RemoteFirstMetadata",
-      "StoreSecondMetadata", "ArchiveSecondMetadata", "RemoteSecondMetadata")
+      "StoreSecondMetadata", "ArchiveSecondMetadata", "RemoteSecondMetadata", "StoreContractsMetadata", "ArchiveContractsMetadata")
     symbols.foreach { name =>
       require(Files.isRegularFile(directory.resolve(name + "$.class")) && Files.isRegularFile(directory.resolve(name + ".tasty")),
         "Actual configured Scala 3 compiled accessor is required: " + name)
@@ -249,8 +250,9 @@ private[runtime] object CapabilityProducerIntegrationFixtures {
     Attempt(right(AttemptReference.from(record(id, revision))), snapshotReference, selection)
   def right[A](value: Either[Diagnostic, A]): A = value.fold(error => throw new IllegalArgumentException(error.toString), identity)
   def left[A](value: Either[Diagnostic, A]): Diagnostic = value.fold(identity, _ => throw new IllegalArgumentException("Expected a typed rejection."))
-  def available(value: ApplicationFamily): ApplicationFamily.Available = value match {
-    case selected: ApplicationFamily.Available => selected
-    case _ => throw new IllegalArgumentException("A complete acquired Application family is required.")
+  def available(value: Vector[ComponentUsagePackage], id: String): ComponentUsageFamily.Available =
+    value.find(_.input.component == coordinate(id)).get.family match {
+    case selected: ComponentUsageFamily.Available => selected
+    case _ => throw new IllegalArgumentException("A complete acquired ComponentUsage family is required.")
   }
 }

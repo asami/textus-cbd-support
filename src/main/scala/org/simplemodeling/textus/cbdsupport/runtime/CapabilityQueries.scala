@@ -36,15 +36,15 @@ private[runtime] object CapabilityQueries {
     def findRequirements(component: ComponentCoordinate): Either[QueryFailure, QueryResult[RequirementSearch]] =
       _checked(CapabilityQueryInputPart.component(component, scope))(RequirementSearch(component,
         catalog.capabilities.filter(c => c.declaration.direction == Direction.Required && c.key.context.component == component)))
-    def traceApplicationCapability(reference: ApplicationCapabilityReference): Either[QueryFailure, QueryResult[Vector[ApplicationTrace]]] =
-      CapabilityQueryInputPart.application(reference, scope).left.map(QueryFailure.Source(_))
+    def traceComponentUsageCapability(reference: ComponentUsageCapabilityReference): Either[QueryFailure, QueryResult[Vector[ComponentUsageTrace]]] =
+      CapabilityQueryInputPart.usage(reference, scope).left.map(QueryFailure.Source(_))
         .flatMap(_ => CapabilityDemandQueryPart.trace(catalog, reference)).map(QueryResult(scope, _))
     def traceUseCaseDemand(reference: ModelElementId): Either[QueryFailure, QueryResult[Nothing]] =
       CapabilityQueryInputPart.useCase(reference, scope).left.map(QueryFailure.Source(_))
         .flatMap(_ => Left(QueryFailure.UnavailableProjection(catalog.projection.useCase)))
     def diagnoseCapabilityDemand(demand: DemandSelection): Either[QueryFailure, QueryResult[DemandDiagnosis]] = {
       val validation = demand match {
-        case DemandSelection.Application(reference) => CapabilityQueryInputPart.application(reference, scope)
+        case DemandSelection.ComponentUsage(reference) => CapabilityQueryInputPart.usage(reference, scope)
         case DemandSelection.Required(key) => CapabilityQueryInputPart.required(key, scope)
         case DemandSelection.UseCase(reference) => CapabilityQueryInputPart.useCase(reference, scope)
       }

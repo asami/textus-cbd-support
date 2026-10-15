@@ -3,8 +3,8 @@ package org.simplemodeling.textus.cbdsupport.runtime
 import io.circe.Json
 import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScope.*
 import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.*
-import CapabilityApplicationJsonPart.*
-import CapabilityApplicationReferenceJsonPart.*
+import CapabilityComponentUsageJsonPart.*
+import CapabilityComponentUsageReferenceJsonPart.*
 
 /*
  * @since   Oct. 15, 2026

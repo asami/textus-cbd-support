@@ -1,23 +1,27 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import io.circe.Json
+import org.goldenport.cncf.component.ComponentId
 import org.goldenport.cncf.component.capability.ComponentCapabilityReference.*
-import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.Producer
+import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.{Producer, ComponentCoordinate, PackageCoordinate}
 import CapabilityIngestionModel.*
 
 /*
  * Nullable supplied branches are represented as JSON null; the single structural
  * decoder owns their rejection, including caller-created invalid carriers.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
-private[runtime] object CapabilityApplicationJsonEncodingPart {
+private[runtime] object CapabilityComponentUsageJsonEncodingPart {
   def _nullable[A](value: A)(encode: A => Json): Json = if (value == null) Json.Null else encode(value)
   def _string(value: String): Json = _nullable(value)(Json.fromString)
   def _vector[A](values: Vector[A])(encode: A => Json): Json = _nullable(values)(xs => Json.fromValues(xs.map(x => _nullable(x)(encode))))
   def _option[A](value: Option[A])(encode: A => Json): Json = _nullable(value)(_.map(x => _nullable(x)(encode)).getOrElse(Json.Null))
   def _producer(value: Producer): Json = _nullable(value)(x => Json.obj("id" -> _string(x.id), "version" -> _string(x.version)))
+  def _component_id(value: ComponentId): Json = _nullable(value)(x => Json.obj("namespace" -> _string(x.namespace.value()), "id" -> _string(x.localId.value())))
+  def _component_coordinate(value: ComponentCoordinate): Json = _nullable(value)(x => _component_id(x.componentId).mapObject(_.add("version", _string(x.version))))
+  def _usage_package_coordinate(value: PackageCoordinate): Json = _nullable(value)(x => Json.obj("coordinate" -> _string(x.coordinate), "version" -> _string(x.version)))
   def _source(value: Source): Json = _nullable(value)(x => if (x.line == null) Json.Null else Json.obj("modelAuthority" -> _string(x.modelAuthority), "path" -> _string(x.path), "sourceRevision" -> _string(x.sourceRevision), "line" -> _option(x.line)(Json.fromInt)))
   def _model_id(value: ModelElementId): Json = _nullable(value)(x => Json.obj("modelId" -> _string(x.modelId), "elementId" -> _string(x.elementId)))
   def _term(value: TermId): Json = _nullable(value)(x => Json.obj("vocabularyId" -> _string(x.vocabularyId), "termId" -> _string(x.termId)))
@@ -43,21 +47,22 @@ private[runtime] object CapabilityApplicationJsonEncodingPart {
   def _grounding(value: Grounding): Json = _nullable(value)(x => Json.obj("target" -> _semantic_target(x.target), "boundary" -> _boundary(x.boundary),
     "relation" -> _presence(x.relation)(_relation), "profile" -> _presence(x.profile)(_profile), "context" -> _presence(x.context)(_string),
     "preferredLabel" -> _presence(x.preferredLabel)(_label), "source" -> _source(x.source), "origin" -> _origin(x.origin)))
-  def _mapping(value: ComponentMapping): Json = _nullable(value)(x => Json.obj(
+  def _mapping(value: ComponentUsageCapabilityMapping): Json = _nullable(value)(x => Json.obj(
     "target" -> _nullable(x.target)(v => Json.obj("kind" -> Json.fromString("COMPONENT"), "identity" -> _model_id(v.identity), "contractVersion" -> _string(v.contractVersion))),
     "boundary" -> _boundary(x.boundary), "source" -> _source(x.source), "origin" -> _origin(x.origin)))
-  def _dependency(value: ApplicationDependency): Json = _nullable(value)(x => Json.obj(
-    "target" -> _nullable(x.target)(v => Json.obj("kind" -> Json.fromString("APPLICATION"), "identity" -> _model_id(v.identity), "contractVersion" -> _string(v.contractVersion))),
+  def _dependency(value: ComponentUsageCapabilityDependency): Json = _nullable(value)(x => Json.obj(
+    "target" -> _nullable(x.target)(v => Json.obj("kind" -> Json.fromString("COMPONENT_USAGE"), "identity" -> _model_id(v.identity), "contractVersion" -> _string(v.contractVersion))),
     "boundary" -> _boundary(x.boundary), "source" -> _source(x.source), "origin" -> _origin(x.origin)))
-  def _definition(value: ApplicationDefinition): Json = _nullable(value)(x => Json.obj(
-    "kind" -> Json.fromString("APPLICATION"), "identity" -> _model_id(x.identity), "contractVersion" -> _string(x.contractVersion), "name" -> _string(x.name),
+  def _definition(value: ComponentUsageDefinition): Json = _nullable(value)(x => Json.obj(
+    "kind" -> Json.fromString("COMPONENT_USAGE"), "component" -> _component_id(x.component), "identity" -> _model_id(x.identity), "contractVersion" -> _string(x.contractVersion), "name" -> _string(x.name),
     "summary" -> _presence(x.summary)(_string), "description" -> _presence(x.description)(_string), "source" -> _source(x.source),
     "demandReferences" -> _presence(x.demandReferences)(xs => _vector(xs)(_model_link)),
     "discoveryReferences" -> _presence(x.discoveryReferences)(xs => _vector(xs)(_model_link)),
     "componentMappings" -> _presence(x.componentMappings)(xs => _vector(xs)(_mapping)),
     "dependencies" -> _presence(x.dependencies)(xs => _vector(xs)(_dependency)),
     "grounding" -> _presence(x.grounding)(xs => _vector(xs)(_grounding)), "traceability" -> _presence(x.traceability)(xs => _vector(xs)(_traceability))))
-  def _encode(value: ApplicationProjection): Json = _nullable(value)(x => Json.obj(
+  def _encode(value: ComponentUsageProjection): Json = _nullable(value)(x => Json.obj(
     "schemaVersion" -> Json.fromInt(x.schemaVersion), "generatedAbiVersion" -> _string(x.generatedAbiVersion), "producer" -> _producer(x.producer),
-    "documents" -> _vector(x.documents)(doc => Json.obj("source" -> _source(doc.source), "applicationCapabilities" -> _vector(doc.applicationCapabilities)(_definition)))))
+    "component" -> _component_coordinate(x.component), "package" -> _usage_package_coordinate(x.packageCoordinate),
+    "documents" -> _vector(x.documents)(doc => Json.obj("source" -> _source(doc.source), "componentUsageCapabilities" -> _vector(doc.componentUsageCapabilities)(_definition)))))
 }

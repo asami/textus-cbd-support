@@ -6,8 +6,8 @@ import ComponentCapabilityReference.*
 import ComponentCapabilityProjection.*
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
-import CapabilityApplicationJsonPart.*
-import CapabilityIngestionSelectionPart.{_provenance, _compare, _source_compare, _duplicates, _application_observed}
+import CapabilityComponentUsageJsonPart.*
+import CapabilityIngestionSelectionPart.{_provenance, _compare, _source_compare, _duplicates}
 
 /*
  * Bind only declared finite semantic links; admission and native lifetime stay
@@ -49,10 +49,6 @@ private[runtime] object CapabilityCatalogBindingPart {
     _ <- Either.cond(selected == ref, (), _diagnostic(DiagnosticKind.Stale, "Selected snapshot reference differs.", "/snapshotReference"))
     _ <- _provenance(p.provenance)
     _ <- _compare(s.provenance, p.provenance)
-    _ <- p.provenance.application match {
-      case ApplicationProvenance.Rejected(d) => Left(d)
-      case _ => Right(())
-    }
     // The one closed structural decoder also checks caller-created carriers.
     json <- CapabilityCatalogJsonEncodingPart.encode(p)
     _ <- CapabilityCatalogJsonPart.decode(json)
@@ -61,7 +57,7 @@ private[runtime] object CapabilityCatalogBindingPart {
     resources <- _sequence(p.packages.zip(p.provenance.packages).zipWithIndex.map { case ((pkg, expected), i) =>
       _package(pkg, expected, p.provenance.scope, s"/packages/$i")
     }).map(_.flatten)
-    _ <- _application(p, resources)
+    _ <- _usage(p, resources)
     _ <- _equal(p.provenance.useCase, p.useCase, "/useCase")
     } yield _catalog(p, resources)
     _context(result, None, Option(projection).flatMap(p => Option(p.provenance)).flatMap(p => Option(p.scope)).map(_.scopeId))
@@ -83,6 +79,7 @@ private[runtime] object CapabilityCatalogBindingPart {
     _context(for {
       _ <- _equal(expected.input, pkg.input, path + "/input")
       _ <- _unique(pkg.targetContracts, path + "/targetContracts")(t => (t.component, t.identity, t.targetKind, t.contractVersion, t.generatedAbiVersion), _.source)
+      _ <- if (expected.resources.isEmpty) _equal(Vector.empty[TargetContract], pkg.targetContracts, path + "/targetContracts") else Right(())
       _ <- _coverage(expected.resources.size, pkg.resources.size, path + "/resources")
       _ <- _equal(expected.resources.map(_.resourcePath), pkg.resources.map(_.resourcePath), path + "/resources")
       // Preserve the original package admission's cross-resource uniqueness.
@@ -120,17 +117,40 @@ private[runtime] object CapabilityCatalogBindingPart {
       _ <- _source_compare(expected.target.source, observed.target.source, path + "/target/source")
       _ <- _equal(expected.target, observed.target, path + "/target")
     } yield (), Some(observed.edge.source), None, Some(observed.edge.declarationKey.component))
-  private def _application(p: PortableProjection, resources: Vector[ComponentResourceRecord]): Either[Diagnostic, Unit] = (p.provenance.application, p.application) match {
-    case (ApplicationProvenance.Acquired(expected), ApplicationFamily.Available(projection, external)) => for {
-      _ <- _application_observed(expected, projection)
-      admitted <- CapabilityApplicationProjectionCodec.admit(projection, p.provenance.scope, resources.flatMap(_.resource.projection.capabilities))
-      _ <- _equal(admitted.unresolvedExternal, external, "/application/unresolvedExternal")
-      keys = projection.documents.flatMap(doc => doc.applicationCapabilities.map(a => ApplicationContextKey(_source_key(doc.source), ApplicationCapabilityReference(a.identity, a.contractVersion))))
-      _ <- _duplicates(keys, "/application/records")
+  private def _usage_key(pkg: ComponentUsagePackage, document: Source, definition: ComponentUsageDefinition): ComponentUsageCapabilityContextKey =
+    ComponentUsageCapabilityContextKey(pkg.input.scopeId, pkg.input.component, pkg.input.packageCoordinate, pkg.resourcePath,
+      _source_key(document), ComponentUsageCapabilityReference(definition.identity, definition.contractVersion))
+  private def _usage(p: PortableProjection, resources: Vector[ComponentResourceRecord]): Either[Diagnostic, Unit] = {
+    val projections = p.usage.flatMap(_.family match {
+      case ComponentUsageFamily.Available(projection, _) => Vector(projection)
+      case _: ComponentUsageFamily.Unavailable => Vector.empty
+    })
+    for {
+      _ <- _coverage(p.provenance.packages.size, p.usage.size, "/usage")
+      _ <- _sequence(p.usage.zip(p.provenance.packages).zipWithIndex.map { case ((pkg, expected), i) => for {
+        _ <- _equal(expected.input, pkg.input, s"/usage/$i/input")
+        _ <- _equal(CapabilityComponentUsageAcquisitionPart.resourcePath, pkg.resourcePath, s"/usage/$i/resourcePath")
+        _ <- pkg.family match {
+          case ComponentUsageFamily.Available(projection, external) => for {
+            _ <- CapabilityComponentUsageAcquisitionPart.observe(expected, projection)
+            admitted <- CapabilityComponentUsageProjectionCodec.admit(projection, p.provenance.scope,
+              resources.flatMap(_.resource.projection.capabilities), projections)
+            _ <- _equal(admitted.unresolvedExternal, external, s"/usage/$i/unresolvedExternal")
+          } yield ()
+          case ComponentUsageFamily.Unavailable(value) => for {
+            _ <- _equal(None, expected.usage, s"/usage/$i/expected")
+            _ <- _equal(ProjectionFamily.ComponentUsage, value.family, s"/usage/$i/value/family")
+            _ <- _text(value.reason, s"/usage/$i/value/reason")
+            _ <- _text(value.detail, s"/usage/$i/value/detail")
+          } yield ()
+        }
+      } yield () })
+      keys = p.usage.flatMap(pkg => pkg.family match {
+        case ComponentUsageFamily.Available(projection, _) => projection.documents.flatMap(doc => doc.componentUsageCapabilities.map(a => _usage_key(pkg, doc.source, a)))
+        case _: ComponentUsageFamily.Unavailable => Vector.empty
+      })
+      _ <- _duplicates(keys, "/usage/records")
     } yield ()
-    case (ApplicationProvenance.Unavailable(expected), ApplicationFamily.Unavailable(observed)) => _equal(expected, observed, "/application/value")
-    case (ApplicationProvenance.Rejected(d), _) => Left(d)
-    case _ => Left(_diagnostic(DiagnosticKind.Incompatible, "Application family differs from its declared provenance.", "/application"))
   }
   private def _catalog(p: PortableProjection, resources: Vector[ComponentResourceRecord]): Catalog = {
     val capabilities = resources.flatMap { context => context.resource.projection.declarations.map { declaration =>
@@ -141,21 +161,21 @@ private[runtime] object CapabilityCatalogBindingPart {
         .map(r => CapabilityRealizationRef(key, r.edge, r.target, _unknown))
       CapabilityRecord(key, context, declaration, definition, refs)
     } }
-    val applications = p.application match {
-      case ApplicationFamily.Available(projection, _) => projection.documents.flatMap(doc => doc.applicationCapabilities.map(a =>
-        ApplicationRecord(ApplicationContextKey(_source_key(doc.source), ApplicationCapabilityReference(a.identity, a.contractVersion)), doc.source, a)))
-      case ApplicationFamily.Unavailable(_) => Vector.empty
-    }
-    val paths = applications.flatMap { app => _items(app.definition.componentMappings).map { mapping =>
+    val usages = p.usage.flatMap { pkg => pkg.family match {
+      case ComponentUsageFamily.Available(projection, _) => projection.documents.flatMap(doc => doc.componentUsageCapabilities.map(a =>
+        ComponentUsageCapabilityRecord(_usage_key(pkg, doc.source, a), pkg.input, doc.source, a)))
+      case _: ComponentUsageFamily.Unavailable => Vector.empty
+    } }
+    val paths = usages.flatMap { app => _items(app.definition.componentMappings).map { mapping =>
       val records = if (mapping.boundary == ReferenceBoundary.Local) capabilities.filter(c => c.declaration.direction == Direction.Required && c.declaration.capability == mapping.target).map(_.key) else Vector.empty
       val endpoint = if (records.nonEmpty) RequiredEndpoint.Resolved(records) else RequiredEndpoint.Unresolved(mapping.target, mapping.boundary)
-      ApplicationRequirementPath(app.key, mapping, endpoint)
+      ComponentUsageRequirementPath(app.key, mapping, endpoint)
     } }
     val compatibility = resources.flatMap(r => _items(r.resource.projection.compatibility).map(CompatibilityRecord(r.key, _)))
     val traceability = resources.flatMap { r =>
       r.resource.resolvedDefinitions.flatMap(d => _items(d.traceability).map(e => AttributedTraceability(TraceabilityOwner.CapabilityDefinition(r.key, CapabilityReference(d.identity, d.contractVersion)), e))) ++
         r.resource.projection.declarations.flatMap(d => _items(d.traceability).map(e => AttributedTraceability(TraceabilityOwner.Declaration(DeclarationRecordKey(r.key, _declaration_key(d))), e)))
-    } ++ applications.flatMap(a => _items(a.definition.traceability).map(e => AttributedTraceability(TraceabilityOwner.Application(a.key), e)))
-    Catalog(p, resources, capabilities, applications, compatibility, traceability, CapabilityDemandTrace(p.useCase, p.application, paths))
+    } ++ usages.flatMap(a => _items(a.definition.traceability).map(e => AttributedTraceability(TraceabilityOwner.ComponentUsage(a.key), e)))
+    Catalog(p, resources, capabilities, usages, compatibility, traceability, CapabilityDemandTrace(p.useCase, p.usage, paths))
   }
 }

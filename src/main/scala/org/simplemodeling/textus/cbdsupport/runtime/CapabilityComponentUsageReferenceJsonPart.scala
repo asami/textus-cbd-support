@@ -3,14 +3,14 @@ package org.simplemodeling.textus.cbdsupport.runtime
 import io.circe.Json
 import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScope.Diagnostic
 import org.goldenport.cncf.component.capability.ComponentCapabilityReference.*
-import CapabilityApplicationJsonPart.*
+import CapabilityComponentUsageJsonPart.*
 
 /*
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
-private[runtime] object CapabilityApplicationReferenceJsonPart {
+private[runtime] object CapabilityComponentUsageReferenceJsonPart {
   def _term(json: Json, path: String): Either[Diagnostic, TermId] = _qualified(json, "termId", path).map((v, x) => TermId(v, x))
   def _relation(json: Json, path: String): Either[Diagnostic, RelationId] = _qualified(json, "relationId", path).map((v, x) => RelationId(v, x))
   def _profile(json: Json, path: String): Either[Diagnostic, ProfileId] = _qualified(json, "profileId", path).map((v, x) => ProfileId(v, x))

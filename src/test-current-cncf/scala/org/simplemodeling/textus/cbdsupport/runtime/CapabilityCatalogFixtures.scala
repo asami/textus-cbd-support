@@ -10,7 +10,7 @@ import ComponentCapabilityProjection.*
 import ComponentCapabilityPackageSource.*
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
-import CapabilityApplicationJsonPart._items
+import CapabilityComponentUsageJsonPart._items
 import CapabilityIngestionFixtures.{right, snapshot}
 
 /*
@@ -23,16 +23,16 @@ import CapabilityIngestionFixtures.{right, snapshot}
 private[runtime] object CapabilityCatalogFixtures {
   val definition: CapabilityDefinition = {
     val original = CapabilityIngestionFixtures.capability
-    val app = CapabilityApplicationProjectionFixtures.app(CapabilityApplicationProjectionFixtures.projection)
+    val app = CapabilityComponentUsageProjectionFixtures.usageDefinition(CapabilityComponentUsageProjectionFixtures.projection)
     original.copy(
       discoveryReferences = Present(_items(app.discoveryReferences).map(e => e.copy(source = e.source.copy(modelAuthority = original.identity.modelId)))),
       grounding = Present(_items(app.grounding).map(e => e.copy(source = e.source.copy(modelAuthority = original.identity.modelId)))),
       traceability = Present(_items(app.traceability).map(e => e.copy(source = e.source.copy(modelAuthority = original.identity.modelId)))))
   }
-  val scope: Scope = CapabilityApplicationProjectionFixtures.scope.copy(capabilities = Vector(definition))
-  val application: ApplicationProjection = CapabilityApplicationProjectionFixtures.projection
+  val scope: Scope = CapabilityComponentUsageProjectionFixtures.scope.copy(capabilities = Vector(definition))
+  val usage: ComponentUsageProjection = CapabilityComponentUsageProjectionFixtures.projection
   val usecase: UnavailableUpstreamProjection = CapabilityIngestionFixtures.useCase
-  val unavailable: UnavailableUpstreamProjection = UnavailableUpstreamProjection(ProjectionFamily.Application, "not-selected", "Synthetic semantic Application is unavailable.")
+  val unavailable: UnavailableUpstreamProjection = UnavailableUpstreamProjection(ProjectionFamily.ComponentUsage, "not-selected", "Synthetic semantic ComponentUsage is unavailable.")
   def reference(value: CapabilityDefinition): CapabilityReference = CapabilityReference(value.identity, value.contractVersion)
   def sourcekey(value: Source): SourceKey = SourceKey(value.modelAuthority, value.path, value.sourceRevision)
   def contextkey(pkg: PackageProjection, resource: ResourceProjection): ComponentContextKey = ComponentContextKey(pkg.input.scopeId,
@@ -64,16 +64,45 @@ private[runtime] object CapabilityCatalogFixtures {
       edges.zip(contracts).map((e, t) => ResolvedRealizationFact(e, t)))
     PackageProjection(PackageInput.Selected(selectedscope.scopeId, Location.Directory(Paths.get("/declared/catalog/" + suffix)), component, pkg), contracts, Vector(resource))
   }
-  def assemble(packages: Vector[PackageProjection], selectedscope: Scope = scope, app: Option[ApplicationProjection] = Some(application)): PortableProjection = {
-    val expectations = packages.map(p => PackageExpectation(p.input, p.resources.map(r => ResourceExpectation(r.resourcePath,
-      r.projection.producer, r.projection.schemaVersion, r.projection.generatedAbiVersion, r.projection.source))))
-    val (provenance, family) = app match {
-      case Some(value) =>
-        val expected = ApplicationExpectation(value.producer, value.schemaVersion, value.generatedAbiVersion, value.documents.map(_.source))
-        (ApplicationProvenance.Acquired(expected), right(CapabilityApplicationProjectionCodec.admit(value, selectedscope, packages.flatMap(_.resources.flatMap(_.projection.capabilities)))))
-      case None => (ApplicationProvenance.Unavailable(unavailable), ApplicationFamily.Unavailable(unavailable))
+  def ownedUsage(value: ComponentUsageProjection, input: PackageInput.Selected): ComponentUsageProjection =
+    value.copy(component = input.component, packageCoordinate = input.packageCoordinate, documents = value.documents.map(doc =>
+      doc.copy(componentUsageCapabilities = doc.componentUsageCapabilities.map(_.copy(component = input.component.componentId)))))
+  def assemble(packages: Vector[PackageProjection], selectedScope: Scope = scope, usage: Option[ComponentUsageProjection] = Some(this.usage)): PortableProjection = {
+    val projections = packages.zipWithIndex.flatMap { (pkg, i) => usage.map { value =>
+      ownedUsage(if (i == 0) value else value.copy(documents = Vector.empty), pkg.input)
+    } }
+    val families = packages.zipWithIndex.map { (pkg, i) =>
+      val family = usage match {
+        case Some(_) => right(CapabilityComponentUsageProjectionCodec.admit(projections(i), selectedScope,
+          packages.flatMap(_.resources.flatMap(_.projection.capabilities)), projections))
+        case None => ComponentUsageFamily.Unavailable(unavailable)
+      }
+      ComponentUsagePackage(pkg.input, CapabilityComponentUsageAcquisitionPart.resourcePath, family)
     }
-    PortableProjection(1, snapshot("catalog:semantic|É", 77), Provenance(selectedscope, expectations, provenance, usecase), packages, family, usecase)
+    val expectations = packages.zip(families).map { (p, family) =>
+      val expected = family.family match {
+        case ComponentUsageFamily.Available(value, _) => Some(ComponentUsageExpectation(value.producer, value.schemaVersion, value.generatedAbiVersion, value.documents.map(_.source)))
+        case _: ComponentUsageFamily.Unavailable => None
+      }
+      PackageExpectation(p.input, p.resources.map(r => ResourceExpectation(r.resourcePath,
+        r.projection.producer, r.projection.schemaVersion, r.projection.generatedAbiVersion, r.projection.source)), expected)
+    }
+    PortableProjection(1, snapshot("catalog:semantic|É", 77), Provenance(selectedScope, expectations, usecase), packages, families, usecase)
+  }
+  def withUsagePackages(value: PortableProjection, projections: Vector[Option[ComponentUsageProjection]]): PortableProjection = {
+    val owned = value.packages.zip(projections).map((pkg, projection) => projection.map(ownedUsage(_, pkg.input)))
+    val selected = owned.flatten
+    val families = value.packages.zip(owned).map { (pkg, projection) =>
+      val family = projection match {
+        case Some(p) => right(CapabilityComponentUsageProjectionCodec.admit(p, value.provenance.scope,
+          value.packages.flatMap(_.resources.flatMap(_.projection.capabilities)), selected))
+        case None => ComponentUsageFamily.Unavailable(unavailable)
+      }
+      ComponentUsagePackage(pkg.input, CapabilityComponentUsageAcquisitionPart.resourcePath, family)
+    }
+    val expected = value.provenance.packages.zip(owned).map { (pkg, projection) => pkg.copy(usage = projection.map(p =>
+      ComponentUsageExpectation(p.producer, p.schemaVersion, p.generatedAbiVersion, p.documents.map(_.source)))) }
+    value.copy(provenance = value.provenance.copy(packages = expected), usage = families)
   }
   def complete: PortableProjection = assemble(Vector(packageprojection("Payments", "first")))
   def selection(value: PortableProjection): CatalogSelection = CatalogSelection(value.snapshotReference, value.provenance)
@@ -87,20 +116,21 @@ private[runtime] object CapabilityCatalogFixtures {
     r.copy(projection = r.projection.copy(declarations = r.projection.declarations.updated(0,
       original.copy(realizations = Present(_items(original.realizations).updated(0, change(_items(original.realizations).head)))))))
   })
-  def withapplication(value: PortableProjection, projection: ApplicationProjection): PortableProjection = {
-    val available = value.application.asInstanceOf[ApplicationFamily.Available]
-    value.copy(application = ApplicationFamily.Available(projection, available.unresolvedExternal))
+  def withusage(value: PortableProjection, projection: ComponentUsageProjection): PortableProjection = {
+    val pkg = value.usage.head
+    val available = pkg.family.asInstanceOf[ComponentUsageFamily.Available]
+    value.copy(usage = value.usage.updated(0, pkg.copy(family = ComponentUsageFamily.Available(projection, available.unresolvedExternal))))
   }
   def multiplepaths: PortableProjection = {
     val extra = definition.copy(identity = ModelElementId("model:component", "no-required"), contractVersion = "no-required:v13")
     val selectedscope = scope.copy(capabilities = Vector(definition, extra))
-    val original = CapabilityApplicationProjectionFixtures.app(application)
+    val original = CapabilityComponentUsageProjectionFixtures.usageDefinition(usage)
     val mappings = _items(original.componentMappings)
     val local = mappings.head
     val other = original.copy(identity = original.identity.copy(elementId = "second-app"), contractVersion = "app:v29", dependencies = Present(Vector.empty),
       componentMappings = Present(Vector(local.copy(source = local.source.copy(sourceRevision = "mapping:second")))))
     val first = original.copy(componentMappings = Present(Vector(local, local, local.copy(target = reference(extra)), mappings(1))))
-    val app = application.copy(documents = application.documents.updated(0, application.documents.head.copy(applicationCapabilities = Vector(first, other))))
+    val app = usage.copy(documents = usage.documents.updated(0, usage.documents.head.copy(componentUsageCapabilities = Vector(first, other))))
     assemble(Vector(packageprojection("Payments", "first", selectedscope), packageprojection("Orders", "second", selectedscope)), selectedscope, Some(app))
   }
   def compatible: PortableProjection = {
@@ -112,7 +142,7 @@ private[runtime] object CapabilityCatalogFixtures {
     val updated = pkg.copy(resources = pkg.resources.map(r => r.copy(projection = r.projection.copy(compatibility = Present(Vector(edge))))))
     assemble(Vector(updated), selectedscope)
   }
-  final case class Sample(token: String, contract: String, revision: Int, componentcount: Int, appcount: Int, targetcount: Int, present: Boolean, repeated: Boolean)
+  final case class Sample(token: String, contract: String, revision: Int, componentcount: Int, usagecount: Int, targetcount: Int, present: Boolean, repeated: Boolean)
   def generated(sample: Sample): PortableProjection = {
     val authority = "Model:" + sample.token
     val selecteddefinition = definition.copy(identity = ModelElementId(authority, "Capability:" + sample.token), contractVersion = sample.contract,
@@ -140,25 +170,25 @@ private[runtime] object CapabilityCatalogFixtures {
         }))))
       }
     }
-    val original = CapabilityApplicationProjectionFixtures.app(application)
-    val apps = Vector.tabulate(sample.appcount) { i =>
-      val appauthority = "Application:" + sample.token + ":" + i
-      val source = Source(appauthority, "applications/app" + i + ".cml", "app-definition:" + sample.revision, Some(i + 1))
-      val local = ComponentMapping(reference(selecteddefinition), ReferenceBoundary.Local, source.copy(path = "edges/mapping.cml", sourceRevision = "mapping:" + sample.revision),
+    val original = CapabilityComponentUsageProjectionFixtures.usageDefinition(usage)
+    val apps = Vector.tabulate(sample.usagecount) { i =>
+      val appauthority = "ComponentUsage:" + sample.token + ":" + i
+      val source = Source(appauthority, "usages/app" + i + ".cml", "app-definition:" + sample.revision, Some(i + 1))
+      val local = ComponentUsageCapabilityMapping(reference(selecteddefinition), ReferenceBoundary.Local, source.copy(path = "edges/mapping.cml", sourceRevision = "mapping:" + sample.revision),
         Derived("mapping:" + sample.token, Vector(selecteddefinition.source)))
       val external = local.copy(target = CapabilityReference(ModelElementId("External:" + sample.token, "foreign-capability"), "external:" + sample.contract), boundary = ReferenceBoundary.External)
       val mappings = (if (sample.repeated) Vector(local, local) else Vector(local)) :+ external
-      val app = original.copy(identity = ModelElementId(appauthority, "Application:" + sample.token), contractVersion = "app:" + sample.contract, source = source,
+      val app = original.copy(identity = ModelElementId(appauthority, "ComponentUsage:" + sample.token), contractVersion = "app:" + sample.contract, source = source,
         summary = if (sample.present) Present("App summary:" + sample.token) else Absent(AbsenceReason.NotRepresented, "App summary absent."),
         demandReferences = Present(_items(original.demandReferences).map(e => e.copy(source = e.source.copy(modelAuthority = appauthority)))),
         discoveryReferences = if (sample.present) Present(Vector.empty) else Absent(AbsenceReason.NotDeclared, "Discovery absent."),
         componentMappings = Present(mappings), dependencies = Present(Vector.empty), grounding = Present(Vector.empty),
         traceability = Present(_items(original.traceability).map(e => e.copy(source = e.source.copy(modelAuthority = appauthority)))))
-      ApplicationDocument(source.copy(sourceRevision = "app-header:" + sample.revision, line = None), Vector(app))
+      ComponentUsageDocument(source.copy(sourceRevision = "app-header:" + sample.revision, line = None), Vector(app))
     }
-    val app = application.copy(producer = Producer("semantic-app:" + sample.token, "app-producer:" + sample.revision), documents = apps)
+    val app = usage.copy(producer = Producer("semantic-app:" + sample.token, "app-producer:" + sample.revision), documents = apps)
     val projection = assemble(packages, selectedscope, Some(app))
     projection.copy(snapshotReference = snapshot("catalog:" + sample.token, sample.revision.toLong))
   }
-  def update(json: Json, path: Vector[String], value: Json): Json = CapabilityApplicationProjectionFixtures.update(json, path)(_ => value)
+  def update(json: Json, path: Vector[String], value: Json): Json = CapabilityComponentUsageProjectionFixtures.update(json, path)(_ => value)
 }

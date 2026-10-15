@@ -17,14 +17,13 @@ import CapabilityIngestionModel.*
 /*
  * Synthetic public kernel conformance inputs, not normal Cozy producer proof.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityIngestionFixtures {
   val scope: Scope = Scope("scope:kernel", Source("scope:authority", "scope/facts.cml", "scope-r100", None),
     Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
   val useCase: UnavailableUpstreamProjection = UnavailableUpstreamProjection(ProjectionFamily.UseCase, "not-yet-admitted", "Positive forward UseCase demand path remains unexercised.")
-  val applicationUnavailable: ApplicationInput = ApplicationInput.Unavailable(UnavailableUpstreamProjection(ProjectionFamily.Application, "not-selected", "Application projection is explicitly unavailable."))
   val capability: CapabilityDefinition = CapabilityDefinition(ModelElementId("model:component", "cap"), "cap-v7", "支払::Capability",
     Absent(AbsenceReason.NotDeclared, "No summary."), Present("Literal É / E\u0301 | contract."), Source("model:component", "models/definition.cml", "definition-r9", Some(5)),
     Present(Vector.empty), Present(Vector.empty), Present(Vector.empty))
@@ -77,11 +76,20 @@ private[runtime] object CapabilityIngestionFixtures {
     write(root, indexPath, Json.obj("schemaVersion" -> Json.fromInt(1), "projections" -> Json.fromValues(values.map(x => Json.fromString(x._1)))).noSpaces)
     values.foreach { (filename, value) => write(root, metadataDirectory + "/" + filename, ComponentCapabilityProjectionCodec.encode(value).fold(e => throw new IllegalArgumentException(e.toString), identity)) }
     val expected = PackageExpectation(PackageInput.Selected(selectedScope.scopeId, Location.Directory(root), coordinate, pkg),
-      values.map { (filename, value) => ResourceExpectation(metadataDirectory + "/" + filename, value.producer, value.schemaVersion, value.generatedAbiVersion, value.source) })
+      values.map { (filename, value) => ResourceExpectation(metadataDirectory + "/" + filename, value.producer, value.schemaVersion, value.generatedAbiVersion, value.source) }, None)
     PackageSelection(expected, Some(new CountingProvider(input)))
   }
-  def selection(packages: Vector[PackageSelection], selectedScope: Scope = scope, application: ApplicationInput = applicationUnavailable): Selection =
-    Selection(selectedScope, packages, application, useCase)
+  def withUsage(pkg: PackageSelection, usage: ComponentUsageProjection): PackageSelection = {
+    val projection = usage.copy(component = pkg.expected.input.component, packageCoordinate = pkg.expected.input.packageCoordinate,
+      documents = usage.documents.map(doc => doc.copy(componentUsageCapabilities = doc.componentUsageCapabilities.map(_.copy(component = pkg.expected.input.component.componentId)))))
+    val root = pkg.expected.input.location.asInstanceOf[Location.Directory].root
+    write(root, "meta/component-usage-capability/index.json", """{"schemaVersion":1,"projections":["usage.json"]}""")
+    write(root, CapabilityComponentUsageAcquisitionPart.resourcePath, right(CapabilityComponentUsageProjectionCodec.encode(projection)))
+    pkg.copy(expected = pkg.expected.copy(usage = Some(ComponentUsageExpectation(projection.producer, projection.schemaVersion,
+      projection.generatedAbiVersion, projection.documents.map(_.source)))))
+  }
+  def selection(packages: Vector[PackageSelection], selectedScope: Scope = scope): Selection =
+    Selection(selectedScope, packages, useCase)
   def record(id: String, revision: Long): InternalModelRecordReference = InternalModelRecordReference(
     InternalModelRecordId.from(id).fold(e => throw new IllegalArgumentException(e), identity),
     InternalModelRecordRevision.from(revision).fold(e => throw new IllegalArgumentException(e), identity))

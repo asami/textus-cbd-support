@@ -1,15 +1,16 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import org.goldenport.cncf.component.capability.*
+import org.goldenport.cncf.component.ComponentId
 import ComponentCapabilityAdmissionScope.{Diagnostic, Scope}
 import ComponentCapabilityReference.*
-import ComponentCapabilityProjection.{Producer, CapabilityDefinition, CapabilityReference}
+import ComponentCapabilityProjection.{Producer, CapabilityDefinition, CapabilityReference, ComponentCoordinate, PackageCoordinate}
 import ComponentCapabilityPackageSource.PackageInput
-import CapabilityApplicationJsonPart.{_malformed, _nonnull}
+import CapabilityComponentUsageJsonPart.{_malformed, _nonnull}
 
 /*
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityIngestionModel {
@@ -29,58 +30,57 @@ private[runtime] object CapabilityIngestionModel {
     _ <- InternalModelRecordRevision.from(ref.recordRevision.value).left.map(detail => _malformed(path + "/recordRevision", detail))
   } yield ref
 
-  final case class ApplicationProjection(schemaVersion: Int, generatedAbiVersion: String, producer: Producer, documents: Vector[ApplicationDocument])
-  final case class ApplicationDocument(source: Source, applicationCapabilities: Vector[ApplicationDefinition])
-  final case class ApplicationDefinition(
-    identity: ModelElementId, contractVersion: String, name: String,
+  final case class ComponentUsageProjection(schemaVersion: Int, generatedAbiVersion: String, producer: Producer,
+    component: ComponentCoordinate, packageCoordinate: PackageCoordinate, documents: Vector[ComponentUsageDocument])
+  final case class ComponentUsageDocument(source: Source, componentUsageCapabilities: Vector[ComponentUsageDefinition])
+  final case class ComponentUsageDefinition(
+    component: ComponentId, identity: ModelElementId, contractVersion: String, name: String,
     summary: Presence[String], description: Presence[String], source: Source,
     demandReferences: Presence[Vector[ModelLink]], discoveryReferences: Presence[Vector[ModelLink]],
-    componentMappings: Presence[Vector[ComponentMapping]], dependencies: Presence[Vector[ApplicationDependency]],
+    componentMappings: Presence[Vector[ComponentUsageCapabilityMapping]], dependencies: Presence[Vector[ComponentUsageCapabilityDependency]],
     grounding: Presence[Vector[Grounding]], traceability: Presence[Vector[Traceability]]
-  ) { val kind: String = "APPLICATION" }
-  final case class ApplicationCapabilityReference(identity: ModelElementId, contractVersion: String) { val kind: String = "APPLICATION" }
-  final case class ComponentMapping(target: CapabilityReference, boundary: ReferenceBoundary, source: Source, origin: Origin)
-  final case class ApplicationDependency(target: ApplicationCapabilityReference, boundary: ReferenceBoundary, source: Source, origin: Origin)
+  ) { val kind: String = "COMPONENT_USAGE" }
+  final case class ComponentUsageCapabilityReference(identity: ModelElementId, contractVersion: String) { val kind: String = "COMPONENT_USAGE" }
+  final case class ComponentUsageCapabilityMapping(target: CapabilityReference, boundary: ReferenceBoundary, source: Source, origin: Origin)
+  final case class ComponentUsageCapabilityDependency(target: ComponentUsageCapabilityReference, boundary: ReferenceBoundary, source: Source, origin: Origin)
 
   final case class ResourceExpectation(resourcePath: String, producer: Producer, schemaVersion: Int, generatedAbiVersion: String, source: Source)
-  final case class PackageExpectation(input: PackageInput.Selected, resources: Vector[ResourceExpectation])
+  final case class PackageExpectation(input: PackageInput.Selected, resources: Vector[ResourceExpectation], usage: Option[ComponentUsageExpectation])
   final case class PackageSelection(expected: PackageExpectation, provider: Option[ComponentCapabilityMetadataProvider])
-  final case class ApplicationExpectation(producer: Producer, schemaVersion: Int, generatedAbiVersion: String, documents: Vector[Source])
-  enum ProjectionFamily { case Application, UseCase }
+  final case class ComponentUsageExpectation(producer: Producer, schemaVersion: Int, generatedAbiVersion: String, documents: Vector[Source])
+  enum ProjectionFamily { case ComponentUsage, UseCase }
   final case class UnavailableUpstreamProjection(family: ProjectionFamily, reason: String, detail: String)
-  enum ApplicationInput {
-    case Acquired(json: String, expected: ApplicationExpectation)
-    case Unavailable(value: UnavailableUpstreamProjection)
-    case Rejected(diagnostic: Diagnostic)
-  }
-  final case class Selection(scope: Scope, packages: Vector[PackageSelection], application: ApplicationInput, useCase: UnavailableUpstreamProjection)
-  enum ApplicationProvenance {
-    case Acquired(expected: ApplicationExpectation)
-    case Unavailable(value: UnavailableUpstreamProjection)
-    case Rejected(diagnostic: Diagnostic)
-  }
-  final case class Provenance(scope: Scope, packages: Vector[PackageExpectation], application: ApplicationProvenance, useCase: UnavailableUpstreamProjection)
+  final case class Selection(scope: Scope, packages: Vector[PackageSelection], useCase: UnavailableUpstreamProjection)
+  final case class Provenance(scope: Scope, packages: Vector[PackageExpectation], useCase: UnavailableUpstreamProjection)
   enum ExternalTarget {
     case Model(identity: ModelElementId)
     case Term(identity: TermId)
     case Relation(identity: RelationId)
     case Profile(identity: ProfileId)
     case ComponentCapability(reference: CapabilityReference)
-    case ApplicationCapability(reference: ApplicationCapabilityReference)
+    case ComponentUsageCapability(reference: ComponentUsageCapabilityReference)
   }
   final case class ExternalReference(location: String, target: ExternalTarget, source: Source, origin: Origin)
-  enum ApplicationFamily {
-    case Available(projection: ApplicationProjection, unresolvedExternal: Vector[ExternalReference])
+  enum ComponentUsageFamily {
+    case Available(projection: ComponentUsageProjection, unresolvedExternal: Vector[ExternalReference])
     case Unavailable(value: UnavailableUpstreamProjection)
   }
+  final case class ComponentUsagePackage(input: PackageInput.Selected, resourcePath: String, family: ComponentUsageFamily)
+  enum ComponentPackage {
+    case Native(discovered: ComponentCapabilityDiscovery.Discovered)
+    case MetadataOnly(acquired: ComponentCapabilityPackageLoader.Acquired)
+  }
   final class Candidate private[CapabilityIngestionModel] (
-    val provenance: Provenance, val components: Vector[ComponentCapabilityDiscovery.Discovered],
-    val application: ApplicationFamily, val useCase: UnavailableUpstreamProjection
-  )
+    val provenance: Provenance, val componentPackages: Vector[ComponentPackage],
+    val usage: Vector[ComponentUsagePackage], val useCase: UnavailableUpstreamProjection
+  ) {
+    val components: Vector[ComponentCapabilityDiscovery.Discovered] = componentPackages.collect { case ComponentPackage.Native(value) => value }
+  }
   final class Snapshot private[CapabilityIngestionModel] (val reference: SnapshotReference, val candidate: Candidate) {
     def provenance: Provenance = candidate.provenance
     def components: Vector[ComponentCapabilityDiscovery.Discovered] = candidate.components
-    def application: ApplicationFamily = candidate.application
+    def componentPackages: Vector[ComponentPackage] = candidate.componentPackages
+    def usage: Vector[ComponentUsagePackage] = candidate.usage
     def useCase: UnavailableUpstreamProjection = candidate.useCase
   }
   final case class Attempt(reference: AttemptReference, snapshotReference: SnapshotReference, selection: Selection)
@@ -95,8 +95,8 @@ private[runtime] object CapabilityIngestionModel {
   object State { val empty: State = new State(None, Vector.empty, Vector.empty) }
   abstract class Kernel {
     self: CapabilityIngestion.type =>
-    protected final def _candidate(provenance: Provenance, components: Vector[ComponentCapabilityDiscovery.Discovered], application: ApplicationFamily, useCase: UnavailableUpstreamProjection): Candidate =
-      new Candidate(provenance, components, application, useCase)
+    protected final def _candidate(provenance: Provenance, componentPackages: Vector[ComponentPackage], usage: Vector[ComponentUsagePackage], useCase: UnavailableUpstreamProjection): Candidate =
+      new Candidate(provenance, componentPackages, usage, useCase)
     protected final def _snapshot(reference: SnapshotReference, candidate: Candidate): Snapshot = new Snapshot(reference, candidate)
     protected final def _state(current: Option[SnapshotReference], snapshots: Vector[Snapshot], attempts: Vector[AttemptRecord]): State = new State(current, snapshots, attempts)
   }

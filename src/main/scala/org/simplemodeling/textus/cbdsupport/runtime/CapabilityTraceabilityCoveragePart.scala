@@ -11,8 +11,8 @@ import CapabilityQueryModel.*
  */
 private[runtime] object CapabilityTraceabilityCoveragePart {
   def assess(catalog: Catalog, path: DemandPath): RoleCoverage = {
-    val application = path.application.toVector.map(a => OwnerTraceability(TraceabilityOwner.Application(a.key), a.definition.traceability))
-    val owners = (application ++ _owners(path.required) ++ path.provider.toVector.flatMap(p => _owners(p.provider)))
+    val usage = path.usage.toVector.map(a => OwnerTraceability(TraceabilityOwner.ComponentUsage(a.key), a.definition.traceability))
+    val owners = (usage ++ _owners(path.required) ++ path.provider.toVector.flatMap(p => _owners(p.provider)))
       .foldLeft(Vector.empty[OwnerTraceability])((xs, x) => if (xs.exists(_.owner == x.owner)) xs else xs :+ x)
     val facts = catalog.traceability.filter(t => owners.exists(_.owner == t.owner))
     RoleCoverage(if (path.provider.isDefined) CoverageBoundary.ProviderPath else CoverageBoundary.RequiredPathOnly,

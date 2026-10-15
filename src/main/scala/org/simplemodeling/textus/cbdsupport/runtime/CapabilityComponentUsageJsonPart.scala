@@ -2,16 +2,17 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import io.circe.{Json, JsonObject}
 import org.goldenport.cncf.component.ComponentId
+import org.goldenport.cncf.component.identity.ComponentReleaseCoordinate
 import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScope.*
 import org.goldenport.cncf.component.capability.ComponentCapabilityReference.*
-import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.Producer
+import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.{Producer, ComponentCoordinate, PackageCoordinate}
 
 /*
  * @since   Oct. 14, 2026
  * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
-private[runtime] object CapabilityApplicationJsonPart {
+private[runtime] object CapabilityComponentUsageJsonPart {
   def _diagnostic(kind: DiagnosticKind, detail: String, path: String): Diagnostic = Diagnostic(kind, detail, None, None, None, path)
   def _malformed(path: String, detail: String): Diagnostic = _diagnostic(DiagnosticKind.Malformed, detail, path)
   def _child(path: String, field: String): String = (if (path == "/") "" else path) + "/" + field.replace("~", "~0").replace("/", "~1")
@@ -50,6 +51,27 @@ private[runtime] object CapabilityApplicationJsonPart {
     id <- _read(obj, "id", path)(_string)
     version <- _read(obj, "version", path)(_string)
   } yield Producer(id, version)
+  def _component_id(json: Json, path: String): Either[Diagnostic, ComponentId] =
+    _component_fields(json, Vector("namespace", "id"), path)
+  private def _component_fields(json: Json, fields: Vector[String], path: String): Either[Diagnostic, ComponentId] = for {
+    obj <- _object(json, fields, path)
+    namespace <- _read(obj, "namespace", path)(_string)
+    id <- _read(obj, "id", path)(_string)
+    component <- ComponentId.parseC(namespace + "." + id).toOption.toRight(_malformed(path, "A canonical Component identity is required."))
+    _ <- Either.cond(component.namespace.value() == namespace && component.localId.value() == id, (), _malformed(path, "Separate canonical Component fields are required."))
+  } yield component
+  def _component_coordinate(json: Json, path: String): Either[Diagnostic, ComponentCoordinate] = for {
+    component <- _component_fields(json, Vector("namespace", "id", "version"), path)
+    obj <- _object(json, Vector("namespace", "id", "version"), path)
+    version <- _read(obj, "version", path)(_string)
+    _ <- Either.cond(ComponentReleaseCoordinate.create(component.sharedIdentity, version).isSuccess(), (),
+      _malformed(_child(path, "version"), "A canonical Component release is required."))
+  } yield ComponentCoordinate(component, version)
+  def _usage_package_coordinate(json: Json, path: String): Either[Diagnostic, PackageCoordinate] = for {
+    obj <- _object(json, Vector("coordinate", "version"), path)
+    coordinate <- _read(obj, "coordinate", path)(_string)
+    version <- _read(obj, "version", path)(_string)
+  } yield PackageCoordinate(coordinate, version)
   def _source(json: Json, path: String): Either[Diagnostic, Source] = for {
     obj <- _object(json, Vector("modelAuthority", "path", "sourceRevision", "line"), path)
     authority <- _read(obj, "modelAuthority", path)(_string)

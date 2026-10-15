@@ -8,16 +8,16 @@ import ComponentCapabilityReference.*
 import ComponentCapabilityProjection.*
 import ComponentCapabilityPackageSource.*
 import CapabilityIngestionModel.*
-import CapabilityApplicationJsonPart.*
-import CapabilityApplicationReferenceJsonPart.*
+import CapabilityComponentUsageJsonPart.*
+import CapabilityComponentUsageReferenceJsonPart.*
 
 /*
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityIngestionSelectionPart {
-  private val _encoding = CapabilityApplicationJsonEncodingPart
+  private val _encoding = CapabilityComponentUsageJsonEncodingPart
   private def _equal[A](expected: A, observed: A, path: String): Either[Diagnostic, Unit] =
     Either.cond(expected == observed, (), _diagnostic(DiagnosticKind.Incompatible, "Declared and observed values differ.", path))
   def _source_compare(expected: Source, observed: Source, path: String): Either[Diagnostic, Unit] = _context(for {
@@ -26,13 +26,13 @@ private[runtime] object CapabilityIngestionSelectionPart {
     _ <- _equal((expected.modelAuthority, expected.path, expected.line), (observed.modelAuthority, observed.path, observed.line), path)
     _ <- Either.cond(expected.sourceRevision == observed.sourceRevision, (), _diagnostic(DiagnosticKind.Stale, "Declared opaque source revision differs.", _child(path, "sourceRevision")))
   } yield (), Option(observed))
-  private def _header(producer: Producer, schema: Int, abi: String, application: Boolean, path: String): Either[Diagnostic, Unit] = for {
+  private def _header(producer: Producer, schema: Int, abi: String, usage: Boolean, path: String): Either[Diagnostic, Unit] = for {
     p <- _nonnull(producer, _child(path, "producer"))
     _ <- _text(p.id, path + "/producer/id")
     _ <- _text(p.version, path + "/producer/version")
     _ <- _text(abi, _child(path, "generatedAbiVersion"))
     _ <- Either.cond(schema == 1, (), _diagnostic(DiagnosticKind.Unsupported, "Unsupported expected schema.", _child(path, "schemaVersion")))
-    _ <- Either.cond(abi == (if (application) "cozy.application-capability.v1" else "cncf.component-capability.v1"), (), _diagnostic(DiagnosticKind.Unsupported, "Unsupported expected ABI.", _child(path, "generatedAbiVersion")))
+    _ <- Either.cond(abi == (if (usage) "cozy.component-usage-capability.v1" else "cncf.component-capability.v1"), (), _diagnostic(DiagnosticKind.Unsupported, "Unsupported expected ABI.", _child(path, "generatedAbiVersion")))
   } yield ()
   private def _component(value: ComponentId, path: String): Either[Diagnostic, Unit] = for {
     x <- _nonnull(value, path)
@@ -88,7 +88,7 @@ private[runtime] object CapabilityIngestionSelectionPart {
     _ <- _equal(family, x.family, path + "/family")
     _ <- if (family == ProjectionFamily.UseCase) _equal("not-yet-admitted", x.reason, path + "/reason") else Right(())
   } yield ()
-  def _application_expectation(value: ApplicationExpectation, path: String): Either[Diagnostic, Unit] = for {
+  def _usage_expectation(value: ComponentUsageExpectation, path: String): Either[Diagnostic, Unit] = for {
     x <- _nonnull(value, path)
     _ <- _header(x.producer, x.schemaVersion, x.generatedAbiVersion, true, path)
     _ <- _values(x.documents, path + "/documents")(_check_source)
@@ -103,11 +103,11 @@ private[runtime] object CapabilityIngestionSelectionPart {
     _ <- _header(x.producer, x.schemaVersion, x.generatedAbiVersion, false, path)
     _ <- _check_source(x.source, path + "/source")
   } yield ()
-  private def _package(value: PackageExpectation, scopeId: String, path: String): Either[Diagnostic, Unit] = for {
+  private def _package(value: PackageExpectation, scopeid: String, path: String): Either[Diagnostic, Unit] = for {
     x <- _nonnull(value, path)
     input <- _nonnull(x.input, path + "/input")
     _ <- _text(input.scopeId, path + "/input/scopeId")
-    _ <- _equal(scopeId, input.scopeId, path + "/input/scopeId")
+    _ <- _equal(scopeid, input.scopeId, path + "/input/scopeId")
     location <- _nonnull(input.location, path + "/input/location")
     _ <- location match {
       case Location.Directory(root) => _nonnull(root, path + "/input/location/root").map(_ => ())
@@ -122,6 +122,8 @@ private[runtime] object CapabilityIngestionSelectionPart {
     _ <- _text(pkg.version, path + "/input/packageCoordinate/version")
     _ <- _values(x.resources, path + "/resources")(_resource)
     _ <- _duplicates(x.resources.map(_.resourcePath), path + "/resources")
+    usage <- _nonnull(x.usage, path + "/usage")
+    _ <- usage.map(_usage_expectation(_, path + "/usage")).getOrElse(Right(()))
   } yield ()
   def _duplicates[A](values: Vector[A], path: String): Either[Diagnostic, Unit] =
     values.indices.find(i => values.take(i).contains(values(i))).map(i => Left(_diagnostic(DiagnosticKind.Ambiguous, "Repeated exact selected context/key.", _child(path, i.toString)))).getOrElse(Right(()))
@@ -132,14 +134,8 @@ private[runtime] object CapabilityIngestionSelectionPart {
       pkg <- _nonnull(v, p); _ <- _package(pkg.expected, x.scope.scopeId, p + "/expected"); _ <- _nonnull(pkg.provider, p + "/provider")
     } yield () }
     _ <- _duplicates(x.packages.map(_.expected.input), "/packages")
-    application <- x.application match {
-      case ApplicationInput.Acquired(json, expected) => for { _ <- _nonnull(json, "/application/json"); _ <- _application_expectation(expected, "/application/expected") } yield ApplicationProvenance.Acquired(expected)
-      case ApplicationInput.Unavailable(v) => _availability(v, ProjectionFamily.Application, "/application/unavailable").map(_ => ApplicationProvenance.Unavailable(v))
-      case ApplicationInput.Rejected(d) => _nonnull(d, "/application/diagnostic").map(ApplicationProvenance.Rejected(_))
-      case null => Left(_malformed("/application", "An explicit acquisition outcome is required."))
-    }
     _ <- _availability(x.useCase, ProjectionFamily.UseCase, "/useCase")
-  } yield Provenance(x.scope, x.packages.map(_.expected), application, x.useCase)
+  } yield Provenance(x.scope, x.packages.map(_.expected), x.useCase)
   private def _coverage[A](expected: Vector[A], observed: Vector[A], path: String): Either[Diagnostic, Unit] = for {
     _ <- Either.cond(expected.size == observed.size && expected.toSet == observed.toSet, (), _malformed(path, "Complete expected coverage is required."))
     _ <- _equal(expected, observed, path)
@@ -192,11 +188,24 @@ private[runtime] object CapabilityIngestionSelectionPart {
       } yield ()
     })
   } yield (), None, Some(scope.scopeId), Some(expected.input.component.componentId))
-  def _application_observed(expected: ApplicationExpectation, projection: ApplicationProjection): Either[Diagnostic, Unit] = for {
-    _ <- _application_expectation(expected, "/application/expected")
-    _ <- _equal((expected.producer, expected.schemaVersion, expected.generatedAbiVersion), (projection.producer, projection.schemaVersion, projection.generatedAbiVersion), "/application/producer")
-    _ <- Either.cond(expected.documents.size == projection.documents.size, (), _malformed("/application/documents", "Every acquired document header must be selected."))
-    _ <- _sequence(expected.documents.zip(projection.documents).zipWithIndex.map { case ((a, b), i) => _source_compare(a, b.source, s"/application/documents/$i/source") })
+  def _usage_observed(expected: ComponentUsageExpectation, projection: ComponentUsageProjection): Either[Diagnostic, Unit] = for {
+    _ <- _usage_expectation(expected, "/usage/expected")
+    _ <- _equal((expected.producer, expected.schemaVersion, expected.generatedAbiVersion), (projection.producer, projection.schemaVersion, projection.generatedAbiVersion), "/usage/producer")
+    _ <- Either.cond(expected.documents.size == projection.documents.size, (), _malformed("/usage/documents", "Every acquired document header must be selected."))
+    _ <- _sequence(expected.documents.zip(projection.documents).zipWithIndex.map { case ((a, b), i) => _source_compare(a, b.source, s"/usage/documents/$i/source") })
+  } yield ()
+  def _usage_compare(expected: Option[ComponentUsageExpectation], observed: Option[ComponentUsageExpectation], path: String): Either[Diagnostic, Unit] =
+    (expected, observed) match {
+      case (Some(a), Some(b)) => for {
+        _ <- _equal((a.producer, a.schemaVersion, a.generatedAbiVersion), (b.producer, b.schemaVersion, b.generatedAbiVersion), path + "/producer")
+        _ <- _paired(a.documents, b.documents, path + "/documents")(_source_compare)
+      } yield ()
+      case (a, b) => _equal(a, b, path)
+    }
+  def _metadata_observed(expected: PackageExpectation, acquired: ComponentCapabilityPackageLoader.Acquired): Either[Diagnostic, Unit] = for {
+    _ <- _equal(expected.input, acquired.input, "/package/input")
+    _ <- _coverage(expected.resources.map(_.resourcePath), acquired.projections.map(_.resourcePath), "/package/resources")
+    _ <- _coverage(Vector.empty[String], acquired.index, "/package/index")
   } yield ()
   def _snapshot_uniqueness(components: Vector[ComponentCapabilityDiscovery.Discovered]): Either[Diagnostic, Unit] = {
     val entries = components.flatMap(_.entries)
@@ -212,12 +221,6 @@ private[runtime] object CapabilityIngestionSelectionPart {
     _ <- _scope(x.scope, "/scope")
     _ <- _values(x.packages, "/packages")((p, q) => _package(p, x.scope.scopeId, q))
     _ <- _duplicates(x.packages.map(_.input), "/packages")
-    _ <- x.application match {
-      case ApplicationProvenance.Acquired(e) => _application_expectation(e, "/application/expected")
-      case ApplicationProvenance.Unavailable(v) => _availability(v, ProjectionFamily.Application, "/application/unavailable")
-      case ApplicationProvenance.Rejected(d) => _nonnull(d, "/application/diagnostic").map(_ => ())
-      case null => Left(_malformed("/application", "Application provenance is required."))
-    }
     _ <- _availability(x.useCase, ProjectionFamily.UseCase, "/useCase")
   } yield ()
   def _compare(expected: Provenance, observed: Provenance): Either[Diagnostic, Unit] = for {
@@ -231,14 +234,8 @@ private[runtime] object CapabilityIngestionSelectionPart {
         _ <- _equal((x.producer, x.schemaVersion, x.generatedAbiVersion), (y.producer, y.schemaVersion, y.generatedAbiVersion), q + "/producer")
         _ <- _source_compare(x.source, y.source, q + "/source")
       } yield ())
+      _ <- _usage_compare(a.usage, b.usage, p + "/usage")
     } yield () }
-    _ <- (expected.application, observed.application) match {
-      case (ApplicationProvenance.Acquired(a), ApplicationProvenance.Acquired(b)) => for {
-        _ <- _equal((a.producer, a.schemaVersion, a.generatedAbiVersion), (b.producer, b.schemaVersion, b.generatedAbiVersion), "/application/producer")
-        _ <- _paired(a.documents, b.documents, "/application/documents")(_source_compare)
-      } yield ()
-      case (a, b) => _equal(a, b, "/application")
-    }
     _ <- _equal(expected.useCase, observed.useCase, "/useCase")
   } yield ()
 }

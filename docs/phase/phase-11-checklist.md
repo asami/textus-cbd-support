@@ -1,6 +1,6 @@
 # Phase 11 Checklist: Capability Ingestion, Catalog, and Queries
 
-Status: OPEN / IN_PROGRESS (CAP-11-01/02/03 accepted; Phase closure pending)
+Status: OPEN / IN_PROGRESS (CAP-11-01/02/03 and CAP-11-PKG01 accepted; Phase closure pending)
 phase=[Phase 11](phase-11.md)
 predecessor=[Phase 10.7](phase-10.7.md)
 successor=[Phase 11.1](phase-11.1.md)
@@ -16,6 +16,39 @@ statements are superseded only by independently accepted owner Steps.
 CAP-11-04–05 retain their IDs in the
 [Phase 11.1 checklist](phase-11.1-checklist.md); no acceptance is inferred.
 Execution preparation: [local evidence and integration points](../notes/phase-11-12-local-execution-preparation.md).
+
+## CAP-11-PKG01: Component Usage model and Component-owned Directory/CAR
+
+Stage Status:
+- Current status: DONE
+- Owner: CBD ingestion/catalog/query owner
+- Update rule: corrected scope replaces the Application-owned package proposal;
+  preserve prior Step acceptance and require focused new-boundary evidence.
+
+Current acceptance — 2026-10-15: all six criteria below are independently accepted
+after focused new-contract validation and whole-Step conformance; see
+[CAP-11-PKG01 acceptance](phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+The local Step commit binds this acceptance. Phase review/local release,
+participant own PKG01/Phase acceptance, full validation, reviews/releases and
+authorized Cozy main integration remain owed. CBD aggregate full-suite validation
+remains deferred-not-run to Phase 11.1. Forward UseCase positive demand remains
+unadmitted; this records no successor acceptance or release.
+
+- [x] Adopt ComponentUsageCapability across intake/catalog/query and Component-owned Directory/CAR.
+- [x] Keep inductive Usage and deductive Component Capability separate; preserve
+      explicit Component ownership, source/derivation evidence and many-to-many
+      mappings. Usage observations do not create PROVIDED/REQUIRED contracts.
+- [x] Delete old Application types/APIs/fields without aliases or forwarders;
+      compile affected callers/generated code so stale typed references fail.
+      Update CML/JSON/fixtures together; no dual reader, converter or fallback.
+- [x] Prove one normal generated Directory route without requiring a CAR or loose
+      JSON; prove multi-Component owner partitioning and external references.
+- [x] Prove equivalent semantic results from that Directory and normal CAR,
+      with config and separate capability namespaces coexisting.
+- [x] Preserve optional absence and actual upstream failures; reuse lower-layer
+      guarantees. Complete focused owner review/validation and record actual
+      versions without claiming old separate-file proof accepts this change.
+
 
 ## CAP-11-01: Projection ingestion and integrity
 
@@ -174,7 +207,7 @@ validation remains deferred-not-run to Phase 11.1.
 
 ## Closure
 
-- [ ] Close only CAP-11-01–03 after their executable specifications, focused
+- [ ] Close CAP-11-01–03 and CAP-11-PKG01 after their executable specifications, focused
       validation, independent Step acceptance and full Phase review pass.
 - [ ] Bind the admitted producer/schema/source revisions and fixture evidence;
       hand off the settled typed query/result/gap and presentation contract.

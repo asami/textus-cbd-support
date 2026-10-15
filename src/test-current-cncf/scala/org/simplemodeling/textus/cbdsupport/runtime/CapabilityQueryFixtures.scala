@@ -6,7 +6,7 @@ import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.*
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
 import CapabilityQueryModel.*
-import CapabilityApplicationJsonPart._items
+import CapabilityComponentUsageJsonPart._items
 
 /*
  * Synthetic pure semantic inputs, admitted through the original validator.
@@ -17,7 +17,7 @@ import CapabilityApplicationJsonPart._items
  */
 private[runtime] object CapabilityQueryFixtures {
   val reference: CapabilityReference = CapabilityCatalogFixtures.reference(CapabilityCatalogFixtures.definition)
-  val applicationReference: ApplicationCapabilityReference = ApplicationCapabilityReference(ModelElementId("model:app", "query:Application|É"), "app:opaque/v7")
+  val usageReference: ComponentUsageCapabilityReference = ComponentUsageCapabilityReference(ModelElementId("model:app", "query:ComponentUsage|É"), "app:opaque/v7")
   val roles: Vector[TraceabilityRole] = Vector(TraceabilityRole.Specification, TraceabilityRole.Evidence)
   val absentRoles: Presence[Vector[Traceability]] = Absent(AbsenceReason.NotRepresented, "No role projection supplied for this owner.")
   def traces(authority: String, selected: Vector[TraceabilityRole]): Vector[Traceability] = selected.map { role =>
@@ -50,29 +50,29 @@ private[runtime] object CapabilityQueryFixtures {
       Derived("compatibility:explicit", Vector(Source("foreign:compatibility", "inputs/compatibility.cml", "input:" + revision, None))))
   def withCompatibility(pkg: PackageProjection, edges: Vector[Compatibility]): PackageProjection =
     pkg.copy(resources = pkg.resources.map(r => r.copy(projection = r.projection.copy(compatibility = Present(edges)))))
-  def mapping(ref: CapabilityReference = reference, boundary: ReferenceBoundary = ReferenceBoundary.Local): ComponentMapping =
-    ComponentMapping(ref, boundary, Source("model:app", "edges/mapping.cml", "mapping:opaque|É", Some(12)),
+  def mapping(ref: CapabilityReference = reference, boundary: ReferenceBoundary = ReferenceBoundary.Local): ComponentUsageCapabilityMapping =
+    ComponentUsageCapabilityMapping(ref, boundary, Source("model:app", "edges/mapping.cml", "mapping:opaque|É", Some(12)),
       Derived("mapping:declared", Vector(Source("foreign:map", "inputs/map.cml", "map-input:v31", None))))
-  def applications(mappings: Vector[ComponentMapping], contexts: Int = 1, selectedroles: Vector[TraceabilityRole] = roles,
-    otherVersion: Boolean = false): ApplicationProjection = {
-    val original = CapabilityApplicationProjectionFixtures.app(CapabilityCatalogFixtures.application)
-    val app = original.copy(identity = applicationReference.identity, contractVersion = applicationReference.contractVersion,
+  def usages(mappings: Vector[ComponentUsageCapabilityMapping], contexts: Int = 1, selectedroles: Vector[TraceabilityRole] = roles,
+    otherVersion: Boolean = false): ComponentUsageProjection = {
+    val original = CapabilityComponentUsageProjectionFixtures.usageDefinition(CapabilityCatalogFixtures.usage)
+    val app = original.copy(identity = usageReference.identity, contractVersion = usageReference.contractVersion,
       componentMappings = Present(mappings), dependencies = Present(Vector.empty), grounding = Present(Vector.empty),
       discoveryReferences = Present(Vector.empty), traceability = Present(traces("model:app", selectedroles)))
     val documents = Vector.tabulate(contexts) { i =>
-      val source = Source("model:app", "applications/context" + i + ".cml", "document:v" + i, None)
-      val identity = if (i == 0) applicationReference.identity else
-        applicationReference.identity.copy(elementId = applicationReference.identity.elementId + ":fixture-application-" + i)
-      ApplicationDocument(source, Vector(app.copy(identity = identity, source = app.source.copy(path = source.path))))
+      val source = Source("model:app", "usages/context" + i + ".cml", "document:v" + i, None)
+      val identity = if (i == 0) usageReference.identity else
+        usageReference.identity.copy(elementId = usageReference.identity.elementId + ":fixture-usage-" + i)
+      ComponentUsageDocument(source, Vector(app.copy(identity = identity, source = app.source.copy(path = source.path))))
     }
     val extra = if (otherVersion) {
-      val source = Source("model:app", "applications/other.cml", "other:v1", None)
-      Vector(ApplicationDocument(source,
+      val source = Source("model:app", "usages/other.cml", "other:v1", None)
+      Vector(ComponentUsageDocument(source,
         Vector(app.copy(contractVersion = "app:other-version", source = app.source.copy(path = source.path)))))
     } else Vector.empty
-    CapabilityCatalogFixtures.application.copy(documents = documents ++ extra)
+    CapabilityCatalogFixtures.usage.copy(documents = documents ++ extra)
   }
-  def assemble(packages: Vector[PackageProjection], selectedscope: Scope, app: Option[ApplicationProjection]): PortableProjection =
+  def assemble(packages: Vector[PackageProjection], selectedscope: Scope, app: Option[ComponentUsageProjection]): PortableProjection =
     CapabilityCatalogFixtures.assemble(packages, selectedscope, app)
   def selection(input: PortableProjection): CatalogSelection = CapabilityCatalogFixtures.selection(input)
   def session(input: PortableProjection): CapabilityQueries.Session =
@@ -90,11 +90,11 @@ private[runtime] object CapabilityQueryFixtures {
   }
   final case class ProviderInput(ref: CapabilityReference, targets: Int = 3, selectedroles: Vector[TraceabilityRole] = roles, absent: Boolean = false)
   def scenario(providers: Vector[ProviderInput] = Vector(ProviderInput(reference)), requiredcount: Int = 1,
-    mappings: Vector[ComponentMapping] = Vector(mapping()), contexts: Int = 1,
-    requiredroles: Vector[TraceabilityRole] = roles, approles: Vector[TraceabilityRole] = roles,
+    mappings: Vector[ComponentUsageCapabilityMapping] = Vector(mapping()), contexts: Int = 1,
+    requiredroles: Vector[TraceabilityRole] = roles, usageroles: Vector[TraceabilityRole] = roles,
     definitionroles: Vector[TraceabilityRole] = Vector.empty, witnesses: Vector[Compatibility] = Vector.empty,
-    extraDefinitions: Vector[CapabilityReference] = Vector.empty, appAvailable: Boolean = true,
-    otherAppVersion: Boolean = false, requiredReference: CapabilityReference = reference): PortableProjection = {
+    extraDefinitions: Vector[CapabilityReference] = Vector.empty, usageAvailable: Boolean = true,
+    otherUsageVersion: Boolean = false, requiredReference: CapabilityReference = reference): PortableProjection = {
     val refs = (Vector(requiredReference) ++ providers.map(_.ref) ++ extraDefinitions).distinct
     val selectedscope = scope(refs.map(definition(_, definitionroles)))
     val required = Vector.tabulate(requiredcount)(i => packageFor("Required" + i, "required" + i, selectedscope,
@@ -103,7 +103,7 @@ private[runtime] object CapabilityQueryFixtures {
       p.ref, Vector(Direction.Provided), p.targets, p.selectedroles, p.absent) }
     val packages = required ++ provided
     val witnessed = if (witnesses.nonEmpty) packages.updated(0, withCompatibility(packages.head, witnesses)) else packages
-    assemble(witnessed, selectedscope, if (appAvailable) Some(applications(mappings, contexts, approles, otherAppVersion)) else None)
+    assemble(witnessed, selectedscope, if (usageAvailable) Some(usages(mappings, contexts, usageroles, otherUsageVersion)) else None)
   }
   enum SampleStatus { case Exact, Directed, WrongVersion, OtherIdentity }
   final case class Sample(token: String, status: SampleStatus, providercount: Int, targets: Vector[Int], mappingcount: Int)

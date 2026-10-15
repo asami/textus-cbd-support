@@ -9,8 +9,8 @@ import ComponentCapabilityProjection.*
 import ComponentCapabilityPackageSource.*
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
-import CapabilityApplicationJsonEncodingPart.*
-import CapabilityApplicationJsonPart.{_malformed, _nonnull, _sequence}
+import CapabilityComponentUsageJsonEncodingPart.*
+import CapabilityComponentUsageJsonPart.{_malformed, _nonnull, _sequence}
 
 /*
  * The carrier contains semantic references only; native values have no encoder.
@@ -26,9 +26,10 @@ private[runtime] object CapabilityCatalogJsonEncodingPart {
     p <- _nonnull(projection, "/")
     packages <- _nonnull(p.packages, "/packages")
     encoded <- _sequence(packages.zipWithIndex.map((pkg, i) => _package(pkg, s"/packages/$i")))
-    application <- _application(p.application)
+    usage <- _nonnull(p.usage, "/usage")
+    encodedusage <- _sequence(usage.zipWithIndex.map((pkg, i) => _usage_package(pkg, s"/usage/$i")))
   } yield Json.obj("schemaVersion" -> Json.fromInt(p.schemaVersion), "snapshotReference" -> _snapshot_reference(p.snapshotReference),
-    "provenance" -> _provenance(p.provenance), "packages" -> Json.fromValues(encoded), "application" -> application, "useCase" -> _unavailable(p.useCase))
+    "provenance" -> _provenance(p.provenance), "packages" -> Json.fromValues(encoded), "usage" -> Json.fromValues(encodedusage), "useCase" -> _unavailable(p.useCase))
   private def _snapshot_reference(value: SnapshotReference): Json = _nullable(value)(x => _nullable(x.value)(r => Json.obj(
     "recordId" -> _nullable(r.recordId)(id => _string(id.value)), "recordRevision" -> _nullable(r.recordRevision)(v => Json.fromLong(v.value)))))
   private def _component_ref(value: ComponentId): Json = _nullable(value)(x => Json.obj("namespace" -> _string(x.namespace.value()), "id" -> _string(x.localId.value())))
@@ -51,7 +52,7 @@ private[runtime] object CapabilityCatalogJsonEncodingPart {
     "generatedAbiVersion" -> _string(x.generatedAbiVersion), "source" -> _source(x.source)))
   private def _capability_reference(value: CapabilityReference): Json = _nullable(value)(x => Json.obj("kind" -> Json.fromString("COMPONENT"),
     "identity" -> _model_id(x.identity), "contractVersion" -> _string(x.contractVersion)))
-  private def _application_reference(value: ApplicationCapabilityReference): Json = _nullable(value)(x => Json.obj("kind" -> Json.fromString("APPLICATION"),
+  private def _usage_reference(value: ComponentUsageCapabilityReference): Json = _nullable(value)(x => Json.obj("kind" -> Json.fromString("COMPONENT_USAGE"),
     "identity" -> _model_id(x.identity), "contractVersion" -> _string(x.contractVersion)))
   private def _key(value: DeclarationKey): Json = _nullable(value)(x => Json.obj("component" -> _component_ref(x.component),
     "direction" -> _nullable(x.direction)(d => _string(d.tag)), "capability" -> _capability_reference(x.capability)))
@@ -74,27 +75,24 @@ private[runtime] object CapabilityCatalogJsonEncodingPart {
     "profileFacts" -> _vector(x.profileFacts)(f => Json.obj("identity" -> _profile(f.identity), "source" -> _source(f.source))),
     "capabilities" -> _vector(x.capabilities)(_definition), "targetContracts" -> _vector(x.targetContracts)(_target_contract)))
   private def _provenance(value: Provenance): Json = _nullable(value)(x => Json.obj("scope" -> _scope(x.scope),
-    "packages" -> _vector(x.packages)(p => Json.obj("input" -> _input(p.input), "resources" -> _vector(p.resources)(_resource_expectation))),
-    "application" -> _application_provenance(x.application), "useCase" -> _unavailable(x.useCase)))
+    "packages" -> _vector(x.packages)(p => Json.obj("input" -> _input(p.input), "resources" -> _vector(p.resources)(_resource_expectation), "usage" -> _option(p.usage)(_usage_expectation))),
+    "useCase" -> _unavailable(x.useCase)))
   private def _resource_expectation(value: ResourceExpectation): Json = _nullable(value)(x => Json.obj("resourcePath" -> _string(x.resourcePath),
     "producer" -> _producer(x.producer), "schemaVersion" -> Json.fromInt(x.schemaVersion), "generatedAbiVersion" -> _string(x.generatedAbiVersion), "source" -> _source(x.source)))
-  private def _application_expectation(value: ApplicationExpectation): Json = _nullable(value)(x => Json.obj("producer" -> _producer(x.producer),
+  private def _usage_expectation(value: ComponentUsageExpectation): Json = _nullable(value)(x => Json.obj("producer" -> _producer(x.producer),
     "schemaVersion" -> Json.fromInt(x.schemaVersion), "generatedAbiVersion" -> _string(x.generatedAbiVersion), "documents" -> _vector(x.documents)(_source)))
-  private def _application_provenance(value: ApplicationProvenance): Json = _nullable(value) {
-    case ApplicationProvenance.Acquired(e) => Json.obj("status" -> Json.fromString("ACQUIRED"), "expected" -> _application_expectation(e))
-    case ApplicationProvenance.Unavailable(v) => Json.obj("status" -> Json.fromString("UNAVAILABLE"), "value" -> _unavailable(v))
-    case ApplicationProvenance.Rejected(d) => Json.obj("status" -> Json.fromString("REJECTED"), "diagnostic" -> _diagnostic_value(d))
-  }
-  private def _application(value: ApplicationFamily): Either[Diagnostic, Json] = value match {
-    case ApplicationFamily.Available(p, external) => _embedded(CapabilityApplicationProjectionCodec.encode(p), "/application/projection").map(j =>
+  private def _usage_package(value: ComponentUsagePackage, path: String): Either[Diagnostic, Json] = for {
+    pkg <- _nonnull(value, path)
+    family <- _usage(pkg.family, path + "/family")
+  } yield Json.obj("input" -> _input(pkg.input), "resourcePath" -> _string(pkg.resourcePath), "family" -> family)
+  private def _usage(value: ComponentUsageFamily, path: String): Either[Diagnostic, Json] = value match {
+    case ComponentUsageFamily.Available(p, external) => _embedded(CapabilityComponentUsageProjectionCodec.encode(p), path + "/projection").map(j =>
       Json.obj("status" -> Json.fromString("AVAILABLE"), "projection" -> j, "unresolvedExternal" -> _vector(external)(_external_reference)))
-    case ApplicationFamily.Unavailable(v) => Right(Json.obj("status" -> Json.fromString("UNAVAILABLE"), "value" -> _unavailable(v)))
-    case null => Left(_malformed("/application", "An explicit Application family is required."))
+    case ComponentUsageFamily.Unavailable(v) => Right(Json.obj("status" -> Json.fromString("UNAVAILABLE"), "value" -> _unavailable(v)))
+    case null => Left(_malformed(path, "An explicit Component Usage family is required."))
   }
   private def _unavailable(value: UnavailableUpstreamProjection): Json = _nullable(value)(x => Json.obj(
-    "family" -> _nullable(x.family)(f => _string(if (f == ProjectionFamily.Application) "APPLICATION" else "USE_CASE")), "reason" -> _string(x.reason), "detail" -> _string(x.detail)))
-  private def _diagnostic_value(value: Diagnostic): Json = _nullable(value)(x => Json.obj("kind" -> _nullable(x.kind)(k => _string(k.toString)),
-    "detail" -> _string(x.detail), "scopeId" -> _option(x.scopeId)(_string), "component" -> _option(x.component)(_component_ref), "source" -> _option(x.source)(_source), "location" -> _string(x.location)))
+    "family" -> _nullable(x.family)(f => _string(if (f == ProjectionFamily.ComponentUsage) "COMPONENT_USAGE" else "USE_CASE")), "reason" -> _string(x.reason), "detail" -> _string(x.detail)))
   private def _external_reference(value: ExternalReference): Json = _nullable(value)(x => Json.obj("location" -> _string(x.location), "target" -> _external_target(x.target), "source" -> _source(x.source), "origin" -> _origin(x.origin)))
   private def _external_target(value: ExternalTarget): Json = _nullable(value) {
     case ExternalTarget.Model(i) => Json.obj("kind" -> Json.fromString("MODEL"), "identity" -> _model_id(i))
@@ -102,6 +100,6 @@ private[runtime] object CapabilityCatalogJsonEncodingPart {
     case ExternalTarget.Relation(i) => Json.obj("kind" -> Json.fromString("RELATION"), "identity" -> _relation(i))
     case ExternalTarget.Profile(i) => Json.obj("kind" -> Json.fromString("PROFILE"), "identity" -> _profile(i))
     case ExternalTarget.ComponentCapability(r) => Json.obj("kind" -> Json.fromString("COMPONENT_CAPABILITY"), "reference" -> _capability_reference(r))
-    case ExternalTarget.ApplicationCapability(r) => Json.obj("kind" -> Json.fromString("APPLICATION_CAPABILITY"), "reference" -> _application_reference(r))
+    case ExternalTarget.ComponentUsageCapability(r) => Json.obj("kind" -> Json.fromString("COMPONENT_USAGE_CAPABILITY"), "reference" -> _usage_reference(r))
   }
 }

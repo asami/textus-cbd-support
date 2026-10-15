@@ -1,43 +1,49 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import org.goldenport.cncf.component.ComponentFactory
-import org.goldenport.cncf.component.capability.ComponentCapabilityDiscovery
+import org.goldenport.cncf.component.capability.{ComponentCapabilityDiscovery, ComponentCapabilityPackageLoader}
 import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScope.*
 import CapabilityIngestionModel.*
-import CapabilityApplicationJsonPart.*
+import CapabilityComponentUsageJsonPart.*
 import CapabilityIngestionSelectionPart.*
 
 /*
  * Public discovery is the only acquisition authority. State is an immutable,
  * explicitly selected logical history; it has no storage or execution adapter.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] object CapabilityIngestion extends Kernel {
   def acquire(selection: Selection): Either[Diagnostic, Candidate] = for {
     provenance <- _selection(selection)
-    components <- selection.packages.zipWithIndex.foldLeft[Either[Diagnostic, Vector[ComponentCapabilityDiscovery.Discovered]]](Right(Vector.empty)) { case (previous, (pkg, i)) =>
+    packages <- selection.packages.zipWithIndex.foldLeft[Either[Diagnostic, Vector[ComponentPackage]]](Right(Vector.empty)) { case (previous, (pkg, i)) =>
       for {
         values <- previous
-        provider <- pkg.provider.toRight(_diagnostic(DiagnosticKind.Unavailable, "Selected native metadata provider is unavailable.", s"/packages/$i/provider")
-          .copy(scopeId = Some(selection.scope.scopeId), component = Some(pkg.expected.input.component.componentId)))
-        discovered <- ComponentFactory.discoverCapabilities(pkg.expected.input, provider)
-        _ <- _observed(pkg.expected, discovered, selection.scope)
-      } yield values :+ discovered
+        acquired <- if (pkg.expected.resources.isEmpty) for {
+          metadata <- ComponentCapabilityPackageLoader.load(pkg.expected.input)
+          _ <- _metadata_observed(pkg.expected, metadata)
+        } yield ComponentPackage.MetadataOnly(metadata) else for {
+          provider <- pkg.provider.toRight(_diagnostic(DiagnosticKind.Unavailable, "Selected native metadata provider is unavailable.", s"/packages/$i/provider")
+            .copy(scopeId = Some(selection.scope.scopeId), component = Some(pkg.expected.input.component.componentId)))
+          discovered <- ComponentFactory.discoverCapabilities(pkg.expected.input, provider)
+          _ <- _observed(pkg.expected, discovered, selection.scope)
+        } yield ComponentPackage.Native(discovered)
+      } yield values :+ acquired
     }
+    components = packages.collect { case ComponentPackage.Native(value) => value }
     _ <- _snapshot_uniqueness(components)
-    application <- selection.application match {
-      case ApplicationInput.Acquired(json, expected) => for {
-        projection <- CapabilityApplicationProjectionCodec.decode(json)
-        _ <- _application_observed(expected, projection)
-        admitted <- CapabilityApplicationProjectionCodec.admit(projection, selection.scope, components.flatMap(_.entries.flatMap(_.loaded.projection.capabilities)))
-      } yield admitted
-      case ApplicationInput.Unavailable(value) => Right(ApplicationFamily.Unavailable(value))
-      case ApplicationInput.Rejected(diagnostic) => Left(diagnostic)
-      case null => Left(_malformed("/application", "An explicit Application acquisition is required."))
-    }
-  } yield _candidate(provenance, components, application, selection.useCase)
+    acquired <- _sequence(selection.packages.map(pkg => CapabilityComponentUsageAcquisitionPart.acquire(pkg.expected)))
+    projections = acquired.flatMap(_.family match {
+      case ComponentUsageFamily.Available(projection, _) => Vector(projection)
+      case _: ComponentUsageFamily.Unavailable => Vector.empty
+    })
+    usage <- _sequence(acquired.map { pkg => pkg.family match {
+      case ComponentUsageFamily.Available(projection, _) => CapabilityComponentUsageProjectionCodec.admit(projection, selection.scope,
+        components.flatMap(_.entries.flatMap(_.loaded.projection.capabilities)), projections).map(family => pkg.copy(family = family))
+      case _: ComponentUsageFamily.Unavailable => Right(pkg)
+    } })
+  } yield _candidate(provenance, packages, usage, selection.useCase)
 
   private def _management(prior: State, attempt: Attempt): Either[Diagnostic, Unit] = for {
     _ <- _nonnull(prior, "/state")

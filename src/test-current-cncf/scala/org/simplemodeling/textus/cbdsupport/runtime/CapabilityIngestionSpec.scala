@@ -154,7 +154,7 @@ final class CapabilityIngestionSpec extends AnyWordSpec with Matchers with Given
       } }
     }
     "C11K06 retain distinct Component contexts witnessing one exact Capability" in {
-      Given("C11I-D04/10: separately acquired Components sharing one exact definition and explicit unavailable Application")
+      Given("C11I-D04/10: separately acquired Components sharing one exact definition and explicit unavailable ComponentUsage")
       withDirectory { first => withDirectory { second =>
         val other = component.copy(componentId = ComponentId("org.other.Payments"))
         val othernative = native(other.componentId)
@@ -167,7 +167,7 @@ final class CapabilityIngestionSpec extends AnyWordSpec with Matchers with Given
         candidate.components.map(_.entries.head.loaded.projection.capabilities.head) shouldBe Vector(capability, capability)
         candidate.components.map(_.acquired.input.location) shouldBe Vector(Location.Directory(first), Location.Directory(second))
         candidate.components.map(_.entries.head.realizations.head.snapshot.component) shouldBe Vector(component.componentId, other.componentId)
-        candidate.application shouldBe ApplicationFamily.Unavailable(applicationUnavailable.asInstanceOf[ApplicationInput.Unavailable].value)
+        candidate.usage.map(_.family).foreach(_ shouldBe a[ComponentUsageFamily.Unavailable])
       } }
     }
     "C11K07 preserve original later native/scope failures and reject the whole candidate" in {
@@ -193,8 +193,9 @@ final class CapabilityIngestionSpec extends AnyWordSpec with Matchers with Given
       withDirectory { root => withDirectory { absent =>
         val pkg = selected(root, Vector.empty)
         val base = selection(Vector(pkg))
-        val noprovider = pkg.copy(provider = None)
-        val nullprovider = pkg.copy(provider = Some(null))
+        val resourcepkg = selected(absent, Vector("first.json" -> projection()))
+        val noprovider = resourcepkg.copy(provider = None)
+        val nullprovider = resourcepkg.copy(provider = Some(null))
         val missingroot = pkg.copy(expected = pkg.expected.copy(input = pkg.expected.input.copy(location = Location.Directory(absent.resolve("missing")))))
         When("empty intake, explicit empty package vector and independently missing sources are acquired")
         val empty = right(_ingestion.acquire(base))
@@ -204,66 +205,93 @@ final class CapabilityIngestionSpec extends AnyWordSpec with Matchers with Given
         val rooterror = left(_ingestion.acquire(base.copy(packages = Vector(missingroot))))
         Files.delete(root.resolve(indexPath))
         val indexerror = left(_ingestion.acquire(base))
-        val resourcepkg = selected(root, Vector("first.json" -> projection()))
+        val missingresource = selected(root, Vector("first.json" -> projection()))
         Files.delete(root.resolve(metadataDirectory + "/first.json"))
-        val resourceerror = left(_ingestion.acquire(selection(Vector(resourcepkg))))
+        val resourceerror = left(_ingestion.acquire(selection(Vector(missingresource))))
         Then("only acquired complete empty inputs succeed; missing sources are Unavailable and Some(null) remains malformed")
-        empty.components.head.entries shouldBe Vector.empty
-        empty.components.head.nativeInput.scopeInput shouldBe ScopeInput.Ready(scope)
+        empty.components shouldBe Vector.empty
+        empty.componentPackages.head match {
+          case ComponentPackage.MetadataOnly(acquired) =>
+            acquired.index shouldBe Vector.empty
+            acquired.projections shouldBe Vector.empty
+          case _ => fail("Expected the original metadata-only acquisition.")
+        }
+        pkg.provider.get.asInstanceOf[CountingProvider].reads shouldBe 0
         nopackages.components shouldBe Vector.empty
         Vector(providererror, rooterror, indexerror, resourceerror).map(_.kind) shouldBe Vector.fill(4)(DiagnosticKind.Unavailable)
         malformed.kind shouldBe DiagnosticKind.Malformed
       } }
     }
   }
-  "Independent Application acquisition" should {
-    "C11K09 retain Components only for explicit unavailable optional Application" in {
-      Given("C11I-D07: valid Component intake plus explicit unavailable, malformed, stale or unauthorized Application")
+  "Independent ComponentUsage acquisition" should {
+    "C11K09 retain optional absence and reject present-invalid or unselected Usage" in {
+      Given("C11I-D17: a canonical Component package with an absent optional family and independent explicit expectations")
       withDirectory { root =>
-        val s = CapabilityApplicationProjectionFixtures.scope
-        val input = native(selectedScope = s)
-        val pkg = selected(root, Vector("first.json" -> projection(input)), s, input)
-        val base = selection(Vector(pkg), s)
-        val original = rejected(DiagnosticKind.Unauthorized)
-        val expectation = CapabilityApplicationProjectionFixtures.expectation
-        val stale = expectation.copy(documents = expectation.documents.updated(0, expectation.documents.head.copy(sourceRevision = "old-app")))
-        val invalid = Vector(ApplicationInput.Acquired("{", expectation), ApplicationInput.Acquired(CapabilityApplicationProjectionFixtures.literal, stale), ApplicationInput.Rejected(original))
-        When("the optional unavailable branch and independently acquired failures follow Component success")
-        val accepted = right(_ingestion.acquire(base))
-        val errors = invalid.map(x => left(_ingestion.acquire(base.copy(application = x))))
-        Then("unavailable Application retains valid Components while acquired invalid/stale/unauthorized rejects the full candidate")
+        val selectedscope = CapabilityComponentUsageProjectionFixtures.scope
+        val input = native(selectedScope = selectedscope)
+        val pkg = selected(root, Vector("first.json" -> projection(input)), selectedscope, input)
+        val absent = selection(Vector(pkg), selectedscope)
+        val expected = pkg.copy(expected = pkg.expected.copy(usage = Some(CapabilityComponentUsageProjectionFixtures.expectation)))
+        When("absence is acquired, then the same package supplies malformed and complete present metadata")
+        val accepted = right(_ingestion.acquire(absent))
+        val missing = left(_ingestion.acquire(selection(Vector(expected), selectedscope)))
+        write(root, "meta/component-usage-capability/index.json", """{"schemaVersion":1,"projections":["usage.json"]}""")
+        write(root, CapabilityComponentUsageAcquisitionPart.resourcePath, "{")
+        val invalid = left(_ingestion.acquire(selection(Vector(expected), selectedscope)))
+        val present = withUsage(pkg, CapabilityComponentUsageProjectionFixtures.projection)
+        val unexpected = left(_ingestion.acquire(absent))
+        val observed = right(_ingestion.acquire(selection(Vector(present), selectedscope)))
+        Then("only expected absence is unavailable; missing required, malformed present and unexpected present retain their typed outcomes")
         accepted.components.head.entries.size shouldBe 1
-        accepted.application shouldBe ApplicationFamily.Unavailable(applicationUnavailable.asInstanceOf[ApplicationInput.Unavailable].value)
-        errors.map(_.kind) shouldBe Vector(DiagnosticKind.Malformed, DiagnosticKind.Stale, DiagnosticKind.Unauthorized)
-        errors.last should be theSameInstanceAs original
+        accepted.usage.head.family shouldBe a[ComponentUsageFamily.Unavailable]
+        Vector(missing.kind, invalid.kind, unexpected.kind) shouldBe Vector(DiagnosticKind.Unavailable, DiagnosticKind.Malformed, DiagnosticKind.Incompatible)
+        observed.usage.head.input shouldBe pkg.expected.input
+        observed.usage.head.resourcePath shouldBe "meta/component-usage-capability/usage.json"
+        observed.usage.head.family shouldBe a[ComponentUsageFamily.Available]
       }
     }
-    "C11K10 compare separately selected full Application provenance" in {
-      Given("C11I-D04/05: complete ordered Application headers, independently selected producer and valid empty/app-only documents")
+    "C11K10 compare separately selected full ComponentUsage provenance" in {
+      Given("C11I-D04/05: complete ordered ComponentUsage headers, independently selected producer and valid empty/app-only documents")
       withDirectory { root =>
-        val s = CapabilityApplicationProjectionFixtures.scope
+        val s = CapabilityComponentUsageProjectionFixtures.scope
         val input = native(selectedScope = s)
-        val pkg = selected(root, Vector("first.json" -> projection(input)), s, input)
-        val e = CapabilityApplicationProjectionFixtures.expectation
+        val pkg = withUsage(selected(root, Vector("first.json" -> projection(input)), s, input), CapabilityComponentUsageProjectionFixtures.projection)
+        val e = CapabilityComponentUsageProjectionFixtures.expectation
         val variants = Vector(e.copy(documents = e.documents.take(2)), e.copy(producer = e.producer.copy(version = "other")),
           e.copy(documents = e.documents.updated(0, e.documents.head.copy(path = "models/wrong.cml"))),
           e.copy(documents = e.documents.updated(0, e.documents.head.copy(line = Some(7)))),
           e.copy(documents = e.documents.updated(0, e.documents.head.copy(sourceRevision = "old"))), e.copy(documents = e.documents.reverse),
           e.copy(schemaVersion = 2), e.copy(generatedAbiVersion = "future-abi"))
-        val base = selection(Vector(pkg), s, CapabilityApplicationProjectionFixtures.acquired)
-        When("the full Application is admitted and every independent expected provenance variant is compared")
+        val base = selection(Vector(pkg), s)
+        When("the full ComponentUsage is admitted and every independent expected provenance variant is compared")
         val accepted = right(_ingestion.acquire(base))
-        val errors = variants.map(x => left(_ingestion.acquire(base.copy(application = ApplicationInput.Acquired(CapabilityApplicationProjectionFixtures.literal, x)))))
-        Then("complete Application remains independent while omissions/mismatches/stale/unsupported domains keep their typed outcomes")
+        val errors = variants.map(x => left(_ingestion.acquire(base.copy(packages = Vector(pkg.copy(expected = pkg.expected.copy(usage = Some(x))))))))
+        Then("complete ComponentUsage remains independent while omissions/mismatches/stale/unsupported domains keep their typed outcomes")
         errors.map(_.kind) shouldBe Vector(DiagnosticKind.Malformed, DiagnosticKind.Incompatible, DiagnosticKind.Incompatible, DiagnosticKind.Incompatible,
           DiagnosticKind.Stale, DiagnosticKind.Incompatible, DiagnosticKind.Unsupported, DiagnosticKind.Unsupported)
-        accepted.application match {
-          case ApplicationFamily.Available(p, external) =>
-            p.documents.map(_.applicationCapabilities.size) shouldBe Vector(1, 0, 1)
+        accepted.usage.head.family match {
+          case ComponentUsageFamily.Available(p, external) =>
+            p.documents.map(_.componentUsageCapabilities.size) shouldBe Vector(1, 0, 1)
             p.documents.map(_.source) shouldBe e.documents
             external.size shouldBe 2
-          case _ => fail("Expected independently available Application.")
+          case _ => fail("Expected independently available ComponentUsage.")
         }
+      }
+    }
+    "C11K11 acquire genuine Usage-only metadata without a provider or native realization" in {
+      Given("a canonical empty Component index and owned Usage evidence with independently selected finite facts")
+      withDirectory { root =>
+        val selectedscope = CapabilityComponentUsageProjectionFixtures.scope.copy(capabilities = Vector(capability))
+        val pkg = withUsage(selected(root, Vector.empty, selectedscope), CapabilityComponentUsageProjectionFixtures.projection).copy(provider = None)
+        When("CBD acquires the package through CNCF's metadata-only and Usage facades")
+        val candidate = right(_ingestion.acquire(selection(Vector(pkg), selectedscope)))
+        Then("the actual metadata witness and Usage survive without fabricated native objects, contracts or providers")
+        candidate.components shouldBe Vector.empty
+        candidate.componentPackages.size shouldBe 1
+        candidate.componentPackages.head shouldBe a[ComponentPackage.MetadataOnly]
+        candidate.usage.head.family shouldBe a[ComponentUsageFamily.Available]
+        candidate.provenance.packages.head.resources shouldBe Vector.empty
+        candidate.provenance.packages.head.usage shouldBe pkg.expected.usage
       }
     }
   }

@@ -8,8 +8,8 @@ import ComponentCapabilityAdmissionScope.*
 import ComponentCapabilityProjection.*
 import ComponentCapabilityPackageSource.*
 import CapabilityCatalogModel.*
-import CapabilityApplicationJsonPart.*
-import CapabilityApplicationReferenceJsonPart._model_reference
+import CapabilityComponentUsageJsonPart.*
+import CapabilityComponentUsageReferenceJsonPart._model_reference
 
 /*
  * @since   Oct. 15, 2026

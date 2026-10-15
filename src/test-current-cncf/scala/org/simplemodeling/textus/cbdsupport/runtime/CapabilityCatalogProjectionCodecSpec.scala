@@ -15,7 +15,7 @@ import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
 import CapabilityCatalogFixtures.*
 import CapabilityIngestionFixtures.{right, left}
-import CapabilityApplicationJsonPart._items
+import CapabilityComponentUsageJsonPart._items
 
 /*
  * @since   Oct. 15, 2026
@@ -26,9 +26,28 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
   private val _codec = CapabilityCatalogProjectionCodec
   private val _parser = JawnParser(allowDuplicateKeys = false)
   "Portable catalog semantics" should {
+    "C11C17 retain equal Usage identities in distinct owners and explicit per-package absence" in {
+      Given("three explicit package contexts and repeated Usage identities with no context-free Local Usage dependency")
+      val packages = Vector(packageprojection("Payments", "first"), packageprojection("Orders", "second"), packageprojection("Archive", "third"))
+      val projection = usage.copy(documents = usage.documents.map(doc => doc.copy(componentUsageCapabilities =
+        doc.componentUsageCapabilities.map(_.copy(dependencies = Present(Vector.empty))))))
+      val input = withUsagePackages(assemble(packages, usage = None), Vector(Some(projection), Some(projection), None))
+      When("all selected package families roundtrip through the semantic catalog codec")
+      val result = right(_codec.decode(right(_codec.encode(input, selection(input))), selection(input)))
+      Then("owner/package/resource/source keys retain every witness and unavailable differs from acquired empty content")
+      result.projection shouldBe input
+      result.usages.size shouldBe 4
+      result.usages.map(_.key).distinct.size shouldBe 4
+      result.usages.map(_.key.component) shouldBe Vector.fill(2)(packages(0).input.component) ++ Vector.fill(2)(packages(1).input.component)
+      result.usages.map(_.input) shouldBe Vector.fill(2)(packages(0).input) ++ Vector.fill(2)(packages(1).input)
+      result.usages.map(_.key.resourcePath).distinct shouldBe Vector("meta/component-usage-capability/usage.json")
+      result.projection.usage.last.family shouldBe ComponentUsageFamily.Unavailable(unavailable)
+      result.projection.provenance.packages.map(_.usage.isDefined) shouldBe Vector(true, true, false)
+      result.usages.map(_.definition.component) shouldBe result.usages.map(_.key.component.componentId)
+    }
     "roundtrip complete qualified values and reject ambiguous ownership" which {
       "C11C09 preserve literal Unicode, full contexts, Presence and Source/Origin without native objects" in {
-        Given("a complete composed/decomposed Unicode, case/delimiter carrier with two Components and two Applications")
+        Given("a complete composed/decomposed Unicode, case/delimiter carrier with two Components and two ComponentUsages")
         val sample = Sample("É|É::Case/支払", "contract:Case|v7", 91, 2, 2, 3, false, true)
         val input = generated(sample)
         val selected = selection(input)
@@ -40,15 +59,15 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         result.projection shouldBe input
         result.capabilities.size shouldBe 4
         result.capabilities.map(_.key.context) shouldBe input.packages.flatMap(p => Vector.fill(2)(contextkey(p, p.resources.head)))
-        result.applications.size shouldBe 2
-        result.demandTrace.applicationPaths.size shouldBe 6
+        result.usages.size shouldBe 2
+        result.demandTrace.usagePaths.size shouldBe 6
         result.capabilities.head.definition.identity shouldBe ModelElementId("Model:É|É::Case/支払", "Capability:É|É::Case/支払")
         result.capabilities.head.definition.summary shouldBe Absent(AbsenceReason.NotDeclared, "Absent:É|É::Case/支払")
         result.capabilities.head.realizations.head.edge.origin shouldBe Derived("edge:É|É::Case/支払", Vector(result.capabilities.head.definition.source))
-        result.applications.head.documentSource.sourceRevision shouldBe "app-header:91"
-        result.applications.head.definition.source.sourceRevision shouldBe "app-definition:91"
-        result.applications.head.definition.discoveryReferences shouldBe Absent(AbsenceReason.NotDeclared, "Discovery absent.")
-        json.asObject.get.keys.toVector shouldBe Vector("schemaVersion", "snapshotReference", "provenance", "packages", "application", "useCase")
+        result.usages.head.documentSource.sourceRevision shouldBe "app-header:91"
+        result.usages.head.definition.source.sourceRevision shouldBe "app-definition:91"
+        result.usages.head.definition.discoveryReferences shouldBe Absent(AbsenceReason.NotDeclared, "Discovery absent.")
+        json.asObject.get.keys.toVector shouldBe Vector("schemaVersion", "snapshotReference", "provenance", "packages", "usage", "useCase")
         json.hcursor.downField("packages").downArray.downField("resources").downArray.downField("projection").focus.get.isObject shouldBe true
         encoded should not include "nativeObservations"
         encoded should not include "executionResult"
@@ -56,12 +75,12 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         encoded should not include "selector"
       }
       "C11C10 reject repeated owner keys and ambiguous exact candidates without a winner" in {
-        Given("table-selected semantic carriers repeating resource, declaration, Application, definition or target candidates")
+        Given("table-selected semantic carriers repeating resource, declaration, ComponentUsage, definition or target candidates")
         val baseline = complete
         val resource = baseline.packages.head.resources.head
-        val appprojection = baseline.application.asInstanceOf[ApplicationFamily.Available].projection
+        val appprojection = baseline.usage.head.family.asInstanceOf[ComponentUsageFamily.Available].projection
         val repeatedapp = appprojection.copy(documents = appprojection.documents.updated(0, appprojection.documents.head.copy(
-          applicationCapabilities = appprojection.documents.head.applicationCapabilities ++ appprojection.documents.head.applicationCapabilities)))
+          componentUsageCapabilities = appprojection.documents.head.componentUsageCapabilities ++ appprojection.documents.head.componentUsageCapabilities)))
         val repeatedresource = baseline.copy(packages = baseline.packages.updated(0, baseline.packages.head.copy(resources = Vector(resource, resource))))
         val repeateddeclaration = withresource(baseline, r => r.copy(projection = r.projection.copy(declarations = r.projection.declarations :+ r.projection.declarations.head)))
         val repeateddefinition = withresource(baseline, r => r.copy(resolvedDefinitions = r.resolvedDefinitions :+ r.resolvedDefinitions.head))
@@ -70,7 +89,7 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         val cases = Vector(
           ("resource", repeatedresource, "/meta/component-capability/Payments.json/source", resource.projection.source),
           ("declaration", repeateddeclaration, "/packages/0/resources/0/projection/declarations/2", resource.projection.declarations.head.source),
-          ("Application", withapplication(baseline, repeatedapp), "/application/projection/documents/0/applicationCapabilities/1", appprojection.documents.head.applicationCapabilities.head.source),
+          ("ComponentUsage", withusage(baseline, repeatedapp), "/usage/0/family/projection/documents/0/componentUsageCapabilities/1", appprojection.documents.head.componentUsageCapabilities.head.source),
           ("definition", repeateddefinition, "/packages/0/resources/0/resolvedDefinitions/1", definition.source),
           ("target", repeatedtarget, "/packages/0/targetContracts/3", baseline.packages.head.targetContracts.head.source),
           ("scope candidate", competing, "/packages/0/resources/0/projection/scope/capabilities/1", definition.source))
@@ -123,8 +142,8 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         val retained = right(_codec.decode(right(_codec.encode(external, selection(external))), selection(external)))
         Then("External remains ordered attributed evidence and missing Required alone is a valid unresolved path")
         retained.traceability.head.edge shouldBe externaltrace
-        retained.projection.application.asInstanceOf[ApplicationFamily.Available].unresolvedExternal shouldBe external.application.asInstanceOf[ApplicationFamily.Available].unresolvedExternal
-        catalog(multiplepaths).demandTrace.applicationPaths(2).requiredEndpoint shouldBe RequiredEndpoint.Unresolved(CapabilityReference(ModelElementId("model:component", "no-required"), "no-required:v13"), ReferenceBoundary.Local)
+        retained.projection.usage.head.family.asInstanceOf[ComponentUsageFamily.Available].unresolvedExternal shouldBe external.usage.head.family.asInstanceOf[ComponentUsageFamily.Available].unresolvedExternal
+        catalog(multiplepaths).demandTrace.usagePaths(2).requiredEndpoint shouldBe RequiredEndpoint.Unresolved(CapabilityReference(ModelElementId("model:component", "no-required"), "no-required:v13"), ReferenceBoundary.Local)
       }
       "C11C12 preserve owner/target mismatch kinds, field paths and independent Stale provenance" in {
         Given("explicit owner, target identity/Component/kind/contract/ABI mismatches and ambiguous target candidates")
@@ -174,7 +193,7 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         duplicate.location shouldBe "/packages/0/targetContracts/3"
       }
       "C11C13 preserve every independent opaque version and reject malformed or unsupported wire fields" in {
-        Given("independent schema, record, source, producer, component, package, definition, target, ABI and Application versions")
+        Given("independent schema, record, source, producer, component, package, definition, target, ABI and ComponentUsage versions")
         val input = generated(Sample("Case::É|É", "definition:opaque/v29", 177, 1, 1, 3, true, false))
         val selected = selection(input)
         When("the complete portable projection roundtrips")
@@ -189,7 +208,7 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         result.capabilities.head.definition.contractVersion shouldBe "definition:opaque/v29"
         result.capabilities.head.realizations.head.target.contractVersion shouldBe "target:OPERATION:190"
         result.capabilities.head.realizations.head.target.generatedAbiVersion shouldBe "native-abi:OPERATION:Case::É|É"
-        result.applications.head.definition.contractVersion shouldBe "app:definition:opaque/v29"
+        result.usages.head.definition.contractVersion shouldBe "app:definition:opaque/v29"
         Given("closed internal JSON keys/tags and strictly integral positive Long management revisions")
         val json = _parser.parse(encoded).toOption.get
         val cases = Vector(
@@ -232,17 +251,17 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
         result.compatibility.size shouldBe 1
       }
       "C11C16 actively roundtrip generated semantic carriers with at least one hundred successes and zero discards" in {
-        Given("valid-by-construction carriers varying qualified Unicode/case/delimiters, independent versions/sources/origins, Presence, Components, Applications, mappings and one to three target kinds")
+        Given("valid-by-construction carriers varying qualified Unicode/case/delimiters, independent versions/sources/origins, Presence, Components, ComponentUsages, mappings and one to three target kinds")
         val samples = for {
           token <- Gen.oneOf("É|Case::A", "É|case::a", "支払/契約", "Cap:cap|#")
           contract <- Gen.oneOf("contract:opaque/7", "VERSION|lower", "version:É")
           revision <- Gen.choose(1, 9999)
           componentcount <- Gen.choose(1, 3)
-          appcount <- Gen.choose(1, 3)
+          usagecount <- Gen.choose(1, 3)
           targetcount <- Gen.choose(1, 3)
           present <- Gen.oneOf(true, false)
           repeated <- Gen.oneOf(true, false)
-        } yield Sample(token, contract, revision, componentcount, appcount, targetcount, present, repeated)
+        } yield Sample(token, contract, revision, componentcount, usagecount, targetcount, present, repeated)
         When("ScalaCheck executes the full semantic roundtrip with a minimum of 100 successes and explicit zero-discard assertions")
         val checked = Test.check(Test.Parameters.default.withMinSuccessfulTests(100), Prop.forAll(samples) { (sample: Sample) =>
           Given("one generated complete valid semantic carrier with its independently selected finite provenance")
@@ -258,14 +277,14 @@ final class CapabilityCatalogProjectionCodecSpec extends AnyWordSpec with Matche
           result.capabilities.size shouldBe sample.componentcount * 2
           result.capabilities.map(_.realizations.size) shouldBe Vector.fill(sample.componentcount)(Vector(sample.targetcount, 0)).flatten
           result.capabilities.flatMap(_.realizations).map(_.owner) shouldBe expectedkeys.filter(_.declaration.direction == Direction.Provided).flatMap(k => Vector.fill(sample.targetcount)(k))
-          result.applications.size shouldBe sample.appcount
-          result.demandTrace.applicationPaths.size shouldBe sample.appcount * (if (sample.repeated) 3 else 2)
-          result.demandTrace.applicationPaths.filter(_.mapping.boundary == ReferenceBoundary.Local).map(_.requiredEndpoint) shouldBe
-            Vector.fill(sample.appcount * (if (sample.repeated) 2 else 1))(RequiredEndpoint.Resolved(expectedrequired))
-          result.demandTrace.applicationPaths.map(_.mapping) shouldBe result.applications.flatMap(a => _items(a.definition.componentMappings))
+          result.usages.size shouldBe sample.usagecount
+          result.demandTrace.usagePaths.size shouldBe sample.usagecount * (if (sample.repeated) 3 else 2)
+          result.demandTrace.usagePaths.filter(_.mapping.boundary == ReferenceBoundary.Local).map(_.requiredEndpoint) shouldBe
+            Vector.fill(sample.usagecount * (if (sample.repeated) 2 else 1))(RequiredEndpoint.Resolved(expectedrequired))
+          result.demandTrace.usagePaths.map(_.mapping) shouldBe result.usages.flatMap(a => _items(a.definition.componentMappings))
           result.capabilities.head.definition.source.sourceRevision shouldBe "definition:" + sample.revision
-          result.applications.head.documentSource.sourceRevision shouldBe "app-header:" + sample.revision
-          result.applications.head.definition.source.sourceRevision shouldBe "app-definition:" + sample.revision
+          result.usages.head.documentSource.sourceRevision shouldBe "app-header:" + sample.revision
+          result.usages.head.definition.source.sourceRevision shouldBe "app-definition:" + sample.revision
           result.demandTrace.useCase shouldBe usecase
           true
         })

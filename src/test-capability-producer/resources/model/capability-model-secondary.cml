@@ -1,9 +1,10 @@
 # CAPABILITY-MODEL
 compatibility = {"state":"ABSENT","reason":"NotRepresented","detail":"Compatibility unavailable in this document."}
 
-## APPLICATION-CAPABILITY
-### Remote application
-identity = {"modelId":"Other:能力/B","elementId":"Application:Remote"}
+## COMPONENT-USAGE-CAPABILITY
+### Remote usage
+component = {"namespace":"org.simplemodeling.textus","id":"Remote"}
+identity = {"modelId":"Other:能力/B","elementId":"ComponentUsage:Remote"}
 contractVersion = "app:v1"
 name = "Remote"
 summary = {"state":"ABSENT","reason":"NotDeclared","detail":"No summary declared."}

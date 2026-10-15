@@ -9,7 +9,7 @@ import ComponentCapabilityProjection.*
 import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
 import CapabilityCatalogFixtures.*
-import CapabilityApplicationJsonPart._items
+import CapabilityComponentUsageJsonPart._items
 
 /*
  * @since   Oct. 15, 2026
@@ -74,52 +74,53 @@ final class CapabilityCatalogModelSpec extends AnyWordSpec with Matchers with Gi
       }
     }
   }
-  "Complete Application and demand facts" should {
+  "Complete ComponentUsage and demand facts" should {
     "preserve every authored branch and owned path" which {
       "C11C04 retain complete documents, Presence, dependencies and External evidence" in {
-        Given("a complete separately admitted three-document Application including an empty document, Present(empty), Absent and external links")
+        Given("a complete separately admitted three-document ComponentUsage including an empty document, Present(empty), Absent and external links")
         val input = complete
-        val original = input.application.asInstanceOf[ApplicationFamily.Available]
-        When("the catalog binds complete Application semantics")
+        val original = input.usage.head.family.asInstanceOf[ComponentUsageFamily.Available]
+        When("the catalog binds complete ComponentUsage semantics")
         val result = catalog(input)
         Then("complete ordered documents, full definitions and external Source/Origin/location values remain unchanged")
-        result.projection.application shouldBe original
-        original.projection.documents.map(_.source) shouldBe application.documents.map(_.source)
-        original.projection.documents(1).applicationCapabilities shouldBe Vector.empty
-        result.applications.map(_.definition) shouldBe application.documents.flatMap(_.applicationCapabilities)
-        result.applications.map(_.documentSource) shouldBe Vector(application.documents.head.source, application.documents(2).source)
-        result.applications.head.key shouldBe ApplicationContextKey(sourcekey(application.documents.head.source),
-          ApplicationCapabilityReference(application.documents.head.applicationCapabilities.head.identity, "app-v17"))
-        result.applications.head.definition.summary shouldBe Absent(AbsenceReason.NotDeclared, "Summary undeclared.")
-        result.applications(1).definition.componentMappings shouldBe Present(Vector.empty)
-        _items(result.applications.head.definition.dependencies).size shouldBe 2
-        _items(result.applications.head.definition.componentMappings).size shouldBe 2
-        result.projection.application.asInstanceOf[ApplicationFamily.Available].unresolvedExternal shouldBe original.unresolvedExternal
+        result.projection.usage shouldBe input.usage
+        original.projection.documents.map(_.source) shouldBe usage.documents.map(_.source)
+        original.projection.documents(1).componentUsageCapabilities shouldBe Vector.empty
+        result.usages.map(_.definition) shouldBe usage.documents.flatMap(_.componentUsageCapabilities)
+        result.usages.map(_.documentSource) shouldBe Vector(usage.documents.head.source, usage.documents(2).source)
+        result.usages.head.key shouldBe ComponentUsageCapabilityContextKey(input.provenance.scope.scopeId, input.packages.head.input.component,
+          input.packages.head.input.packageCoordinate, "meta/component-usage-capability/usage.json", sourcekey(usage.documents.head.source),
+          ComponentUsageCapabilityReference(usage.documents.head.componentUsageCapabilities.head.identity, "app-v17"))
+        result.usages.head.definition.summary shouldBe Absent(AbsenceReason.NotDeclared, "Summary undeclared.")
+        result.usages(1).definition.componentMappings shouldBe Present(Vector.empty)
+        _items(result.usages.head.definition.dependencies).size shouldBe 2
+        _items(result.usages.head.definition.componentMappings).size shouldBe 2
+        result.projection.usage.head.family.asInstanceOf[ComponentUsageFamily.Available].unresolvedExternal shouldBe original.unresolvedExternal
         original.unresolvedExternal.map(_.target) should contain (ExternalTarget.ComponentCapability(CapabilityReference(ModelElementId("external:cap", "É::cap"), "external-v6")))
       }
       "C11C05 retain repeated mappings, every matching Required context and explicit missing endpoints" in {
-        Given("two owning Applications, repeated genuine mapping edges, two Required contexts, a definition without Required and an External mapping")
+        Given("two owning ComponentUsages, repeated genuine mapping edges, two Required contexts, a definition without Required and an External mapping")
         val input = multiplepaths
         When("each original mapping derives its own exact Required endpoint")
         val result = catalog(input)
-        val paths = result.demandTrace.applicationPaths
+        val paths = result.demandTrace.usagePaths
         val required = result.capabilities.filter(_.declaration.direction == Direction.Required).map(_.key)
         Then("only exact Local Required keys join and every missing or External endpoint stays explicit")
         paths.size shouldBe 5
         required.size shouldBe 2
-        paths.map(_.owner) shouldBe Vector.fill(4)(result.applications.head.key) :+ result.applications(1).key
+        paths.map(_.owner) shouldBe Vector.fill(4)(result.usages.head.key) :+ result.usages(1).key
         paths(0).requiredEndpoint shouldBe RequiredEndpoint.Resolved(required)
         paths(1) shouldBe paths(0)
         paths(2).requiredEndpoint shouldBe RequiredEndpoint.Unresolved(CapabilityReference(ModelElementId("model:component", "no-required"), "no-required:v13"), ReferenceBoundary.Local)
         paths(3).requiredEndpoint shouldBe RequiredEndpoint.Unresolved(CapabilityReference(ModelElementId("external:cap", "É::cap"), "external-v6"), ReferenceBoundary.External)
         paths(4).requiredEndpoint shouldBe RequiredEndpoint.Resolved(required)
-        paths.map(_.mapping) shouldBe result.applications.flatMap(a => _items(a.definition.componentMappings))
+        paths.map(_.mapping) shouldBe result.usages.flatMap(a => _items(a.definition.componentMappings))
       }
       "C11C06 keep each provider realization attached to its own declaration" in {
         Given("two distinct Provided declarations in distinct Component contexts with different explicit target identities")
         val packages = Vector(packageprojection("Payments", "first", targetcount = 1, bothdirections = false),
           packageprojection("Orders", "second", targetcount = 1, bothdirections = false))
-        val input = assemble(packages, app = None)
+        val input = assemble(packages, usage = None)
         When("the catalog derives resource-local owned realization vectors")
         val result = catalog(input)
         Then("the two vectors contain exactly their own edge and target and no cross-attached combinations")
@@ -134,22 +135,22 @@ final class CapabilityCatalogModelSpec extends AnyWordSpec with Matchers with Gi
         val input = complete
         When("the semantic demand trace is derived")
         val result = catalog(input)
-        Then("forward demand stays unavailable while all original reverse links and Application paths survive")
+        Then("forward demand stays unavailable while all original reverse links and ComponentUsage paths survive")
         result.demandTrace.useCase shouldBe usecase
         result.projection.provenance.useCase shouldBe usecase
         result.demandTrace.useCase.family shouldBe ProjectionFamily.UseCase
         result.demandTrace.useCase.reason shouldBe "not-yet-admitted"
-        result.demandTrace.application shouldBe input.application
-        _items(result.applications.head.definition.demandReferences).map(_.role) shouldBe Vector(ModelRole.Goal, ModelRole.UseCase, ModelRole.Scenario, ModelRole.UseCaseSlice)
-        result.demandTrace.applicationPaths.head.requiredEndpoint shouldBe RequiredEndpoint.Resolved(Vector(result.capabilities(1).key))
-        result.demandTrace.applicationPaths.size shouldBe 2
+        result.demandTrace.usage shouldBe input.usage
+        _items(result.usages.head.definition.demandReferences).map(_.role) shouldBe Vector(ModelRole.Goal, ModelRole.UseCase, ModelRole.Scenario, ModelRole.UseCaseSlice)
+        result.demandTrace.usagePaths.head.requiredEndpoint shouldBe RequiredEndpoint.Resolved(Vector(result.capabilities(1).key))
+        result.demandTrace.usagePaths.size shouldBe 2
       }
     }
   }
   "Attributed Specification and Evidence" should {
     "remain separate from runtime observations" which {
       "C11C08 keep each role and owner while all four observations stay distinctly Unknown" in {
-        Given("independent definition, declaration and Application Specification/Evidence edges and statically resolved targets")
+        Given("independent definition, declaration and ComponentUsage Specification/Evidence edges and statically resolved targets")
         val input = complete
         When("the catalog attributes original per-owner traceability and creates static observation values")
         val result = catalog(input)
@@ -158,8 +159,8 @@ final class CapabilityCatalogModelSpec extends AnyWordSpec with Matchers with Gi
         Then("the six role-bearing edges retain exact owners/source/origin/boundary and imply no positive runtime fact")
         traces.map(_.edge.role) shouldBe Vector.fill(3)(Vector(TraceabilityRole.Specification, TraceabilityRole.Evidence)).flatten
         traces.map(_.owner) shouldBe Vector.fill(2)(TraceabilityOwner.CapabilityDefinition(result.resources.head.key, reference(definition))) ++
-          Vector.fill(2)(TraceabilityOwner.Declaration(owner.key)) ++ Vector.fill(2)(TraceabilityOwner.Application(result.applications.head.key))
-        traces.map(_.edge) shouldBe _items(definition.traceability) ++ _items(owner.declaration.traceability) ++ _items(result.applications.head.definition.traceability)
+          Vector.fill(2)(TraceabilityOwner.Declaration(owner.key)) ++ Vector.fill(2)(TraceabilityOwner.ComponentUsage(result.usages.head.key))
+        traces.map(_.edge) shouldBe _items(definition.traceability) ++ _items(owner.declaration.traceability) ++ _items(result.usages.head.definition.traceability)
         traces.map(_.edge.target.boundary) shouldBe Vector.fill(6)(ReferenceBoundary.Local)
         owner.realizations.map(_.observations.availability) shouldBe Vector.fill(3)(AvailabilityObservation.Unknown("No runtime observation supplied."))
         owner.realizations.map(_.observations.authorization) shouldBe Vector.fill(3)(AuthorizationObservation.Unknown("No runtime observation supplied."))

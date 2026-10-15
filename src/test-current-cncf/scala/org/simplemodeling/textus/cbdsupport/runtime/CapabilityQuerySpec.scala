@@ -12,7 +12,7 @@ import CapabilityIngestionModel.*
 import CapabilityCatalogModel.*
 import CapabilityQueryModel.*
 import CapabilityQueryFixtures.*
-import CapabilityApplicationJsonPart._items
+import CapabilityComponentUsageJsonPart._items
 
 /*
  * @since   Oct. 15, 2026
@@ -73,8 +73,8 @@ final class CapabilityQuerySpec extends AnyWordSpec with Matchers with GivenWhen
           "/query/capability/identity/modelId" -> (() => failure(query.getCapability(CapabilityLookup.Exact(reference.copy(identity = reference.identity.copy(modelId = "")))))),
           "/query/capability/identity/elementId" -> (() => failure(query.findProviders(reference.copy(identity = reference.identity.copy(elementId = ""))))),
           "/query/capability/contractVersion" -> (() => failure(query.findProviders(reference.copy(contractVersion = "")))),
-          "/query/application/identity/modelId" -> (() => failure(query.traceApplicationCapability(applicationReference.copy(identity = applicationReference.identity.copy(modelId = ""))))),
-          "/query/application/contractVersion" -> (() => failure(query.traceApplicationCapability(applicationReference.copy(contractVersion = "")))),
+          "/query/usage/identity/modelId" -> (() => failure(query.traceComponentUsageCapability(usageReference.copy(identity = usageReference.identity.copy(modelId = ""))))),
+          "/query/usage/contractVersion" -> (() => failure(query.traceComponentUsageCapability(usageReference.copy(contractVersion = "")))),
           "/query/component/version" -> (() => failure(query.findRequirements(key.context.component.copy(version = "")))),
           "/query/useCase/elementId" -> (() => failure(query.traceUseCaseDemand(ModelElementId("model:facts", "")))),
           "/query/search" -> (() => failure(query.getCapability(CapabilityLookup.Search("")))),
@@ -283,10 +283,10 @@ final class CapabilityQuerySpec extends AnyWordSpec with Matchers with GivenWhen
           val matchcount = if (compatible) sample.providercount else 0
           val expectedwitnesses = input.packages.flatMap(p => p.resources.flatMap(r => _items(r.projection.compatibility)
             .map(CompatibilityRecord(CapabilityCatalogFixtures.contextkey(p, r), _))))
-          When("open admits the full carrier and queries its providers and original Application paths")
+          When("open admits the full carrier and queries its providers and original ComponentUsage paths")
           val query = session(input)
           val search = CapabilityQueryFixtures.value(query.findProviders(required))
-          val traced = CapabilityQueryFixtures.value(query.traceApplicationCapability(applicationReference))
+          val traced = CapabilityQueryFixtures.value(query.traceComponentUsageCapability(usageReference))
           Then("sample-derived exact/directed cardinalities, original witnesses and own realization isolation hold")
           search.candidates.size shouldBe candidatecount
           search.matches.size shouldBe matchcount

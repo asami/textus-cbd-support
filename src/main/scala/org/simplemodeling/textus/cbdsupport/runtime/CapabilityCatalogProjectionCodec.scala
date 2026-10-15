@@ -3,7 +3,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 import io.circe.jawn.JawnParser
 import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScope.Diagnostic
 import CapabilityCatalogModel.*
-import CapabilityApplicationJsonPart.*
+import CapabilityComponentUsageJsonPart.*
 
 /*
  * @since   Oct. 15, 2026

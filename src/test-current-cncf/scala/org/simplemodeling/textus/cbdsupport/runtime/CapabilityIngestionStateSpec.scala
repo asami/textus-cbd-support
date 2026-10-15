@@ -25,11 +25,11 @@ final class CapabilityIngestionStateSpec extends AnyWordSpec with Matchers with 
         val thirdref = snapshot("third:logical:snapshot", 23)
         val diagnostic = rejected(DiagnosticKind.Unauthorized)
         val first = attempt("attempt:first", selectedinput, firstref)
-        val second = attempt("attempt:second", selectedinput.copy(application = ApplicationInput.Rejected(diagnostic)), snapshot("rejected:snapshot", 17))
+        val second = attempt("attempt:second", selectedinput, snapshot("rejected:snapshot", 17))
         val third = attempt("attempt:third", selectedinput, thirdref)
         When("the three attempts are ingested as successive pure state values")
         val accepted = right(_ingestion.ingest(State.empty, first))
-        val rejectedtransition = right(_ingestion.ingest(accepted.state, second))
+        val rejectedtransition = right(_ingestion.transition(accepted.state, second, Left(diagnostic)))
         val later = right(_ingestion.ingest(rejectedtransition.state, third))
         val missingreference = _ingestion.ingest(later.state, third.copy(reference = null))
         Then("only complete acceptance changes current, rejection retains original selection/Diagnostic, and invalid management cannot record an attempt")
@@ -147,7 +147,7 @@ final class CapabilityIngestionStateSpec extends AnyWordSpec with Matchers with 
           _package_change_(pkg.copy(resources = Vector(resource.copy(source = resource.source.copy(sourceRevision = "stale"))))),
           _package_change_(pkg.copy(resources = Vector(resource.copy(schemaVersion = 2)))),
           p.copy(packages = Vector.empty),
-          p.copy(application = ApplicationProvenance.Unavailable(UnavailableUpstreamProjection(ProjectionFamily.Application, "different", "Different observed availability."))))
+          _package_change_(pkg.copy(usage = Some(CapabilityComponentUsageProjectionFixtures.expectation))))
         When("the exact selection and every changed structured expectation are used for current reads")
         val current = right(_ingestion.readCurrent(state, CurrentSelection(ref, p, Right(()))))
         val referenceerror = left(_ingestion.readCurrent(state, CurrentSelection(snapshot("other", 3), p, Right(()))))
@@ -176,27 +176,27 @@ final class CapabilityIngestionStateSpec extends AnyWordSpec with Matchers with 
         state.current shouldBe Some(ref)
       }
     }
-    "C11S06 retain honestly unavailable forward UseCase demand alongside authored Application links" in {
-      Given("C11I-D07: publicly acquired Component plus independently available full Application with authored demand and mapping edges")
+    "C11S06 retain honestly unavailable forward UseCase demand alongside authored ComponentUsage links" in {
+      Given("C11I-D07: publicly acquired Component plus independently available full ComponentUsage with authored demand and mapping edges")
       withDirectory { root =>
-        val s = CapabilityApplicationProjectionFixtures.scope
+        val s = CapabilityComponentUsageProjectionFixtures.scope
         val input = native(selectedScope = s)
-        val selectedinput = selection(Vector(selected(root, Vector("first.json" -> projection(input)), s, input)), s, CapabilityApplicationProjectionFixtures.acquired)
-        val ref = snapshot("with:application", 8)
+        val selectedinput = selection(Vector(withUsage(selected(root, Vector("first.json" -> projection(input)), s, input), CapabilityComponentUsageProjectionFixtures.projection)), s)
+        val ref = snapshot("with:usage", 8)
         When("the complete all-family candidate is ingested and explicitly selected")
-        val state = right(_ingestion.ingest(State.empty, attempt("a:application", selectedinput, ref))).state
+        val state = right(_ingestion.ingest(State.empty, attempt("a:usage", selectedinput, ref))).state
         val stored = right(_ingestion.readHistorical(state, ref))
-        Then("forward UseCase remains not-yet-admitted with its positive path unexercised and Application authored directions intact")
+        Then("forward UseCase remains not-yet-admitted with its positive path unexercised and ComponentUsage authored directions intact")
         stored.useCase shouldBe useCase
         stored.useCase.family shouldBe ProjectionFamily.UseCase
         stored.useCase.reason shouldBe "not-yet-admitted"
         stored.useCase.detail shouldBe "Positive forward UseCase demand path remains unexercised."
-        stored.application match {
-          case ApplicationFamily.Available(p, _) =>
-            CapabilityApplicationJsonPart._items(CapabilityApplicationProjectionFixtures.app(p).demandReferences).size shouldBe 4
-            CapabilityApplicationJsonPart._items(CapabilityApplicationProjectionFixtures.app(p).componentMappings).head.target shouldBe
+        stored.usage.head.family match {
+          case ComponentUsageFamily.Available(p, _) =>
+            CapabilityComponentUsageJsonPart._items(CapabilityComponentUsageProjectionFixtures.usageDefinition(p).demandReferences).size shouldBe 4
+            CapabilityComponentUsageJsonPart._items(CapabilityComponentUsageProjectionFixtures.usageDefinition(p).componentMappings).head.target shouldBe
               org.goldenport.cncf.component.capability.ComponentCapabilityProjection.CapabilityReference(capability.identity, capability.contractVersion)
-          case _ => fail("Expected original available Application alongside unavailable UseCase.")
+          case _ => fail("Expected original available ComponentUsage alongside unavailable UseCase.")
         }
       }
     }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "producer": {
     "id": "cozy",
     "version": "${PRODUCER_VERSION}"
@@ -116,7 +116,6 @@
         }
       }
     ],
-    "applicationContracts": [],
     "componentContracts": [
       {
         "identity": {
@@ -203,7 +202,8 @@
           "line": null
         }
       }
-    ]
+    ],
+    "usageContracts": []
   },
   "contexts": [
     {
@@ -281,6 +281,24 @@
           },
           "filename": "Store.json"
         }
+      ],
+      "usageCapabilities": [
+        {
+          "kind": "COMPONENT_USAGE",
+          "identity": {
+            "modelId": "Model:能力/A",
+            "elementId": "ComponentUsage:One"
+          },
+          "contractVersion": "app:v1"
+        },
+        {
+          "kind": "COMPONENT_USAGE",
+          "identity": {
+            "modelId": "Model:能力/A",
+            "elementId": "ComponentUsage:Two"
+          },
+          "contractVersion": "app:v1"
+        }
       ]
     },
     {
@@ -307,6 +325,30 @@
             }
           },
           "filename": "Archive.json"
+        }
+      ],
+      "usageCapabilities": []
+    },
+    {
+      "component": {
+        "namespace": "org.simplemodeling.textus",
+        "id": "UsageOnly",
+        "version": "1.2.3-SNAPSHOT"
+      },
+      "package": {
+        "coordinate": "pkg:UsageOnly|日本語",
+        "version": "package:r9"
+      },
+      "path": "target/bundles/UsageOnly",
+      "resources": [],
+      "usageCapabilities": [
+        {
+          "kind": "COMPONENT_USAGE",
+          "identity": {
+            "modelId": "Model:能力/A",
+            "elementId": "ComponentUsage:Independent"
+          },
+          "contractVersion": "app:v1"
         }
       ]
     }
@@ -356,6 +398,5 @@
       ],
       "objectName": "Archive${SUFFIX}Metadata"
     }
-  ],
-  "applicationOutput": "target/products/application.json"
+  ]
 }

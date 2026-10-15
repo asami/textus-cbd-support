@@ -1,7 +1,76 @@
 # Capability Ingestion Design
 
-Status: settled architecture; CAP-11-01 accepted
+Status: CAP-11-PKG01 accepted after focused validation and independent whole-Step conformance; Phase acceptance pending.
 Scope: PHASE-11 / CAP-11-01 / S01-consumer-contract + S02-ingestion-kernel + S03-real-producer-interoperability
+
+## Current Step acceptance — 2026-10-15
+
+The current Component-owned Usage implementation and real Directory/normal CAR
+consumer query path are accepted after focused validation and independent
+whole-Step conformance; see
+[CAP-11-PKG01 acceptance](../phase/phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+This acceptance supersedes earlier pending/authored-only annotations only for
+CAP-11-PKG01. The existing normative text and historical records below remain
+preserved. Participant own PKG01/Phase acceptance, full validation, reviews and
+releases, CBD full Phase review/release and authorized Cozy main integration
+remain pending. CBD aggregate full-suite validation remains deferred-not-run to
+Phase 11.1; no successor acceptance is established.
+
+## CAP-11-PKG01 current authored responsibility flow — 2026-10-15
+
+The [current ingestion contract](../spec/capability-ingestion-contract.md#cap-11-pkg01-current-authored-contract--2026-10-15)
+now implements per-Component Usage. Selection/Provenance contain scope, ordered
+packages and the unavailable UseCase family. Each package independently selects
+optional Usage producer/schema/ABI and ordered document Source expectations.
+None means expected absence; supplied malformed/incompatible content rejects the
+whole candidate. Public CNCF `ComponentFactory.acquireUsageCapabilities` owns
+Directory/CAR acquisition and supplies the original content/input/resource witness.
+CBD's `CapabilityComponentUsageAcquisitionPart` compares semantic ownership and
+expectations and delegates strict decoding/binding; it performs no filesystem,
+ZIP, descriptor, process or duplicate transport checks.
+
+```text
+ordered explicit package selections
+  -> nonempty Component resources: original public native discovery/provider
+  -> empty Component resources: public package load, empty index/projections
+       -> ordered Native/MetadataOnly ComponentPackage witnesses
+  -> public optional Usage acquisition for every selected package
+       -> exact owner/envelope/package/header checks + complete selected binding
+       -> ordered ComponentUsagePackage Available/Unavailable witnesses
+  -> complete immutable candidate -> accepted Snapshot or original rejection
+```
+
+Candidate derives its native-only components vector once from componentPackages.
+MetadataOnly keeps its original acquired package without a fake native input,
+provider, declaration or Discovered. Usage has schema 1 and
+cozy.component-usage-capability.v1, explicit ComponentId owners and separate
+Component/package coordinates. Qualified model identity, opaque contract/source/
+producer/release/package/ABI domains, Presence and every edge Source/Origin remain
+independent. Local binding considers the complete finite selected Component and
+Usage candidate set and preserves ambiguity; External evidence remains unresolved
+and attributed. Current/history transitions preserve their existing authority.
+
+Normal Test generation uses schema-2 requests, owner-partitioned Store (One/Two),
+UsageOnly (Independent, resources=[], no Scala output/provider), Archive (no Usage)
+and Remote. First/Second remain independent; fifth primary Contracts with
+header:primary-r46 generates StoreContractsMetadata/ArchiveContractsMetadata from
+empty Usage selections and unchanged native contracts/contexts. Eight accessors
+flow through ordinary Scala 3 compilation. Full canonical images alone enter
+source-free intake. Actual normal package-car uses the same First Store/Remote
+images; codec inspection uses the public acquired witness. The updated
+[producer suite](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityProducerIntegrationSpec.scala)
+and [CAR query proof](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityQueryProducerIntegrationSpec.scala)
+are authored pending parent validation, fresh independent Step conformance and
+separate participant/Phase acceptance. No producer is executed merely to read
+metadata, and no runtime procedure, release or main merge is claimed.
+
+## Historical baseline and authoring record
+
+The remaining sections preserve the original CAP-11-01/02/03 designs, dated
+authoring decisions and acceptance history. Old Application descriptions, old
+module signatures and earlier suite/case counts describe those prior boundaries;
+they are superseded for current implementation by CAP-11-PKG01 above and do not
+claim acceptance of changed current inputs or provide compatibility behavior.
 
 The [consumer contract](../spec/capability-ingestion-contract.md) owns all
 C11I-D01–16 decisions. This design explains their settled responsibility flow.
@@ -18,6 +87,29 @@ supersedes those states only for CAP-11-01. Participant acceptance/Phase closure
 CAP-11-02/03 and full CBD Phase closure remain outstanding; CBD full-suite validation
 is deferred-not-run to Phase 11.1. Forward UseCase demand remains not-yet-admitted,
 and Phase 14 failed Job behavior remains unaccepted.
+
+## Directory/CAR acquisition amendment — 2026-10-15
+
+The [Component Usage adoption contract](../spec/component-usage-capability-adoption.md)
+replaces Application semantics/ownership and the earlier external JSON delivery.
+The reviewed Component owns its image and both distinct metadata families.
+
+```text
+Cozy source / validated Usage model with explicit Component ownership
+  -> Component-partitioned Directory image -> CNCF acquisition -> CBD Usage codec
+                         |
+                 normal CAR packaging
+                         v
+                        CAR -------------> CNCF acquisition -> CBD Usage codec
+```
+
+Component Capability keeps its own native discovery/admission and deductive
+contract model. Usage evidence and mappings are separate inductive records;
+co-location does not merge their semantics. Develop directly against Directory.
+The new source/wire, codec, catalog, query and generated APIs change together.
+Delete old symbols with no aliases, forwarders or old-format readers so stale
+typed calls fail compilation. Earlier accepted sections below describe the
+historical implementation, not supported compatibility paths.
 
 ## Accepted upstream entry points and separate families
 

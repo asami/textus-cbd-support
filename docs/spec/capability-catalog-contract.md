@@ -1,11 +1,102 @@
 # Capability Catalog and Attributed Trace Model Contract
 
-Status: CAP-11-02 accepted after focused validation and independent whole-Step review.
+Status: CAP-11-PKG01 accepted after focused validation and independent whole-Step conformance; Phase acceptance pending.
 Scope: PHASE-11 / CAP-11-02 / S01-catalog-contract and S02-catalog-implementation
+
+## Current Step acceptance — 2026-10-15
+
+The current Component-owned Usage implementation and real Directory/normal CAR
+consumer query path are accepted after focused validation and independent
+whole-Step conformance; see
+[CAP-11-PKG01 acceptance](../phase/phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+This acceptance supersedes earlier pending/authored-only annotations only for
+CAP-11-PKG01. The existing normative text and historical records below remain
+preserved. Participant own PKG01/Phase acceptance, full validation, reviews and
+releases, CBD full Phase review/release and authorized Cozy main integration
+remain pending. CBD aggregate full-suite validation remains deferred-not-run to
+Phase 11.1; no successor acceptance is established.
+
+## CAP-11-PKG01 current authored contract — 2026-10-15
+
+`CapabilityCatalog.fromSnapshot` consumes the original selected accepted Snapshot.
+It traverses ordered `componentPackages`: Native contributes original resource
+projections, resolved definitions/target facts and retained native observations;
+MetadataOnly contributes an explicit PackageProjection with empty targetContracts
+and resources. It rereads no provider and constructs no native object. Portable
+semantic decoding establishes neither acquisition nor a Snapshot.
+
+The full `ComponentUsageCapabilityContextKey` is `(scopeId, component,
+packageCoordinate, resourcePath, document: SourceKey, reference:
+ComponentUsageCapabilityReference)`. Component and package include their independent
+versions; SourceKey retains authority/path/revision and Source retains its optional
+line. `ComponentUsageCapabilityRecord(key,input,documentSource,definition)` keeps
+the original selected Directory/CAR input and explicit owner. Equal model/version
+references in distinct owners/packages/resources remain distinct records, never
+text-deduplicated. Each attributed `ComponentUsageRequirementPath` starts at that
+full key and one original mapping, then keeps every exact Required declaration
+witness. External unresolved endpoints remain evidence; a Local unresolved mapping
+cannot create a Required declaration. Provided/Required and Usage remain separate
+model families; reverse Usage links cannot produce forward UseCase demand.
+
+The closed internal schema stays 1 with top keys `schemaVersion`,
+`snapshotReference`, `provenance`, `packages`, `usage`, `useCase`. Provenance has
+exactly `scope`, `packages`, `useCase`; each PackageExpectation has `input`,
+`resources`, `usage`. That last key is JSON null for selected absence or the
+complete ComponentUsageExpectation object (producer/schema/ABI/documents).
+The top `usage` is an ordered array with one `{input,resourcePath,family}` object
+per selected package, including absence. Family is AVAILABLE with its complete
+embedded current Usage projection and unresolvedExternal, or UNAVAILABLE with
+its original unavailable value. The family tag is COMPONENT_USAGE and the
+external reference tag is COMPONENT_USAGE_CAPABILITY. No old Application key,
+provenance branch, alias, dual reader or automatic conversion remains. All present
+Usage semantics, selected ownership and complete finite Local references are
+validated by the current strict Usage codec against the full selected set.
+
+Presence, Source/Origin, exact owner keys, independent versions, compatibility
+witnesses and ordered many-to-many paths roundtrip. Native procedures, live
+observations and derived execution/admission flags have no portable encoder.
+Availability, Authorization, Guard and ExecutionResult retain four independent
+Unknown observations. The existing deductive `cncf.component-capability.v1`
+contract and explicit directed compatibility remain unchanged.
+
+[C11C17](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityCatalogProjectionCodecSpec.scala)
+roundtrips repeated equal Usage references in distinct owner contexts and explicit
+per-package absence. Updated C11C01–16 retain original semantics and the active
+C11C16 minimum-100/zero-discard property.
+[C11C15](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityCatalogProducerIntegrationSpec.scala)
+uses real Store/Remote/UsageOnly Directory products, original native objects,
+full package/resource/source keys and a metadata-only package with no provider.
+[C11Q27](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityQueryProducerIntegrationSpec.scala)
+consumes normal CARs from the same First images and compares catalog/query meaning
+while preserving different acquisition locations. This is authored implementation
+pending parent validation, fresh independent Step conformance and separate Phase
+acceptance; historical counts/reviews below do not accept these changed inputs.
+
+## Historical baseline and authoring record
+
+The remaining sections preserve the original CAP-11-01/02/03 designs, dated
+authoring decisions and acceptance history. Old Application descriptions, old
+module signatures and earlier suite/case counts describe those prior boundaries;
+they are superseded for current implementation by CAP-11-PKG01 above and do not
+claim acceptance of changed current inputs or provide compatibility behavior.
 
 The S01 authoring statements and future-case tables below retain their dated
 scope. The S02 sections freeze and record the now-authored implementation and
 executable scenarios; they claim no executed result or independent acceptance.
+
+## Current Component Usage adoption — 2026-10-15
+
+The [Component Usage adoption contract](component-usage-capability-adoption.md)
+supersedes Application-family names, ownership, wire and query APIs in the
+baseline below. The Usage family is inductive and Component-owned, separate
+from the deductive Component contract. Implement the naming map, explicit owner
+context and source/mapping provenance through this document's original semantic
+operations; do not flatten either family or derive provider contracts from usage.
+Delete old symbols instead of retaining aliases or forwarding APIs. Stale typed
+call sites must fail compilation; update fixtures/portable data with the producer.
+CAP-11-PKG01 owns the pending migration and focused acceptance. Earlier accepted
+case counts, module signatures and review history describe the old implementation
+and do not claim new acceptance or authorize backward compatibility.
 
 ## Authority and accepted ingestion handoff
 

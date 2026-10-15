@@ -9,17 +9,19 @@ import CapabilityIngestionModel.*
 /*
  * Literal hand-authored full wire conformance; normal Cozy proof remains owed.
  * @since   Oct. 14, 2026
- * @version Oct. 14, 2026
+ * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
-private[runtime] object CapabilityApplicationProjectionFixtures {
+private[runtime] object CapabilityComponentUsageProjectionFixtures {
   val literal: String = """{
-    "schemaVersion":1,"generatedAbiVersion":"cozy.application-capability.v1",
+    "schemaVersion":1,"generatedAbiVersion":"cozy.component-usage-capability.v1",
     "producer":{"id":"cozy","version":"producer-v31"},
+    "component":{"namespace":"org.example","id":"Payments","version":"3.7.0-SNAPSHOT"},
+    "package":{"coordinate":"package:kernel","version":"package-v21"},
     "documents":[
       {"source":{"modelAuthority":"model:app","path":"models/app.cml","sourceRevision":"header-A","line":null},
-       "applicationCapabilities":[{
-        "kind":"APPLICATION","identity":{"modelId":"model:app","elementId":"É|É::支払/1"},
+       "componentUsageCapabilities":[{
+        "kind":"COMPONENT_USAGE","component":{"namespace":"org.example","id":"Payments"},"identity":{"modelId":"model:app","elementId":"É|É::支払/1"},
         "contractVersion":"app-v17","name":"支払 \"É\" \\ É | #",
         "summary":{"state":"ABSENT","reason":"NotDeclared","detail":"Summary undeclared."},
         "description":{"state":"ABSENT","reason":"NotRepresented","detail":"Description not represented."},
@@ -44,8 +46,8 @@ private[runtime] object CapabilityApplicationProjectionFixtures {
           {"target":{"kind":"COMPONENT","identity":{"modelId":"external:cap","elementId":"É::cap"},"contractVersion":"external-v6"},"boundary":"EXTERNAL","source":{"modelAuthority":"model:app","path":"edges/mapping.cml","sourceRevision":"mapping-r42","line":21},"origin":{"kind":"DERIVED","ruleId":"external-rule","inputs":[{"modelAuthority":"foreign:input","path":"foreign/input.cml","sourceRevision":"input-v8","line":7}]}}
         ]},
         "dependencies":{"state":"PRESENT","value":[
-          {"target":{"kind":"APPLICATION","identity":{"modelId":"model:aux","elementId":"aux"},"contractVersion":"aux-v2"},"boundary":"LOCAL","source":{"modelAuthority":"model:app","path":"edges/dependency.cml","sourceRevision":"dependency-r51","line":null},"origin":{"kind":"DECLARED"}},
-          {"target":{"kind":"APPLICATION","identity":{"modelId":"external:app","elementId":"aux"},"contractVersion":"external-v9"},"boundary":"EXTERNAL","source":{"modelAuthority":"model:app","path":"edges/dependency.cml","sourceRevision":"dependency-r52","line":null},"origin":{"kind":"DECLARED"}}
+          {"target":{"kind":"COMPONENT_USAGE","identity":{"modelId":"model:aux","elementId":"aux"},"contractVersion":"aux-v2"},"boundary":"LOCAL","source":{"modelAuthority":"model:app","path":"edges/dependency.cml","sourceRevision":"dependency-r51","line":null},"origin":{"kind":"DECLARED"}},
+          {"target":{"kind":"COMPONENT_USAGE","identity":{"modelId":"external:app","elementId":"aux"},"contractVersion":"external-v9"},"boundary":"EXTERNAL","source":{"modelAuthority":"model:app","path":"edges/dependency.cml","sourceRevision":"dependency-r52","line":null},"origin":{"kind":"DECLARED"}}
         ]},
         "grounding":{"state":"PRESENT","value":[
           {"target":{"kind":"MODEL","identity":{"modelId":"model:facts","elementId":"concept"}},"boundary":"LOCAL",
@@ -66,9 +68,9 @@ private[runtime] object CapabilityApplicationProjectionFixtures {
           {"role":"EVIDENCE","target":{"identity":{"modelId":"model:facts","elementId":"evidence"},"boundary":"LOCAL"},"source":{"modelAuthority":"model:app","path":"edges/trace.cml","sourceRevision":"trace-r72","line":41},"origin":{"kind":"DECLARED"}}
         ]}
        }]},
-      {"source":{"modelAuthority":"model:empty","path":"models/empty.cml","sourceRevision":"header-empty","line":13},"applicationCapabilities":[]},
-      {"source":{"modelAuthority":"model:aux","path":"models/aux.cml","sourceRevision":"header-aux","line":null},"applicationCapabilities":[{
-        "kind":"APPLICATION","identity":{"modelId":"model:aux","elementId":"aux"},"contractVersion":"aux-v2","name":"Auxiliary",
+      {"source":{"modelAuthority":"model:empty","path":"models/empty.cml","sourceRevision":"header-empty","line":13},"componentUsageCapabilities":[]},
+      {"source":{"modelAuthority":"model:aux","path":"models/aux.cml","sourceRevision":"header-aux","line":null},"componentUsageCapabilities":[{
+        "kind":"COMPONENT_USAGE","component":{"namespace":"org.example","id":"Payments"},"identity":{"modelId":"model:aux","elementId":"aux"},"contractVersion":"aux-v2","name":"Auxiliary",
         "summary":{"state":"PRESENT","value":"Aux summary."},"description":{"state":"PRESENT","value":"Aux description."},
         "source":{"modelAuthority":"model:aux","path":"models/aux.cml","sourceRevision":"definition-aux","line":7},
         "demandReferences":{"state":"PRESENT","value":[]},"discoveryReferences":{"state":"PRESENT","value":[]},
@@ -77,8 +79,8 @@ private[runtime] object CapabilityApplicationProjectionFixtures {
       }]}
     ]}"""
   val json: Json = JawnParser(allowDuplicateKeys = false).parse(literal).fold(e => throw new IllegalArgumentException(e.toString), identity)
-  def projection: ApplicationProjection = CapabilityIngestionFixtures.right(CapabilityApplicationProjectionCodec.decode(literal))
-  val appPath: Vector[String] = Vector("documents", "0", "applicationCapabilities", "0")
+  def projection: ComponentUsageProjection = CapabilityIngestionFixtures.right(CapabilityComponentUsageProjectionCodec.decode(literal))
+  val usagePath: Vector[String] = Vector("documents", "0", "componentUsageCapabilities", "0")
   def update(value: Json, path: Vector[String])(change: Json => Json): Json = if (path.isEmpty) change(value) else {
     val head = path.head
     value.asObject match {
@@ -87,22 +89,21 @@ private[runtime] object CapabilityApplicationProjectionFixtures {
     }
   }
   def changed(path: Vector[String], value: Json): String = update(json, path)(_ => value).noSpaces
-  def app(value: ApplicationProjection): ApplicationDefinition = value.documents.head.applicationCapabilities.head
-  def withApp(value: ApplicationProjection, definition: ApplicationDefinition): ApplicationProjection =
-    value.copy(documents = value.documents.updated(0, value.documents.head.copy(applicationCapabilities = Vector(definition))))
+  def usageDefinition(value: ComponentUsageProjection): ComponentUsageDefinition = value.documents.head.componentUsageCapabilities.head
+  def withUsage(value: ComponentUsageProjection, definition: ComponentUsageDefinition): ComponentUsageProjection =
+    value.copy(documents = value.documents.updated(0, value.documents.head.copy(componentUsageCapabilities = Vector(definition))))
   val scope: Scope = {
     val facts = Vector("goal" -> ModelKind.Goal, "usecase" -> ModelKind.UseCase, "scenario" -> ModelKind.Scenario, "slice" -> ModelKind.UseCaseSlice,
       "component" -> ModelKind.Component, "spec" -> ModelKind.Specification, "evidence" -> ModelKind.Evidence, "concept" -> ModelKind.DomainConcept)
-    def source(authority: String): Source = Source(authority, "facts/selected.cml", "fact-r88", None)
+    def _source_(authority: String): Source = Source(authority, "facts/selected.cml", "fact-r88", None)
     CapabilityIngestionFixtures.scope.copy(
-      modelFacts = facts.map((id, kind) => ModelFact(ModelElementId("model:facts", id), kind, source("model:facts"))),
-      termFacts = Vector(TermFact(TermId("vocab:語彙", "term|É"), source("vocab:語彙"))),
-      relationFacts = Vector(RelationFact(RelationId("vocab:relation", "relation::1"), source("vocab:relation"))),
-      profileFacts = Vector(ProfileFact(ProfileId("vocab:profile", "profile/1"), source("vocab:profile"))))
+      modelFacts = facts.map((id, kind) => ModelFact(ModelElementId("model:facts", id), kind, _source_("model:facts"))),
+      termFacts = Vector(TermFact(TermId("vocab:語彙", "term|É"), _source_("vocab:語彙"))),
+      relationFacts = Vector(RelationFact(RelationId("vocab:relation", "relation::1"), _source_("vocab:relation"))),
+      profileFacts = Vector(ProfileFact(ProfileId("vocab:profile", "profile/1"), _source_("vocab:profile"))))
   }
-  def expectation: ApplicationExpectation = {
+  def expectation: ComponentUsageExpectation = {
     val p = projection
-    ApplicationExpectation(p.producer, p.schemaVersion, p.generatedAbiVersion, p.documents.map(_.source))
+    ComponentUsageExpectation(p.producer, p.schemaVersion, p.generatedAbiVersion, p.documents.map(_.source))
   }
-  def acquired: ApplicationInput = ApplicationInput.Acquired(literal, expectation)
 }

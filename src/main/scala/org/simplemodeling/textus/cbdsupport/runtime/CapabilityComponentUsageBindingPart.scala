@@ -4,20 +4,20 @@ import org.goldenport.cncf.component.capability.ComponentCapabilityAdmissionScop
 import org.goldenport.cncf.component.capability.ComponentCapabilityReference.*
 import org.goldenport.cncf.component.capability.ComponentCapabilityProjection.CapabilityDefinition
 import CapabilityIngestionModel.*
-import CapabilityApplicationJsonPart.*
+import CapabilityComponentUsageJsonPart.*
 
 /*
  * @since   Oct. 14, 2026
  * @version Oct. 15, 2026
  * @author  ASAMI, Tomoharu
  */
-private[runtime] object CapabilityApplicationBindingPart {
+private[runtime] object CapabilityComponentUsageBindingPart {
   private final case class VersionCandidate(identity: ModelElementId, kind: ModelKind, version: String)
-  def _bind(projection: ApplicationProjection, scope: Scope, components: Vector[CapabilityDefinition]): Either[Diagnostic, Vector[ExternalReference]] = {
-    val applications = projection.documents.flatMap(_.applicationCapabilities)
+  def _bind(projection: ComponentUsageProjection, scope: Scope, components: Vector[CapabilityDefinition], selectedUsage: Vector[ComponentUsageProjection]): Either[Diagnostic, Vector[ExternalReference]] = {
+    val usages = selectedUsage.flatMap(_.documents.flatMap(_.componentUsageCapabilities))
     val componentdefinitions = scope.capabilities ++ components
     val versioned = componentdefinitions.map(x => VersionCandidate(x.identity, ModelKind.ComponentCapability, x.contractVersion)) ++
-      applications.map(x => VersionCandidate(x.identity, ModelKind.ApplicationCapability, x.contractVersion))
+      usages.map(x => VersionCandidate(x.identity, ModelKind.ComponentUsageCapability, x.contractVersion))
     // Kind presence collapses versions; explicit scope facts remain independent candidates.
     val inferred = versioned.map(x => x.identity -> x.kind).distinct
     val models = scope.modelFacts.map(x => x.identity -> x.kind) ++ inferred
@@ -55,15 +55,15 @@ private[runtime] object CapabilityApplicationBindingPart {
       val p = s"$path/$i/target"
       _boundary_(x.target.boundary, ExternalTarget.Model(x.target.identity), x.source, x.origin, p)(_model_(x.target.identity, Set(_role_(x.role)), p))
     }
-    val checks = projection.documents.zipWithIndex.flatMap { (doc, i) => doc.applicationCapabilities.zipWithIndex.flatMap { (app, k) =>
-      val path = s"/documents/$i/applicationCapabilities/$k"
+    val checks = projection.documents.zipWithIndex.flatMap { (doc, i) => doc.componentUsageCapabilities.zipWithIndex.flatMap { (app, k) =>
+      val path = s"/documents/$i/componentUsageCapabilities/$k"
       val mapping = _items(app.componentMappings).zipWithIndex.map { (x, n) =>
         val p = s"$path/componentMappings/value/$n/target"
         _boundary_(x.boundary, ExternalTarget.ComponentCapability(x.target), x.source, x.origin, p)(_version_(x.target.identity, ModelKind.ComponentCapability, x.target.contractVersion, p))
       }
       val dependency = _items(app.dependencies).zipWithIndex.map { (x, n) =>
         val p = s"$path/dependencies/value/$n/target"
-        _boundary_(x.boundary, ExternalTarget.ApplicationCapability(x.target), x.source, x.origin, p)(_version_(x.target.identity, ModelKind.ApplicationCapability, x.target.contractVersion, p))
+        _boundary_(x.boundary, ExternalTarget.ComponentUsageCapability(x.target), x.source, x.origin, p)(_version_(x.target.identity, ModelKind.ComponentUsageCapability, x.target.contractVersion, p))
       }
       val trace = _items(app.traceability).zipWithIndex.map { (x, n) =>
         val p = s"$path/traceability/value/$n/target"

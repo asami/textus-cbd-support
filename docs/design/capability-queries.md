@@ -1,7 +1,63 @@
 # Capability Queries and Demand Diagnosis Design
 
-Status: CAP-11-03 accepted after focused validation, independent whole-Step review and mechanical naming closure.
+Status: CAP-11-PKG01 accepted after focused validation and independent whole-Step conformance; Phase acceptance pending.
 Scope: PHASE-11 / CAP-11-03 / S02-query-implementation
+
+## Current Step acceptance — 2026-10-15
+
+The current Component-owned Usage implementation and real Directory/normal CAR
+consumer query path are accepted after focused validation and independent
+whole-Step conformance; see
+[CAP-11-PKG01 acceptance](../phase/phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+This acceptance supersedes earlier pending/authored-only annotations only for
+CAP-11-PKG01. The existing normative text and historical records below remain
+preserved. Participant own PKG01/Phase acceptance, full validation, reviews and
+releases, CBD full Phase review/release and authorized Cozy main integration
+remain pending. CBD aggregate full-suite validation remains deferred-not-run to
+Phase 11.1; no successor acceptance is established.
+
+## CAP-11-PKG01 current authored query flow — 2026-10-15
+
+The [current query contract](../spec/capability-query-contract.md#cap-11-pkg01-current-authored-contract--2026-10-15)
+uses traceComponentUsageCapability, ComponentUsageCapabilityReference,
+DemandSelection.ComponentUsage, ComponentUsageTrace and ComponentUsageRequirementPath.
+Session still opens only through the selected catalog validator; original source
+Left remains a source failure. Catalog retains separate deductive Component
+contracts and inductive owned Usage records with full Component/package/resource/
+source/version keys. The exact Usage trace selects every matching owner context
+and retains original mapping -> Required -> compatible Provided -> own realization
+nesting. No old API forwarding or serialized conversion remains.
+
+Availability is per selected package. No Available Usage yields typed unavailable
+trace and a MissingComponentUsageCapabilityProjection diagnosis retaining all
+original package families with ProjectionNotSupplied. With any Available family,
+no exact reference gives finite empty trace; diagnosis uses ProjectionNotSupplied
+when another family is unavailable, otherwise AbsentSelectedReference. Available
+empty content differs from absence. Matching owners stay traceable despite an
+unavailable sibling package. Missing Usage creates no downstream facts or gaps.
+The other six gaps, exact opaque/directed compatibility and distinct Specification/
+Evidence coverage keep their existing semantics. All four runtime dimensions stay
+Unknown. Unavailable forward UseCase remains not-yet-admitted despite reverse links.
+
+[C11Q26](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityDemandDiagnosisSpec.scala)
+authors mixed availability and equal-reference owner isolation; C11Q24 remains an
+active generated minimum100-success/zero-discard property.
+[C11Q25/C11Q27](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityQueryProducerIntegrationSpec.scala)
+consume real Store/Remote/UsageOnly Directory products, normal primary Contracts
+Store/Archive multiple-provider products and CARs normally packaged from the same
+First Store/Remote images. Comparison covers meaning-bearing Usage definitions,
+source/version, mappings, Required/provider witnesses and gaps while preserving
+Directory versus CAR locations and original native instances without activation.
+These authored clauses await parent validation, independent Step conformance and
+separate Phase acceptance; earlier counts/signatures/acceptance below are historical.
+
+## Historical baseline and authoring record
+
+The remaining sections preserve the original CAP-11-01/02/03 designs, dated
+authoring decisions and acceptance history. Old Application descriptions, old
+module signatures and earlier suite/case counts describe those prior boundaries;
+they are superseded for current implementation by CAP-11-PKG01 above and do not
+claim acceptance of changed current inputs or provide compatibility behavior.
 
 The [query contract](../spec/capability-query-contract.md) freezes C11Q-D01–16,
 all nine original criteria and all 25 authored behavioral obligations. This design
@@ -26,6 +82,16 @@ and trace unadmitted and unexercised. Whole-Phase review/local release,
 participant own closures, authorized later Cozy main integration and successor
 execution retain their separate obligations. CBD aggregate full-suite validation
 remains deferred-not-run to Phase 11.1.
+
+## Current Usage model correction — 2026-10-15
+
+Apply the [Component Usage adoption](../spec/component-usage-capability-adoption.md)
+to this baseline architecture. Replace the old Application family with the
+Component-owned inductive Usage model, retaining attributed many-to-many paths
+and separate deductive contracts. Include Component/package acquisition ownership
+in Usage contexts. Remove old typed API names rather than forwarding them; compile
+errors expose missed callers. The implementation/signature sections below retain
+historical evidence until CAP-11-PKG01 supplies revised implementation/acceptance.
 
 ## Selected readout and immutable query session — C11Q-D01–03
 

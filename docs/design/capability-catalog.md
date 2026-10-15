@@ -1,7 +1,68 @@
 # Capability Catalog and Attributed Trace Model Design
 
-Status: CAP-11-02 accepted after focused validation and independent whole-Step review.
+Status: CAP-11-PKG01 accepted after focused validation and independent whole-Step conformance; Phase acceptance pending.
 Scope: PHASE-11 / CAP-11-02 / S01-catalog-contract and S02-catalog-implementation
+
+## Current Step acceptance — 2026-10-15
+
+The current Component-owned Usage implementation and real Directory/normal CAR
+consumer query path are accepted after focused validation and independent
+whole-Step conformance; see
+[CAP-11-PKG01 acceptance](../phase/phase-11.md#cap-11-pkg01-acceptance--2026-10-15).
+This acceptance supersedes earlier pending/authored-only annotations only for
+CAP-11-PKG01. The existing normative text and historical records below remain
+preserved. Participant own PKG01/Phase acceptance, full validation, reviews and
+releases, CBD full Phase review/release and authorized Cozy main integration
+remain pending. CBD aggregate full-suite validation remains deferred-not-run to
+Phase 11.1; no successor acceptance is established.
+
+## CAP-11-PKG01 current authored responsibility flow — 2026-10-15
+
+The [current catalog contract](../spec/capability-catalog-contract.md#cap-11-pkg01-current-authored-contract--2026-10-15)
+keeps original accepted Snapshot ownership. Native ComponentPackage values provide
+original Discovered entries and live native observations; MetadataOnly provides
+an explicit empty-resource/empty-target PackageProjection from the original
+acquired package. Catalog capture/portable decode reread no provider, acquire no
+source and serialize no native procedure.
+
+The owner key for an inductive Usage record is the complete
+ComponentUsageCapabilityContextKey(scopeId, component, packageCoordinate,
+resourcePath, document SourceKey, versioned reference). Records also retain the
+original selected input and document Source. Equal model references across
+Components/packages remain separate witnesses. Their attributed mappings form
+ComponentUsageRequirementPath values with every exact matching Required
+DeclarationRecordKey, then query matching extends only those known branches to
+compatible Provided owners and those owners' own realizations. External
+unresolved evidence and Local unresolved endpoints remain distinct. Usage never
+becomes a deductive contract or inferred forward UseCase demand.
+
+Portable schema 1 has ordered packages and per-package usage objects
+(input/resourcePath/family). Provenance keeps scope/packages/useCase and each
+package's nullable Usage expectation. Available contains the complete current
+Usage envelope and external evidence; Unavailable retains the explicit family
+absence. Strict binding compares selected ownership/headers and the complete
+finite Component/Usage candidate set. Metadata-only packages carry no invented
+targets; source, Presence, independent versions and all ordered edges roundtrip.
+Four independent runtime observations remain Unknown. Old Application APIs and
+wire keys have been removed rather than supported alongside the current form.
+
+[C11C17](../../src/test-current-cncf/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityCatalogProjectionCodecSpec.scala)
+adds owner-context/per-package-absence roundtrip; C11C16 retains active minimum100
+successes/zero discards. The
+[real catalog suite](../../src/test-capability-producer/scala/org/simplemodeling/textus/cbdsupport/runtime/CapabilityCatalogProducerIntegrationSpec.scala)
+now consumes Store/Remote/UsageOnly normal Directory images, keeping original
+native instances and genuine no-provider UsageOnly. Normal CAR semantic/catalog/
+query equivalence from the same First Store/Remote images is covered by C11Q27,
+retaining different PackageInput locations. These are authored clauses pending
+parent validation, independent Step conformance and separate Phase acceptance.
+
+## Historical baseline and authoring record
+
+The remaining sections preserve the original CAP-11-01/02/03 designs, dated
+authoring decisions and acceptance history. Old Application descriptions, old
+module signatures and earlier suite/case counts describe those prior boundaries;
+they are superseded for current implementation by CAP-11-PKG01 above and do not
+claim acceptance of changed current inputs or provide compatibility behavior.
 
 The original S01 pending/authoring prose below describes that historical Slice.
 The S02 section records the fully frozen carrier/API implementation and its
@@ -16,6 +77,16 @@ APIs. The accepted [ingestion contract](../spec/capability-ingestion-contract.md
 provide the prerequisite. The [Phase checklist](../phase/phase-11-checklist.md)
 retains acceptance ownership; the [repository rules](../rules/repository-rules.md)
 apply to identity and assurance.
+
+## Current Usage model correction — 2026-10-15
+
+Apply the [Component Usage adoption](../spec/component-usage-capability-adoption.md)
+to this baseline architecture. Replace the old Application family with the
+Component-owned inductive Usage model, retaining attributed many-to-many paths
+and separate deductive contracts. Include Component/package acquisition ownership
+in Usage contexts. Remove old typed API names rather than forwarding them; compile
+errors expose missed callers. The implementation/signature sections below retain
+historical evidence until CAP-11-PKG01 supplies revised implementation/acceptance.
 
 ## Accepted Snapshot to original Entry view to typed records
 

@@ -82,3 +82,23 @@ Do not recommend generic rollback/dual-write/migration machinery solely to keep
 a breaking change in the Normal Update path. Reclassification to Maintenance
 Update is a valid and preferred simplification when backward compatibility
 cannot reasonably be preserved.
+
+## CNCF authorization chokepoint review
+
+Authorization review assumes CNCF already owns two enforcement boundaries:
+Operation authorization and Entity/object authorization at internal DSL ->
+UnitOfWork. CBD Support does not require application Actions to add duplicate
+authorize calls.
+
+Review focuses on architectural escapes and regressions:
+
+- ordinary Entity access bypassing the internal DSL/UoW chokepoint;
+- public/generated paths reaching EntityStore/DataStore directly;
+- external input selecting ServiceInternal/System access mode;
+- internal-service delegation widening results beyond the caller's admitted
+  authority without an explicit bounded proxy contract;
+- search/list/batch/relation paths that return objects not visible under the UoW
+  authorization policy.
+
+Static evidence does not prove the absence of BOLA/IDOR. Connected executable
+CNCF scenarios remain the primary assurance for enforcement behavior.

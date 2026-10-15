@@ -51,6 +51,8 @@ lazy val root = project
     version := CbdSupportProjectYamlBuild.version(projectIdentityEvidence.value),
     scalaVersion := CbdSupportProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "build.scalaVersion"),
     useCoursier := false,
+    Test / fork := true,
+    Test / parallelExecution := false,
 
     resolvers += Resolver.defaultLocal,
     resolvers += Resolver.file("Local Ivy", file(Path.userHome.absolutePath + "/.ivy2/local"))(Resolver.ivyStylePatterns),

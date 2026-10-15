@@ -40,10 +40,10 @@ records and supplies no new acceptance evidence.
 - [Phase 11](phase-11.md) — closed Capability ingestion, catalog, queries and
   read-only Component Usage demand-to-realization traceability
   (DEV-CBD-003); [checklist](phase-11-checklist.md).
-- [Phase 11.1](phase-11.1.md) — planned Capability views, Web/MCP consistency
+- [Phase 11.1](phase-11.1.md) — closed Capability views, Web/MCP consistency
   and real producer/consumer acceptance (DEV-CBD-003);
-  [checklist](phase-11.1-checklist.md). Final full-SBT validation owner for
-  the serial `11 -> 11.1` split; focused/review/release gates remain per Phase.
+  [checklist](phase-11.1-checklist.md). Completed aggregate full-SBT validation
+  for the serial `11 -> 11.1` split with independent acceptance and local release.
 - [Phase 12](phase-12.md) — planned Interactive View and Model Editing,
   including Use Case Slice, Specification and Ticket trace editing;
   relocated from the remote Phase 11 proposal;
@@ -58,11 +58,13 @@ records and supplies no new acceptance evidence.
 
 The [Phase 11/12 local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 records the imported refinements, current integration points and unverified
-upstream inputs. Phase 11 is closed; the next documented execution boundary is
-Phase 11.1, then the unchanged Phase 12. Phase 11.1 remains planned/not started
-and owns the deferred full validation for the Capability sequence. See the
+upstream inputs. Phases 11 and 11.1 are closed; the next documented execution
+boundary is the unchanged, planned Phase 12. Phase 11.1 completed the aggregate
+full-validation obligation for the Capability sequence. See the
 [Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
-for the accepted ComponentUsage amendment, participant inputs and exact handoff.
+for its original deferred handoff and the
+[Phase 11.1 closure](phase-11.1.md#current-phase-closure-and-successor-handoff--2026-10-16)
+for the accepted views/surfaces, explicit demand limitation and final release.
 
 The 2026-10-07 planning addition appends Phase 14 after Phase 13 without
 changing existing Phase numbers, acceptance histories or the Phase 11 Goal.

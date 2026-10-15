@@ -13,7 +13,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /** Controlled reader fixtures, not actual Cozy execution or AI evidence.
  * @since   Oct.  4, 2026
- * @version Oct.  4, 2026
+ * @version Oct. 16, 2026
  */
 final class InternalModelEndToEndReadinessSpec
     extends AnyWordSpec with Matchers with GivenWhenThen with ScalaCheckPropertyChecks {
@@ -165,7 +165,7 @@ final class InternalModelEndToEndReadinessSpec
     val output = work.resolve("stdout.json")
     val errors = work.resolve("stderr.txt")
     Files.writeString(script, _probe_source, StandardCharsets.UTF_8)
-    val builder = new ProcessBuilder("/Users/asami/bin/uv", "run", "--no-cache", "--managed-python",
+    val builder = new ProcessBuilder("uv", "run", "--no-cache", "--managed-python",
       "--no-python-downloads", "--script", script.toString,
       repository.resolve("scripts/test/run-internal-model-end-to-end-session.py").toString, mode, cut.toString)
     builder.directory(work.toFile)

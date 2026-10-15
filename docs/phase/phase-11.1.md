@@ -1,6 +1,6 @@
 # Phase 11.1 - Capability Views, Web/MCP, and Acceptance
 
-status=planned
+status=closed
 split_full_test_policy=final-only
 split_full_validation_method=sbt-full-suite
 split_validation_bootstrap=none
@@ -11,7 +11,7 @@ depends_on=phase-11.md
 successor=phase-12.md
 
 Stage Status:
-- Current status: PLANNED / NOT STARTED
+- Current status: CLOSED
 - Predecessor: Phase 11
 - Successor: Phase 12
 - Development item: DEV-CBD-003
@@ -32,13 +32,46 @@ availability contract without redefining upstream semantics.
 
 | ID | Outcome | Status |
 | --- | --- | --- |
-| CAP-11-04 | Capability overview/detail and demand-to-realization/evidence views | planned |
-| CAP-11-05 | Consistent Web/MCP/API semantics and real producer/consumer acceptance | planned |
+| CAP-11-04 | Capability overview/detail and demand-to-realization/evidence views | Step accepted and committed |
+| CAP-11-05 | Consistent Web/MCP/API semantics and real producer/consumer acceptance | Step accepted and committed |
 
-The [checklist](phase-11.1-checklist.md) retains the original unchecked items.
+The [checklist](phase-11.1-checklist.md) records verified Step outcomes and the
+final Phase closure record.
 CAP-11-01–03 belong only to the predecessor. Phase 12 consumes this final
 Capability presentation/acceptance handoff before interactive editing; its
 identity and independent closure criteria are unchanged.
+
+## Current Step acceptance — 2026-10-16
+
+CAP-11-04 is accepted at local commit
+`10ed60450a520da1e066cd3a9445be1eca45f606`; CAP-11-05 is accepted at
+`e487f7d47f0fae490247a347050df861f6ada8cb`. Both received independent Step
+review, and CAP-11-05's three review blockers were independently resolved.
+The selected demand branch is unavailable: positive forward UseCase producer
+integration remains unexercised. The real Component producer Directory/CAR
+scenario and native API/MCP/form parity passed; no synthetic fixture is claimed
+as that producer acceptance.
+
+## Current Phase closure and successor handoff — 2026-10-16
+
+Phase 11.1 closes CAP-11-04–05 and completes DEV-CBD-003's serial
+`PHASE-11 -> PHASE-11.1` delivery. The committed Phase 11 deferred-validation
+handoff and accepted ancestry were verified. The aggregate full SBT gate
+passed on the repaired program tree. The sole comprehensive Phase review and
+the subsequent independent focused repair reviews have no current blockers.
+Accepted nonblocking Hygiene remains in the canonical follow-up journal.
+
+The distinct local release is identified by
+`Phase-Closure-Binding: cbd111-phase-closure-20261016-01@1`; this prepared
+closure becomes effective with that verified release commit. Native command,
+review and closure receipts remain local execution evidence, outside Git.
+The checklist records the authoritative completed conditions.
+
+The successor is the unchanged, planned Phase 12. This invocation starts no
+Phase 12, 13 or 14 work. Positive forward UseCase demand integration remains
+unavailable under the original conditional acceptance branch; live composed
+SAR and CLI/HTTP help, manual and OpenAPI runtime routes remain unexercised.
+These limits do not imply Capability execution or authorization.
 
 ## Package route dependency — 2026-10-15
 

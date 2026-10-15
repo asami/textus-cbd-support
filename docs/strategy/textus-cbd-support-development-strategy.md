@@ -133,11 +133,14 @@ integrated into its canonical main; CNCF Phase 78 is released on its dedicated
 branch. Their separate full-validation results remain separate from CBD's
 deferred full validation.
 
-DEV-CBD-003 remains partially complete: Phase 11.1 owns CAP-11-04–05, public
-Capability views/Web/MCP consistency and final-only full-SBT validation for
-`PHASE-11 -> PHASE-11.1`. Phase 11.1 remains PLANNED / NOT STARTED. The accepted
-ComponentUsage internal contract retains explicit owners/evidence and distinct
+DEV-CBD-003 is closed by Phase 11.1's CAP-11-04–05 acceptance, shared read-only
+Capability views, consistent native Web/MCP/API surfaces and aggregate full-SBT
+validation for `PHASE-11 -> PHASE-11.1`. Its distinct local release retains
+the sole full Phase review and accepted focused closure repairs. The accepted
+ComponentUsage contract preserves explicit owners/evidence and distinct
 Component contracts; forward UseCase positive demand remains unavailable.
+See the [Phase 11.1 closure](../phase/phase-11.1.md#current-phase-closure-and-successor-handoff--2026-10-16).
+The next documented execution boundary is the unchanged Phase 12.
 Phases 12, 13 and 14 remain planned, and transferred Job runtime remains
 unaccepted. The dated planning sections below retain their original position.
 
@@ -237,7 +240,7 @@ are authoritative in `docs/phase/phase-9.md`,
 | --- | --- | --- | --- | --- | --- |
 | DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions; Phase 9 also establishes the Canonical Component Design Model and stakeholder/engineering projection architecture without turning inference into fact. | ACCEPTED_PHASE_WORK | Phase 9 | CLOSED |
 | DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Phase 9 semantic state, Use Case Realization, candidate design, semantic diff, and CML projection work. | ACCEPTED_PHASE_WORK | Phase 10 sequence (10–10.7), per canonical Phase 10.7 closure | CLOSED |
-| DEV-CBD-003 | `docs/journal/2026/09/2026-09-16-capability-catalog-development-item.md` | Consume upstream Capability projections through attributable catalog/query contracts and shared read-only views, with real producer/consumer acceptance. | ACTIVE_PHASE_WORK | Phase 11 -> Phase 11.1 | PARTIAL: Phase 11 CLOSED; Phase 11.1 PLANNED / NOT STARTED |
+| DEV-CBD-003 | `docs/journal/2026/09/2026-09-16-capability-catalog-development-item.md` | Consume upstream Capability projections through attributable catalog/query contracts and shared read-only views, with real producer/consumer acceptance. | ACCEPTED_PHASE_WORK | Phase 11 -> Phase 11.1 | CLOSED |
 | DEV-CBD-004 | `docs/journal/2026/10/2026-10-06-cncf-job-cbd-scope-separation-handoff.md` | Complete transferred CAR Review native Job integration: build connection, explicit Review identity, registered Provider execution/cancellation, Entity persistence, production StartReview, durable Review-to-Job binding and independently fresh runtime acceptance. | ACTIVE_PHASE_WORK | Phase 14 | PLANNED / TRANSFERRED IMPLEMENTATION UNACCEPTED |
 
 ### 9.1 Use Case-driven component composition and Dashboard

@@ -123,7 +123,73 @@ semantic handoff.
 
 ## Current Priority
 
-### Repository-sync planning reconciliation (2026-10-03)
+### Capability sequence position — 2026-10-16
+
+[Phase 11](../phase/phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
+has four independently accepted Step commits and a passing current epoch2
+whole-Phase review; its local release remains pending. Normal producer/acquisition/consumer
+focused validation passed 102 tests in 12 suites. Cozy Phase 64 is released and
+integrated into its canonical main; CNCF Phase 78 is released on its dedicated
+branch. Their separate full-validation results remain separate from CBD's
+deferred full validation.
+
+DEV-CBD-003 remains partially complete: Phase 11 closure is pending and Phase 11.1 owns CAP-11-04–05, public
+Capability views/Web/MCP consistency and final-only full-SBT validation for
+`PHASE-11 -> PHASE-11.1`. Phase 11.1 remains PLANNED / NOT STARTED. The accepted
+ComponentUsage internal contract retains explicit owners/evidence and distinct
+Component contracts; forward UseCase positive demand remains unavailable.
+Phases 12, 13 and 14 remain planned, and transferred Job runtime remains
+unaccepted. The dated planning sections below retain their original position.
+
+### CAR Review Job handoff ownership (2026-10-07)
+
+[Phase 14](../phase/phase-14.md), CAR Review Native Job Integration and
+Acceptance, owns DEV-CBD-004: the unvalidated CBD implementation transferred
+from CNCF Phase 69.7. Its [checklist](../phase/phase-14-checklist.md) covers
+source/generated-model build connection, explicit Review identity and canonical
+Provider input, native execution/cancellation, production StartReview and durable
+Review-to-Job binding, writer exit and independently fresh caller-isolated reads,
+then its own validation, independent review and local release.
+
+The roadmap is extended to `10.7 -> 11 -> 11.1 -> 12 -> 13 -> 14`; existing
+Phase numbers and completion histories are preserved. Phase 14 is PLANNED with
+transferred source present but no CBD-owned acceptance. This addition starts no
+execution and does not resume or expand the Phase 11 Goal. The
+[handoff](../journal/2026/10/2026-10-06-cncf-job-cbd-scope-separation-handoff.md)
+retains original authoring/results/failures; CNCF closure remains separately
+owned. Phase 14 owns its full validation rather than consuming the Phase 11.1
+Capability-only aggregate deferral. Calibrate workload and apply ordinary entry
+and splitting gates before executing this Phase.
+
+### Applied Capability split and current position (2026-10-04)
+
+The canonical Phase 10.6 and Phase 10.7 records are CLOSED. DEV-CBD-003 is
+planned as the serial sequence below after `$cncf-split-phase 11`; no product
+work or child execution is accepted by this planning operation.
+
+| Phase | Scope | Expected duration / parent profile |
+| --- | --- | --- |
+| [11](../phase/phase-11.md) | CAP-11-01–03: upstream admission, ingestion, typed catalog and queries | 390 minutes (330–480); gpt-6.1-sol / high |
+| [11.1](../phase/phase-11.1.md) | CAP-11-04–05: shared views, Web/MCP and real producer/consumer acceptance | 390 minutes (330–480); gpt-6.1-sol / medium if the query/presentation handoff is settled |
+
+The 2026-10-04 sequence was `10.7 -> 11 -> 11.1 -> 12 -> 13`; the
+2026-10-07 addition above appends Phase 14 without changing those identities.
+Full validation is `final-only` / `sbt-full-suite`, owned by
+Phase 11.1 for both Capability units. Each unit retains focused validation,
+independent Step/Phase review, closure ledger and release commit. See the
+[dated split evidence](../phase/phase-11.md#applied-split--2026-10-04) for the
+pre-split 720-minute estimate, calibration limits, overhead, scope ownership
+and ordinary accepted-contract/profile handoff. No genuine semantic split
+gate or quantified cost saving is claimed. Future tasks reassess runtime.
+
+Real upstream contracts and producer fixtures remain execution prerequisites;
+the inspected CNCF Phase 78 and Cozy Phase 64 ledgers were planned/unchecked.
+This planning operation does not admit source changes in those repositories.
+
+### Historical repository-sync planning reconciliation (2026-10-03)
+
+The following dated snapshot preserves its original planning position. Use
+the 2026-10-04 section above and canonical checklists for current state.
 
 The current Phase/checklist ledgers preserve the accepted Phase 9 and Phase 10
 through 10.5 boundaries. Phase 10.6 and 10.7 remain not started. The historical
@@ -170,7 +236,9 @@ are authoritative in `docs/phase/phase-9.md`,
 | ID | Source | Development item | Disposition | Target | Status |
 | --- | --- | --- | --- | --- | --- |
 | DEV-CBD-001 | `docs/journal/2026/08/2026-08-15-usecase-driven-component-modeling-direction.md` | Use Case and Scenario intent is decomposed into attributable Activities, required capabilities, component coverage, gaps, and human-reviewed composition decisions; Phase 9 also establishes the Canonical Component Design Model and stakeholder/engineering projection architecture without turning inference into fact. | ACCEPTED_PHASE_WORK | Phase 9 | CLOSED |
-| DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Phase 9 semantic state, Use Case Realization, candidate design, semantic diff, and CML projection work. | ACTIVE_PHASE_WORK | Phase 10 sequence (10–10.7) | PLANNED |
+| DEV-CBD-002 | `docs/journal/2026/08/2026-08-17-project-internal-model-storage-direction.md` | Project-local internal-model packages provide a portable, hash-bound continuation and approval boundary for reviewed Phase 9 semantic state, Use Case Realization, candidate design, semantic diff, and CML projection work. | ACCEPTED_PHASE_WORK | Phase 10 sequence (10–10.7), per canonical Phase 10.7 closure | CLOSED |
+| DEV-CBD-003 | `docs/journal/2026/09/2026-09-16-capability-catalog-development-item.md` | Consume upstream Capability projections through attributable catalog/query contracts and shared read-only views, with real producer/consumer acceptance. | ACTIVE_PHASE_WORK | Phase 11 -> Phase 11.1 | PARTIAL: Phase 11 RELEASE PENDING; Phase 11.1 PLANNED / NOT STARTED |
+| DEV-CBD-004 | `docs/journal/2026/10/2026-10-06-cncf-job-cbd-scope-separation-handoff.md` | Complete transferred CAR Review native Job integration: build connection, explicit Review identity, registered Provider execution/cancellation, Entity persistence, production StartReview, durable Review-to-Job binding and independently fresh runtime acceptance. | ACTIVE_PHASE_WORK | Phase 14 | PLANNED / TRANSFERRED IMPLEMENTATION UNACCEPTED |
 
 ### 9.1 Use Case-driven component composition and Dashboard
 

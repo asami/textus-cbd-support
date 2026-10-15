@@ -2,7 +2,7 @@
 
 Stage Status:
 - Current status: PLANNED
-- Predecessor: Phase 11 Capability Catalog, Discovery, and Traceability
+- Predecessor: Phase 11.1 Capability Views, Web/MCP, and Acceptance
 - Required inputs: accepted Phase 9 model/view contracts, the Phase 10 sequence,
   and the admitted Actor Goal / Event Storming projection follow-up contracts
 - Owner: Textus CBD Support development
@@ -20,7 +20,8 @@ checklist define the current planned identity. No stage has started.
 ## Local execution preparation
 
 The GitHub refinement through `a3c3de2` is incorporated. Follow the accepted
-Phase 10.7 and Phase 11 handoffs, then admit the required
+Phase 10.7 and [Phase 11.1](phase-11.1.md) final Capability-sequence handoffs,
+including the Phase 11 query contract, then admit the required
 [projection follow-up](phase-9-projection-followup.md) contracts: FU-01 and FU-03
 with the applicable FU-07 evidence for the initial Actor Goal/Event Storming
 scenario. Other follow-up items are dependencies only where a selected view

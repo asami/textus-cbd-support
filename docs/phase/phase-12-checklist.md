@@ -2,7 +2,7 @@
 
 Status: OPEN / NOT STARTED
 phase=[Phase 12](phase-12.md)
-predecessor=[Phase 11](phase-11.md)
+predecessor=[Phase 11.1](phase-11.1.md)
 
 This is the authoritative Phase 12 completion ledger. The remote proposal was
 formerly numbered Phase 11; no old numbering or repository synchronization
@@ -11,7 +11,8 @@ their scope exceeds the normal focused work-unit boundary.
 
 Preparation evidence and existing owners are in the
 [local execution note](../notes/phase-11-12-local-execution-preparation.md).
-Phase 10.7/11 handoffs and the selected FU-01/FU-03/FU-07 projection inputs must
+Phase 10.7/11.1 handoffs, including the accepted Phase 11 query contract, and
+the selected FU-01/FU-03/FU-07 projection inputs must
 be admitted for the scenarios that consume them; no existing closed Phase 9
 item proves those additions.
 

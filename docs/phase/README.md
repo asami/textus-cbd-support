@@ -29,25 +29,43 @@ planned sequence.
   re-projection; see the [Phase 10.5 checklist](phase-10.5-checklist.md) for the
   distinct validated local release binding and acceptance evidence.
 
-Phase 10.6 and later remain separate not-started work. Their plans are retained
-by repository synchronization, which does not execute or accept them. The named
-Phase/checklist remain canonical completion authority; historical Strategy
-completion projections are not new acceptance evidence.
+The canonical Phase 10.6 and Phase 10.7 ledgers now record CLOSED. The earlier
+2026-10-03 planning snapshot is historical; this index projects those accepted
+records and supplies no new acceptance evidence.
 
-- [Phase 10.6](phase-10.6.md) — planned retained-state, API, and security work;
+- [Phase 10.6](phase-10.6.md) — closed retained-state, API, and security work;
   [checklist](phase-10.6-checklist.md).
-- [Phase 10.7](phase-10.7.md) — planned end-to-end validation and closure;
+- [Phase 10.7](phase-10.7.md) — closed end-to-end validation and closure;
   [checklist](phase-10.7-checklist.md).
-- [Phase 11](phase-11.md) — planned Capability Catalog, Discovery, and
-  read-only Use Case/Application demand-to-realization Traceability
+- [Phase 11](phase-11.md) — accepted Steps and whole review; local closure pending for Capability ingestion, catalog, queries and
+  read-only Component Usage demand-to-realization traceability
   (DEV-CBD-003); [checklist](phase-11-checklist.md).
+- [Phase 11.1](phase-11.1.md) — planned Capability views, Web/MCP consistency
+  and real producer/consumer acceptance (DEV-CBD-003);
+  [checklist](phase-11.1-checklist.md). Final full-SBT validation owner for
+  the serial `11 -> 11.1` split; focused/review/release gates remain per Phase.
 - [Phase 12](phase-12.md) — planned Interactive View and Model Editing,
   including Use Case Slice, Specification and Ticket trace editing;
   relocated from the remote Phase 11 proposal;
   [checklist](phase-12-checklist.md).
+- [Phase 13](phase-13.md) — planned CAR lint human-in-the-loop resolution;
+  [checklist](phase-13-checklist.md).
+- [Phase 14](phase-14.md) — planned CAR Review native Job integration and
+  acceptance (DEV-CBD-004), owning the unvalidated CBD implementation
+  transferred from CNCF Phase 69.7; [checklist](phase-14-checklist.md).
 - [Projection follow-up](phase-9-projection-followup.md) — unchecked remote
   additions to the completed Phase 9 contract; not a reopening of Phase 9.
 
 The [Phase 11/12 local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 records the imported refinements, current integration points and unverified
-upstream inputs. The next execution boundary remains Phase 10.6, then 10.7.
+upstream inputs. Phase 11 has accepted Steps and a passing whole review; its
+local release remains pending. The successor execution boundary is Phase 11.1,
+then the unchanged Phase 12. Phase 11.1 remains planned/not started
+and owns the deferred full validation for the Capability sequence. See the
+[Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
+for the accepted ComponentUsage amendment, participant inputs and exact handoff.
+
+The 2026-10-07 planning addition appends Phase 14 after Phase 13 without
+changing existing Phase numbers, acceptance histories or the Phase 11 Goal.
+Transferred Job source is present but unaccepted; Phase 14 owns its build
+connection, production integration, fresh-runtime proof and separate validation.

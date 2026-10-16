@@ -4,7 +4,35 @@ Status: planning guidance; implementation not started
 Date: 2026-10-03
 Repository: textus-cbd-support
 
-## Imported planning and current position
+## Current execution order correction — 2026-10-04
+
+Canonical Phase 10.6 and Phase 10.7 checklists are CLOSED. The applied
+Capability split is [Phase 11](../phase/phase-11.md) (CAP-11-01–03: admission,
+ingestion/catalog/query) followed by [Phase 11.1](../phase/phase-11.1.md)
+(CAP-11-04–05: views/Web/MCP and real producer/consumer acceptance), then
+the unchanged Phase 12. Both Capability units remain unstarted.
+
+Phase 11 settles the schema, source/version, fixture inventory, typed
+reference/result/gap, query-scope and presentation/authorization mapping
+contract. Phase 11.1 consumes that accepted handoff and owns the single final
+full SBT suite for both members; focused validation, independent reviews,
+Step commits, closure records and release commits remain per member.
+The split may enter Phase 11 uncommitted and be saved by normal acceptance or
+management commits; a prerequisite planning commit is not required.
+
+The producer revisions and real fixtures remain unverified execution inputs;
+local CNCF Phase 78 and Cozy Phase 64 ledgers were planned/unchecked at this
+inspection. Planning does not authorize upstream source implementation or a
+consumer-local replacement. The original mandatory real Component Capability
+integration and supported/unavailable demand branches remain in Phase 11.1.
+See the [source split note](../phase/phase-11.md#applied-split--2026-10-04)
+for the workload estimates and calibration limits.
+
+## Historical imported planning position — 2026-10-03
+
+The following snapshot records the pre-split preparation. Its Phase 10.6/10.7
+OPEN statements are historical; the dated correction above selects current
+execution order and the split documents own current work.
 
 The user requested local incorporation, checking and execution preparation of
 the GitHub Phase 11/12 refinements. Clean `main` advanced from `0931403` to

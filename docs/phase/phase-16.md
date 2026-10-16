@@ -2,8 +2,8 @@
 
 Status: PLANNED
 Planned: 2026-10-14
-Depends on: CNCF Phase 107, Cozy Phase 83
-Related: CAR Review Architecture, Textus Security Review Responsibility
+Depends on: CNCF Phase 107, CNCF Phase 110, Cozy Phase 83
+Related: CAR Review Architecture, Textus Security Review Responsibility, CNCF Safety Sandbox Architecture
 Consumer: sm-workflow Phase 6 review route
 
 ## Goal
@@ -26,8 +26,26 @@ Detect where evidence is statically reliable:
 - mutation Operation exposed as GET;
 - request-to-Entity direct binding / undeclared mass-assignment paths;
 - direct filesystem/network/process/native/unsafe-deserialization escape use;
+- recognizable Capability Laundering, especially Process Execution used to reproduce denied filesystem/network/datastore effects (for example file utilities, curl-like HTTP escape, database CLI escape) instead of the CNCF-managed capability/DSL;
+- Execution Boundary Escape: component/application-defined `main`, Scala `@main`, App-style launcher, or direct invocation of program entry points inside an ordinary CAR;
 - credential/secret values projected to logging/Display/serialization where
   metadata makes this deterministically knowable.
+
+### Phase 6 early rule slice
+
+A concrete sm-workflow Phase 6 defect used Process Execution for external file I/O. Add the minimum deterministic classification needed by that correction as an early consumer of CNCF Phase 110: distinguish typed/registered Git/SBT execution from generic process use and flag recognizable Process-to-filesystem/network/datastore Capability Laundering. This bounded rule slice may be delivered before the rest of Phase 16; do not block the sm-workflow fix on unrelated application-security review families.
+
+### sm-workflow-driven delivery
+
+Deliver the Safety Sandbox review rules incrementally with CNCF Phase 110 and real sm-workflow adoption. Prioritize classifications actually encountered by the vertical slices (worktree/filesystem, managed Git/SBT process versus arbitrary shell, provider/network, then remaining packaged-CAR escape routes). Each CBD rule must consume the CNCF-owned classification and be re-exercised from the sm-workflow scenario that exposed the need. Do not require completion of unrelated security-review families before a useful Safety Sandbox slice can close.
+
+### CNCF Safety Sandbox integration
+
+Consume CNCF Phase 110 External Effect / escape classifications rather than defining a CBD-private sandbox taxonomy. CAR lint is the early developer-feedback layer; CNCF CAR Loading Admission is the runtime-entry enforcement layer; CNCF Runtime Sandbox is the effect enforcement layer. A lint disposition or developer acceptance does not by itself grant runtime authority or bypass Loading Admission.
+
+Execution Boundary Escape is a structural finding even if the custom entry point has not yet performed another forbidden effect: ordinary CAR execution lifecycle belongs to CNCF Runtime. Reusable behavior must be exposed through Service/Operation/API; a separate executable uses admitted ProcessExec/Docker execution.
+
+Direct JVM filesystem/network/process/native/raw-persistence use remains attributable even when the CAR requests a related CNCF capability: capability declarations authorize the managed CNCF route, not ambient JVM access.
 
 ### CBD Review interpretation
 
@@ -48,7 +66,7 @@ speculative checks require an explicit threat/contract.
 Representative secure generated applications produce no blocking findings.
 Each intentionally introduced escape/boundary violation produces an attributable
 finding with rule, source and remediation category. Unknown evidence remains
-Unknown rather than PASS.
+Unknown rather than PASS. Representative Safety Sandbox violations map to the same CNCF-owned External Effect classification used by Loading Admission; CBD Support does not duplicate the runtime policy model.
 
 ## DataStore ABI release classification
 
@@ -64,3 +82,23 @@ Do not recommend generic rollback/dual-write/migration machinery solely to keep
 a breaking change in the Normal Update path. Reclassification to Maintenance
 Update is a valid and preferred simplification when backward compatibility
 cannot reasonably be preserved.
+
+## CNCF authorization chokepoint review
+
+Authorization review assumes CNCF already owns two enforcement boundaries:
+Operation authorization and Entity/object authorization at internal DSL ->
+UnitOfWork. CBD Support does not require application Actions to add duplicate
+authorize calls.
+
+Review focuses on architectural escapes and regressions:
+
+- ordinary Entity access bypassing the internal DSL/UoW chokepoint;
+- public/generated paths reaching EntityStore/DataStore directly;
+- external input selecting ServiceInternal/System access mode;
+- internal-service delegation widening results beyond the caller's admitted
+  authority without an explicit bounded proxy contract;
+- search/list/batch/relation paths that return objects not visible under the UoW
+  authorization policy.
+
+Static evidence does not prove the absence of BOLA/IDOR. Connected executable
+CNCF scenarios remain the primary assurance for enforcement behavior.

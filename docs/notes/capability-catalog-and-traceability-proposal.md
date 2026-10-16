@@ -87,3 +87,18 @@ owns the external semantic contract. Cozy owns source authoring and generation.
 - Whether provider matching is identity-only in v1 or permits explicit
   compatibility relations.
 - Which existing Component Dashboard surface owns the first Capability view.
+
+## Execution ownership correction — 2026-10-04
+
+This dated exploratory proposal retains its original full-scope narrative.
+The applied split assigns development slices 1–3 and their admission/query
+decisions to [Phase 11](../phase/phase-11.md). Slices 4–6, shared Web/MCP
+presentation and the real producer/consumer acceptance belong to
+[Phase 11.1](../phase/phase-11.1.md). Original CAP-11-01–05 identities are
+retained in exactly one checklist each. Neither unit has started.
+
+The order is Phase 11 -> Phase 11.1 -> Phase 12. Full SBT validation is
+final-only with Phase 11.1 as owner; focused/review/closure/release obligations
+remain per unit. The historical open questions are settled by the first unit's
+durable contract handoff before presentation implementation; the split itself
+does not settle upstream syntax, admit a fixture or claim implemented behavior.

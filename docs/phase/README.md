@@ -50,17 +50,18 @@ records and supplies no new acceptance evidence.
   [checklist](phase-12-checklist.md).
 - [Phase 13](phase-13.md) — planned CAR lint human-in-the-loop resolution;
   [checklist](phase-13-checklist.md).
-- [Phase 14](phase-14.md) — in progress: CAR Review native Job integration and
-  acceptance (DEV-CBD-004), owning the unvalidated CBD implementation
-  transferred from CNCF Phase 69.7; [checklist](phase-14-checklist.md).
+- [Phase 14](phase-14.md) — closed: CAR Review native Job integration and
+  CBD-owned acceptance (DEV-CBD-004), with local release and explicit recovery
+  limitations; [checklist](phase-14-checklist.md).
 - [Projection follow-up](phase-9-projection-followup.md) — unchecked remote
   additions to the completed Phase 9 contract; not a reopening of Phase 9.
 
 The [Phase 11/12 local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 records the imported refinements, current integration points and unverified
 upstream inputs. Phases 11 and 11.1 are closed. On 2026-10-16 the owner selected
-Phase 14 as the current execution boundary, before planned Phases 12 and 13,
-to finish the transferred Job implementation. Phase 11.1 completed the aggregate
+Phase 14 before planned Phases 12 and 13 to finish the transferred Job
+implementation. Phase 14 is now closed by its own acceptance and local release;
+Phases 12 and 13 remain planned. Phase 11.1 completed the aggregate
 full-validation obligation for the Capability sequence. See the
 [Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
 for its original deferred handoff and the
@@ -69,5 +70,6 @@ for the accepted views/surfaces, explicit demand limitation and final release.
 
 The historical 2026-10-07 planning addition appended Phase 14 after Phase 13 without
 changing existing Phase numbers, acceptance histories or the Phase 11 Goal.
-Transferred Job source is present but unaccepted; Phase 14 owns its build
-connection, production integration, fresh-runtime proof and separate validation.
+That transferred work is now accepted by Phase 14
+through its build connection, production integration, fresh-runtime acceptance
+and separate validation. This does not close the original CNCF Phase.

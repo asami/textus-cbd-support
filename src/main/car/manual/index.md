@@ -145,7 +145,7 @@ rather than treating a mutable SNAPSHOT label as immutable evidence.
 The source-managed CAR ABI is `src/main/car/abi-manifest.json`, using
 `cozy.car.abi-manifest.v2` component identity
 `org.simplemodeling.textus` / `CbdSupport`. Run `scripts/check-car-abi.sh` to
-require its twenty-six operation signatures and eight entity exports to match
+require its twenty-six operation signatures and nine entity exports to match
 generated CML model metadata and the packaged CAR. The same check proves that a
 minor operation addition is compatible, a minor removal is rejected, and an
 intentional major transition retains the breaking finding as a permitted

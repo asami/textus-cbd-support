@@ -2,11 +2,28 @@
 
 Stage Status:
 
-- Current status: HANDED_OFF_UNVALIDATED
+- Current status: ACCEPTED_BY_CBD_PHASE_14 — effective after its verified local release.
 - Owner: textus-cbd-support development; CNCF Phase 69.7 closure remains with the original CNCF task.
 - Acceptance owner: [CBD Phase 14](../../../phase/phase-14.md), DEV-CBD-004, allocated on 2026-10-07 JST.
 - Update rule: Record actual CBD build/test/review results here and in the [Phase 14 checklist](../../../phase/phase-14-checklist.md) before promoting this handoff to accepted implementation. This document does not close a CBD Phase or CNCF Phase.
 - Closure basis: CBD's own implementation and acceptance work; the transferred changes do not supply CNCF Phase 69.7 acceptance.
+
+## Current CBD acceptance — 2026-10-16 JST
+
+The [Phase 14 closure](../../../phase/phase-14.md#current-phase-closure-and-successor-handoff--2026-10-16)
+and [checklist](../../../phase/phase-14-checklist.md) own current acceptance.
+The existing source bridge, explicit plan/selection, registered execution and
+cancellation, production StartReview, durable binding, canonical completion
+and independent fresh-runtime reads are accepted within that declared boundary.
+Unsupported started work refuses bootstrap without replay; missing mandatory
+older-root data refuses without migration. The selected source-mode development
+pair is not older published-artifact compatibility. CNCF production is unchanged;
+its selected worktree supplies only Test observations, and Cozy requires no edit.
+
+Earlier sections below describe the transfer-time state and remain historical.
+Their pending build proposal and unfinished CBD statements are superseded by
+Phase 14's current closure. CNCF Phase 69.7 closure remains separate. Detailed
+execution evidence remains private under the Phase's local retention metadata.
 
 ## User-directed scope change — 2026-10-06 JST
 

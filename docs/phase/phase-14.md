@@ -1,13 +1,12 @@
 # Phase 14 - CAR Review Native Job Integration and Acceptance
 
-status=in_progress
+status=closed
 development_item=DEV-CBD-004
 depends_on=phase-11.1.md
-validation_ownership=phase-local
 
 Stage Status:
 
-- Current status: IN_PROGRESS — transferred implementation is being reconciled and validated; acceptance remains open.
+- Current status: CLOSED; CBD-owned native Job integration is accepted; this closure projection takes effect only after the verified local Phase release.
 - Execution predecessor: [Phase 11.1](phase-11.1.md). The owner selected Phase 14 before Phases 12 and 13 on 2026-10-16; Phase numbers and completed histories are preserved.
 - Owner: Textus CBD Support development.
 - Update rule: completion is recorded only by the [Phase 14 checklist](phase-14-checklist.md) with reproducible validation and independent review evidence.
@@ -65,12 +64,12 @@ validate CBD wiring without adding a replacement concurrency or replay protocol.
 
 | ID | Outcome | Status |
 | --- | --- | --- |
-| JOB-14-01 | Admit the transferred implementation and repair the current-source/generated-model build connection while preserving artifact mode. | implemented; acceptance pending |
-| JOB-14-02 | Validate explicit Review identity/revision/selection, canonical Provider input and Entity persistence compatibility. | focused validation passed; acceptance pending |
-| JOB-14-03 | Complete and validate native staged Job execution, commit-gated completion and registered Provider cancellation. | focused validation passed; acceptance pending |
-| JOB-14-04 | Connect production StartReview to server-owned selection and one durable Review-to-Job binding. | focused validation passed; acceptance pending |
-| JOB-14-05 | Prove writer exit, independently fresh full-runtime reads, caller isolation and no redispatch. | focused validation passed; acceptance pending |
-| JOB-14-06 | Complete relevant regression/full validation, independent acceptance and local Phase release. | in progress |
+| JOB-14-01 | Admit the transferred implementation and repair the current-source/generated-model build connection while preserving artifact mode. | accepted |
+| JOB-14-02 | Validate explicit Review identity/revision/selection, canonical Provider input and Entity persistence compatibility. | accepted |
+| JOB-14-03 | Complete and validate native staged Job execution, commit-gated completion and registered Provider cancellation. | accepted |
+| JOB-14-04 | Connect production StartReview to server-owned selection and one durable Review-to-Job binding. | accepted |
+| JOB-14-05 | Prove writer exit, independently fresh full-runtime reads, caller isolation and no redispatch. | accepted |
+| JOB-14-06 | Complete relevant regression/full validation, independent acceptance and local Phase release. | closed on verified local Phase release |
 
 ## Selected development inputs and current status — 2026-10-16
 
@@ -91,8 +90,9 @@ source-mode acceptance is not a publication or a claim about older installed
 artifacts. The CNCF Test bridge is not a production dependency or CAR output.
 
 The execution, identity, Provider, persistence, production and separate-JVM
-restart checks have passed. CBD full validation has passed; CNCF full validation,
-independent Step acceptance and Phase closure are still required. Detailed
+restart checks, CBD and CNCF full validation and CAR generation have passed.
+The coherent implementation Step is independently accepted and locally committed.
+The final independent Phase review and verified release govern closure. Detailed
 execution results remain in private local storage. Native
 unsupported started-work recovery refuses bootstrap; the fresh reader proves
 that refusal and zero executable tasks rather than reopening a released store.
@@ -199,3 +199,37 @@ checklist, handoff and current specification/design ownership with actual
 results. Preserve separate Hygiene, including
 `HYG-PH697-CBD-FACTORY-SIZE-01`, without treating maintenance as accepted work.
 Push, publication and deployment are outside this Phase addition.
+
+## Current Phase closure and successor handoff — 2026-10-16
+
+`JOB-14-INTEGRATION` is committed in CBD main at
+`455ece0e15154246f0460eab671d04e61dfef917` and the selected CNCF worktree at
+`8af769bcfd18e94e12ba9d8cc2d939292b7ed096`. The final release binds this
+Phase and its checklist to `cbd-phase14-20261016-closure@1`; closure requires
+the sole independent Phase review and verified native release receipt. The
+closed statuses in this release are the resulting acceptance projection.
+
+Production StartReview uses the declared server plan, native staged Job and
+durable Entity binding. Completed work remains readable through a fresh runtime
+with native authorization and no Provider redispatch. Unsupported started-work
+recovery explicitly refuses bootstrap; this Phase adds no replay policy. Older
+roots missing mandatory selection/reference fields are refused without migration.
+The actual Provider process driver in production acceptance is controlled test
+input; this does not certify an external installed Cozy process or publication.
+
+Acceptance uses the selected source-mode development pair. Normal artifact-mode
+selection is preserved, but compatibility with older installed artifacts is not
+claimed. The generated CAR excludes CNCF Test fixtures. Strict CAR lint has no
+FAIL; remaining legacy filesystem/value-type warnings and development publication
+checks are retained as residual limitations, not a clean publication-readiness
+claim. Phases 12 and 13 remain planned; Phase 13 retains CAR lint resolution.
+The two nonblocking Factory maintenance items remain in the
+[canonical Hygiene journal](../journal/2026/10/2026-10-16-phase-14-hygiene.md).
+There are no newly adopted Development Candidates. CNCF Phase 69.7 closure and
+Capability acceptance histories remain separately owned.
+
+Detailed execution and review evidence is private. After release, retain it at
+`macmini:~/backup/journal/2026/10/textus-cbd-support/phase-14/cbd-phase14-20261016/`
+through 2026-11-15. The location is local retention metadata, not a publication.
+The seven unrelated or historical user-work files remain uncommitted. No push,
+publication or deployment is part of this Phase release.

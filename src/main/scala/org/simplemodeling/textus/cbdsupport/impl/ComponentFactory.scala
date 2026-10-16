@@ -48,6 +48,7 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
+ *  version Oct.  4, 2026
  * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */

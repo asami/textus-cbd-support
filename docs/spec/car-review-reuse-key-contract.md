@@ -1,5 +1,15 @@
 # CAR Review Execution Selection and Declared Plan Reference
 
+status=accepted
+acceptance_owner=PHASE-14
+updated_at=2026-10-16
+
+Current acceptance is the [Phase 14 closure](../phase/phase-14.md#current-phase-closure-and-successor-handoff--2026-10-16),
+with its selected source-mode inputs and explicit recovery limits. This current
+projection takes effect after the verified local Phase release.
+
+## Historical authoring metadata — 2026-10-06
+
 status=authored_review_pending
 phase=Phase 8 / PHASE-69.7
 checklist=P8-41 / JM69-10CBD2A

@@ -194,6 +194,10 @@
           "fields": []
         },
         {
+          "name": "ReviewJobBinding",
+          "fields": []
+        },
+        {
           "name": "ReviewReportSnapshot",
           "fields": []
         },

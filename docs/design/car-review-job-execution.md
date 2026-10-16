@@ -1,5 +1,15 @@
 # CAR Review Native Job Execution Design
 
+status=accepted
+acceptance_owner=PHASE-14
+updated_at=2026-10-16
+
+Current acceptance is the [Phase 14 closure](../phase/phase-14.md#current-phase-closure-and-successor-handoff--2026-10-16),
+with its selected source-mode inputs and explicit recovery limits. This current
+projection takes effect after the verified local Phase release.
+
+## Historical authoring metadata — 2026-10-06
+
 status=authored_review_pending
 phase=PHASE-69.7
 slice=JM69-10CBD2C
@@ -10,8 +20,8 @@ acceptance_owner=PHASE-14
 Current CBD integration acceptance belongs to
 [Phase 14](../phase/phase-14.md) and its
 [checklist](../phase/phase-14-checklist.md), allocated on 2026-10-07. Phase 69.7
-and Slice fields retain original authoring provenance; this design is not an
-accepted release. The
+and Slice fields retain original authoring provenance; they do not represent
+current acceptance. The
 [scope-separation handoff](../journal/2026/10/2026-10-06-cncf-job-cbd-scope-separation-handoff.md)
 defines the transferred CBD obligations independently of CNCF closure.
 

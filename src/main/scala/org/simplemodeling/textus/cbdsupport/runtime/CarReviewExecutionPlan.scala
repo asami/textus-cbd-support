@@ -1,8 +1,10 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
+import org.simplemodeling.model.datatype.EntityId
+
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 24, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class CarReviewExecutionPlanFailure(code: String, message: String)
@@ -29,10 +31,12 @@ object CarReviewDiagnosisTerminalState {
  * carries only a target and profile and therefore cannot safely claim a
  * reusable diagnosis.
  */
+final case class CarReviewExecutionPlanReference(diagnosisId: EntityId, revision: Long)
+
 final case class CarReviewExecutionPlan(
   request: ReviewStartRequest,
-  reuseInput: CarReviewReuseKeyInput,
-  reuseKey: CarReviewReuseKey
+  reference: CarReviewExecutionPlanReference,
+  reuseInput: CarReviewReuseKeyInput
 )
 
 sealed trait CarReviewDiagnosisAdmission {
@@ -48,7 +52,7 @@ object CarReviewDiagnosisAdmission {
   final class Owner private[cbdsupport] (
     val diagnosisId: String,
     val reviewId: ReviewId,
-    private val _reuse_key_digest: ReviewDigest
+    val reference: CarReviewExecutionPlanReference
   ) extends CarReviewDiagnosisAdmission {
     private[cbdsupport] def isOwnerFor(
       diagnosisid: String,
@@ -56,16 +60,16 @@ object CarReviewDiagnosisAdmission {
     ): Boolean =
       diagnosisId == diagnosisid &&
         reviewId == plan.request.reviewId &&
-        _reuse_key_digest == plan.reuseKey.digest
+        reference == plan.reference
   }
 
   object Owner {
     private[cbdsupport] def issue(
       diagnosisid: String,
       reviewid: ReviewId,
-      reusekeydigest: ReviewDigest
+      reference: CarReviewExecutionPlanReference
     ): Owner =
-      new Owner(diagnosisid, reviewid, reusekeydigest)
+      new Owner(diagnosisid, reviewid, reference)
   }
 
   final case class Joined(
@@ -84,27 +88,23 @@ object CarReviewDiagnosisAdmission {
 object CarReviewExecutionPlan {
   def create(
     request: ReviewStartRequest,
-    reuseinput: CarReviewReuseKeyInput
+    reference: CarReviewExecutionPlanReference,
+    reuseInput: CarReviewReuseKeyInput
   ): Either[CarReviewExecutionPlanFailure, CarReviewExecutionPlan] =
     for {
       _ <- Either.cond(
-        request.target == reuseinput.target,
-        (),
-        CarReviewExecutionPlanFailure(
-          "review-plan-target-mismatch",
-          "The execution plan target must exactly match the admitted Review request."
-        )
+        reference != null && reference.diagnosisId != null && reference.revision > 0,
+        (), CarReviewExecutionPlanFailure("review-plan-reference-invalid", "A declared native plan identity and positive revision are required.")
+      )
+      _ <- CarReviewReuseKey.validate(reuseInput).left.map(error => CarReviewExecutionPlanFailure(error.code, error.message))
+      _ <- Either.cond(
+        request.target.kind == reuseInput.targetKind && request.target.organization == reuseInput.organization &&
+          request.target.name == reuseInput.name && request.target.version == reuseInput.version,
+        (), CarReviewExecutionPlanFailure("review-plan-target-mismatch", "Selected target semantics must match the admitted Review request.")
       )
       _ <- Either.cond(
-        request.profile == reuseinput.profile,
-        (),
-        CarReviewExecutionPlanFailure(
-          "review-plan-profile-mismatch",
-          "The execution plan profile must exactly match the admitted Review request."
-        )
+        request.profile == reuseInput.profile,
+        (), CarReviewExecutionPlanFailure("review-plan-profile-mismatch", "Selected profile must match the admitted Review request.")
       )
-      reusekey <- CarReviewReuseKey.calculate(reuseinput).left.map(error =>
-        CarReviewExecutionPlanFailure(error.code, error.message)
-      )
-    } yield CarReviewExecutionPlan(request, reuseinput, reusekey)
+    } yield CarReviewExecutionPlan(request, reference, reuseInput)
 }

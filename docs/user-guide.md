@@ -117,12 +117,27 @@ Use the private `CbdReviewAdmin.startReview` command with `targetKind`, `name`,
 caller needs the `reviewer`, `operator`, or `admin` role. The response contains
 both the CBD-owned Review ID and its bound CNCF Job ID.
 
+Before starting a Review, the operator configures `textus.cbd.review.execution`
+with an explicit diagnosis identity/revision, execution selection, Report
+template and registered Cozy Provider calls. The component uses the admitted
+CNCF process capability; callers cannot supply a command or executable path.
+See the [server execution contract](spec/car-review-job-execution-contract.md#production-selection-and-persisted-binding-phase-14)
+for the closed configuration fields. Missing configuration returns
+`review-execution-plan-required` before dispatch.
+
 Use the MCP-ready `CbdRetrieval.getReviewRun` query with that Review ID to read
 bounded progress. The caller needs `viewer`, `reviewer`, `operator`, or
 `admin`. Only `operator` or `admin` may invoke the private
 `CbdReviewAdmin.cancelReview` command. Start and cancellation are deliberately
 absent from MCP; the Web, CLI, `sbt-cozy`, or internal component command path
 must supply the authorized call.
+
+Job-backed reads, cancellation and Report retrieval also require ownership of
+the native Job; an operator role alone does not grant another caller's Review.
+Completed results survive a full runtime restart without rerunning Providers.
+If the process exits during started work, native recovery without an admitted
+replay policy refuses startup with `RecoveryRequired`; automatic replay is
+unsupported. Preserve that interrupted state for operator recovery.
 
 A completed Run always has a canonical report ID and digest. A Job that fails,
 is cancelled, or succeeds without a canonical report is projected as an

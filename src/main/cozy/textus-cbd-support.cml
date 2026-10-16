@@ -2010,18 +2010,6 @@ One exact JSON document exchanged at the private CAR Review submission boundary.
 |------|------|--------------|
 | value | string | 1 |
 
-## ReviewReuseKeyDefinition
-
-### DESCRIPTION
-
-Versioned server-defined identity algorithm for one reusable Review diagnosis.
-
-### ATTRIBUTE
-
-| name | type | multiplicity |
-|------|------|--------------|
-| value | string | 1 |
-
 ## ReviewProfile
 
 ### ATTRIBUTE
@@ -2206,8 +2194,8 @@ applicationDomain = "system"
 | name | type | multiplicity |
 |------|------|--------------|
 | id | entityid | 1 |
-| key_definition_id | ReviewReuseKeyDefinition | 1 |
-| reuse_key_digest | ReviewDigest | 1 |
+| plan_revision | long | 1 |
+| execution_selection | ReviewSubmissionDocument | 1 |
 | state | ReviewRunState | 1 |
 | active_review_id | ReviewId | ? |
 | target_digest | ReviewDigest | 1 |
@@ -2234,8 +2222,8 @@ applicationDomain = "system"
 | name | type | multiplicity |
 |------|------|--------------|
 | id | entityid | 1 |
-| key_definition_id | ReviewReuseKeyDefinition | 1 |
-| reuse_key_digest | ReviewDigest | 1 |
+| plan_revision | long | 1 |
+| execution_selection | ReviewSubmissionDocument | 1 |
 | state | ReviewRunState | 1 |
 | active_review_id | ReviewId | ? |
 | report_id | ReviewReportId | ? |
@@ -2250,8 +2238,8 @@ applicationDomain = "system"
 | name | type | multiplicity |
 |------|------|--------------|
 | id | entityid | 1 |
-| key_definition_id | ReviewReuseKeyDefinition | 1 |
-| reuse_key_digest | ReviewDigest | 1 |
+| plan_revision | long | 1 |
+| execution_selection | ReviewSubmissionDocument | 1 |
 | state | ReviewRunState | 1 |
 | active_review_id | ReviewId | ? |
 | target_digest | ReviewDigest | 1 |
@@ -2303,6 +2291,26 @@ applicationDomain = "system"
 | started_at | ReviewInstant | 1 |
 | completed_at | ReviewInstant | ? |
 
+## ReviewJobBinding
+
+### FEATURES
+
+extends = ["SimpleEntity"]
+usageKind = "task"
+operationKind = "task"
+applicationDomain = "system"
+
+### Attribute
+
+| name | type | multiplicity |
+|------|------|--------------|
+| id | entityid | 1 |
+| review_id | ReviewId | 1 |
+| job_id | ReviewJobId | 1 |
+| diagnosis_id | entityid | 1 |
+| plan_revision | long | 1 |
+| run_document | ReviewSubmissionDocument | 1 |
+
 ## ReviewReportSnapshot
 
 ### FEATURES
@@ -2320,6 +2328,7 @@ applicationDomain = "system"
 | diagnosis_id | entityid | 1 |
 | review_id | ReviewId | 1 |
 | attestation_id | ReviewAttestationId | 1 |
+| job_id | ReviewJobId | ? |
 | report_id | ReviewReportId | 1 |
 | report_digest | ReviewDigest | 1 |
 | report_document | ReviewSubmissionDocument | 1 |

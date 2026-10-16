@@ -190,3 +190,78 @@ command in Cozy is superseded for ownership purposes. Historical journals
 remain unchanged as chronological evidence. Unresolved schema and policy ideas
 in `docs/notes/car-review-design-proposal.md` remain exploratory until promoted
 by later Phase 5 checklist items.
+
+## JM69-10CBD1 Retained Canonical Input — 2026-10-06
+
+status=authored_review_pending
+validation_status=focused_passed
+review_status=original-wholeStep-protected-M2-pending
+acceptance_status=not-accepted
+
+The execution coordinator retains the actual bounded provider bundle with its
+admitted metadata in the existing process-local cache, keyed by explicit Review
+ID and provider identity. This closes the metadata-only handoff gap: the additive
+canonical API can supply the existing canonical response application with an
+`AdmittedProviderBundleInput` without reconstructing or rerunning the provider.
+It crosses the registered CNCF ProviderCall path once and propagates existing
+failure attribution. CallTree receives only safe execution/provider labels;
+descriptor, request, bundle, and report bodies remain private.
+
+Request shape and outer Review/target binding are checked before cache access.
+Quality preflight and registered descriptor selection retain their priority.
+Cached input is re-admitted under the current request and appropriate policy;
+successful metadata refresh keeps the same body, while refusal supplies no body
+and performs no rerun. An already admitted Review Run/provider is immutable.
+Existing wire digest checks belong to unchanged bundle admission, and are not
+the cache identity or a new management protocol.
+
+See the [scoped contract](../spec/car-review-provider-contract.md#jm69-10cbd1-canonical-provider-input--2026-10-06).
+The October 6 provider-canonical-input authoring journal remains preserved local
+handoff material outside this Phase's commit boundary.
+This prerequisite does not decide or complete CBD ComponentFactory/JobGateway,
+Entity/UnitOfWork persistence, native Job lifecycle, server configuration, or
+fresh-process architecture. Those remain later original Slices. Provider-body
+retention here is neither authoritative report persistence nor full CBD success.
+
+## JM69-10CBD2A Declared Review Plan Ownership — 2026-10-06
+
+status=authored_review_pending
+stage=IN_PROGRESS
+validation_status=focused_passed
+review_status=original-wholeStep-protected-M2-pending
+acceptance_status=notaccepted
+
+The server owns an immutable native `CarReviewExecutionPlanReference` and its
+positive revision. CBD validates the selected typed target/dependency/policy
+references and semantic request identity; it does not calculate management
+identity from payloads. Dependency publishers own revisions for conclusion-
+affecting changes. The root retains required `plan_revision` and closed typed
+`execution_selection` through generated Entity restoration. Existing root revision
+or selection conflict refuses before join, reuse, successor or owner transition.
+No content-derived alias or replacement root is inferred.
+
+Only initial claim and successful conditional successor issue the exact-reference
+Owner lease. Entity/UOW retains the persisted revision/state/active-Review
+expectation, one-owner/one-start concurrency, current terminal read and rollback
+boundary. Composition creates leave IDs absent for native Entity issuance. History
+queries use exact diagnosis and Review identities; expiry deletes returned
+attestation Entity IDs and retains native tombstones.
+
+Compatible join/completed reuse, immutable completion snapshots, bounded authorized
+fresh-UOW Report reads, due authorized expiry, every non-success terminal history,
+sole conditional successor, foreign-owner refusal and stale/repeat transition
+refusal remain the executable persistence contract. Pre-v2 roots missing required
+fields need a separately owned migration decision; setup requires compatible
+current Entity schema and cannot silently reinterpret or dispose of legacy data.
+
+See the [declared selection contract](../spec/car-review-reuse-key-contract.md)
+and [persistence contract](../spec/car-review-persistence-contract.md).
+The October 6 explicit-review-identity authoring journal remains preserved local
+handoff material outside this Phase's commit boundary.
+This prerequisite preserves CBD1's retained canonical ProviderCall input. Actual
+server provider selection, durable Review-to-Job binding, Report commit before
+native Job success, independent fresh-process full CBD reads and original protected
+JM69-10 M2 remain pending. RecoveryRequired for started work is unchanged.
+
+At this historical prerequisite boundary, original whole-Step and fresh-process
+acceptance remained pending. Phase 14's current checklist owns CBD acceptance.

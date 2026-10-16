@@ -32,12 +32,12 @@ import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRun
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewArtifactBundle, CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewAttestationCodec, CarReviewReportCodec, CarReviewRun, CarReviewRunCodec, CarReviewRunLifecycle, CarReviewRunVocabulary, CarReviewVocabulary, ReviewDocumentType, ReviewRunState, ReviewSchemaVersion}
-import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewDiagnosisAdmission, CarReviewDiagnosisTerminalState, CarReviewExecutionPlan, CarReviewRetentionPolicy}
+import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewDiagnosisAdmission, CarReviewDiagnosisTerminalState, CarReviewExecutionPlan, CarReviewExecutionSelectionCodec, CarReviewRetentionPolicy}
 import org.simplemodeling.textus.cbdsupport.entity.{ReviewDiagnosis as ReviewDiagnosisEntity, ReviewRunSnapshot as ReviewRunSnapshotEntity, ReviewReportSnapshot as ReviewReportSnapshotEntity, ReviewAttestationSnapshot as ReviewAttestationSnapshotEntity, ReviewRetentionEvent as ReviewRetentionEventEntity}
 import org.simplemodeling.textus.cbdsupport.entity.query.{ReviewDiagnosis as ReviewDiagnosisQuery, ReviewReportSnapshot as ReviewReportSnapshotQuery, ReviewAttestationSnapshot as ReviewAttestationSnapshotQuery}
 import org.simplemodeling.textus.cbdsupport.entity.create.{ReviewDiagnosis as ReviewDiagnosisCreate, ReviewTargetSnapshot as ReviewTargetSnapshotCreate, ReviewRunSnapshot as ReviewRunSnapshotCreate, ReviewReportSnapshot as ReviewReportSnapshotCreate, ReviewAttestationSnapshot as ReviewAttestationSnapshotCreate, ReviewRetentionEvent as ReviewRetentionEventCreate}
 import org.simplemodeling.textus.cbdsupport.entity.update.{ReviewDiagnosis as ReviewDiagnosisUpdate}
-import org.simplemodeling.textus.cbdsupport.value.{ComponentName as EntityComponentName, ComponentOrganization as EntityComponentOrganization, ReviewAttestationId as EntityReviewAttestationId, ReviewDigest as EntityReviewDigest, ReviewId as EntityReviewId, ReviewInstant as EntityReviewInstant, ReviewProfile as EntityReviewProfile, ReviewReportId as EntityReviewReportId, ReviewReuseKeyDefinition as EntityReviewReuseKeyDefinition, ReviewRunState as EntityReviewRunState, ReviewSubmissionDocument as EntityReviewSubmissionDocument, ReviewRetentionAction as EntityReviewRetentionAction, ReviewRetentionRecordType as EntityReviewRetentionRecordType}
+import org.simplemodeling.textus.cbdsupport.value.{ComponentName as EntityComponentName, ComponentOrganization as EntityComponentOrganization, ReviewAttestationId as EntityReviewAttestationId, ReviewDigest as EntityReviewDigest, ReviewId as EntityReviewId, ReviewInstant as EntityReviewInstant, ReviewProfile as EntityReviewProfile, ReviewReportId as EntityReviewReportId, ReviewRunState as EntityReviewRunState, ReviewSubmissionDocument as EntityReviewSubmissionDocument, ReviewRetentionAction as EntityReviewRetentionAction, ReviewRetentionRecordType as EntityReviewRetentionRecordType}
 import org.simplemodeling.textus.cbdsupport.runtime.{InformationSourceAuthorization, InformationSourceDescriptor, InformationSourceKind, LocalInformationInventory, LocalInformationSourceInventory, LocalInspectionPolicy, VersionAvailabilityState}
 import org.simplemodeling.model.directive.Update
 import org.simplemodeling.model.directive.Condition
@@ -48,7 +48,6 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- *  version Oct.  4, 2026
  * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
@@ -199,8 +198,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
    * domain fields and leaves inherited SimpleEntity attributes unchanged.
    */
   private def _diagnosis_update(
-    keydefinitionid: Update[EntityReviewReuseKeyDefinition] = Update.noop,
-    reusekeydigest: Update[EntityReviewDigest] = Update.noop,
+    planrevision: Update[Long] = Update.noop,
+    executionselection: Update[EntityReviewSubmissionDocument] = Update.noop,
     state: Update[EntityReviewRunState] = Update.noop,
     activereviewid: Update[EntityReviewId] = Update.noop,
     targetdigest: Update[EntityReviewDigest] = Update.noop,
@@ -222,8 +221,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       auditAttributes = AuditAttributesUpdate(),
       mediaAttributes = MediaAttributesUpdate(),
       contextualAttribute = ContextualAttributesUpdate(),
-      key_definition_id = keydefinitionid,
-      reuse_key_digest = reusekeydigest,
+      plan_revision = planrevision,
+      execution_selection = executionselection,
       state = state,
       active_review_id = activereviewid,
       target_digest = targetdigest,
@@ -389,22 +388,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             case Left(code) =>
               Consequence.operationInvalid(code)
             case Right(document) =>
-              for {
-                snapshot <- ReviewRunSnapshotCreate.Builder()
-                  .withDiagnosis_id(diagnosisid)
-                  .withReview_id(EntityReviewId(plan.request.reviewId.value))
-                  .withState(EntityReviewRunState("admitted"))
-                  .withProfile(EntityReviewProfile(plan.request.profile.value))
-                  .withRun_document(_json_document(document))
-                  .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
-                  .buildC()
-                snapshotid <- _snapshot_id(
-                    "successor",
-                    diagnosisid,
-                    plan.request.reviewId.value,
-                    ReviewRunSnapshotCreate.collectionId
-                  )
-              } yield snapshot.copy(id = Some(snapshotid))
+              ReviewRunSnapshotCreate.Builder()
+                .withDiagnosis_id(diagnosisid)
+                .withReview_id(EntityReviewId(plan.request.reviewId.value))
+                .withState(EntityReviewRunState("admitted"))
+                .withProfile(EntityReviewProfile(plan.request.profile.value))
+                .withRun_document(_json_document(document))
+                .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
+                .buildC()
           }
       }
 
@@ -422,7 +413,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             CarReviewDiagnosisAdmission.Owner.issue(
               root.entity.id.print,
               plan.request.reviewId,
-              plan.reuseKey.digest
+              plan.reference
             )
           )
         case EntityConditionalTransitionResult.NotMatched(existing) =>
@@ -468,25 +459,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         current <- _existing_diagnosis(plan)
         _ <- exec_from(_validate_terminal_owner(owner, current, plan))
         diagnosisid <- exec_from(_diagnosis_id(plan))
-        run <- exec_from(for {
-          snapshot <- ReviewRunSnapshotCreate.Builder()
-            .withDiagnosis_id(diagnosisid)
-            .withReview_id(EntityReviewId(plan.request.reviewId.value))
-            .withState(EntityReviewRunState(state.value))
-            .withProfile(EntityReviewProfile(plan.request.profile.value))
-            .withRun_document(_json_document(runDocument))
-            .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
-            .buildC()
-          snapshotid <- _snapshot_id(
-            s"terminal-${state.value}",
-            diagnosisid,
-            plan.request.reviewId.value,
-            ReviewRunSnapshotCreate.collectionId
-          )
-        } yield snapshot.copy(
-          id = Some(snapshotid),
-          completed_at = Some(EntityReviewInstant(completedAt.value))
-        ))
+        run <- exec_from(ReviewRunSnapshotCreate.Builder()
+          .withDiagnosis_id(diagnosisid)
+          .withReview_id(EntityReviewId(plan.request.reviewId.value))
+          .withState(EntityReviewRunState(state.value))
+          .withProfile(EntityReviewProfile(plan.request.profile.value))
+          .withRun_document(_json_document(runDocument))
+          .withStarted_at(EntityReviewInstant(plan.request.startedAt.value))
+          .buildC().map(_.copy(completed_at = Some(EntityReviewInstant(completedAt.value)))))
         _ <- entity_create_internal(run)
         _ <- _update_diagnosis(diagnosisid, _terminal_update(state, completedAt))
       } yield ()
@@ -523,21 +503,21 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     private def _diagnosis_candidate(
       plan: CarReviewExecutionPlan
     ): Consequence[ReviewDiagnosisCreate] =
-      ReviewDiagnosisCreate.Builder()
-        .withKey_definition_id(EntityReviewReuseKeyDefinition(plan.reuseKey.definitionId))
-        .withReuse_key_digest(EntityReviewDigest(plan.reuseKey.digest.value))
-        .withState(EntityReviewRunState("claimed"))
-        .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
-        .withProfile(EntityReviewProfile(plan.request.profile.value))
-        .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
-        .buildC().flatMap(
-        candidate => _diagnosis_id(plan).map { diagnosisid =>
-          candidate.copy(
-            id = Some(diagnosisid),
-            active_review_id = Some(EntityReviewId(plan.request.reviewId.value))
-          )
+      for {
+        diagnosisid <- _diagnosis_id(plan)
+        document <- CarReviewExecutionSelectionCodec.encode(plan.reuseInput) match {
+          case Right(value) => Consequence.success(value)
+          case Left(error) => Consequence.operationInvalid(error.code)
         }
-      )
+        candidate <- ReviewDiagnosisCreate.Builder()
+          .withPlan_revision(plan.reference.revision)
+          .withExecution_selection(_json_document(document))
+          .withState(EntityReviewRunState("claimed"))
+          .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
+          .withProfile(EntityReviewProfile(plan.request.profile.value))
+          .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
+          .buildC()
+      } yield candidate.copy(id = Some(diagnosisid), active_review_id = Some(EntityReviewId(plan.request.reviewId.value)))
 
     private final case class CompletionDocuments(
       runDocument: String,
@@ -612,26 +592,25 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       plan: CarReviewExecutionPlan,
       response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse
     ): Consequence[Unit] =
-      if diagnosis.key_definition_id.value != plan.reuseKey.definitionId ||
-          diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value ||
-          diagnosis.state.value != "claimed" ||
-          !diagnosis.active_review_id.exists(_.value == response.report.reviewId.value) ||
-          !owner.isOwnerFor(diagnosis.id.print, plan) then
-        Consequence.operationInvalid("review-diagnosis-completion-not-owner")
-      else Consequence.unit
+      _validate_identity(diagnosis, plan).flatMap { _ =>
+        if diagnosis.state.value != "claimed" ||
+            !diagnosis.active_review_id.exists(_.value == response.report.reviewId.value) ||
+            !owner.isOwnerFor(diagnosis.id.print, plan) then
+          Consequence.operationInvalid("review.complete", "review-diagnosis-completion-not-owner")
+        else Consequence.unit
+      }
 
     private def _validate_terminal_owner(
       owner: CarReviewDiagnosisAdmission.Owner,
       diagnosis: ReviewDiagnosisEntity,
       plan: CarReviewExecutionPlan
     ): Consequence[Unit] =
-      if diagnosis.key_definition_id.value != plan.reuseKey.definitionId ||
-          diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value ||
-          !diagnosis.active_review_id.exists(_.value == plan.request.reviewId.value) ||
-          diagnosis.state.value != "claimed" ||
-          !owner.isOwnerFor(diagnosis.id.print, plan) then
-        Consequence.operationInvalid("review-diagnosis-terminal-not-owner")
-      else Consequence.unit
+      _validate_identity(diagnosis, plan).flatMap { _ =>
+        if !diagnosis.active_review_id.exists(_.value == plan.request.reviewId.value) ||
+            diagnosis.state.value != "claimed" || !owner.isOwnerFor(diagnosis.id.print, plan) then
+          Consequence.operationInvalid("review-diagnosis-terminal-not-owner")
+        else Consequence.unit
+      }
 
     private def _target_snapshot(id: org.simplemodeling.model.datatype.EntityId, plan: CarReviewExecutionPlan): Consequence[ReviewTargetSnapshotCreate] =
       ReviewTargetSnapshotCreate.Builder()
@@ -640,15 +619,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withComponent_name(EntityComponentName(plan.request.target.name))
         .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
         .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
-        .buildC().flatMap { snapshot =>
-          _snapshot_id("target", id, plan.request.target.digest.value, ReviewTargetSnapshotCreate.collectionId).map { snapshotid =>
-            snapshot.copy(
-              id = Some(snapshotid),
-              organization = plan.request.target.organization.map(EntityComponentOrganization.apply),
-              component_version = plan.request.target.version.map(value => org.simplemodeling.textus.cbdsupport.value.ReviewVersion(value.value))
-            )
-          }
-        }
+        .buildC().map(_.copy(
+          organization = plan.request.target.organization.map(EntityComponentOrganization.apply),
+          component_version = plan.request.target.version.map(value => org.simplemodeling.textus.cbdsupport.value.ReviewVersion(value.value))
+        ))
 
     private def _run_snapshot(id: org.simplemodeling.model.datatype.EntityId, plan: CarReviewExecutionPlan, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewRunSnapshotCreate] =
       ReviewRunSnapshotCreate.Builder()
@@ -658,14 +632,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withProfile(EntityReviewProfile(response.report.profile.value))
         .withRun_document(_json_document(document))
         .withStarted_at(EntityReviewInstant(response.report.execution.startedAt.value))
-        .buildC().flatMap { snapshot =>
-          _snapshot_id("run", id, response.report.reviewId.value, ReviewRunSnapshotCreate.collectionId).map { snapshotid =>
-            snapshot.copy(
-              id = Some(snapshotid),
-              completed_at = Some(EntityReviewInstant(response.report.execution.completedAt.value))
-            )
-          }
-        }
+        .buildC().map(_.copy(completed_at = Some(EntityReviewInstant(response.report.execution.completedAt.value))))
 
     private def _report_snapshot(id: org.simplemodeling.model.datatype.EntityId, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewReportSnapshotCreate] =
       ReviewReportSnapshotCreate.Builder()
@@ -676,11 +643,8 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withReport_digest(EntityReviewDigest(response.report.reportDigest.value))
         .withReport_document(_json_document(document))
         .withCreated_at(EntityReviewInstant(response.report.createdAt.value))
-        .buildC().flatMap { snapshot =>
-          _snapshot_id("report", id, response.report.reportId.value, ReviewReportSnapshotCreate.collectionId).map { snapshotid =>
-            snapshot.copy(id = Some(snapshotid))
-          }
-        }
+        .buildC().map(_.copy(job_id = core.executionContext.jobContext.jobId.map(
+          id => org.simplemodeling.textus.cbdsupport.value.ReviewJobId(id.value))))
 
     private def _attestation_snapshot(id: org.simplemodeling.model.datatype.EntityId, response: org.simplemodeling.textus.cbdsupport.runtime.CarReviewCanonicalResponse, document: String): Consequence[ReviewAttestationSnapshotCreate] =
       ReviewAttestationSnapshotCreate.Builder()
@@ -690,17 +654,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withReport_digest(EntityReviewDigest(response.report.reportDigest.value))
         .withAttestation_document(_json_document(document))
         .withCreated_at(EntityReviewInstant(response.attestation.createdAt.value))
-        .buildC().flatMap { snapshot =>
-          _snapshot_id("attestation", id, response.attestation.attestationId.value, ReviewAttestationSnapshotCreate.collectionId).map { snapshotid =>
-            snapshot.copy(id = Some(snapshotid))
-          }
-        }
+        .buildC()
 
     private def _diagnosis_id(plan: CarReviewExecutionPlan): Consequence[org.simplemodeling.model.datatype.EntityId] =
       ReviewDiagnosisIdentity._diagnosis_id(plan)
-
-    private def _snapshot_id(kind: String, diagnosis: org.simplemodeling.model.datatype.EntityId, identity: String, collection: org.simplemodeling.model.datatype.EntityCollectionId): Consequence[org.simplemodeling.model.datatype.EntityId] =
-      ReviewDiagnosisIdentity._snapshot_id(kind, diagnosis, identity, collection)
 
     private def _admission_from(
       result: org.goldenport.cncf.entity.EntityStore.EntityClaimResult[ReviewDiagnosisCreate, ReviewDiagnosisEntity],
@@ -710,7 +667,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         org.goldenport.Consequence.success(CarReviewDiagnosisAdmission.Owner.issue(
           claimed.id.print,
           plan.request.reviewId,
-          plan.reuseKey.digest
+          plan.reference
         ))
       case loaded: org.goldenport.cncf.entity.EntityStore.EntityClaimResult.Loaded[ReviewDiagnosisEntity] @unchecked =>
         _admission_from_loaded(loaded.entity, plan)
@@ -750,13 +707,20 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       diagnosis: ReviewDiagnosisEntity,
       plan: CarReviewExecutionPlan
     ): Consequence[Unit] =
-      if (
-        diagnosis.key_definition_id.value != plan.reuseKey.definitionId ||
-        diagnosis.reuse_key_digest.value != plan.reuseKey.digest.value
-      )
-        Consequence.operationInvalid("review-diagnosis-identity-conflict")
-      else
-        Consequence.unit
+      _diagnosis_id(plan).flatMap { diagnosisid =>
+        if diagnosis.id != diagnosisid then
+          Consequence.operationInvalid("review-plan-reference-invalid")
+        else if diagnosis.plan_revision <= 0 || diagnosis.plan_revision != plan.reference.revision then
+          Consequence.operationInvalid("review-plan-revision-conflict")
+        else
+          (for {
+            retained <- CarReviewExecutionSelectionCodec.decode(diagnosis.execution_selection.value.value)
+            _ <- CarReviewExecutionSelectionCodec.compatible(plan.reuseInput, retained)
+          } yield ()) match {
+            case Right(_) => Consequence.unit
+            case Left(error) => Consequence.operationInvalid(error.code)
+          }
+      }
   }
 
   private final class ReviewDiagnosisHistoryProgram(
@@ -775,6 +739,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         // opaque canonical document as an external search predicate.
         snapshots <- entity_search_internal[ReviewReportSnapshotEntity](_query(reportId))
         report <- exec_from(_decode_exact(reportId, snapshots.data))
+        _ <- snapshots.data.head.job_id match {
+          case Some(jobid) => new ReviewJobProgram(core, ComponentFactory.this).authorizeReport(
+            report.reviewId, org.simplemodeling.textus.cbdsupport.runtime.ReviewJobId(jobid.value))
+          case None => exec_from(Consequence.unit)
+        }
       } yield report
 
     def dashboard(
@@ -904,15 +873,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withRecord_digest(EntityReviewDigest(report.report_digest.value))
         .withTarget_digest(EntityReviewDigest(diagnosis.target_digest.value))
         .withEffective_at(EntityReviewInstant(effectiveat.value))
-        .buildC().flatMap { event =>
-          _retention_event_id("retention-expired-report", diagnosis.id, report.id.value, effectiveat).map { eventid =>
-            event.copy(
-              id = Some(eventid),
-              report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
-              report_digest = Some(EntityReviewDigest(report.report_digest.value))
-            )
-          }
-        }
+        .buildC().map(_.copy(
+          report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
+          report_digest = Some(EntityReviewDigest(report.report_digest.value))
+        ))
 
     private def _expire_attestations(
       attestations: Vector[ReviewAttestationSnapshotEntity],
@@ -931,36 +895,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
             .withRecord_digest(EntityReviewDigest(attestation.report_digest.value))
             .withTarget_digest(EntityReviewDigest(diagnosis.target_digest.value))
             .withEffective_at(EntityReviewInstant(effectiveat.value))
-            .buildC().flatMap { value =>
-              _retention_event_id("retention-expired-attestation", diagnosis.id, attestation.id.value, effectiveat).map { eventid =>
-                value.copy(
-                  id = Some(eventid),
-                  report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
-                  report_digest = Some(EntityReviewDigest(report.report_digest.value))
-                )
-              }
-            })
+            .buildC().map(_.copy(
+              report_id = Some(org.simplemodeling.textus.cbdsupport.value.ReviewReportId(report.report_id.value)),
+              report_digest = Some(EntityReviewDigest(report.report_digest.value))
+            )))
           _ <- entity_create_internal(event)
-          snapshotid <- exec_from(_history_snapshot_id("attestation", diagnosis.id, report.attestation_id.value, ReviewAttestationSnapshotCreate.collectionId))
-          _ <- entity_delete(snapshotid)
+          _ <- entity_delete(attestation.id)
         } yield ()
       }
-
-    private def _retention_event_id(
-      kind: String,
-      diagnosis: org.simplemodeling.model.datatype.EntityId,
-      recordid: String,
-      effectiveat: ReviewInstant
-    ): Consequence[org.simplemodeling.model.datatype.EntityId] =
-      ReviewDiagnosisIdentity._retention_event_id(kind, diagnosis, recordid, effectiveat)
-
-    private def _history_snapshot_id(
-      kind: String,
-      diagnosis: org.simplemodeling.model.datatype.EntityId,
-      identity: String,
-      collection: org.simplemodeling.model.datatype.EntityCollectionId
-    ): Consequence[org.simplemodeling.model.datatype.EntityId] =
-      ReviewDiagnosisIdentity._history_snapshot_id(kind, diagnosis, identity, collection)
 
     private def _expiry_update(effectiveat: ReviewInstant): ReviewDiagnosisUpdate =
       _diagnosis_update(
@@ -1605,16 +1547,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     core: ActionCall.Core,
     override val action: CbdRetrievalService.ReviewRunRequest
   ) extends CbdRetrievalService.GetReviewRunActionCall {
-    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
-      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
-      _review_gateway(core).flatMap { gateway =>
-        _review_application.get(
-          ReviewId(_required_string(action.record, "reviewId")),
-          CarReviewAuthorization.roles(core.executionContext),
-          gateway
-        ).map(admission => OperationResponse(_review_run_record(admission)))
-      }
-    }
+    protected def build_Program: ExecUowM[OperationResponse] =
+      new ReviewJobProgram(core, ComponentFactory.this)
+        .get(ReviewId(_required_string(action.record, "reviewId")))
+        .map(admission => OperationResponse(_review_run_record(admission)))
   }
 
   private final case class GetReviewSummaryActionCallImpl(
@@ -1703,7 +1639,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     core: ActionCall.Core,
     override val action: CbdReviewAdminService.ReviewStartRequest
   ) extends CbdReviewAdminService.StartReviewActionCall {
-    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
+    protected def build_Program: ExecUowM[OperationResponse] = {
       given org.goldenport.cncf.context.ExecutionContext = core.executionContext
       val ctx = core.executionContext
       val now = ReviewInstant(ctx.clock.instant().toString)
@@ -1720,13 +1656,14 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         ReviewProfile(_required_string(action.record, "profile")),
         now
       )
-      _review_gateway(core).flatMap { gateway =>
-        _review_application.start(
-          request,
-          CarReviewAuthorization.roles(ctx),
-          gateway
-        ).map(admission => OperationResponse(_review_run_record(admission)))
-      }
+      for {
+        _ <- exec_from(CarReviewAuthorization.authorize("review.start", CarReviewAuthorization.roles(ctx)))
+        document <- exec_from(_configuration(_capability_configuration(core),
+          org.simplemodeling.textus.cbdsupport.runtime.CarReviewServerExecution.configurationKey)
+          .flatMap(_.map(Consequence.success).getOrElse(Consequence.operationInvalid("review-execution-plan-required"))))
+        selected <- exec_from(org.simplemodeling.textus.cbdsupport.runtime.CarReviewServerExecution.selectC(document, request))
+        admission <- new ReviewJobProgram(core, ComponentFactory.this).start(selected)
+      } yield OperationResponse(_review_run_record(admission))
     }
   }
 
@@ -1734,18 +1671,10 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     core: ActionCall.Core,
     override val action: CbdReviewAdminService.ReviewCancelRequest
   ) extends CbdReviewAdminService.CancelReviewActionCall {
-    protected def build_Program: ExecUowM[OperationResponse] = exec_from {
-      given org.goldenport.cncf.context.ExecutionContext = core.executionContext
-      val ctx = core.executionContext
-      _review_gateway(core).flatMap { gateway =>
-        _review_application.cancel(
-          ReviewId(_required_string(action.record, "reviewId")),
-          CarReviewAuthorization.roles(ctx),
-          ReviewInstant(ctx.clock.instant().toString),
-          gateway
-        ).map(admission => OperationResponse(_review_run_record(admission)))
-      }
-    }
+    protected def build_Program: ExecUowM[OperationResponse] =
+      new ReviewJobProgram(core, ComponentFactory.this)
+        .cancel(ReviewId(_required_string(action.record, "reviewId")))
+        .map(admission => OperationResponse(_review_run_record(admission)))
   }
 
   private final case class GetReviewDashboardActionCallImpl(

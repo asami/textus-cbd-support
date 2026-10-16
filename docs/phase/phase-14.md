@@ -1,14 +1,14 @@
 # Phase 14 - CAR Review Native Job Integration and Acceptance
 
-status=planned
+status=in_progress
 development_item=DEV-CBD-004
-depends_on=phase-13.md
+depends_on=phase-11.1.md
 validation_ownership=phase-local
 
 Stage Status:
 
-- Current status: PLANNED — transferred implementation exists but is not accepted.
-- Roadmap predecessor: [Phase 13](phase-13.md).
+- Current status: IN_PROGRESS — transferred implementation is being reconciled and validated; acceptance remains open.
+- Execution predecessor: [Phase 11.1](phase-11.1.md). The owner selected Phase 14 before Phases 12 and 13 on 2026-10-16; Phase numbers and completed histories are preserved.
 - Owner: Textus CBD Support development.
 - Update rule: completion is recorded only by the [Phase 14 checklist](phase-14-checklist.md) with reproducible validation and independent review evidence.
 - Planning date: 2026-10-07 JST.
@@ -30,9 +30,9 @@ Phase 14 acceptance records. CNCF Phase 69.7 retains its own closure owner.
 This is a separate CBD Phase. It does not reopen completed Phases 5 or 8,
 expand Capability Phases 11/11.1, or take ownership of CNCF's scheduler,
 transaction engine, native cancellation or recovery implementation. Existing
-Phase numbers and the order through Phase 13 remain unchanged; Phase 14 is
-appended to the roadmap. No dependency on Phase 13 lint behavior is implied
-by that scheduling position.
+Phase numbers remain unchanged. The original roadmap appended Phase 14 after
+Phase 13 without a dependency on its lint behavior. The 2026-10-16 owner
+direction changes execution priority to finish the existing Job work first.
 
 ## Required inputs and execution entry
 
@@ -48,31 +48,70 @@ by that scheduling position.
 
 Before execution, inspect the current source and prerequisite evidence, select
 the exact admitted build inputs, and calibrate Step/Slice workload through the
-ordinary Phase entry and splitting gates. This planning addition starts no
-Goal, validation, implementation, acceptance review or release. It does not
-resume or alter the blocked Phase 11 Goal.
+ordinary Phase entry and splitting gates. The owner authorized implementation,
+validation and review on 2026-10-16 in the canonical CBD checkout. Existing
+uncommitted work is retained. This execution does not create a Goal or alter
+the completed Phase 11 and 11.1 acceptance histories.
+
+One coherent implementation Step, `JOB-14-INTEGRATION`, covers the transferred
+native execution boundary, production selection/binding and fresh runtime reads
+(JOB-14-01 through JOB-14-05). The same generated model and binding connect
+these behaviors; acceptance covers the complete accumulator before its local
+Step commit. JOB-14-06 is the separate Phase closure. Reuse native
+Entity ownership, staging, transaction, cancellation and recovery mechanisms;
+validate CBD wiring without adding a replacement concurrency or replay protocol.
 
 ## Work stack
 
 | ID | Outcome | Status |
 | --- | --- | --- |
-| JOB-14-01 | Admit the transferred implementation and repair the current-source/generated-model build connection while preserving artifact mode. | planned |
-| JOB-14-02 | Validate explicit Review identity/revision/selection, canonical Provider input and Entity persistence compatibility. | planned |
-| JOB-14-03 | Complete and validate native staged Job execution, commit-gated completion and registered Provider cancellation. | planned |
-| JOB-14-04 | Connect production StartReview to server-owned selection and one durable Review-to-Job binding. | planned |
-| JOB-14-05 | Prove writer exit, independently fresh full-runtime reads, caller isolation and no redispatch. | planned |
-| JOB-14-06 | Complete relevant regression/full validation, independent acceptance and local Phase release. | planned |
+| JOB-14-01 | Admit the transferred implementation and repair the current-source/generated-model build connection while preserving artifact mode. | implemented; acceptance pending |
+| JOB-14-02 | Validate explicit Review identity/revision/selection, canonical Provider input and Entity persistence compatibility. | focused validation passed; acceptance pending |
+| JOB-14-03 | Complete and validate native staged Job execution, commit-gated completion and registered Provider cancellation. | focused validation passed; acceptance pending |
+| JOB-14-04 | Connect production StartReview to server-owned selection and one durable Review-to-Job binding. | focused validation passed; acceptance pending |
+| JOB-14-05 | Prove writer exit, independently fresh full-runtime reads, caller isolation and no redispatch. | focused validation passed; acceptance pending |
+| JOB-14-06 | Complete relevant regression/full validation, independent acceptance and local Phase release. | in progress |
+
+## Selected development inputs and current status — 2026-10-16
+
+The primary checkout is `/Users/asami/src/dev2026/textus-cbd-support` at initial
+base `588395deb64d59f074e6d3a6597170f25b1bc476`. Its pre-existing dirty work
+was retained before execution; unrelated Capability planning stays outside the
+Phase commit boundary. The selected CNCF checkout is
+`.codex-workflow/checkouts/goldenport-cncf-phase78`, initial base
+`8c9e502a6c420eb7c4386f5198fd6b9b09995d76`. Its three changed Test fixtures
+provide native observations and full-bootstrap test access; CNCF production
+code is unchanged. Cozy checkout `.codex-workflow/checkouts/cozy-phase64` at
+`834198b5c864c1599f29bc84effad2cc64146031` supplies generation without changes.
+
+Actual generation and compilation succeeded using Scala 3.3.8, CNCF
+0.5.3-SNAPSHOT source and Cozy 0.3.3-SNAPSHOT. The existing source-JAR bridge
+required no replacement. The declared artifact coordinates remain unchanged;
+source-mode acceptance is not a publication or a claim about older installed
+artifacts. The CNCF Test bridge is not a production dependency or CAR output.
+
+The execution, identity, Provider, persistence, production and separate-JVM
+restart checks have passed. CBD full validation has passed; CNCF full validation,
+independent Step acceptance and Phase closure are still required. Detailed
+execution results remain in private local storage. Native
+unsupported started-work recovery refuses bootstrap; the fresh reader proves
+that refusal and zero executable tasks rather than reopening a released store.
 
 ## JOB-14-01: Source admission and build connection
 
-Resolve both recorded build prerequisites: `sbt-cozy` obtains
+Reconcile both historically recorded build prerequisites: `sbt-cozy` obtains
 `META-INF/cncf/runtime.yaml` from dependency JARs in `Compile / update`, whereas
 the current source `RootProject` dependency does not supply that descriptor;
 `project/InternalModelExclusionBuild.scala` also requires a directly declared
 CNCF artifact in root and fixture dependencies.
 
-Select and document a concrete build solution before implementation. The
-previously proposed source-JAR bridge remains unimplemented planning input.
+The current `InternalModelExclusionBuild.sourceDependencySettings` already
+exports and checks the selected CNCF source package JAR, and the exclusion
+fixture distinguishes source and artifact dependency modes. The Capability
+producer also reads the actual JAR runtime descriptor. Reuse these accepted
+build connections and identify any remaining Job-specific gap through the
+actual current build; the 2026-10-06 failure is historical evidence, not a
+current failure or a request to implement the same bridge again.
 Prove actual CML generation, generated-source compilation and required runtime
 descriptors with the selected inputs. Preserve the declared `project.yaml`
 artifact configuration when no source selector is supplied. Invalid explicit

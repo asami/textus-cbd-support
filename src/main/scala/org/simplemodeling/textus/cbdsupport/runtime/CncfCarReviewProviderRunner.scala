@@ -9,7 +9,7 @@ import org.goldenport.cncf.unitofwork.ExecUowM
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CncfCarReviewProviderRunner(
@@ -17,14 +17,24 @@ final class CncfCarReviewProviderRunner(
   delegate: CarReviewProviderRunner
 ) extends CarReviewProviderRunner {
   def execute(request: ProviderBundleExecutionRequest): ProviderBundleRunnerResult =
-    ProviderEngine.execute(Call(_core("execute", request), request, delegate, cancellation = false)) match {
+    ProviderEngine.execute(Call(_core("execute", request), request, delegate)) match {
       case Consequence.Success(value) => value
       case Consequence.Failure(_) => ProviderBundleRunnerResult.Failed("provider-engine-failed", "Provider execution failed at the CNCF boundary.", request.startedAtMillis)
     }
 
   def cancel(request: ProviderBundleExecutionRequest): Unit = {
-    val _ = ProviderEngine.execute(Call(_core("cancel", request), request, delegate, cancellation = true))
+    val _ = cancelC(request)
   }
+
+  def cancelC(request: ProviderBundleExecutionRequest): Consequence[Unit] =
+    try {
+      ProviderEngine.execute(CancellationCall(_core("cancel", request), request, delegate)) match {
+        case Consequence.Success(_) => Consequence.success(())
+        case Consequence.Failure(_) => Consequence.operationInvalid("provider-cancellation-failed")
+      }
+    } catch {
+      case NonFatal(_) => Consequence.operationInvalid("provider-cancellation-failed")
+    }
 
   private def _core(operation: String, request: ProviderBundleExecutionRequest): ProviderCall.Core =
     ProviderCall.Core(
@@ -45,12 +55,11 @@ final class CncfCarReviewProviderRunner(
   private final case class Call(
     core: ProviderCall.Core,
     request: ProviderBundleExecutionRequest,
-    delegate: CarReviewProviderRunner,
-    cancellation: Boolean
+    delegate: CarReviewProviderRunner
   ) extends ProviderCall[ProviderBundleRunnerResult] {
     protected def build_Program: ExecUowM[ProviderBundleRunnerResult] =
       provider_step(
-        if cancellation then "cancel-car-review-provider" else "execute-car-review-provider",
+        "execute-car-review-provider",
         Map(
           "provider_id" -> request.provider.id.value,
           "provider_version" -> request.provider.version.value,
@@ -58,12 +67,32 @@ final class CncfCarReviewProviderRunner(
         )
       ) {
         try {
-          if cancellation then {
-            delegate.cancel(request)
-            Consequence.success(ProviderBundleRunnerResult.Failed("provider-cancelled", "Provider cancellation was delivered.", request.startedAtMillis))
-          } else Consequence.success(delegate.execute(request))
+          Consequence.success(delegate.execute(request))
         } catch {
           case NonFatal(_) => Consequence.success(ProviderBundleRunnerResult.Failed("provider-runner-exception", "Provider runner raised an internal failure.", request.startedAtMillis))
+        }
+      }
+  }
+
+  private final case class CancellationCall(
+    core: ProviderCall.Core,
+    request: ProviderBundleExecutionRequest,
+    delegate: CarReviewProviderRunner
+  ) extends ProviderCall[Unit] {
+    protected def build_Program: ExecUowM[Unit] =
+      provider_step(
+        "cancel-car-review-provider",
+        Map(
+          "provider_id" -> request.provider.id.value,
+          "provider_version" -> request.provider.version.value,
+          "target_digest" -> request.target.digest.value
+        )
+      ) {
+        try {
+          delegate.cancel(request)
+          Consequence.success(())
+        } catch {
+          case NonFatal(_) => Consequence.operationInvalid("provider-cancellation-failed")
         }
       }
   }

@@ -1,126 +1,142 @@
-package org.simplemodeling.textus.cbdsupport
+package org.simplemodeling.textus.cbdsupport.runtime
 
+import io.circe.Json
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 23, 2026
- * @version Jul. 24, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewReuseKeySpec extends AnyWordSpec with Matchers with GivenWhenThen {
-  "The CAR Review diagnosis reuse key" should {
-    "retain one digest when canonical selections arrive in a different order" in {
-      Given("one complete diagnosis input with rules, providers, evidence snapshots, and policies")
+  "Declared CAR Review execution selections" should {
+    "restore typed references and accept reordered selection vectors" in {
+      Given("a complete selection with positive target, baseline, policy and evidence revisions")
       val input = _input
-      val reordered = input.copy(
-        ruleSets = input.ruleSets.reverse,
-        providerSelections = input.providerSelections.reverse,
-        evidenceSnapshots = input.evidenceSnapshots.reverse,
-        policyBindings = input.policyBindings.reverse
-      )
+      val reordered = input.copy(ruleSets = input.ruleSets.reverse, providerSelections = input.providerSelections.reverse,
+        evidenceSnapshots = input.evidenceSnapshots.reverse, policyBindings = input.policyBindings.reverse)
 
-      When("both semantically identical requests calculate their reuse keys")
-      val first = _key(input)
-      val second = _key(reordered)
+      When("production validation and the persistence codec encode, decode and compare the selection")
+      val validation = CarReviewReuseKey.validate(input)
+      val restored = CarReviewExecutionSelectionCodec.encode(input).flatMap(CarReviewExecutionSelectionCodec.decode)
+      val compatibility = CarReviewExecutionSelectionCodec.compatible(input, reordered)
+      val optional = input.copy(baselineReference = None, evidenceSnapshots = Vector.empty)
+      val optionalrestored = CarReviewExecutionSelectionCodec.encode(optional).flatMap(CarReviewExecutionSelectionCodec.decode)
 
-      Then("array arrival order and omitted volatile Run metadata cannot split reusable work")
-      first shouldBe second
-      first.definitionId shouldBe CarReviewReuseKey.DEFINITION_ID
+      Then("all declared identities and revisions survive and vector order adds no identity")
+      validation shouldBe Right(())
+      restored shouldBe Right(input)
+      restored.map(_.targetReference.revision) shouldBe Right(3L)
+      compatibility shouldBe Right(())
+      optionalrestored shouldBe Right(optional)
     }
 
-    "invalidate reuse for every target, profile, rule, provider, runtime evidence, baseline, and policy input" in {
-      Given("one canonical diagnosis reuse input")
+    "refuse missing or invalid revisions and ambiguous selections with attributed failures" in {
+      Given("missing, Boolean, decimal, exponent, overflowing or otherwise invalid revisions, duplicate selections and incomplete policy scopes")
       val input = _input
-      val expected = _key(input)
-      val changed = Vector(
-        input.copy(target = input.target.copy(digest = _digest('b'))),
+      val cases = Vector(
+        input.copy(targetReference = CarReviewDeclaredReference("", 1L)) -> "invalid-reuse-target",
+        input.copy(targetReference = CarReviewDeclaredReference("target:main", 0L)) -> "invalid-reuse-target",
+        input.copy(baselineReference = Some(CarReviewDeclaredReference("baseline:main", -1L))) -> "invalid-reuse-baseline",
+        input.copy(ruleSets = input.ruleSets :+ input.ruleSets.head) -> "duplicate-reuse-rule-set",
+        input.copy(providerSelections = input.providerSelections :+ input.providerSelections.head) -> "duplicate-reuse-provider",
+        input.copy(evidenceSnapshots = input.evidenceSnapshots :+ input.evidenceSnapshots.head) -> "duplicate-reuse-evidence",
+        input.copy(policyBindings = input.policyBindings :+ input.policyBindings.head) -> "invalid-reuse-policy-scopes",
+        input.copy(policyBindings = input.policyBindings.dropRight(1)) -> "invalid-reuse-policy-scopes",
+        input.copy(providerSelections = Vector(input.providerSelections.head.copy(availabilityPolicy = CarReviewDeclaredReference("", 1L)))) -> "invalid-reuse-provider",
+        input.copy(evidenceSnapshots = Vector(input.evidenceSnapshots.head.copy(snapshot = CarReviewDeclaredReference("evidence:main", 0L)))) -> "invalid-reuse-evidence",
+        input.copy(policyBindings = input.policyBindings.updated(0, input.policyBindings.head.copy(revision = -1L))) -> "invalid-reuse-policy",
+        input.copy(providerSelections = Vector(input.providerSelections.head.copy(ruleSet = ReviewRuleIdentity(ReviewRuleId("absent"), ReviewVersion("1"))))) -> "unbound-reuse-provider-rule",
+        input.copy(reviewSchemaVersion = ReviewSchemaVersion("unsupported")) -> "incompatible-reuse-schema"
+      )
+      val target = _json.hcursor.downField("targetReference").focus.get
+      val revisions = Vector("0", "-1", "true", "1.0", "1e0", "1.5", "9223372036854775808", "-9223372036854775809", "\"1\"", "null")
+        .map(raw => io.circe.parser.parse(raw).fold(error => fail(error.message), identity))
+      val documents = Vector(
+        _json.mapObject(_.remove("targetReference")) -> "review-plan-selection-incomplete",
+        _json.mapObject(_.add("targetReference", target.mapObject(_.remove("id")))) -> "review-plan-selection-incomplete",
+        _json.mapObject(_.add("targetReference", target.mapObject(_.remove("revision")))) -> "review-plan-selection-incomplete"
+      ) ++ revisions.map { revision =>
+        _json.mapObject(_.add("targetReference", target.mapObject(_.add("revision", revision)))) -> "invalid-reuse-target"
+      }
+
+      When("the production validator and closed decoder admit each malformed selection")
+      val validated = cases.map { case (selection, code) => CarReviewReuseKey.validate(selection).left.toOption.map(_.code) -> code }
+      val decoded = documents.map { case (document, code) => CarReviewExecutionSelectionCodec.decode(document.noSpaces).left.toOption.map(_.code) -> code }
+
+      Then("every refusal keeps its cause and no required declaration is inferred")
+      validated.foreach { case (actual, code) => actual shouldBe Some(code) }
+      decoded.foreach { case (actual, code) => actual shouldBe Some(code) }
+    }
+
+    "refuse independently changed typed bindings at the same retained selection" in {
+      Given("a complete selection and independent target, profile, baseline, rule, provider, evidence and policy changes")
+      val input = _input
+      val changedrule = input.ruleSets.head.copy(version = ReviewVersion("2.0"))
+      val changes = Vector(
+        input.copy(targetReference = input.targetReference.copy(id = "target:other")),
+        input.copy(targetReference = input.targetReference.copy(revision = 4L)),
         input.copy(profile = ReviewProfile("release")),
-        input.copy(
-          ruleSets = Vector(ReviewRuleIdentity(ReviewRuleId("rule-security"), ReviewVersion("2.0"))),
-          providerSelections = Vector(_provider.copy(ruleSet = ReviewRuleIdentity(ReviewRuleId("rule-security"), ReviewVersion("2.0"))))
-        ),
-        input.copy(providerSelections = Vector(_provider.copy(provider = ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("2.0"))))),
-        input.copy(evidenceSnapshots = Vector(_runtime.copy(digest = _digest('c')))),
-        input.copy(baselineDigest = Some(_digest('d'))),
-        input.copy(policyBindings = _policies.updated(1, _policies(1).copy(policyDigest = _digest('e'))))
+        input.copy(baselineReference = Some(CarReviewDeclaredReference("baseline:other", 2L))),
+        input.copy(ruleSets = input.ruleSets.updated(0, changedrule), providerSelections = input.providerSelections.updated(0, input.providerSelections.head.copy(ruleSet = changedrule))),
+        input.copy(providerSelections = input.providerSelections.updated(0, input.providerSelections.head.copy(provider = input.providerSelections.head.provider.copy(version = ReviewVersion("2.0"))))),
+        input.copy(evidenceSnapshots = input.evidenceSnapshots.updated(0, input.evidenceSnapshots.head.copy(snapshot = CarReviewDeclaredReference("evidence:other", 2L)))),
+        input.copy(evidenceSnapshots = input.evidenceSnapshots.updated(0, input.evidenceSnapshots.head.copy(snapshot = input.evidenceSnapshots.head.snapshot.copy(revision = 3L)))),
+        input.copy(providerSelections = input.providerSelections.updated(0, input.providerSelections.head.copy(availabilityPolicy = CarReviewDeclaredReference("availability:other", 2L)))),
+        input.copy(providerSelections = input.providerSelections.updated(0, input.providerSelections.head.copy(availabilityPolicy = input.providerSelections.head.availabilityPolicy.copy(revision = 3L)))),
+        input.copy(policyBindings = input.policyBindings.updated(0, input.policyBindings.head.copy(revision = 2L)))
       )
 
-      When("each conclusion-affecting input changes independently")
-      val keys = changed.map(_key)
+      When("production compatibility compares each changed binding against the retained selection")
+      val results = changes.map(CarReviewExecutionSelectionCodec.compatible(_, input))
+      val reordered = CarReviewExecutionSelectionCodec.compatible(input.copy(policyBindings = input.policyBindings.reverse), input)
 
-      Then("no changed input reuses the prior diagnosis key")
-      keys.foreach(_ should not equal expected)
+      Then("each changed binding is inconsistent and order alone is compatible")
+      results.foreach(_.left.toOption.map(_.code) shouldBe Some("review-plan-selection-inconsistent"))
+      reordered shouldBe Right(())
+      input.targetReference shouldBe CarReviewDeclaredReference("target:main", 3L)
     }
 
-    "refuse ambiguous provider selections and incomplete policy scope" in {
-      Given("a request with either duplicate provider identity or one missing policy scope")
-      val duplicate = _input.copy(providerSelections = Vector(_provider, _provider.copy(ruleSet = ReviewRuleIdentity(ReviewRuleId("rule-domain"), ReviewVersion("1.0")))))
-      val incomplete = _input.copy(policyBindings = _policies.filterNot(_.scope == "suppression"))
+    "refuse legacy, incomplete and malformed closed persisted selections" in {
+      Given("legacy documents, omitted optionals or arrays, unknown nested fields and duplicate object keys")
+      val target = _json.hcursor.downField("targetReference").focus.get
+      val cases = Vector(
+        "" -> "review-plan-selection-incomplete",
+        "{}" -> "review-plan-selection-incomplete",
+        "{\"keyDefinitionId\":\"textus.cbd.review-reuse-key.v1\",\"reuseKeyDigest\":\"legacy\"}" -> "review-plan-selection-incomplete",
+        _json.mapObject(_.remove("baselineReference")).noSpaces -> "review-plan-selection-incomplete",
+        _json.mapObject(_.remove("evidenceSnapshots")).noSpaces -> "review-plan-selection-incomplete",
+        _json.mapObject(_.add("schemaVersion", Json.fromString("textus.cbd.review-reuse-key.v1"))).noSpaces -> "unsupported-reuse-key-definition",
+        _json.mapObject(_.add("unknown", Json.True)).noSpaces -> "review-plan-selection-invalid",
+        _json.mapObject(_.add("targetReference", target.mapObject(_.add("digest", Json.fromString("legacy"))))).noSpaces -> "invalid-reuse-target",
+        _json.mapObject(_.add("policyBindings", Json.fromValues(Vector(Json.obj("scope" -> Json.fromString("profile")))))).noSpaces -> "review-plan-selection-incomplete",
+        _json.noSpaces.replace("\"id\":\"target:main\"", "\"id\":\"target:main\",\"id\":\"target:other\"") -> "review-plan-selection-invalid"
+      )
 
-      When("the calculator validates the canonical input")
-      val duplicatefailure = CarReviewReuseKey.calculate(duplicate)
-      val incompletefailure = CarReviewReuseKey.calculate(incomplete)
+      When("the current production decoder restores each persisted declaration")
+      val results = cases.map { case (document, code) => CarReviewExecutionSelectionCodec.decode(document).left.toOption.map(_.code) -> code }
 
-      Then("it rejects an incomplete identity instead of guessing a reusable conclusion")
-      duplicatefailure.left.toOption.map(_.code) shouldBe Some("duplicate-reuse-provider")
-      incompletefailure.left.toOption.map(_.code) shouldBe Some("invalid-reuse-policy-scopes")
-    }
-
-    "reject an incompatible Review schema while preserving distinct colon-qualified Evidence identities" in {
-      Given("a request with an unsupported document schema and two distinct Evidence snapshot identities")
-      val unsupported = _input.copy(reviewSchemaVersion = ReviewSchemaVersion("textus.cbd.review-report.v2"))
-      val separated = _input.copy(evidenceSnapshots = Vector(
-        _runtime.copy(evidenceClass = "runtime:source", snapshotId = "main"),
-        _runtime.copy(evidenceClass = "runtime", snapshotId = "source:main")
-      ))
-
-      When("the calculator validates both input identities")
-      val unsupportedfailure = CarReviewReuseKey.calculate(unsupported)
-      val separatedkey = CarReviewReuseKey.calculate(separated)
-
-      Then("it refuses an unrenderable Review schema without conflating structured Evidence identities")
-      unsupportedfailure.left.toOption.map(_.code) shouldBe Some("incompatible-reuse-schema")
-      separatedkey.isRight shouldBe true
+      Then("every document is refused without a legacy identity adapter or default revision")
+      results.foreach { case (actual, code) => actual shouldBe Some(code) }
     }
   }
 
-  private val _provider = CarReviewReuseProviderSelection(
-    ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("1.0")),
-    ReviewRuleIdentity(ReviewRuleId("rule-catalog"), ReviewVersion("1.0")),
-    _digest('f')
-  )
-  private val _runtime = CarReviewReuseEvidenceSnapshot(
-    "runtime",
-    "runtime-snapshot-main",
-    ReviewProviderIdentity(ReviewProviderId("runtime"), ReviewVersion("1.0")),
-    _digest('a')
-  )
-  private val _policies = Vector(
-    CarReviewReusePolicyBinding("profile", "profile-development", ReviewVersion("1.0"), _digest('1')),
-    CarReviewReusePolicyBinding("gate", "gate-default", ReviewVersion("1.0"), _digest('2')),
-    CarReviewReusePolicyBinding("reconciliation", "reconciliation-default", ReviewVersion("1.0"), _digest('3')),
-    CarReviewReusePolicyBinding("suppression", "suppression-default", ReviewVersion("1.0"), _digest('4'))
-  )
+  private def _input: CarReviewReuseKeyInput = {
+    val first = CarReviewReuseProviderSelection(ReviewProviderIdentity(ReviewProviderId("cozy"), ReviewVersion("1.0")),
+      ReviewRuleIdentity(ReviewRuleId("rule-catalog"), ReviewVersion("1.0")), CarReviewDeclaredReference("availability:cozy", 2L))
+    val second = CarReviewReuseProviderSelection(ReviewProviderIdentity(ReviewProviderId("runtime"), ReviewVersion("1.0")),
+      ReviewRuleIdentity(ReviewRuleId("rule-runtime"), ReviewVersion("1.0")), CarReviewDeclaredReference("availability:runtime", 1L))
+    CarReviewReuseKeyInput(CarReviewReuseKey.DEFINITION_ID, ReviewSchemaVersion(CarReviewVocabulary.SCHEMA_VERSION),
+      CarReviewDeclaredReference("target:main", 3L), ReviewTargetKind("car"), Some("org.textus"), "textus-cbd-support",
+      Some(ReviewVersion("0.1.0-SNAPSHOT")), ReviewProfile("development"), Some(CarReviewDeclaredReference("baseline:main", 2L)),
+      Vector(first.ruleSet, second.ruleSet), Vector(first, second),
+      Vector(CarReviewReuseEvidenceSnapshot("runtime", CarReviewDeclaredReference("evidence:a:b", 2L), second.provider),
+        CarReviewReuseEvidenceSnapshot("runtime:a", CarReviewDeclaredReference("evidence:b", 1L), second.provider)),
+      Vector("profile", "gate", "reconciliation", "suppression").map(scope => CarReviewReusePolicyBinding(scope, scope + "-default", ReviewVersion("1.0"), 1L)))
+  }
 
-  private def _input: CarReviewReuseKeyInput =
-    CarReviewReuseKeyInput(
-      CarReviewReuseKey.DEFINITION_ID,
-      ReviewSchemaVersion("textus.cbd.review-report.v1"),
-      ReviewTarget(ReviewTargetKind("car"), Some("org.textus"), "textus-cbd-support", Some(ReviewVersion("0.1.0-SNAPSHOT")), _digest('0')),
-      ReviewProfile("development"),
-      Some(_digest('9')),
-      Vector(ReviewRuleIdentity(ReviewRuleId("rule-catalog"), ReviewVersion("1.0"))),
-      Vector(_provider),
-      Vector(_runtime),
-      _policies
-    )
-
-  private def _key(input: CarReviewReuseKeyInput): CarReviewReuseKey =
-    CarReviewReuseKey.calculate(input).fold(error => fail(s"${error.code}: ${error.message}"), identity)
-
-  private def _digest(character: Char): ReviewDigest =
-    ReviewDigest("sha256:" + character.toString * 64)
+  private def _json: Json =
+    io.circe.parser.parse(CarReviewExecutionSelectionCodec.encode(_input).fold(error => fail(error.message), identity)).fold(error => fail(error.message), identity)
 }

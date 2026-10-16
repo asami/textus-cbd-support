@@ -6,7 +6,7 @@ import org.goldenport.cncf.job.JobStatus
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 object CarReviewRunLifecycle {
@@ -150,7 +150,7 @@ object CarReviewRunLifecycle {
   ): Either[ReviewRunLifecycleFailure, CarReviewRun] = {
     val allowed = run.state.value match {
       case "admitted" => Set("queued")
-      case "queued" => Set("queued", "running", "cancelled", "failed")
+      case "queued" => Set("queued", "running", "cancelled", "completed", "failed")
       case "running" => Set("running", "cancelled", "completed", "failed")
       case "cancelling" => Set("cancelling", "cancelled", "failed")
       case state if CarReviewRunVocabulary.TERMINAL_STATES.contains(state) => Set(state)

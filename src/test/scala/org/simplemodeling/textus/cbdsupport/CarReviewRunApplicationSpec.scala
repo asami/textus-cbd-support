@@ -2,7 +2,7 @@ package org.simplemodeling.textus.cbdsupport
 
 import org.goldenport.Consequence
 import org.goldenport.cncf.context.{ExecutionContext, SecurityContext}
-import org.goldenport.cncf.job.{InMemoryJobEngine, JobId, JobStatus}
+import org.goldenport.cncf.job.{InMemoryJobEngine, JobStatus}
 import org.scalatest.GivenWhenThen
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -10,7 +10,7 @@ import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /*
  * @since   Jul. 16, 2026
- * @version Jul. 16, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CarReviewRunApplicationSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -121,8 +121,8 @@ final class CarReviewRunApplicationSpec extends AnyWordSpec with Matchers with G
       gateway.cancellations shouldBe Vector.empty
     }
 
-    "submit and cancel the exact bound Job through the CNCF runtime" in {
-      Given("an operator and an in-memory CNCF Job engine whose worker is held")
+    "refuse transport-only submission without an admitted execution plan" in {
+      Given("an operator and a native gateway without a server-owned execution plan")
       given ExecutionContext = ExecutionContext.test(SecurityContext.Privilege.Operator)
       val engine = InMemoryJobEngine.create(InMemoryJobEngine.SchedulerConfig(autoStartWorkers = false))
       val gateway = new CncfCarReviewJobGateway(engine)
@@ -130,7 +130,7 @@ final class CarReviewRunApplicationSpec extends AnyWordSpec with Matchers with G
       val roles = CarReviewAuthorization.roles(summon[ExecutionContext])
 
       try {
-        When("the application starts and cancels one Review through the production gateway")
+        When("the legacy transport-only application requests submission and cancellation")
         val admitted = application.start(_request, roles, gateway)
         val cancelling = application.cancel(
           _request.reviewId,
@@ -140,11 +140,14 @@ final class CarReviewRunApplicationSpec extends AnyWordSpec with Matchers with G
         )
         val cancelled = application.get(_request.reviewId, roles, gateway)
 
-        Then("the generated CNCF Job identity remains bound and reaches terminal cancellation")
-        admitted.toOption.map(admission => JobId.parse(admission.binding.jobId.value).isSuccess) shouldBe Some(true)
-        cancelling.toOption.map(_.run.state.value) shouldBe Some("cancelling")
-        cancelled.toOption.map(_.run.state.value) shouldBe Some("cancelled")
-        cancelled.toOption.map(_.binding) shouldBe admitted.toOption.map(_.binding)
+        Then("submission fails before binding and no Run can be cancelled or retrieved")
+        admitted.isSuccess shouldBe false
+        admitted match {
+          case Consequence.Failure(conclusion) => conclusion.display should include("review-execution-plan-required")
+          case Consequence.Success(_) => fail("transport-only submission requires an execution plan")
+        }
+        cancelling.isSuccess shouldBe false
+        cancelled.isSuccess shouldBe false
       } finally {
         engine.shutdown()
       }

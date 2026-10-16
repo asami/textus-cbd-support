@@ -9,7 +9,8 @@ import io.circe.parser.parse
 /*
  * @since   Jul. 16, 2026
  *  version Jul. 24, 2026
- * @version Aug. 15, 2026
+ *  version Aug. 15, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 sealed trait ProviderBundleAvailability {
@@ -131,6 +132,19 @@ object CarReviewProviderBundleAdmission {
         _refused(provider, availability.state, s"provider-${availability.state.value}", availability.runFailure)
     }
   }
+
+  def validateExecutionRequest(
+    reviewId: ReviewId,
+    target: ReviewTarget,
+    providerRequest: String
+  ): Either[String, Unit] =
+    for {
+      request <- _parse(providerRequest, "request")
+      _ <- _document(request, "provider-request", "request")
+      _ <- _shape(request, _request_fields, _request_required_fields, "request")
+      _ <- _target_matches(target, request, "request")
+      _ <- Either.cond(_string(request, "reviewId").contains(reviewId.value), (), "review-id-mismatch")
+    } yield ()
 
   def requestDigest(value: String): Either[String, ReviewDigest] =
     for {

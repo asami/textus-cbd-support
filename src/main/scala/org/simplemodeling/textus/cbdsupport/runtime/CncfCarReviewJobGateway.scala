@@ -1,14 +1,16 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
 import org.goldenport.Consequence
+import org.goldenport.cncf.action.{ActionCall, ActionEngine}
 import org.goldenport.cncf.context.ExecutionContext
-import org.goldenport.cncf.job.{ActionId, JobControlCommand, JobControlPolicy, JobControlRequest, JobEngine, JobId, JobPersistencePolicy, JobQueryPolicy, JobQueryReadModel, JobRunMode, JobSubmitOption, JobTask, TaskOutcome, TaskSucceeded}
+import org.goldenport.cncf.job.{ActionId, JobControlCommand, JobControlPolicy, JobControlRequest, JobEngine, JobId, JobPersistencePolicy, JobQueryPolicy, JobQueryReadModel, JobRunMode, JobSubmitOption}
 import org.goldenport.protocol.operation.OperationResponse
-import org.goldenport.record.Record
+import org.simplemodeling.textus.cbdsupport.impl.ComponentFactory
 
 /*
  * @since   Jul. 16, 2026
- * @version Aug. 15, 2026
+ *  version Aug. 15, 2026
+ * @version Oct. 16, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CncfCarReviewJobGateway(
@@ -17,20 +19,42 @@ final class CncfCarReviewJobGateway(
   def submit(
     request: ReviewStartRequest
   )(using ctx: ExecutionContext): Consequence[ReviewJobId] = {
-    val actionid = ActionId.create("cbd.review", ctx.clock.instant(), ctx.idGeneration)
-    val task = ReviewPipelineTask(actionid, request)
-    val option = JobSubmitOption(
-      persistence = JobPersistencePolicy.Persistent,
-      runMode = JobRunMode.Async,
-      requestSummary = Some(s"CBD CAR Review ${request.reviewId.value}"),
-      parameters = Map(
-        "reviewId" -> request.reviewId.value,
-        "targetDigest" -> request.target.digest.value,
-        "profile" -> request.profile.value
-      )
-    )
-    jobengine.submit(List(task), ctx, option).map(jobid => ReviewJobId(jobid.value))
+    Consequence.operationInvalid("review-execution-plan-required")
   }
+
+  def stageExecution(
+    core: ActionCall.Core,
+    work: CarReviewJobExecutionWork,
+    providerApplication: CarReviewProviderExecutionApplication,
+    factory: ComponentFactory,
+    actionEngine: ActionEngine
+  ): Consequence[ReviewJobId] =
+    if core == null || core.executionContext == null || core.action == null ||
+        core.component == null || core.component.isEmpty || core.component.contains(null) ||
+        work == null || providerApplication == null || factory == null || actionEngine == null || jobengine == null then
+      Consequence.operationInvalid("review-job-runtime-incomplete")
+    else for {
+      _ <- work.validate
+      _ <- CarReviewAuthorization.authorize("review.start", CarReviewAuthorization.roles(core.executionContext))
+      jobid <- {
+        val ctx = core.executionContext
+        val actionid = ActionId.create("cbd.review", ctx.clock.instant(), ctx.idGeneration)
+        val task = new CarReviewExecutionJobTask(actionid, work, core, providerApplication, factory, actionEngine)
+        val option = JobSubmitOption(
+          persistence = JobPersistencePolicy.Persistent,
+          runMode = JobRunMode.Async,
+          requestSummary = Some(s"CBD CAR Review ${work.plan.request.reviewId.value}"),
+          parameters = Map(
+            "reviewId" -> work.plan.request.reviewId.value,
+            "targetDigest" -> work.plan.request.target.digest.value,
+            "profile" -> work.plan.request.profile.value,
+            "diagnosisId" -> work.owner.diagnosisId,
+            "planRevision" -> work.plan.reference.revision.toString
+          )
+        )
+        jobengine.stageSubmit(List(task), ctx.unitOfWork, option)
+      }
+    } yield ReviewJobId(jobid.value)
 
   def read(
     jobid: ReviewJobId
@@ -43,11 +67,14 @@ final class CncfCarReviewJobGateway(
     jobid: ReviewJobId
   )(using ctx: ExecutionContext): Consequence[Unit] =
     JobId.parse(jobid.value).flatMap { parsed =>
-      jobengine.control(
+      jobengine.queryVisible(parsed, ReviewRunQueryPolicy).flatMap {
+        case None => Consequence.operationNotFound("review-job-not-found")
+        case Some(_) => jobengine.control(
         parsed,
         JobControlRequest(JobControlCommand.Cancel),
         ReviewRunControlPolicy
       ).map(_ => ())
+      }
     }
 
   private def _update(model: JobQueryReadModel): ReviewRunJobUpdate =
@@ -71,8 +98,10 @@ private object ReviewRunQueryPolicy extends JobQueryPolicy {
   def authorizeRead(
     model: JobQueryReadModel
   )(using ctx: ExecutionContext): Consequence[Unit] = {
-    val _ = model
-    CarReviewAuthorization.authorize("review.read-run", CarReviewAuthorization.roles(ctx))
+    CarReviewAuthorization.authorize("review.read-run", CarReviewAuthorization.roles(ctx)).flatMap { _ =>
+      if (JobQueryPolicy.isOwner(model.submitter, ctx)) Consequence.unit
+      else Consequence.operationIllegal("review.read-run", "review-job-not-owned")
+    }
   }
 }
 
@@ -84,22 +113,5 @@ private object ReviewRunControlPolicy extends JobControlPolicy {
     val _ = jobid
     val _ = request
     CarReviewAuthorization.authorize("review.cancel", CarReviewAuthorization.roles(ctx))
-  }
-}
-
-private final case class ReviewPipelineTask(
-  actionId: ActionId,
-  request: ReviewStartRequest
-) extends JobTask {
-  override def componentName: Option[String] = Some("CbdSupport")
-  override def serviceName: Option[String] = Some("CbdReviewAdmin")
-  override def operationName: Option[String] = Some("executeReview")
-
-  def run(ctx: ExecutionContext): TaskOutcome = {
-    val _ = ctx
-    TaskSucceeded(OperationResponse(Record.dataAuto(
-      "reviewId" -> request.reviewId.value,
-      "status" -> "provider-pipeline-pending"
-    )))
   }
 }

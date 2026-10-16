@@ -1,141 +1,125 @@
-# CAR Review Persistence Contract v1
+# CAR Review Persistence and Declared Ownership Contract
 
-status=specified
-phase=Phase 8
-checklist=P8-40
-updated_at=2026-07-23
+status=authored_review_pending
+phase=Phase 8 / PHASE-69.7
+checklist=P8-40 / P8-42 / P8-43 / P8-45 / JM69-10CBD2A
+updated_at=2026-10-06
 
-## Purpose
+## Supersession and Persistence Authority
 
-This contract defines the logical, database-mappable records that preserve CAR
-Review attribution after a working tree, CAR artifact, provider, or policy has
-changed. It is database-vendor-neutral: an implementation may use a relational
-store or another transactional store, but it must preserve the entity keys,
-relationships, immutability, and retention effects defined here.
+Historical P8 item IDs remain. Earlier P8-40/P8-41 opaque calculated reuse-key
+identity is superseded by an explicit native plan reference and mandatory typed
+selection. The [logical example](examples/car-review-persistence-model-v1.json)
+retains its historical filename; its current identity fields describe this
+contract. Product behavior evidence is the actual generated Entity scenarios in
+[ReviewDiagnosisPersistenceSpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/impl/ReviewDiagnosisPersistenceSpec.scala),
+not Markdown/example field inspection.
 
-`CarReviewRepository` is the earlier in-memory P5 retention boundary. It is
-not a database implementation and does not by itself satisfy this contract.
-An adapter may reuse its canonical report and terminal Run validation only when
-the persisted records retain the stronger P8 identity and audit constraints.
+CBD Support invokes generated Entity create/load/update/query and ordinary
+UnitOfWork routes. Entity owns scalar restoration, persisted revisions,
+authorization, lifecycle and CallTree behavior. CBD does not use raw DataStore,
+JDBC, SQL tables, vendor DDL, a private store codec or a shadow identity map.
+Launcher infrastructure may select SQLite as the Entity datastore backend.
+The earlier process-local `CarReviewRepository` is not authoritative persistence.
 
-## Logical Entities
+## Root, Plan Revision and Mandatory Selection
 
-The machine-readable entity model is
-`docs/spec/examples/car-review-persistence-model-v1.json`.
+The server supplies the complete `CarReviewExecutionPlanReference`: a native
+`ReviewDiagnosis` EntityId and positive declared immutable plan revision. Root
+`id` is that exact native identity. `plan_revision:long` and
+`execution_selection:ReviewSubmissionDocument` are required in the generated
+Entity, Aggregate STATE and rebuildable View. The selection document follows
+[the typed selection contract](car-review-reuse-key-contract.md). It is an
+ordinary domain document, not a private scalar restoration protocol.
 
-| Entity | Primary key | Immutable retained content | Required relationships |
-| --- | --- | --- | --- |
-| `car-lineage` | `lineageId` | normalized CAR kind, organization, component name, and lineage digest | owns target snapshots |
-| `review-target` | `targetId` | lineage, component version or artifact identity, target kind, and target digest | belongs to one lineage; owns Runs |
-| `review-run` | `reviewId` | terminal state, profile, target, completion identity, and opaque reuse identity | belongs to one target; completed Run binds one Report and attestation |
-| `review-report` | `reportId` | canonical JSON payload, report digest, Run, and target references | belongs to one terminal completed Run |
-| `review-attestation` | `attestationId` | canonical attestation payload and digest, Run, Report, and target references | binds exactly the retained Report/Run/target tuple |
-| `diagnosis-reuse-identity` | `reuseIdentityId` | opaque key-definition ID and key digest | is referenced by one or more Runs; never stores mutable provider work |
-| `review-comparison` | `comparisonId` | baseline/current Report references, lineage, and configuration-compatibility identity | references two retained Report snapshots in one lineage |
-| `review-retention-event` | `retentionEventId` | event action, entity identity, safe entity/report/target digests, and effective time | append-only audit for every retained, expired, or deleted payload |
+Before join, reuse, successor admission, completion or terminal transition, CBD
+validates persisted root ID, exact positive plan revision and decoded semantic
+selection against the selected plan. Wrong collection/invalid reference refuses
+with `review-plan-reference-invalid`; existing revision mismatch with
+`review-plan-revision-conflict`; valid differing typed selection with
+`review-plan-selection-inconsistent`. Missing selection declarations refuse with
+`review-plan-selection-incomplete`, while malformed typed declarations preserve
+their specific validation codes.
 
-The `lineageId` identifies the comparable CAR family; a component version and
-target digest identify one immutable target snapshot inside that family. A
-target digest is never overwritten to represent a later working tree or a
-rebuilt artifact.
+Dependency publishers own target, baseline, availability-policy and evidence
+IDs/revisions. Policy bindings declare policy versions/revisions. A conclusion-
+affecting change requires an explicitly provisioned distinct root reference;
+content cannot replace an existing reference or supply a missing revision.
+Request Review ID, time and business payload digests cannot select the plan.
 
-## Immutability and Atomic Retention
+## Claim, Owner Lease and Conditional Successor
 
-All stored Report and attestation payloads are already redacted canonical JSON.
-Their IDs and digests are immutable. A completed Run, its Report, and its
-attestation are retained in one transaction only when all Run, target, Report,
-attestation, profile, and digest references agree. The transaction appends a
-`retained` retention event; it does not update a previous immutable snapshot.
+Internal load followed by `entity_claim_or_load_internal` resolves concurrent
+first requests to one declared root. Claim issues a non-transport `Owner` lease
+retaining exact reference, diagnosis ID and Review ID. Only claim and a successful
+conditional successor may issue it. Matching reference and Review ID are
+necessary for ownership; a request or Report alone cannot reconstruct authority.
 
-A Run may have transient execution state before completion, but its retained
-terminal snapshot is immutable. Failed and cancelled snapshots are also
-retained attributable outcomes; their reuse and expiry behavior is specified by
-P8-43 rather than being silently treated as successful Reports.
+In-flight compatible requests join the active Review once. Completed compatible
+requests reuse the retained Report identity. Terminal failed/cancelled/expired/
+incompatible roots admit successors through the existing Entity conditional
+transition, comparing persisted revision, state and active Review. One caller
+owns and starts the successor; losers join. The immutable predecessor and sole
+admitted successor remain attributable. No replay of started native work is
+introduced; RecoveryRequired remains unchanged.
 
-Expiry or explicit deletion removes only the payload permitted by the retention
-policy. It appends an `expired` or `deleted` retention event that preserves
-record type, stable IDs, an entity digest, any applicable Report/target digest,
-and effective time without copying canonical Report content, Evidence facts,
-credentials, or provider payloads. The event relationship admits every retained
-entity except itself, including reuse identities and comparison snapshots. The
-lineage and tombstone remain attributable, so a vanished payload cannot be
-mistaken for a successful reusable result.
+Completion and terminal retention read the current persisted root before
+transition. Wrong owner, different Review ID, stale lease, or repeated terminal
+transition retains the existing `review-diagnosis-completion-not-owner` or
+`review-diagnosis-terminal-not-owner` refusal after root/selection validation.
+Completion validates canonical Run/Report/attestation payload bindings, creates
+composition snapshots and patches the root in one UOW. Existing atomic rollback
+and persisted-revision checks remain authoritative.
 
-## Reuse and Comparison Boundary
+## Native Composition IDs and Immutable History
 
-P8-40 reserves `diagnosis-reuse-identity` as a stored identity record only.
-P8-41 owns the exact reuse-key input set and invalidation formula; P8-40 must
-not infer or recompute that digest from a partial target, profile, or provider
-field. P8-42 owns concurrent request coalescing and reuse of a completed
-compatible Run.
+| Record | Native ID and retained attribution |
+| --- | --- |
+| `ReviewDiagnosis` | explicitly supplied root ID; immutable declared plan revision/selection |
+| `ReviewTargetSnapshot` | Entity-issued ID; diagnosis composition and semantic target/payload |
+| `ReviewRunSnapshot` | Entity-issued ID; diagnosis, exact Review ID, state and immutable Run document |
+| `ReviewReportSnapshot` | Entity-issued ID; diagnosis, Review/Report/attestation payload identities and canonical Report |
+| `ReviewAttestationSnapshot` | Entity-issued ID; diagnosis, Review/Report payload binding and canonical attestation |
+| `ReviewRetentionEvent` | Entity-issued ID; append-only exact expired record ID, payload attribution and effective time |
 
-Likewise, P8-40 stores immutable comparison references only. P8-44 owns the
-comparison delta calculation and dashboard history projection. A comparison
-cannot cross lineage or configuration compatibility identities, and a renderer
-must never construct it from report text.
+Target, Run, Report, attestation, retention and successor create models leave
+`id=None`. Standard Entity creation owns ID issuance, including the existing
+conditional successor intent. No name-based UUID, content seed, derived snapshot
+ID, random UUID adapter or framework issuance bypass remains. Composition links
+use the exact declared root. The rebuildable View remains a read model over the
+Aggregate and cannot become a second persistence path or history enumeration API.
+Historical lineage and comparison records remain separate P8-44 logical concerns;
+this prerequisite does not implement or infer a new lineage identity.
 
-## Security and Access Boundary
+## Bounded Reads, Authorization and Expiry
 
-This storage contract does not grant history access. Commands that write,
-delete, or expire records remain private to MCP. P8-45 admits only authorized,
-exact Report-ID reads and bounded Finding/Assurance/View projections for that
-Report; it never accepts a lineage, target, or history selector and exposes no
-history-enumeration operation. Expiry requires the dedicated retention role,
-removes payload only after policy age, appends an attributable tombstone, and
-leaves a new same-key admission non-reusable. The database must not retain raw
-credentials, filesystem roots, provider request bodies, or unredacted Evidence
-facts merely to satisfy an entity relationship.
+P8-45 reads select an exact Report ID through bounded generated queries and
+require the existing reader role. Missing or ambiguous records refuse; callers
+cannot enumerate history or use lineage/target selectors as Report access.
+Expiry requires the operator retention role and policy age. It appends attributable
+tombstones, removes Report payload and deletes every attestation by the exact
+`entity.id` returned by its bounded query, then marks the root expired. IDs are
+never reconstructed from Report content. Tombstones retain record IDs and safe
+payload attribution without copying canonical content, credentials or Evidence.
+A fresh compatible request may claim a conditional successor after expiry.
 
-## Deferred Implementation
+## Schema Compatibility and Migration Boundary
 
-This definition intentionally does not choose a database product, migration
-framework, table DDL syntax, reuse-key formula, concurrency algorithm,
-comparison projection, or history API. Those are P8-41 through P8-45 work.
+Setup requires the current compatible generated Entity schema. Original pre-v2
+roots missing mandatory fields fail generated restoration explicitly. There is
+no legacy digest decoder, derived-ID lookup, table rewrite, implicit migration,
+silent fallback, cache substitution or automatic disposal. Migration of existing
+pre-v2 data requires a separately owned decision and executable work.
 
-## P8-42 Datastore Binding
+## Preserved Executable Behaviors and Acceptance
 
-P8-42 implements this logical model as CBD Support Entity records invoked from
-the protected internal DSL. Review ActionCall logic uses Entity create/load/
-update/identity operations and their UnitOfWork authorization, lifecycle, and
-CallTree behavior; it does not obtain a datastore handle. The `ReviewDiagnosis`
-Aggregate owns one reuse identity and its Run/Report/attestation completion
-transition. Its rebuildable View is the exact-key read model; it is not a
-history-enumeration surface.
+The eight persistence scenarios preserve initial claim/join, immutable completion
+reuse, exact authorized fresh-UOW Report read, due authorized expiry/tombstone/
+successor, all four non-success histories, concurrent sole successor/one start,
+issued-owner refusal, and persisted-state repeat refusal. An additional conflict
+scenario rejects changed revision/selection before join or start. Composition
+queries prove native distinct IDs and exact root/Run attribution.
 
-CBD Support MUST NOT import or use JDBC, SQL, SQLite driver APIs, database
-connections, SQL table names, DDL, vendor-specific transaction syntax, or raw
-`DataStore` access from Review behavior. SQLite can be selected only by
-launcher/infrastructure configuration as the Entity layer's datastore backend.
-
-The implementation first loads the trusted, server-derived P8-41 identity
-through the internal Entity route. When no root exists, it uses
-`entity_claim_or_load_internal` so concurrent first requests still resolve to
-one owner. This is not a public CRUD capability: both routes retain
-`ServiceInternal` authorization and CNCF UnitOfWork/CallTree handling.
-Completion and terminal transitions use the generated `ReviewDiagnosis` patch
-model against the same server-derived stable ID. Generated Review scalar values
-are restored as their typed values by the shared generated persistence
-contract; CBD Support does not maintain a private persistence codec.
-
-The successful claim issues a non-transport `Owner` lease. Only that lease may
-complete the claimed Aggregate or retain its terminal Run; a plan, Report, or
-Review ID supplied by itself is insufficient. This prevents an independent
-internal caller from reconstructing ownership and changing a root it did not
-claim. The Entity conditional transition is the CNCF primitive for successor
-ownership after a terminal state; it compares the persisted revision/state,
-retains the predecessor, and installs exactly one successor.
-
-`ReviewDiagnosis` is the persisted Aggregate root. Its Target, Run, Report,
-and attestation records are composition members; they are written only through
-the Aggregate's internal Entity workflow and are never independently exposed
-as storage operations. The generated rebuildable `ReviewDiagnosis` View is
-the exact-key read model for admission/reuse. It may be reconstructed from the
-Aggregate and must not become a second persistence path, a history-enumeration
-API, or an opportunity to bypass Entity authorization.
-
-The P8-40 logical entity names map to CBD-owned Entity collections and
-versioned record models. A shared `DataStoreSpace` may host other components,
-but Entity/UnitOfWork routing confines CBD Support to its own component
-collections. This contract therefore permits a future shared database without
-giving CBD Support cross-component storage access or vendor-specific migration
-responsibility.
+Authored status does not establish actual Provider-to-Job/full pipeline success
+or independently fresh-process CBD reads. Original JM69-10 validation, protected
+M2 review, full acceptance and Phase closure remain pending.

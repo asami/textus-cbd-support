@@ -1,6 +1,6 @@
 # Phase 14 Checklist - CAR Review Native Job Integration and Acceptance
 
-status=planned
+status=in_progress
 phase=[Phase 14](phase-14.md)
 development_item=DEV-CBD-004
 validation_ownership=phase-local
@@ -14,8 +14,8 @@ original scope and do not close this Phase.
 
 - [ ] Record the exact transferred source, original manifests/results/failures
   and admitted CNCF runtime/API, source and artifact dependencies.
-- [ ] Repair actual dependency-JAR runtime-descriptor discovery and the direct
-  CNCF dependency assumptions in the root/output-exclusion fixture build.
+- [ ] Reconcile the existing source-JAR/runtime-descriptor connection and the
+  root/output-exclusion source/artifact modes; repair only demonstrated gaps.
 - [ ] Prove CML generation, generated-source compilation and runtime descriptor
   availability; retain the unpublished Test-bridge dependency explicitly.
 - [ ] Prove unchanged normal artifact selection, structured invalid-source

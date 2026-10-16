@@ -137,3 +137,42 @@ computed digests.
 P5-02 does not define canonical Review Report persistence, final Finding or
 Assurance admission, Review Run state, gate policy, target authorization,
 retention, or redaction limits. Those are P5-03 and P5-04 responsibilities.
+
+## JM69-10CBD1 Canonical Provider Input — 2026-10-06
+
+status=authored_review_pending
+validation_status=focused_passed
+review_status=original-wholeStep-protected-M2-pending
+acceptance_status=not-accepted
+
+The process-local execution cache is identified explicitly by Review ID and
+provider identity. A successful bounded admission retains both admitted metadata
+and its actual bundle as `AdmittedProviderBundleInput`. It does not create a
+second cache or a persisted provider-body store. Existing v1 wire digest fields
+and admission remain unchanged; digests do not identify this cache or grant
+continuation permission. No new digest mechanism or exception is introduced.
+
+Before ordinary execution or cache lookup, the request document must have the
+supported schema and shape and agree with the outer Review ID and target.
+Quality-policy preflight and registered descriptor selection keep their existing
+priority. A cache hit runs the appropriate ordinary or quality admission over
+the retained bundle and current request. Refusal remains attributable and returns
+no admitted body, with no provider rerun. Successful re-admission refreshes
+metadata while retaining the same bundle. The same Review Run/provider request
+is immutable; a changed request binding is refused by existing bundle admission.
+
+`executeForCanonicalReport` is additive to the legacy metadata API. It invokes
+the existing registered execution path once, preserves refusals verbatim, and
+returns the retained admitted input with the original `fromCache` value. Missing
+retained input is `provider-canonical-input-missing`, state `failed`, with
+`runFailure=true`. It adds no second execution, extra admission, or metadata
+comparison protocol. Existing public signatures, outcome constructors and
+patterns, and the CNCF ProviderCall wrapper remain compatible.
+
+The [eight executable scenarios](../../src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewCanonicalProviderInputSpec.scala)
+cover registered canonical handoff, both API cache orders, foreign Review and
+target envelopes, registry refusal without fallback, attributed provider
+failures, and immutable same-Review provider requests. Controlled local fixtures
+prove this input prerequisite only. Actual CBD server/provider selection,
+owner-bound Entity/UnitOfWork persistence, native Job completion, and independently
+fresh CBD reads remain original JM69-10 obligations.

@@ -337,14 +337,38 @@ organization and version are optional identity evidence. The `reviewer`,
 Review ID, admits the typed Run, submits one persistent asynchronous CNCF Job,
 and returns the stable Review-to-Job binding. This command is private to MCP;
 Web, CLI, `sbt-cozy`, and internal callers use the component command surface.
+The server must configure `textus.cbd.review.execution` through the existing
+component, subsystem or runtime configuration. Its JSON object has exactly the
+following fields; duplicate, missing and unknown fields are refused:
+
+| Field | Value |
+| --- | --- |
+| `schemaVersion` | `textus.cbd.review-server.v1` |
+| `diagnosisId` | Explicit native diagnosis Entity ID |
+| `revision` | Positive integer plan revision |
+| `selection` | Existing typed execution-selection document matching the transport target and profile |
+| `template` | Existing canonical Report document matching that selection |
+| `providers` | One to eight objects, each containing exactly a registered Cozy `descriptor` object and a `request` object |
+
+Use the admitted Cozy process capability; this configuration supplies no
+executable path. The runtime issues Review and Report identities and binds each
+Provider request to the current Review and target. The full developer contract
+is `docs/spec/car-review-job-execution-contract.md` in the source repository.
+Missing configuration returns `review-execution-plan-required` without dispatch.
+Native Job ownership is required in addition to Review roles for read, cancel
+and Job-backed Report retrieval. Completed results can be read after restart
+without Provider redispatch. Started work without an admitted replay policy
+remains `RecoveryRequired` and causes native startup refusal.
 A Job that settles without a canonical report is represented as failed with
 `review-report-missing`, never as an empty successful Review.
 
 ### cancelReview
 
-Requires one Review ID. Only `operator` and `admin` may cancel. The application
-records `cancelling` only after the CNCF Job control boundary accepts the
-request; a later `getReviewRun` projects terminal `cancelled`. Terminal Runs
+Requires one Review ID. Only `operator` and `admin` may cancel, subject to native
+Job ownership. The application requests cancellation through CNCF Job control
+and returns the observed native status. Active cancellation is best effort:
+the status may remain `running` until native settlement, and acceptance does
+not guarantee a final `cancelled` outcome. Terminal Runs
 remain immutable and a failed or cancelled Run never fabricates a report.
 This command is private to MCP.
 

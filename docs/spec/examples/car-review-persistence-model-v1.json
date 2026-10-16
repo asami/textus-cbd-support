@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "textus.cbd.car-review-persistence-model.v1",
+  "schemaVersion": "textus.cbd.car-review-persistence-model.v2",
   "documentType": "car-review-persistence-model",
   "entities": [
     {
@@ -7,72 +7,265 @@
       "table": "car_review_lineage",
       "primaryKey": "lineageId",
       "immutability": "append-only",
-      "fields": ["lineageId", "targetKind", "organization", "componentName", "lineageDigest", "createdAt"],
-      "relationships": ["review-target"]
+      "fields": [
+        "lineageId",
+        "targetKind",
+        "organization",
+        "componentName",
+        "createdAt"
+      ],
+      "relationships": [
+        "review-target"
+      ]
     },
     {
       "name": "review-target",
       "table": "car_review_target",
-      "primaryKey": "targetId",
+      "primaryKey": "entityId",
       "immutability": "append-only",
-      "fields": ["targetId", "lineageId", "componentVersion", "artifactIdentity", "targetKind", "targetDigest", "createdAt"],
-      "relationships": ["car-lineage", "review-run"]
+      "fields": [
+        "entityId",
+        "diagnosisId",
+        "targetId",
+        "lineageId",
+        "componentVersion",
+        "artifactIdentity",
+        "targetKind",
+        "targetDigest",
+        "createdAt"
+      ],
+      "relationships": [
+        "car-lineage",
+        "review-run"
+      ],
+      "idIssuance": "generated-Entity-create-id-None"
     },
     {
       "name": "review-run",
       "table": "car_review_run",
-      "primaryKey": "reviewId",
+      "primaryKey": "entityId",
       "immutability": "terminal-snapshot",
-      "fields": ["reviewId", "targetId", "profileId", "state", "startedAt", "completedAt", "reportId", "reportDigest", "attestationId", "reuseIdentityId"],
-      "relationships": ["review-target", "review-report", "review-attestation", "diagnosis-reuse-identity"]
+      "fields": [
+        "entityId",
+        "reviewId",
+        "targetId",
+        "profileId",
+        "state",
+        "startedAt",
+        "completedAt",
+        "reportId",
+        "reportDigest",
+        "attestationId",
+        "diagnosisId"
+      ],
+      "relationships": [
+        "review-target",
+        "review-report",
+        "review-attestation",
+        "review-diagnosis"
+      ],
+      "idIssuance": "generated-Entity-create-id-None"
     },
     {
       "name": "review-report",
       "table": "car_review_report",
-      "primaryKey": "reportId",
+      "primaryKey": "entityId",
       "immutability": "append-only",
-      "fields": ["reportId", "reviewId", "targetId", "reportDigest", "canonicalPayload", "createdAt"],
-      "relationships": ["review-run", "review-target"]
+      "fields": [
+        "entityId",
+        "diagnosisId",
+        "reportId",
+        "reviewId",
+        "targetId",
+        "reportDigest",
+        "canonicalPayload",
+        "createdAt"
+      ],
+      "relationships": [
+        "review-run",
+        "review-target"
+      ],
+      "idIssuance": "generated-Entity-create-id-None"
     },
     {
       "name": "review-attestation",
       "table": "car_review_attestation",
-      "primaryKey": "attestationId",
+      "primaryKey": "entityId",
       "immutability": "append-only",
-      "fields": ["attestationId", "reviewId", "reportId", "targetId", "reportDigest", "attestationDigest", "canonicalPayload", "createdAt"],
-      "relationships": ["review-run", "review-report", "review-target"]
+      "fields": [
+        "entityId",
+        "diagnosisId",
+        "attestationId",
+        "reviewId",
+        "reportId",
+        "targetId",
+        "reportDigest",
+        "attestationDigest",
+        "canonicalPayload",
+        "createdAt"
+      ],
+      "relationships": [
+        "review-run",
+        "review-report",
+        "review-target"
+      ],
+      "idIssuance": "generated-Entity-create-id-None"
     },
     {
-      "name": "diagnosis-reuse-identity",
-      "table": "car_review_reuse_identity",
-      "primaryKey": "reuseIdentityId",
-      "immutability": "append-only",
-      "fields": ["reuseIdentityId", "keyDefinitionId", "reuseKeyDigest", "createdAt"],
-      "relationships": ["review-run"]
+      "name": "review-diagnosis",
+      "table": "generated-review-diagnosis-collection",
+      "primaryKey": "diagnosisId",
+      "immutability": "declared-plan-reference-and-selection",
+      "fields": [
+        "diagnosisId",
+        "planRevision",
+        "executionSelection",
+        "state",
+        "activeReviewId",
+        "targetDigest",
+        "profile",
+        "createdAt",
+        "completedAt",
+        "reportId",
+        "reportDigest"
+      ],
+      "relationships": [
+        "review-target",
+        "review-run",
+        "review-report",
+        "review-attestation",
+        "review-retention-event"
+      ]
     },
     {
       "name": "review-comparison",
       "table": "car_review_comparison",
       "primaryKey": "comparisonId",
       "immutability": "append-only",
-      "fields": ["comparisonId", "lineageId", "baselineReportId", "currentReportId", "configurationCompatibilityId", "createdAt"],
-      "relationships": ["car-lineage", "review-report"]
+      "fields": [
+        "comparisonId",
+        "lineageId",
+        "baselineReportId",
+        "currentReportId",
+        "configurationCompatibilityId",
+        "createdAt"
+      ],
+      "relationships": [
+        "car-lineage",
+        "review-report"
+      ]
     },
     {
       "name": "review-retention-event",
       "table": "car_review_retention_event",
-      "primaryKey": "retentionEventId",
+      "primaryKey": "entityId",
       "immutability": "append-only",
-      "fields": ["retentionEventId", "action", "recordType", "recordId", "recordDigest", "reportDigest", "targetDigest", "effectiveAt"],
-      "relationships": ["car-lineage", "review-target", "review-run", "review-report", "review-attestation", "diagnosis-reuse-identity", "review-comparison"]
+      "fields": [
+        "entityId",
+        "diagnosisId",
+        "retentionEventId",
+        "action",
+        "recordType",
+        "recordId",
+        "recordDigest",
+        "reportDigest",
+        "targetDigest",
+        "effectiveAt"
+      ],
+      "relationships": [
+        "car-lineage",
+        "review-target",
+        "review-run",
+        "review-report",
+        "review-attestation",
+        "review-diagnosis",
+        "review-comparison"
+      ],
+      "idIssuance": "generated-Entity-create-id-None"
     }
   ],
   "invariants": [
     "immutable-snapshot",
     "atomic-completed-binding",
     "lineage-compatible-comparison",
-    "opaque-reuse-key",
-    "append-only-retention-event",
-    "no-sensitive-persistence"
-  ]
+    "explicit-native-plan-reference",
+    "positive-exact-declared-plan-revision",
+    "mandatory-closed-typed-selection",
+    "semantic-selection-compatibility-after-duplicate-refusal",
+    "issued-owner-reference-and-review-binding",
+    "native-composition-id-issuance",
+    "append-only-exact-record-retention-event",
+    "no-sensitive-persistence",
+    "no-implicit-legacy-migration"
+  ],
+  "historicalChecklist": "P8-40",
+  "supersession": "JM69-10CBD2A supersedes calculated reuse identity with explicit native plan reference and mandatory typed execution selection.",
+  "planReference": {
+    "diagnosisId": "server-supplied complete native ReviewDiagnosis EntityId",
+    "revision": "server-owned positive integer revision of one immutable plan"
+  },
+  "executionSelection": {
+    "schemaVersion": "textus.cbd.review-execution-selection.v2",
+    "definitionId": "textus.cbd.review-execution-selection.v2",
+    "reviewSchemaVersion": "textus.cbd.review-report.v1",
+    "targetReference": {
+      "id": "target:main",
+      "revision": 1
+    },
+    "targetKind": "car",
+    "organization": "org.textus",
+    "name": "textus-cbd-support",
+    "version": "0.1.0-SNAPSHOT",
+    "profile": "development",
+    "baselineReference": null,
+    "ruleSets": [
+      {
+        "id": "rule-catalog",
+        "version": "1.0"
+      }
+    ],
+    "providerSelections": [
+      {
+        "provider": {
+          "id": "cozy",
+          "version": "1.0"
+        },
+        "ruleSet": {
+          "id": "rule-catalog",
+          "version": "1.0"
+        },
+        "availabilityPolicy": {
+          "id": "availability:cozy",
+          "revision": 1
+        }
+      }
+    ],
+    "evidenceSnapshots": [],
+    "policyBindings": [
+      {
+        "scope": "profile",
+        "policyId": "profile-default",
+        "policyVersion": "1.0",
+        "revision": 1
+      },
+      {
+        "scope": "gate",
+        "policyId": "gate-default",
+        "policyVersion": "1.0",
+        "revision": 1
+      },
+      {
+        "scope": "reconciliation",
+        "policyId": "reconciliation-default",
+        "policyVersion": "1.0",
+        "revision": 1
+      },
+      {
+        "scope": "suppression",
+        "policyId": "suppression-default",
+        "policyVersion": "1.0",
+        "revision": 1
+      }
+    ]
+  }
 }

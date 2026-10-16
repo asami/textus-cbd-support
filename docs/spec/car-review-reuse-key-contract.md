@@ -1,68 +1,84 @@
-# CAR Review Diagnosis Reuse-Key Contract v1
+# CAR Review Execution Selection and Declared Plan Reference
 
-status=specified
-phase=Phase 8
-checklist=P8-41
-updated_at=2026-07-23
+status=authored_review_pending
+phase=Phase 8 / PHASE-69.7
+checklist=P8-41 / JM69-10CBD2A
+updated_at=2026-10-06
 
-## Purpose
+## Supersession and Ownership
 
-This contract defines the exact pre-execution identity used to decide whether a
-new diagnosis can join or reuse compatible Review work. Its definition ID is
-`textus.cbd.review-reuse-key.v1`; its digest is SHA-256 over sorted-key,
-no-whitespace UTF-8 JSON with each array sorted by its canonical JSON value.
+P8-41 remains the historical checklist identity. Its earlier v1 calculated
+reuse-key authority is superseded by this explicit reference and selection
+contract. The nominal `CarReviewReuseKey` source/API name now denotes validation
+only. It has no calculated key or content identity.
 
-The key is a conclusion-affecting input identity, not a Report digest, Run ID,
-attestation, or provider output digest. P8-42 owns the database lookup,
-concurrent coalescing, and completed-Run reuse decision.
+The server supplies `CarReviewExecutionPlanReference(diagnosisId, revision)`.
+`diagnosisId` is the complete native `ReviewDiagnosis` EntityId; its collection
+must match the generated collection. `revision` is a positive integer owned by
+the server's immutable plan declaration. Creation and admission never issue a
+plan reference. Review IDs, timestamps, transport target payloads and vector
+order cannot supply a missing reference or select a different plan.
 
-## Exact Input
+A new configuration is provisioned by the server with its explicit distinct
+root reference. Existing root data is never overwritten, migrated or replaced
+because a selected dependency changed. An existing root at another declared
+revision refuses with `review-plan-revision-conflict`. A changed selection at
+one reference/revision refuses with `review-plan-selection-inconsistent`.
 
-The canonical document contains exactly these fields:
+## Complete Typed Selection
 
-| Field | Required contents | Invalidates reuse when changed |
-| --- | --- | --- |
-| `definitionId` | the fixed v1 definition ID | always |
-| `reviewSchemaVersion` | the supported canonical Review document schema, currently `textus.cbd.review-report.v1` | yes; unsupported schema is rejected |
-| `target` | kind, organization, name, version, and reviewed CAR/project digest | yes |
-| `profile` | selected CBD Review profile | yes |
-| `baselineDigest` | prior baseline digest or explicit `null` | yes |
-| `ruleSets` | sorted unique CBD/provider rule-set IDs and versions | yes |
-| `providerSelections` | sorted unique provider identity/version, selected rule set, and availability-policy digest | yes |
-| `evidenceSnapshots` | sorted unique accepted Evidence class, stable snapshot ID, provider identity/version, and digest; runtime entries use `evidenceClass=runtime` | yes |
-| `policyBindings` | exactly one sorted binding for `profile`, `gate`, `reconciliation`, and `suppression`, each with ID, version, and configuration digest | yes |
+`CarReviewReuseKey.DEFINITION_ID` and the persistence codec's `schemaVersion`
+are exactly `textus.cbd.review-execution-selection.v2`.
 
-An empty evidence-snapshot array is canonical and means that no optional
-snapshot was admitted. It is not equivalent to an omitted field. The
-availability-policy digest captures an explicit enabled/disabled/offline/AI or
-external-provider selection policy; a change to availability therefore cannot
-reuse an earlier Unknown or Assurance under a different provider posture.
+| Field | Required typed declaration |
+| --- | --- |
+| `definitionId` | exact supported selection definition |
+| `reviewSchemaVersion` | supported canonical Review report schema |
+| `targetReference` | declared target ID and positive integer revision |
+| `targetKind`, `organization`, `name`, `version` | semantic target identity; optionals are explicit `null` |
+| `profile` | selected Review profile |
+| `baselineReference` | declared baseline ID/revision or explicit `null` |
+| `ruleSets` | unique rule IDs and versions |
+| `providerSelections` | unique provider ID/version, member rule ID/version and `availabilityPolicy` ID/revision |
+| `evidenceSnapshots` | evidence class, declared `snapshot` ID/revision and provider ID/version |
+| `policyBindings` | exactly one scope each for profile, gate, reconciliation and suppression; each declares policy ID/version and positive revision |
 
-## Exclusions
+Declared dependency IDs are nonempty bounded identifiers; revisions are positive
+integers. Dependency publishers advance revisions for every conclusion-affecting
+change. CBD does not inspect content to invent those revisions. Baseline absence
+and an empty evidence vector are valid explicit declarations. Missing fields,
+duplicate rules/providers/evidence/policy scopes, unbound provider rules,
+unsupported schema and malformed typed values refuse with attributed codes.
 
-The key must not contain Review/Report/attestation IDs, execution timestamps,
-provider execution order, rendered artifacts, credential references, raw
-provider requests/responses, filesystem paths, or Evidence facts. Those values
-are either volatile, sensitive, or provider output; retaining them would make
-equivalent admissible requests fail to coalesce or enlarge storage authority.
+The plan validates semantic target kind/organization/name/version and profile
+against the admitted request. Existing transport target, bundle and report digest
+fields retain their payload roles and do not participate in management selection.
 
-## Invalidation and Admission
+## Typed Persistence and Compatibility
 
-Every admissible listed input change yields another key digest and requires a
-new Run. An unsupported schema instead fails admission. A new Run is also
-required when the persisted record is absent, not completed, expired,
-incompatible with this definition ID, or not authorized for the current
-request. P8-43 defines non-success and expiry outcomes; P8-45 defines
-authorization. Neither absence of a runtime snapshot nor a disabled provider
-may be silently replaced by a more permissive provider selection.
+`CarReviewExecutionSelectionCodec.encode` and `decode` store and restore ordinary
+structured selection data. Root and nested objects have closed field sets. All
+fields, null optionals and empty arrays are explicit. Unknown, duplicate, missing
+or malformed data is rejected; there is no legacy decoder or default revision.
+Missing persisted declarations use `review-plan-selection-incomplete`; malformed
+typed values retain their attributed validation code.
 
-Malformed identity, unsupported Review schema, digest, duplicate
-rule/provider/evidence identity, or a
-missing/duplicated required policy scope fails key admission. CBD Support does
-not guess a policy value or use an incomplete key.
+`compatible` first validates both inputs, then compares scalar/reference fields
+and rule/provider/evidence/policy sets semantically. Array order is ignored only
+after duplicate refusal. A valid differing selection uses
+`review-plan-selection-inconsistent`. No serialized document equality, byte seal,
+content certificate, sorted JSON identity or hash determines compatibility.
 
-## Deferred Implementation
+## Executable Evidence and Remaining Integration
 
-This contract defines only canonical key calculation and invalidation. It does
-not perform persistence, create a Run, call a provider, join concurrent work,
-or load a Report. Those effects begin in P8-42.
+[CarReviewReuseKeySpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewReuseKeySpec.scala)
+covers typed restoration/reordering, malformed references and scopes, independent
+dependency changes, and closed/legacy document refusals.
+[CarReviewExecutionPlanSpec](../../src/test/scala/org/simplemodeling/textus/cbdsupport/CarReviewExecutionPlanSpec.scala)
+covers exact native reference retention, semantic request matching and refusal.
+The suites belong to `org.simplemodeling.textus.cbdsupport.runtime`.
+
+[The persistence contract](car-review-persistence-contract.md) owns Entity claim,
+owner leases, compatible completed reuse and conditional successor histories.
+These authored prerequisites leave actual server provider selection, native Job
+binding and independently fresh full CBD acceptance pending under original JM69-10.

@@ -42,3 +42,22 @@ cbd-support consumer.
 - [Phase 11](../../../phase/phase-11.md)
 - `asami/goldenport-cncf/docs/phase/phase-78.md`
 - `asami/cozy/docs/phase/phase-64.md`
+
+## Applied planning split — 2026-10-04
+
+The owner invoked `$cncf-split-phase 11` after the same-task full-Phase entry
+reported SPLIT_REQUIRED / time-bound. The original chronological record above
+is preserved; it describes the pre-split scope and does not select current
+item ownership.
+
+- [Phase 11](../../../phase/phase-11.md) retains the original identity and owns
+  CAP-11-01–03: upstream admission, ingestion, catalog and queries.
+- [Phase 11.1](../../../phase/phase-11.1.md) owns CAP-11-04–05: views, Web/MCP
+  and the original real Cozy -> CNCF -> CBD Support acceptance.
+- Phase 11.1 is the final full-SBT validation owner for both units; independent
+  focused validation, reviews, Step acceptance and release remain per unit.
+- Both units remain unstarted. Phase 12 and later identities are unchanged.
+  This split grants no upstream repository mutation authority or acceptance.
+
+The [source dated split note](../../../phase/phase-11.md#applied-split--2026-10-04)
+records estimates, calibration limits and the exact accepted-contract handoff.

@@ -486,6 +486,28 @@ Private Review execution and cancellation operations for Web, CLI, sbt-cozy, and
 
 ### OPERATION
 
+#### reviewManagedEffects
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ManagedEffectReviewRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ManagedEffectReviewResult
+
+##### DESCRIPTION
+
+Review supplied source-use observations through the fixed CNCF-managed effect diagnostic. This private query classifies explicit facts without scanning source, executing observed operations, granting authority, or issuing an overall security PASS.
+
 #### startReview
 
 ##### TYPE
@@ -694,6 +716,16 @@ Private HTTP gateway envelope for one exact Review submission document.
 | submissionDocument | ReviewSubmissionDocument | 1 |
 
 # QUERY
+
+## ManagedEffectReviewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| subjects | ManagedEffectReviewSubject | * |
 
 ## GetCapabilityOverviewRequest
 
@@ -925,6 +957,53 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | itemId | CbdWarning | 1 |
 
 # VALUE
+
+## ManagedEffectReviewSubject
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| identity | string | 1 |
+| source | string | 1 |
+| usage | string | 1 |
+| operation | string | ? |
+| commandName | string | ? |
+
+## ManagedEffectReviewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| subjects | ManagedEffectReviewSubject | * |
+
+## ManagedEffectReviewObservation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| identity | string | 1 |
+| source | string | 1 |
+| ruleId | string | 1 |
+| outcome | string | 1 |
+| effectKinds | string | * |
+| route | string | 1 |
+| remediationCategory | string | 1 |
+| detail | string | 1 |
+
+## ManagedEffectReviewResult
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| observations | ManagedEffectReviewObservation | * |
 
 ## CapabilityReadResponse
 

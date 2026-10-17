@@ -22,11 +22,11 @@ import org.simplemodeling.textus.cbdsupport.runtime.ComponentKnowledgeIntegratio
  * Executable acceptance specification for Phase 59.8 / Step P598-S2.
  *
  * The CBD boundary admits only the canonical value-only consumer contract
- * behind its exact carrier digest. No server, catalog runtime, CAR archive,
+ * behind its canonical carrier declaration. No server, catalog runtime, CAR archive,
  * source access, external I/O, or MCP authority participates in these cases.
  *
  * @since   Aug. 27, 2026
- * @version Aug. 27, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class RepresentativeDocumentationProfileCarrierSpec
@@ -38,7 +38,7 @@ final class RepresentativeDocumentationProfileCarrierSpec
 
   "P598-S2 representative documentation profile CBD carrier" should {
     "admit exact value-only framework, Directive, Skill Catalog, and source authorization metadata" in {
-      Given("canonical encoded representative consumer-contract bytes and a carrier declaring their exact digest")
+      Given("canonical encoded representative consumer-contract bytes and a schema/path carrier declaration")
 
       When("CBD admits the carrier-backed contract for the exact Component and release")
       val result = ComponentKnowledgeIntegration.admit(
@@ -50,7 +50,7 @@ final class RepresentativeDocumentationProfileCarrierSpec
         )
       )
 
-      Then("the admitted value preserves identity, digest, descriptive metadata, and source authorization without authority-bearing projection")
+      Then("the admitted value preserves identity, resource metadata, and source authorization without authority-bearing projection")
       result match {
         case ComponentKnowledgeIntegration.Admitted(value, carrier) =>
           value.resources.map { resource =>
@@ -114,15 +114,14 @@ final class RepresentativeDocumentationProfileCarrierSpec
           carrier.carrierSchema shouldBe "cncf.component-knowledge-carrier.v1"
           carrier.consumerContractSchema shouldBe "cncf.component-knowledge-consumer.v1"
           carrier.logicalPath shouldBe "component-knowledge.json"
-          carrier.sha256 shouldBe _carrier_digest
         case other => fail(s"expected admitted value-only evidence, got $other")
       }
     }
 
-    "reject an exact carrier digest mismatch before admitting any contract value" in {
-      Given("canonical representative consumer-contract bytes paired with a carrier declaring a different digest")
+    "reject a noncanonical carrier path before admitting any contract value" in {
+      Given("canonical representative consumer-contract bytes paired with an alternate carrier path")
       val mismatchedcarrier = _carrier.copy(
-        sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+        logicalPath = "alternate-knowledge.json"
       )
 
       When("CBD evaluates the mismatched carrier declaration")
@@ -135,7 +134,7 @@ final class RepresentativeDocumentationProfileCarrierSpec
         )
       )
 
-      Then("the digest boundary rejects the contract without a value-level admission")
+      Then("the declaration boundary rejects the alternate path without a value-level admission")
       result shouldBe a[ComponentKnowledgeIntegration.Rejected]
     }
   }
@@ -158,8 +157,7 @@ final class RepresentativeDocumentationProfileCarrierSpec
       .getBytes(StandardCharsets.UTF_8)
       .toVector
 
-  private lazy val _carrier_digest = _sha256(_consumer_contract_bytes)
-  private lazy val _carrier = ComponentKnowledgeCarrier.createC(_carrier_digest).toOption.getOrElse(fail("carrier"))
+  private lazy val _carrier = ComponentKnowledgeCarrier.createC().toOption.getOrElse(fail("carrier"))
 
   private lazy val _consumer_contract_fixture =
     """{

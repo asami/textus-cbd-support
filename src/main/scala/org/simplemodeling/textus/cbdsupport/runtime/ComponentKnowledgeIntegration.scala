@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.nio.ByteBuffer
 import java.nio.charset.{CharacterCodingException, CodingErrorAction, StandardCharsets}
-import java.security.MessageDigest
 
 import scala.util.control.NonFatal
 
@@ -15,7 +14,11 @@ import org.goldenport.cncf.knowledge.{
 
 /**
  * Admits only the value-only consumer contract supplied by a validated,
- * digest-bound Component knowledge carrier.
+ * declared Component knowledge carrier.
+ */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
  */
 object ComponentKnowledgeIntegration {
   final case class Input(
@@ -29,7 +32,7 @@ object ComponentKnowledgeIntegration {
 
   /**
    * A validated contract plus its small declaration value.  The result never
-   * retains the carrier bytes; the declared logical path and digest remain
+   * retains the carrier bytes; the declared schemas and logical path remain
    * available for safe exact-evidence projection.
    */
   final case class Admitted(
@@ -48,18 +51,14 @@ object ComponentKnowledgeIntegration {
         _validate_carrier(carrier) match {
           case Left(reason) => Rejected(reason)
           case Right(validated) =>
-            val digest = _sha256(input.consumerContractBytes)
-            if (digest != validated.sha256)
-              Rejected("Component knowledge consumer contract digest does not match its carrier")
-            else
-              _decode_contract(input.consumerContractBytes) match {
-                case Left(reason) => Rejected(reason)
-                case Right(contract) if contract.componentId != input.expectedComponentId =>
-                  Rejected("Component knowledge consumer contract component identity does not match the expected identity")
-                case Right(contract) if contract.logicalRelease != input.expectedLogicalRelease =>
-                  Rejected("Component knowledge consumer contract logical release does not match the expected release")
-                case Right(contract) => Admitted(contract, validated)
-              }
+            _decode_contract(input.consumerContractBytes) match {
+              case Left(reason) => Rejected(reason)
+              case Right(contract) if contract.componentId != input.expectedComponentId =>
+                Rejected("Component knowledge consumer contract component identity does not match the expected identity")
+              case Right(contract) if contract.logicalRelease != input.expectedLogicalRelease =>
+                Rejected("Component knowledge consumer contract logical release does not match the expected release")
+              case Right(contract) => Admitted(contract, validated)
+            }
         }
     }
 
@@ -94,13 +93,6 @@ object ComponentKnowledgeIntegration {
       case NonFatal(error) =>
         Left(s"Component knowledge consumer contract is invalid: ${_message(error)}")
     }
-
-  private def _sha256(bytes: Vector[Byte]): String =
-    MessageDigest
-      .getInstance("SHA-256")
-      .digest(bytes.toArray)
-      .map(byte => f"${byte & 0xff}%02x")
-      .mkString
 
   private def _message(error: Throwable): String =
     Option(error.getMessage).getOrElse(error.getClass.getSimpleName)

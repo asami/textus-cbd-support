@@ -1,7 +1,6 @@
 package org.simplemodeling.textus.cbdsupport
 
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 
 import org.goldenport.cncf.component.ComponentId
 import org.goldenport.cncf.knowledge.{
@@ -19,6 +18,10 @@ import org.simplemodeling.textus.cbdsupport.runtime.ComponentKnowledgeIntegratio
  *
  * The admitted value is deliberately the frozen value-only consumer contract;
  * raw consumer-contract bytes are input evidence and are not projected.
+ */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
  */
 final class ComponentKnowledgeIntegrationSpec
     extends AnyWordSpec
@@ -76,8 +79,7 @@ final class ComponentKnowledgeIntegrationSpec
     ComponentKnowledgeManifestConsumerContractCodec.decodeC(_consumer_contract_fixture).toOption.get
   private val _consumer_contract_bytes =
     ComponentKnowledgeManifestConsumerContractCodec.encode(_consumer_contract).getBytes(StandardCharsets.UTF_8).toVector
-  private val _carrier_digest = _sha256(_consumer_contract_bytes)
-  private val _carrier = ComponentKnowledgeCarrier.createC(_carrier_digest).toOption.get
+  private val _carrier = ComponentKnowledgeCarrier.createC().toOption.get
 
   "DOC06 Component knowledge integration" should {
     "admit matching declared carrier and contract into value-only evidence" in {
@@ -121,15 +123,16 @@ final class ComponentKnowledgeIntegrationSpec
       result shouldBe ComponentKnowledgeIntegration.Absent
     }
 
-    "reject path and digest mismatches before projecting consumer bytes" in {
-      Given("canonical consumer-contract bytes paired with a carrier path or digest mismatch")
-      val mismatched_carriers = Vector(
+    "reject unsupported declaration schemas and noncanonical carrier paths" in {
+      Given("canonical consumer-contract bytes paired with unsupported carrier schemas or an alternate path")
+      val mismatchedcarriers = Vector(
         _carrier.copy(logicalPath = "component-knowledge-alias.json"),
-        _carrier.copy(sha256 = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210")
+        _carrier.copy(carrierSchema = "cncf.component-knowledge-carrier.v2"),
+        _carrier.copy(consumerContractSchema = "cncf.component-knowledge-consumer.v2")
       )
 
       When("CBD evaluates each mismatched declaration")
-      val results = mismatched_carriers.map { carrier =>
+      val results = mismatchedcarriers.map { carrier =>
         ComponentKnowledgeIntegration.admit(
           ComponentKnowledgeIntegration.Input(
             carrier = Some(carrier),
@@ -140,25 +143,40 @@ final class ComponentKnowledgeIntegrationSpec
         )
       }
 
-      Then("every path or digest mismatch is rejected and no raw consumer bytes are admitted")
+      Then("every unsupported schema or noncanonical path is rejected before projection")
       results.foreach(_ shouldBe a[ComponentKnowledgeIntegration.Rejected])
+    }
+
+    "reject malformed UTF-8 and unsupported consumer-contract schemas" in {
+      Given("a valid carrier with malformed UTF-8 or a future consumer-contract schema")
+      val malformed = Vector(0xc3.toByte, 0x28.toByte)
+      val future = _consumer_contract_fixture.replace("cncf.component-knowledge-consumer.v1", "cncf.component-knowledge-consumer.v2")
+        .getBytes(StandardCharsets.UTF_8).toVector
+
+      When("CBD decodes each declared consumer contract")
+      val results = Vector(malformed, future).map { bytes =>
+        ComponentKnowledgeIntegration.admit(ComponentKnowledgeIntegration.Input(
+          Some(_carrier), bytes, _component_id, _release
+        ))
+      }
+
+      Then("invalid text and schema remain rejected rather than admitted value evidence")
+      results.head shouldBe ComponentKnowledgeIntegration.Rejected("Component knowledge consumer contract is not valid UTF-8")
+      results(1) shouldBe a[ComponentKnowledgeIntegration.Rejected]
     }
 
     "reject a consumer component or release identity mismatch" in {
       Given("a matching carrier and contract with an incorrect expected Component or release identity")
-      val mismatched_expectations = Vector(
+      val mismatchedexpectations = Vector(
         ComponentKnowledgeIntegration.Input(Some(_carrier), _consumer_contract_bytes, _other_component_id, _release),
         ComponentKnowledgeIntegration.Input(Some(_carrier), _consumer_contract_bytes, _component_id, _other_release)
       )
 
       When("CBD evaluates each exact-identity mismatch")
-      val results = mismatched_expectations.map(ComponentKnowledgeIntegration.admit)
+      val results = mismatchedexpectations.map(ComponentKnowledgeIntegration.admit)
 
       Then("component and release mismatches are rejected rather than silently selecting another identity")
       results.foreach(_ shouldBe a[ComponentKnowledgeIntegration.Rejected])
     }
   }
-
-  private def _sha256(bytes: Vector[Byte]): String =
-    MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
 }

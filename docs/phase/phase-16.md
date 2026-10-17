@@ -35,6 +35,18 @@ Detect where evidence is statically reliable:
 
 A concrete sm-workflow Phase 6 defect used Process Execution for external file I/O. Add the minimum deterministic classification needed by that correction as an early consumer of CNCF Phase 110: distinguish typed/registered Git/SBT execution from generic process use and flag recognizable Process-to-filesystem/network/datastore Capability Laundering. This bounded rule slice may be delivered before the rest of Phase 16; do not block the sm-workflow fix on unrelated application-security review families.
 
+The bounded early slice is authored as of 2026-10-17; validation, actual
+sm-workflow consumer use and independent acceptance are pending. CBD main is an
+admitted participant in the existing sm-workflow Phase 6 work. The private
+`CbdSupport.CbdReviewAdmin.reviewManagedEffects` QUERY uses generated typed
+request/result values and one normal CNCF ProviderCall/UnitOfWork diagnostic,
+consuming the shared `ExternalEffectUsage` classification. The
+[managed-effect contract](../spec/car-review-managed-effect-contract.md) defines
+caller-owned IDs/revisions, attributable findings, managed use and unknown
+outcomes, and the supplied-observation limits. No source scanning, observed
+command execution, hash-based management control, overall security PASS or
+full Phase 16 completion is implied. Phase 16 remains PLANNED overall.
+
 ### sm-workflow-driven delivery
 
 Deliver the Safety Sandbox review rules incrementally with CNCF Phase 110 and real sm-workflow adoption. Prioritize classifications actually encountered by the vertical slices (worktree/filesystem, managed Git/SBT process versus arbitrary shell, provider/network, then remaining packaged-CAR escape routes). Each CBD rule must consume the CNCF-owned classification and be re-exercised from the sm-workflow scenario that exposed the need. Do not require completion of unrelated security-review families before a useful Safety Sandbox slice can close.

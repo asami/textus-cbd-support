@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.time.{Clock, Instant, ZoneOffset}
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
@@ -23,6 +22,10 @@ import org.scalatest.wordspec.AnyWordSpec
  * The inventory is permitted to read only the descriptor-declared logical
  * entry.  It retains an admitted value contract, never the raw entry bytes.
  */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
+ */
 final class ComponentKnowledgeLocalSourceSpec
     extends AnyWordSpec
     with Matchers
@@ -32,10 +35,10 @@ final class ComponentKnowledgeLocalSourceSpec
   private val _release = "1.2.0"
 
   "LocalInformationSourceInventory" should {
-    "admit descriptor-declared development evidence only when its runtime manifest records the same carrier digest" in {
+    "admit descriptor-declared development evidence when its supported runtime manifest names the carrier path" in {
       Given("a prepared development root with a generated descriptor, fixed carrier path, and matching runtime evidence")
       val contract = _consumer_contract_bytes
-      val carrier = ComponentKnowledgeCarrier.createC(_sha256(contract)).toOption.get
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.get
       val reference = ResourceTreeReference.parseC("development").TAKE
       val entries = Vector(
         ResourceTreeEntry.createC("project.yaml", s"""project:
@@ -47,7 +50,7 @@ final class ComponentKnowledgeLocalSourceSpec
           |""".stripMargin.getBytes(StandardCharsets.UTF_8).toVector).TAKE,
         ResourceTreeEntry.createC("target/cncf.d/component-descriptor.json", _descriptor(Some(carrier)).getBytes(StandardCharsets.UTF_8).toVector).TAKE,
         ResourceTreeEntry.createC("target/cncf.d/component-knowledge.json", contract).TAKE,
-        ResourceTreeEntry.createC("target/cncf.d/car-runtime-manifest.json", _runtime_manifest(contract).getBytes(StandardCharsets.UTF_8).toVector).TAKE
+        ResourceTreeEntry.createC("target/cncf.d/car-runtime-manifest.json", _runtime_manifest.getBytes(StandardCharsets.UTF_8).toVector).TAKE
       )
       val access = ResourceTreeAccess.inMemory(Map(reference -> entries))
 
@@ -66,11 +69,12 @@ final class ComponentKnowledgeLocalSourceSpec
       Then("only the contract value is admitted; the development resource bytes do not become an output")
       val observation = inventory.observations.head
       observation.componentName shouldBe Some("Order")
+      observation.artifactChecksumSha256 shouldBe None
       observation.componentKnowledge match {
         case ComponentKnowledgeIntegration.Admitted(value, carrier) =>
           value.componentId shouldBe _component_id
           value.logicalRelease shouldBe _release
-          carrier.sha256 shouldBe _sha256(contract)
+          carrier.logicalPath shouldBe "component-knowledge.json"
         case other => fail(s"expected admitted development Component knowledge, got $other")
       }
     }
@@ -78,7 +82,7 @@ final class ComponentKnowledgeLocalSourceSpec
     "reject declared development knowledge when no generated runtime evidence names the carrier" in {
       Given("a prepared development root with a descriptor declaration but no runtime manifest leaf")
       val contract = _consumer_contract_bytes
-      val carrier = ComponentKnowledgeCarrier.createC(_sha256(contract)).toOption.get
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.get
       val reference = ResourceTreeReference.parseC("development").TAKE
       val entries = Vector(
         ResourceTreeEntry.createC("project.yaml", s"""project:
@@ -111,16 +115,75 @@ final class ComponentKnowledgeLocalSourceSpec
       observation.diagnostics.mkString(" ") should include("no target/cncf.d/car-runtime-manifest.json evidence")
     }
 
+    "reject development runtime evidence with a wrong or missing declared carrier path" in {
+      Given("a valid descriptor and consumer contract with an alternate runtime path or no carrier evidence entry")
+      val manifests = Vector(
+        _runtime_manifest.replace("target/cncf.d/component-knowledge.json", "target/cncf.d/alternate-knowledge.json"),
+        """{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":[]}"""
+      )
+
+      When("the configured development evidence is admitted")
+      val observations = manifests.map(manifest => _development_inventory(_consumer_contract_bytes, manifest).observations.head)
+
+      Then("generic observations remain while neither path declaration admits Component knowledge")
+      observations.foreach { observation =>
+        observation.componentName shouldBe Some("Order")
+        observation.artifactChecksumSha256 shouldBe None
+        observation.componentKnowledge shouldBe a[ComponentKnowledgeIntegration.Rejected]
+        observation.diagnostics.mkString(" ") should include("does not declare the Component knowledge carrier")
+      }
+    }
+
+    "reject development runtime evidence outside the supported schema and path-array shape" in {
+      Given("a generated carrier declaration with an unsupported manifest schema or non-array evidence")
+      val manifests = Vector(
+        _runtime_manifest.replace("cncf.car-development-runtime-manifest.v2", "cncf.car-development-runtime-manifest.v3"),
+        """{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":{}}"""
+      )
+
+      When("the development carrier gate consumes each manifest")
+      val observations = manifests.map(manifest => _development_inventory(_consumer_contract_bytes, manifest).observations.head)
+
+      Then("unsupported schema and malformed shape are rejected without losing the generic Component")
+      observations.foreach { observation =>
+        observation.componentName shouldBe Some("Order")
+        observation.componentKnowledge shouldBe a[ComponentKnowledgeIntegration.Rejected]
+      }
+      observations.head.diagnostics.mkString(" ") should include("schema is unsupported")
+      observations(1).diagnostics.mkString(" ") should include("evidence must be an array")
+    }
+
+    "reject development contracts for a different declared Component or release" in {
+      Given("a canonical runtime path declaration with otherwise valid contracts for another Component or release")
+      val text = new String(_consumer_contract_bytes.toArray, StandardCharsets.UTF_8)
+      val contracts = Vector(
+        text.replace("org.example.Order", "org.example.Other"),
+        text.replace(_release, "9.9.9")
+      ).map(_.getBytes(StandardCharsets.UTF_8).toVector)
+
+      When("the declared consumer contracts are compared to the descriptor's explicit identity")
+      val observations = contracts.map(contract => _development_inventory(contract, _runtime_manifest).observations.head)
+
+      Then("both mismatches are rejected while the descriptor's generic identity remains available")
+      observations.foreach { observation =>
+        observation.componentName shouldBe Some("Order")
+        observation.componentKnowledge shouldBe a[ComponentKnowledgeIntegration.Rejected]
+      }
+      observations.head.diagnostics.mkString(" ") should include("component identity does not match")
+      observations(1).diagnostics.mkString(" ") should include("logical release does not match")
+    }
+
     "admit only the descriptor-declared CAR knowledge carrier as value-only evidence" in {
-      Given("a canonical descriptor and a carrier whose digest identifies its one consumer-contract entry")
+      Given("a canonical descriptor and a carrier declaring its one consumer-contract path")
       val contract = _consumer_contract_bytes
-      val carrier = ComponentKnowledgeCarrier.createC(_sha256(contract)).toOption.get
-      val inventory = _inventory(_car(Vector(
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.get
+      val archive = _car(Vector(
         "component-descriptor.json" -> _descriptor(Some(carrier)).getBytes(StandardCharsets.UTF_8).toVector,
         "component-knowledge.json" -> contract
-      )))
+      ))
 
       When("the admitted CAR snapshot is inspected")
+      val inventory = _inventory(archive)
       val observation = inventory.observations.head
 
       Then("the canonical coordinate and value-only contract are retained without raw resource bytes")
@@ -132,19 +195,20 @@ final class ComponentKnowledgeLocalSourceSpec
           value.componentId shouldBe _component_id
           value.logicalRelease shouldBe _release
           value.resources.map(_.logicalPath) shouldBe Vector("documentation/order.md")
-          carrier.sha256 shouldBe _sha256(contract)
+          carrier.logicalPath shouldBe "component-knowledge.json"
         case other => fail(s"expected admitted Component knowledge, got $other")
       }
     }
 
     "not discover an archive carrier that the descriptor does not declare" in {
       Given("a canonical descriptor with no componentKnowledge declaration and an arbitrary matching-path archive entry")
-      val inventory = _inventory(_car(Vector(
+      val archive = _car(Vector(
         "component-descriptor.json" -> _descriptor(None).getBytes(StandardCharsets.UTF_8).toVector,
         "component-knowledge.json" -> "not a consumer contract".getBytes(StandardCharsets.UTF_8).toVector
-      )))
+      ))
 
       When("the CAR is inspected")
+      val inventory = _inventory(archive)
       val observation = inventory.observations.head
 
       Then("the entry remains absent rather than becoming an ambient discovery input")
@@ -152,15 +216,16 @@ final class ComponentKnowledgeLocalSourceSpec
       observation.diagnostics should not contain "Component knowledge carrier was rejected"
     }
 
-    "retain generic CAR observation while rejecting a declared carrier whose archive entry is not intact" in {
-      Given("a canonical descriptor that declares a digest different from the named archive entry")
-      val carrier = ComponentKnowledgeCarrier.createC("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").toOption.get
-      val inventory = _inventory(_car(Vector(
+    "retain generic CAR observation while rejecting malformed declared consumer-contract bytes" in {
+      Given("a canonical carrier declaration whose named archive entry is malformed UTF-8")
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.get
+      val archive = _car(Vector(
         "component-descriptor.json" -> _descriptor(Some(carrier)).getBytes(StandardCharsets.UTF_8).toVector,
-        "component-knowledge.json" -> _consumer_contract_bytes
-      )))
+        "component-knowledge.json" -> Vector(0xc3.toByte, 0x28.toByte)
+      ))
 
       When("the CAR is inspected")
+      val inventory = _inventory(archive)
       val observation = inventory.observations.head
 
       Then("the generic coordinate is retained but no consumer content is admitted")
@@ -168,6 +233,34 @@ final class ComponentKnowledgeLocalSourceSpec
       observation.componentKnowledge shouldBe a[ComponentKnowledgeIntegration.Rejected]
       observation.diagnostics.mkString(" ") should include("Component knowledge carrier was rejected")
     }
+  }
+
+  private def _development_inventory(contract: Vector[Byte], manifest: String): LocalInformationInventory = {
+    val carrier = ComponentKnowledgeCarrier.createC().TAKE
+    val reference = ResourceTreeReference.parseC("development").TAKE
+    val entries = Vector(
+      ResourceTreeEntry.createC("project.yaml", s"""project:
+        |  organization: org.example
+        |  kind: car
+        |  component:
+        |    name: Order
+        |    version: $_release
+        |""".stripMargin.getBytes(StandardCharsets.UTF_8).toVector).TAKE,
+      ResourceTreeEntry.createC("target/cncf.d/component-descriptor.json", _descriptor(Some(carrier)).getBytes(StandardCharsets.UTF_8).toVector).TAKE,
+      ResourceTreeEntry.createC("target/cncf.d/component-knowledge.json", contract).TAKE,
+      ResourceTreeEntry.createC("target/cncf.d/car-runtime-manifest.json", manifest.getBytes(StandardCharsets.UTF_8).toVector).TAKE
+    )
+    val access = ResourceTreeAccess.inMemory(Map(reference -> entries))
+    LocalInformationSourceInventory.inspectDevelopmentEvidenceQueries(
+      InformationSourceDescriptor("development", InformationSourceKind.DEVELOPMENT_DIRECTORY, "resource-tree:development", 1, true, InformationSourceAuthorization.EXPLICIT),
+      _query(access, reference, "project.yaml"),
+      _query(access, reference, "component-descriptor.json"),
+      _query(access, reference, "component-knowledge.json"),
+      _query(access, reference, "car-runtime-manifest.json"),
+      VersionAvailabilityState.WORKING,
+      LocalInspectionPolicy.DEFAULT,
+      _clock
+    )
   }
 
   private def _inventory(car: Vector[Byte]): LocalInformationInventory = {
@@ -251,9 +344,7 @@ final class ComponentKnowledgeLocalSourceSpec
     ).getBytes(StandardCharsets.UTF_8).toVector
   }
 
-  private def _runtime_manifest(carrier: Vector[Byte]): String =
-    s"""{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":[{"path":"target/cncf.d/component-knowledge.json","sha256":"${_sha256(carrier)}"}]}"""
+  private def _runtime_manifest: String =
+    """{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":[{"path":"target/cncf.d/component-knowledge.json"}]}"""
 
-  private def _sha256(bytes: Vector[Byte]): String =
-    MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
 }

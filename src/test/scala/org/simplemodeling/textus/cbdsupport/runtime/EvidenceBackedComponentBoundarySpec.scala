@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.time.{Clock, Instant, ZoneOffset}
 
 import org.goldenport.Consequence
@@ -13,7 +12,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Sep. 10, 2026
- * @version Sep. 10, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class EvidenceBackedComponentBoundarySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -52,9 +51,7 @@ final class EvidenceBackedComponentBoundarySpec extends AnyWordSpec with Matcher
       Given("a catalog profile whose selected version admits one usable and one withheld knowledge resource")
       val source = CatalogSource("catalog", URI.create("https://catalog.example/"), 100, true)
       val endpoint = URI.create("https://catalog.example/repository/car/Order/1.2.0/component-knowledge.json")
-      val carrier = ComponentKnowledgeCarrier.createC(
-        _sha256(_catalog_contract.getBytes(StandardCharsets.UTF_8).toVector)
-      ).toOption.getOrElse(fail("expected a valid Component knowledge carrier"))
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.getOrElse(fail("expected a valid Component knowledge carrier"))
       val profile = _catalog_profile(source, endpoint, carrier)
       val runtime = CbdRuntime.create(
         Vector(source),
@@ -240,8 +237,6 @@ final class EvidenceBackedComponentBoundarySpec extends AnyWordSpec with Matcher
     case Consequence.Failure(conclusion) => fail(conclusion.display)
   }
 
-  private def _sha256(bytes: Vector[Byte]): String =
-    MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
 
   private final class ContractFetcher(endpoint: URI, contract: String) extends CatalogFetcher with BokFetcher {
     def get(uri: URI): Consequence[String] =

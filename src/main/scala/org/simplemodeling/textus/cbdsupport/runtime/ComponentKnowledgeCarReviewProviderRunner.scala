@@ -10,10 +10,13 @@ import io.circe.{Json, JsonObject, Printer}
  * detail.  It consumes metadata only: it never reads a documented resource,
  * source file, archive entry, or BoK publication.
  */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
+ */
 final case class ComponentKnowledgeCarReviewProviderProfile(
   provider: ReviewProviderIdentity,
   ruleSet: ReviewRuleIdentity,
-  sourceDigest: String,
   detail: ComponentKnowledgeDetail
 )
 
@@ -28,7 +31,6 @@ final class ComponentKnowledgeCarReviewProviderRunner(
     if (request.provider != profile.provider) _failed("component-knowledge-provider-identity-mismatch", request)
     else if (request.cancellationRequested || _cancelled.contains(request.reviewId)) _failed("component-knowledge-provider-cancelled", request)
     else if (!isAdmittedRequest(request.providerRequest)) _failed("component-knowledge-provider-request-incompatible", request)
-    else if (!_valid_digest(profile.sourceDigest)) _failed("component-knowledge-provider-source-digest-invalid", request)
     else ProviderBundleRunnerResult.Completed(_bundle(request, profile), request.startedAtMillis)
 
   def cancel(request: ProviderBundleExecutionRequest): Unit =
@@ -72,16 +74,15 @@ object ComponentKnowledgeCarReviewProviderRunner {
 
   /**
    * Creates the CAR Review provider input only from an already admitted CBD
-   * detail projection.  The detail's artifact checksum remains an identity
-   * binding; this conversion neither opens an artifact nor obtains a resolver.
+   * detail projection, retaining its explicit Component/release and source
+   * attribution. This conversion neither opens an artifact nor obtains a resolver.
    */
   def fromDetail(
     provider: ReviewProviderIdentity,
     ruleSet: ReviewRuleIdentity,
     detail: ComponentKnowledgeDetail
   ): Option[ComponentKnowledgeCarReviewProviderProfile] =
-    Option.when(detail.carrierSha256.matches("[0-9a-f]{64}"))(detail.carrierSha256)
-      .map(digest => ComponentKnowledgeCarReviewProviderProfile(provider, ruleSet, "sha256:" + digest, detail))
+    Some(ComponentKnowledgeCarReviewProviderProfile(provider, ruleSet, detail))
 
   def descriptorDocument(profile: ComponentKnowledgeCarReviewProviderProfile): String =
     _printer.print(Json.obj(
@@ -164,7 +165,8 @@ object ComponentKnowledgeCarReviewProviderRunner {
       "subject" -> Json.obj("kind" -> Json.fromString("review-target"), "id" -> Json.fromString(target.name)),
       "origin" -> Json.obj("providerId" -> Json.fromString(profile.provider.id.value), "sourceType" -> Json.fromString("admitted-component-knowledge-metadata")),
       "facts" -> Json.fromJsonObject(JsonObject.fromIterable(Vector(
-        "sourceDigest" -> Json.fromString(profile.sourceDigest),
+        "sourceId" -> Json.fromString(profile.detail.sourceId),
+        "evidenceLocation" -> Json.fromString(profile.detail.evidenceLocation),
         "checkId" -> Json.fromString(rule.id),
         "capabilityId" -> Json.fromString(rule.capability.value),
         "outcome" -> Json.fromString(result.outcome.value),
@@ -246,6 +248,5 @@ object ComponentKnowledgeCarReviewProviderRunner {
   private def _rule_identity(value: ReviewRuleIdentity): Json = Json.obj("id" -> Json.fromString(value.id.value), "version" -> Json.fromString(value.version.value))
   private def _target(value: ReviewTarget): Json = Json.fromJsonObject(JsonObject.fromIterable(Vector("kind" -> Json.fromString(value.kind.value), "name" -> Json.fromString(value.name), "digest" -> Json.fromString(value.digest.value)) ++ value.organization.map(x => "organization" -> Json.fromString(x)) ++ value.version.map(x => "version" -> Json.fromString(x.value))))
   private def _sha256(value: Json): String = "sha256:" + MessageDigest.getInstance("SHA-256").digest(_printer.print(value).getBytes(StandardCharsets.UTF_8)).map(byte => f"${byte & 0xff}%02x").mkString
-  private def _valid_digest(value: String): Boolean = Option(value).exists(_.matches("sha256:[0-9a-f]{64}"))
   private def _failed(code: String, request: ProviderBundleExecutionRequest): ProviderBundleRunnerResult.Failed = ProviderBundleRunnerResult.Failed(code, "Component knowledge CAR Review provider did not produce an admissible review bundle.", request.startedAtMillis)
 }

@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.time.{Clock, Instant, ZoneOffset}
 
 import org.goldenport.Consequence
@@ -17,6 +16,10 @@ import org.scalatest.wordspec.AnyWordSpec
  *
  * An admitted carrier contributes typed metadata only.  It is never a
  * resource reader, operation registry, or authority grant.
+ */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
  */
 final class ComponentKnowledgeProjectionSpec
     extends AnyWordSpec
@@ -37,6 +40,11 @@ final class ComponentKnowledgeProjectionSpec
       val profile = selection.selectedProfile.getOrElse(fail("expected exact local profile"))
       val detail = invocation.componentKnowledge(profile).getOrElse(fail("expected admitted Component knowledge"))
       val usage = _value(invocation.usage(profile, Some("documentation"), EmptyFetcher))
+      val provider = invocation.componentKnowledgeCarReviewProvider(
+        profile,
+        ReviewProviderIdentity(ReviewProviderId("cbd-component-knowledge"), ReviewVersion("1.0.0")),
+        ReviewRuleIdentity(ReviewRuleId("cbd.component-knowledge.car-review"), ReviewVersion("1.0.0"))
+      )
 
       Then("the response retains the declared identity, integrity and provenance values without content or authority")
       selection.status shouldBe "matched"
@@ -45,18 +53,14 @@ final class ComponentKnowledgeProjectionSpec
       detail.logicalRelease shouldBe _release
       detail.carrierSchema shouldBe "cncf.component-knowledge-carrier.v1"
       detail.carrierLogicalPath shouldBe "component-knowledge.json"
-      detail.carrierSha256 shouldBe _carrier_digest
+      profile.evidenceUri.toString shouldBe "urn:cncf:cbd:component-knowledge:/org.example.Order/1.2.0"
       detail.resources.map(_.logicalPath) shouldBe Vector("documentation/order.md", "source/order.scala")
       detail.resources.map(_.license) shouldBe Vector("Apache-2.0", "LicenseRef-Internal")
       detail.resources.map(_.disclosure) shouldBe Vector("metadata-only", "reference-only")
       detail.resources.map(_.authorization) shouldBe Vector("granted", "denied")
       detail.resources.map(_.resolutionStep) shouldBe Vector("expanded-car:2", "expanded-car:2")
       detail.truncatedResourceCount shouldBe 0
-      invocation.componentKnowledgeCarReviewProvider(
-        profile,
-        ReviewProviderIdentity(ReviewProviderId("cbd-component-knowledge"), ReviewVersion("1.0.0")),
-        ReviewRuleIdentity(ReviewRuleId("cbd.component-knowledge.car-review"), ReviewVersion("1.0.0"))
-      ).map(_.sourceDigest) shouldBe Some("sha256:" + _carrier_digest)
+      provider.map(_.detail) shouldBe Some(detail)
       usage.operations shouldBe empty
       usage.references.map(_._2.toString) shouldBe Vector("urn:cncf:resource:example:order-documentation")
       usage.guidance.map(_.statementKind) shouldBe Vector("declared-resource")
@@ -82,7 +86,7 @@ final class ComponentKnowledgeProjectionSpec
 
     "report rejection without treating the rejected carrier as usable metadata" in {
       Given("a local generic CAR observation whose declared carrier was rejected")
-      val invocation = _runtime.invocation(_inventory(ComponentKnowledgeIntegration.Rejected("digest mismatch")))
+      val invocation = _runtime.invocation(_inventory(ComponentKnowledgeIntegration.Rejected("invalid consumer schema")))
       invocation.ensureInputsReady(EmptyFetcher).isSuccess shouldBe true
 
       When("the exact local component is requested")
@@ -114,10 +118,29 @@ final class ComponentKnowledgeProjectionSpec
       detail.resources.last.logicalPath shouldBe "documentation/order-99.md"
     }
 
+    "identify value-only evidence by separately escaped Component and release path components" in {
+      Given("an admitted Component contract with an explicit release containing a URI-reserved plus")
+      val release = "1.2.0+review"
+      val contract = _contract.copy(logicalRelease = release, resources = _contract.resources.map { resource =>
+        resource.copy(logicalIdentity = resource.logicalIdentity.copy(logicalRelease = release))
+      })
+      val bytes = ComponentKnowledgeManifestConsumerContractCodec.encode(contract).getBytes(StandardCharsets.UTF_8).toVector
+      val admission = ComponentKnowledgeIntegration.admit(ComponentKnowledgeIntegration.Input(Some(_carrier), bytes, _component_id, release))
+      val observation = _inventory(admission).observations.head
+
+      When("CBD projects the admitted local value evidence")
+      val projected = ComponentKnowledgeProjection.fromObservation(observation)
+
+      Then("the URI retains the declared Component and release boundaries with the reserved character escaped")
+      admission shouldBe a[ComponentKnowledgeIntegration.Admitted]
+      projected.map(_.profile.evidenceUri.toString) shouldBe Some("urn:cncf:cbd:component-knowledge:/org.example.Order/1.2.0%2Breview")
+      projected.map(_.detail.logicalRelease) shouldBe Some(release)
+    }
+
     "admit only the selected catalog profile's declared version-scoped consumer-contract endpoint" in {
       Given("a catalog profile with one exact carrier declaration and one same-origin version-scoped endpoint")
       val source = CatalogSource("catalog", URI.create("https://catalog.example/"), 1, enabled = true)
-      val carrier = ComponentKnowledgeCarrier.createC(_sha256(_catalog_contract.getBytes(StandardCharsets.UTF_8).toVector)).toOption.getOrElse(fail("carrier"))
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.getOrElse(fail("carrier"))
       val endpoint = URI.create("https://catalog.example/repository/car/textus-order/1.2.0/component-knowledge.json")
       val profile = _catalog_profile(source, carrier, endpoint)
       val runtime = CbdRuntime.create(Vector(source), new InMemoryComponentCatalogProvider(Vector(profile), clock = _clock), _clock)
@@ -137,7 +160,7 @@ final class ComponentKnowledgeProjectionSpec
       fetcher.requests shouldBe Vector(endpoint)
       detail.sourceKind shouldBe InformationSourceKind.PUBLISHED_CATALOG
       detail.evidenceLocation shouldBe endpoint.toString
-      detail.carrierSha256 shouldBe carrier.sha256
+      detail.carrierLogicalPath shouldBe carrier.logicalPath
       usage.operations shouldBe empty
       usage.references.map(_._2.toString) shouldBe Vector("urn:cncf:resource:example:order-documentation")
     }
@@ -145,7 +168,7 @@ final class ComponentKnowledgeProjectionSpec
     "reject an off-origin catalog Component knowledge endpoint before it is fetched" in {
       Given("an otherwise valid profile whose declared endpoint changes origin")
       val source = CatalogSource("catalog", URI.create("https://catalog.example/"), 1, enabled = true)
-      val carrier = ComponentKnowledgeCarrier.createC(_sha256(_catalog_contract.getBytes(StandardCharsets.UTF_8).toVector)).toOption.getOrElse(fail("carrier"))
+      val carrier = ComponentKnowledgeCarrier.createC().toOption.getOrElse(fail("carrier"))
       val profile = _catalog_profile(
         source,
         carrier,
@@ -243,8 +266,7 @@ final class ComponentKnowledgeProjectionSpec
        |}""".stripMargin
   ).toOption.getOrElse(fail("Component knowledge projection fixture must satisfy the v1 consumer contract"))
 
-  private val _carrier_digest = "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
-  private val _carrier = ComponentKnowledgeCarrier.createC(_carrier_digest).toOption.getOrElse(
+  private val _carrier = ComponentKnowledgeCarrier.createC().toOption.getOrElse(
     fail("Component knowledge projection carrier fixture must satisfy the v1 declaration"))
 
   /**
@@ -287,8 +309,6 @@ final class ComponentKnowledgeProjectionSpec
 
   private val _catalog_contract = ComponentKnowledgeManifestConsumerContractCodec.encode(_contract)
 
-  private def _sha256(bytes: Vector[Byte]): String =
-    MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
 
   private final class ContractFetcher(endpoint: URI, contract: String) extends CatalogFetcher with BokFetcher {
     var requests = Vector.empty[URI]

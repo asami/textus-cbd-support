@@ -48,8 +48,7 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- *  version Oct.  4, 2026
- * @version Oct. 16, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -1267,6 +1266,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
     extends CbdSupportComponent.CbdReviewAdminServiceFactory {
     import CbdReviewAdminService.*
 
+    override def createReviewManagedEffectsActionCall(
+      core: ActionCall.Core,
+      action: ManagedEffectReviewRequest
+    ): ReviewManagedEffectsActionCall = ManagedEffectReviewActionCall(core, action)
+
     override def createStartReviewActionCall(
       core: ActionCall.Core,
       action: ReviewStartRequest
@@ -1918,7 +1922,6 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "logicalRelease" -> detail.logicalRelease,
       "carrierSchema" -> detail.carrierSchema,
       "carrierLogicalPath" -> detail.carrierLogicalPath,
-      "carrierSha256" -> detail.carrierSha256,
       "truncatedResourceCount" -> detail.truncatedResourceCount,
       "resources" -> detail.resources.map(_component_knowledge_resource_record)
     )

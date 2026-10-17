@@ -2,7 +2,6 @@ package org.simplemodeling.textus.cbdsupport.impl
 
 import java.net.URI
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext as ScalaExecutionContext, Future}
 
@@ -26,7 +25,8 @@ import org.simplemodeling.textus.cbdsupport.runtime.{BokFetcher, CatalogFetcher,
 /*
  * @since   Jul. 18, 2026
  *  version Jul. 20, 2026
- * @version Aug. 26, 2026
+ *  version Aug. 26, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -229,13 +229,13 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
 
   private def _knowledge_context(base: ExecutionContext): ExecutionContext = {
     val contract = _knowledge_consumer_contract_bytes()
-    val carrier = ComponentKnowledgeCarrier.createC(_sha256(contract)).toOption.get
+    val carrier = ComponentKnowledgeCarrier.createC().toOption.get
     val reference = _value(ResourceTreeReference.parseC("working"))
     val entries = Vector(
       _project_entry("project.yaml", "Order"),
       _value(ResourceTreeEntry.createC("target/cncf.d/component-descriptor.json", _component_descriptor(carrier).getBytes(StandardCharsets.UTF_8).toVector)),
       _value(ResourceTreeEntry.createC("target/cncf.d/component-knowledge.json", contract)),
-      _value(ResourceTreeEntry.createC("target/cncf.d/car-runtime-manifest.json", _runtime_manifest(contract).getBytes(StandardCharsets.UTF_8).toVector))
+      _value(ResourceTreeEntry.createC("target/cncf.d/car-runtime-manifest.json", _runtime_manifest.getBytes(StandardCharsets.UTF_8).toVector))
     )
     ExecutionContext.withResourceTreeAccess(base, ResourceTreeAccess.inMemory(Map(reference -> entries)))
   }
@@ -333,11 +333,9 @@ final class ComponentFactoryRuntimeBoundarySpec extends AnyWordSpec with Matcher
     ).getBytes(StandardCharsets.UTF_8).toVector
   }
 
-  private def _runtime_manifest(contract: Vector[Byte]): String =
-    s"""{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":[{"path":"target/cncf.d/component-knowledge.json","sha256":"${_sha256(contract)}"}]}"""
+  private def _runtime_manifest: String =
+    """{"schemaVersion":"cncf.car-development-runtime-manifest.v2","evidence":[{"path":"target/cncf.d/component-knowledge.json"}]}"""
 
-  private def _sha256(bytes: Vector[Byte]): String =
-    MessageDigest.getInstance("SHA-256").digest(bytes.toArray).map(byte => f"${byte & 0xff}%02x").mkString
 
   private def _local_names(invocation: CbdRuntimeInvocation): Vector[String] =
     invocation._local_inventory_snapshot.toVector.flatMap(_.observations).flatMap(_.componentName).distinct.sorted

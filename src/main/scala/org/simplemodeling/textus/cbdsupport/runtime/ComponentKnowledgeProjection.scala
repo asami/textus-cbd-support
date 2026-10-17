@@ -1,6 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.runtime
 
-import java.net.URI
+import java.net.{URI, URLEncoder}
+import java.nio.charset.StandardCharsets
 import java.util.Locale
 
 import org.goldenport.cncf.component.repository.{
@@ -22,6 +23,10 @@ import org.goldenport.cncf.knowledge.{
  * admission.  This layer neither reads an archive resource nor converts a
  * manifest membership record into disclosure, operation, MCP, or runtime
  * authority.
+ */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
  */
 final case class ComponentKnowledgeResourceDetail(
   componentId: String,
@@ -61,7 +66,6 @@ final case class ComponentKnowledgeDetail(
   logicalRelease: String,
   carrierSchema: String,
   carrierLogicalPath: String,
-  carrierSha256: String,
   resources: Vector[ComponentKnowledgeResourceDetail],
   truncatedResourceCount: Int
 )
@@ -99,12 +103,11 @@ object ComponentKnowledgeProjection {
           contract.logicalRelease,
           carrier.carrierSchema,
           carrier.logicalPath,
-          carrier.sha256,
           resources.take(MAXIMUM_RESOURCES),
           truncated
         )
-        val evidenceuri = URI.create("urn:cncf:cbd:component-knowledge:" +
-          carrier.sha256)
+        val evidenceuri = URI.create("urn:cncf:cbd:component-knowledge:/" +
+          _uri_path_component(componentid) + "/" + _uri_path_component(contract.logicalRelease))
         val versionevidence = ComponentVersionEvidence(
           contract.logicalRelease,
           None,
@@ -171,7 +174,6 @@ object ComponentKnowledgeProjection {
       contract.logicalRelease,
       carrier.carrierSchema,
       carrier.logicalPath,
-      carrier.sha256,
       resources.take(MAXIMUM_RESOURCES),
       truncated
     )
@@ -361,13 +363,13 @@ object ComponentKnowledgeProjection {
     organization: Option[String],
     kind: Option[String],
     version: Option[String],
-    sourceId: Option[String]
+    sourceid: Option[String]
   ): Boolean =
     observation.componentName.exists(_.equalsIgnoreCase(name.trim)) &&
       organization.forall(x => observation.organization.exists(_.equalsIgnoreCase(x))) &&
       kind.forall(x => observation.componentKind.exists(_.equalsIgnoreCase(x))) &&
       version.forall(x => observation.version.contains(x)) &&
-      sourceId.forall(_ == observation.sourceId)
+      sourceid.forall(_ == observation.sourceId)
 
   private def _is_reference_visible(value: ComponentKnowledgeResourceDetail): Boolean =
     value.availability == "available" && value.authorization == "granted"
@@ -376,11 +378,14 @@ object ComponentKnowledgeProjection {
     try Some(URI.create(value))
     catch { case _: IllegalArgumentException => None }
 
-  private def _local_name(componentId: String): String =
-    componentId.split("\\.").lastOption.getOrElse(componentId)
+  private def _uri_path_component(value: String): String =
+    URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20")
 
-  private def _organization(componentId: String, name: String): Option[String] =
-    Option(componentId.stripSuffix("." + name)).filter(_.contains("."))
+  private def _local_name(componentid: String): String =
+    componentid.split("\\.").lastOption.getOrElse(componentid)
+
+  private def _organization(componentid: String, name: String): Option[String] =
+    Option(componentid.stripSuffix("." + name)).filter(_.contains("."))
 
   private def _normalize(value: String): String = value.trim.toLowerCase(Locale.ROOT)
 

@@ -15,7 +15,8 @@ import org.scalatest.wordspec.AnyWordSpec
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 17, 2026
+ *  version Jul. 17, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -171,7 +172,6 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
     "admit Component knowledge only from the selected version's canonical catalog route" in {
       Given("one CAR version with a canonical carrier and one version with a noncanonical contract path")
       val source = CatalogSource("fixture", URI.create("https://catalog.example/"), 100, true)
-      val digest = "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
       val carindex =
         s"""{
            |  "entries": [{
@@ -185,8 +185,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
            |          "carrier": {
            |            "carrierSchema": "cncf.component-knowledge-carrier.v1",
            |            "consumerContractSchema": "cncf.component-knowledge-consumer.v1",
-           |            "logicalPath": "component-knowledge.json",
-           |            "sha256": "$digest"
+           |            "logicalPath": "component-knowledge.json"
            |          },
            |          "consumer_contract": "repository/car/textus-order/1.2.0/component-knowledge.json"
            |        }
@@ -198,8 +197,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
            |          "carrier": {
            |            "carrierSchema": "cncf.component-knowledge-carrier.v1",
            |            "consumerContractSchema": "cncf.component-knowledge-consumer.v1",
-           |            "logicalPath": "component-knowledge.json",
-           |            "sha256": "$digest"
+           |            "logicalPath": "component-knowledge.json"
            |          },
            |          "consumer_contract": "repository/car/textus-order/component-knowledge.json"
            |        }
@@ -221,7 +219,7 @@ final class CatalogRuntimeSpec extends AnyWordSpec with Matchers with GivenWhenT
       canonical.componentKnowledge.map(_.consumerContractUri) shouldBe Some(
         URI.create("https://catalog.example/repository/car/textus-order/1.2.0/component-knowledge.json")
       )
-      canonical.componentKnowledge.map(_.carrier.sha256) shouldBe Some(digest)
+      canonical.componentKnowledge.map(_.carrier.logicalPath) shouldBe Some("component-knowledge.json")
       generic.componentKnowledge shouldBe None
     }
   }

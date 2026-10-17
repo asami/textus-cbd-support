@@ -15,7 +15,8 @@ import org.goldenport.cncf.resource.{ResourceTreeQueryResult, ResourceTreeSnapsh
 
 /*
  * @since   Jul. 14, 2026
- * @version Jul. 20, 2026
+ *  version Jul. 20, 2026
+ * @version Oct. 17, 2026
  * @author  ASAMI, Tomoharu
  */
 final case class LocalInspectionPolicy(
@@ -203,10 +204,7 @@ object LocalInformationSourceInventory {
         "resource-tree:" + treename + "/" + project.relativePath,
         descriptor.flatMap(_.version),
         None,
-        knowledge match {
-          case ComponentKnowledgeIntegration.Admitted(_, carrier) => Some(carrier.sha256)
-          case _ => None
-        },
+        None,
         diagnostics,
         knowledge
       )) -> Vector.empty[String]
@@ -229,7 +227,7 @@ object LocalInformationSourceInventory {
               case None => ComponentKnowledgeIntegration.Rejected("Development Component knowledge declaration has no target/cncf.d/component-knowledge.json evidence.")
               case Some(entry) if entry.byteSize > policy.maxMetadataBytes => ComponentKnowledgeIntegration.Rejected("Development Component knowledge carrier exceeds the metadata limit.")
               case Some(entry) =>
-                _development_runtime_carrier_intact(runtimeentry, carrier.logicalPath, entry.bytes, policy) match {
+                _development_runtime_carrier_intact(runtimeentry, carrier.logicalPath, policy) match {
                   case Left(reason) => ComponentKnowledgeIntegration.Rejected(reason)
                   case Right(_) => ComponentKnowledgeIntegration.admit(ComponentKnowledgeIntegration.Input(
                     Some(carrier), entry.bytes, componentid, release
@@ -242,7 +240,6 @@ object LocalInformationSourceInventory {
   private def _development_runtime_carrier_intact(
     runtimeentry: Option[org.goldenport.cncf.resource.ResourceTreeEntry],
     carrierpath: String,
-    carrierbytes: Vector[Byte],
     policy: LocalInspectionPolicy
   ): Either[String, Unit] =
     runtimeentry match {
@@ -250,17 +247,22 @@ object LocalInformationSourceInventory {
       case Some(entry) if entry.byteSize > policy.maxMetadataBytes => Left("Development runtime manifest exceeds the metadata limit.")
       case Some(entry) =>
         _strict_json_parser.parse(new String(entry.bytes.toArray, StandardCharsets.UTF_8)).left.map(_ => "Development runtime manifest is not valid JSON.").flatMap { json =>
-          val evidence = json.hcursor.get[Vector[Json]]("evidence").getOrElse(Vector.empty)
-          val expectedpath = "target/cncf.d/" + carrierpath
-          val matches = evidence.filter { item =>
-            item.hcursor.get[String]("path").toOption.contains(expectedpath)
-          }
-          matches match {
-            case Vector(item) if item.hcursor.get[String]("sha256").toOption.contains(_sha256(carrierbytes)) => Right(())
-            case Vector(_) => Left("Development runtime manifest digest does not match the declared Component knowledge carrier.")
-            case Vector() => Left("Development runtime manifest does not declare the Component knowledge carrier.")
-            case _ => Left("Development runtime manifest declares the Component knowledge carrier more than once.")
-          }
+          val cursor = json.hcursor
+          for {
+            _ <- Either.cond(
+              cursor.get[String]("schemaVersion").toOption.contains("cncf.car-development-runtime-manifest.v2"),
+              (),
+              "Development runtime manifest schema is unsupported."
+            )
+            evidence <- cursor.get[Vector[Json]]("evidence").left.map(_ => "Development runtime manifest evidence must be an array.")
+            _ <- Either.cond(evidence.forall(_.hcursor.get[String]("path").toOption.exists(_.nonEmpty)), (),
+              "Development runtime manifest evidence must declare string paths.")
+            _ <- evidence.count(_.hcursor.get[String]("path").toOption.contains("target/cncf.d/" + carrierpath)) match {
+              case 1 => Right(())
+              case 0 => Left("Development runtime manifest does not declare the Component knowledge carrier.")
+              case _ => Left("Development runtime manifest declares the Component knowledge carrier more than once.")
+            }
+          } yield ()
         }
     }
 

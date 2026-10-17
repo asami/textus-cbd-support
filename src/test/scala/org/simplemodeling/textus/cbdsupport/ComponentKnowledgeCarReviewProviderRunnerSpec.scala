@@ -6,6 +6,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.simplemodeling.textus.cbdsupport.runtime.*
 
 /** DOC-06 executable boundary for CAR Review over value-only carrier detail. */
+/*
+ * @since   Aug. 26, 2026
+ * @version Oct. 17, 2026
+ */
 final class ComponentKnowledgeCarReviewProviderRunnerSpec
     extends AnyWordSpec
     with Matchers
@@ -33,29 +37,34 @@ final class ComponentKnowledgeCarReviewProviderRunnerSpec
       _outcome(reconciled, "bok-publication-readiness") shouldBe Some("unknown")
       reconciled.evidence.flatMap(_.facts("metadataOnly").flatMap(_.asBoolean)).distinct shouldBe Vector(true)
       reconciled.evidence.flatMap(_.facts.keys).toSet should not contain "content"
+      reconciled.evidence.foreach { evidence =>
+        evidence.facts.keys.toSet shouldBe Set("sourceId", "evidenceLocation", "checkId", "capabilityId", "outcome", "componentId", "logicalRelease", "logicalPaths", "metadataOnly")
+        evidence.facts("componentId").flatMap(_.asString) shouldBe Some(profile.detail.componentId)
+        evidence.facts("logicalRelease").flatMap(_.asString) shouldBe Some(profile.detail.logicalRelease)
+        evidence.facts("sourceId").flatMap(_.asString) shouldBe Some(profile.detail.sourceId)
+        evidence.facts("evidenceLocation").flatMap(_.asString) shouldBe Some(profile.detail.evidenceLocation)
+      }
       reconciled.limitations.map(_.code) should contain("cbd.car-review.component-knowledge.manual-completeness.metadata-insufficient")
       reconciled.limitations.map(_.code) should contain("cbd.car-review.component-knowledge.bok-publication-readiness.metadata-insufficient")
     }
 
-    "reject a malformed source digest before producing a review conclusion" in {
-      Given("an otherwise valid value-only profile without a bounded digest")
-      val profile = _profile.copy(sourceDigest = "not-a-digest")
-      val descriptor = ComponentKnowledgeCarReviewProviderRunner.descriptorDocument(profile)
+    "derive the provider profile from admitted detail with explicit source attribution" in {
+      Given("admitted value-only detail with its explicit Component, release and source location")
+      val detail = _profile.detail.copy(artifactChecksumSha256 = None)
 
-      When("the provider executes")
-      val result = new ComponentKnowledgeCarReviewProviderRunner(profile).execute(_request(profile, descriptor))
+      When("the provider input is projected from that detail")
+      val result = ComponentKnowledgeCarReviewProviderRunner.fromDetail(_profile.provider, _profile.ruleSet, detail)
 
-      Then("it fails rather than fabricating evidence")
-      result should matchPattern {
-        case ProviderBundleRunnerResult.Failed("component-knowledge-provider-source-digest-invalid", _, _) =>
-      }
+      Then("the original detail and rule identity are retained without requiring an artifact checksum")
+      result.map(_.detail) shouldBe Some(detail)
+      result.map(_.provider) shouldBe Some(_profile.provider)
+      result.map(_.ruleSet) shouldBe Some(_profile.ruleSet)
     }
   }
 
   private val _profile = ComponentKnowledgeCarReviewProviderProfile(
     ReviewProviderIdentity(ReviewProviderId("cbd-component-knowledge"), ReviewVersion("1.0.0")),
     ReviewRuleIdentity(ReviewRuleId("cbd.component-knowledge.car-review"), ReviewVersion("1.0.0")),
-    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     ComponentKnowledgeDetail(
       "local-car",
       "car-storage",
@@ -65,7 +74,6 @@ final class ComponentKnowledgeCarReviewProviderRunnerSpec
       "1.2.0",
       "cncf.component-knowledge-carrier.v1",
       "component-knowledge.json",
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       Vector(
         ComponentKnowledgeResourceDetail("org.example.Order", "1.2.0", None, "Documentation", "urn:cncf:resource:example:order-documentation", "documentation/order.md", "documentation", "documentation", Some("en"), "text/markdown", 11L, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "component", "stable", "component-declared", "Apache-2.0", "metadata-only", "available", "verified", "granted", "expanded-car", "org.example:textus-order:1.2.0", "component-car:example-order", "expanded-car:2", false, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
         ComponentKnowledgeResourceDetail("org.example.Order", "1.2.0", None, "Source", "urn:cncf:resource:example:order-source", "source/order.scala", "source-code", "source-code", Some("scala"), "text/x-scala", 17L, "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210", "component", "stable", "component-declared", "LicenseRef-Internal", "reference-only", "restricted", "verified", "denied", "expanded-car", "org.example:textus-order:1.2.0", "component-car:example-order", "expanded-car:2", false, "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210")

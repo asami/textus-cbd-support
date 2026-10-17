@@ -21,6 +21,7 @@ import org.goldenport.cncf.entity.{
   EntityQuery
 }
 import org.goldenport.cncf.resource.{ResourceTreeLimits, ResourceTreeQuery, ResourceTreeReference}
+import org.goldenport.cncf.spi.ai.runner.{AiRunnerApplicationPurpose, AiRunnerApplicationPurposeRegistration, AiRunnerSocketSet}
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.configuration.Configuration
 import org.goldenport.protocol.operation.OperationResponse
@@ -248,10 +249,21 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   override protected def create_Component(params: ComponentCreate): Component =
     _create_uninitialized_component()
 
-  private[cbdsupport] def _create_uninitialized_component(): Component =
-    new CbdSupportComponent {
+  private[cbdsupport] def _create_uninitialized_component(): Component = {
+    val socket = new AiRunnerSocketSet {}
+    val registration = AiRunnerApplicationPurposeRegistration(Vector(
+      AiRunnerApplicationPurpose(
+        name = "car-review.semantic-consistency",
+        defaultStandardPurpose = "software-analysis"
+      )
+    ))
+    val component = new CbdSupportComponent {
       override def mcpReadyServices: Set[String] = Set("CbdRetrieval")
     }
+    component.withPort(Component.Port.input(socket)
+      .orElse(Component.Port.output(registration))
+      .orElse(component.port))
+  }
 
   private final class ReviewDiagnosisAdmissionProgram(
     val core: ActionCall.Core
@@ -1265,6 +1277,11 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   private final class CbdReviewAdminServiceFactoryImpl
     extends CbdSupportComponent.CbdReviewAdminServiceFactory {
     import CbdReviewAdminService.*
+
+    override def createReviewScopedQualityActionCall(
+      core: ActionCall.Core,
+      action: ScopedQualityReviewRequest
+    ): ReviewScopedQualityActionCall = ScopedQualityReviewActionCall(core, action)
 
     override def createReviewManagedEffectsActionCall(
       core: ActionCall.Core,

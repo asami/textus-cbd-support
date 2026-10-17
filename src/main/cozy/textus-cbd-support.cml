@@ -486,6 +486,28 @@ Private Review execution and cancellation operations for Web, CLI, sbt-cozy, and
 
 ### OPERATION
 
+#### reviewScopedQuality
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ScopedQualityReviewRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ScopedQualityReviewResult
+
+##### DESCRIPTION
+
+Evaluate explicitly selected quality checks over supplied bounded materials and exact model subjects. Coverage and findings grant no workflow, admission, effect, or commit authority. This query is private and never MCP ready.
+
 #### reviewManagedEffects
 
 ##### TYPE
@@ -716,6 +738,22 @@ Private HTTP gateway envelope for one exact Review submission document.
 | submissionDocument | ReviewSubmissionDocument | 1 |
 
 # QUERY
+
+## ScopedQualityReviewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| subjectId | string | 1 |
+| subjectRevision | string | 1 |
+| paths | string | * |
+| modelSubjects | string | * |
+| checks | string | * |
+| requirements | string | * |
+| materials | ScopedQualityReviewMaterial | * |
 
 ## ManagedEffectReviewRequest
 
@@ -957,6 +995,77 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | itemId | CbdWarning | 1 |
 
 # VALUE
+
+## ScopedQualityReviewMaterial
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| identity | string | 1 |
+| kind | string | 1 |
+| path | string | ? |
+| modelSubject | string | ? |
+| content | string | 1 |
+
+## ScopedQualityReviewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| subjectId | string | 1 |
+| subjectRevision | string | 1 |
+| paths | string | * |
+| modelSubjects | string | * |
+| checks | string | * |
+| requirements | string | * |
+| materials | ScopedQualityReviewMaterial | * |
+
+## ScopedQualityReviewCheckResult
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| checkId | string | 1 |
+| status | string | 1 |
+| paths | string | * |
+| modelSubjects | string | * |
+| limitations | string | * |
+
+## ScopedQualityReviewFinding
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| identity | string | 1 |
+| checkId | string | 1 |
+| severity | string | 1 |
+| path | string | ? |
+| modelSubject | string | ? |
+| message | string | 1 |
+
+## ScopedQualityReviewResult
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| subjectId | string | 1 |
+| subjectRevision | string | 1 |
+| status | string | 1 |
+| checks | ScopedQualityReviewCheckResult | * |
+| findings | ScopedQualityReviewFinding | * |
+| providerId | string | 1 |
+| purpose | string | ? |
+| model | string | ? |
+| ruleRevision | string | 1 |
 
 ## ManagedEffectReviewSubject
 

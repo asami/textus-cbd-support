@@ -123,6 +123,30 @@ semantic handoff.
 
 ## Current Priority
 
+### Scoped quality and execution separation — 2026-10-18
+
+[Phase 15](../phase/phase-15.md) formalizes the scoped evaluation previously
+referenced by sm-workflow as SQR-01..04. Existing provider/Operation/CAM work
+and applicable focused evidence are retained; Phase acceptance is still open.
+[Phase 15.1](../phase/phase-15.1.md) takes over the ReviewRequest plan originally
+added as Phase 15 on this date, with explicit work-ID mapping in the
+[handoff](../journal/2026/10/2026-10-18-phase-15-15.1-review-handoff.md).
+It separates request preparation and result acceptance from external/standalone
+AI execution, sharing one review policy.
+
+Reconcile Phase 15's existing implementation and fill only contract gaps. Build
+the Phase 15.1 external main route as one connected slice, validate it before
+RR06 handoff, then complete standalone reuse. The consumer can connect the same
+pending Review through CAM/continuation while standalone work finishes; neither
+branch waits for the other's closure. The later production-first decision moves
+the consumer to sm-workflow Phase 10; initial-use 6.1/6.2/6.3 no longer waits for
+CBD. Phase 10 needs both accepted required handoffs and extends that route. Bounded owner handoffs
+may precede unrelated owner completion. No owner waits for whole consumer closure.
+Do not restart the active consumer Goal, change its original bases/counters,
+discard applicable results or reopen accepted work. Phase 16/17 and completed
+Phase 14 retain their identities. This planning update starts no implementation
+or new Goal and records no product acceptance.
+
 ### Capability sequence position — 2026-10-16
 
 [Phase 11](../phase/phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)

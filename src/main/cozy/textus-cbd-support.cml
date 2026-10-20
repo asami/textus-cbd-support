@@ -486,6 +486,50 @@ Private Review execution and cancellation operations for Web, CLI, sbt-cozy, and
 
 ### OPERATION
 
+#### prepareScopedQuality
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ScopedQualityReviewPreparation
+
+##### OUTPUT
+
+###### TYPE
+
+ScopedQualityReviewDefinition
+
+##### DESCRIPTION
+
+Prepare explicit external or standalone review instructions without invoking AI. This query is private and never MCP ready.
+
+#### acceptScopedQuality
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ScopedQualityReviewAcceptance
+
+##### OUTPUT
+
+###### TYPE
+
+ScopedQualityReviewResult
+
+##### DESCRIPTION
+
+Accept an attributed review response using shared coverage rules without invoking AI. This query is private and never MCP ready.
+
 #### reviewScopedQuality
 
 ##### TYPE
@@ -738,6 +782,26 @@ Private HTTP gateway envelope for one exact Review submission document.
 | submissionDocument | ReviewSubmissionDocument | 1 |
 
 # QUERY
+
+## ScopedQualityReviewPreparation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| request | ScopedQualityReviewRequest | 1 |
+| executionIntent | string | 1 |
+
+## ScopedQualityReviewAcceptance
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| definition | ScopedQualityReviewDefinition | 1 |
+| response | ScopedQualityReviewResponse | 1 |
+| execution | ScopedQualityReviewExecution | 1 |
+
 
 ## ScopedQualityReviewRequest
 
@@ -996,6 +1060,64 @@ Private Web request for one exact Observation or capability diagnosis from one e
 
 # VALUE
 
+## ScopedQualityReviewPreparation
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| request | ScopedQualityReviewRequest | 1 |
+| executionIntent | string | 1 |
+
+## ScopedQualityReviewAcceptance
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| definition | ScopedQualityReviewDefinition | 1 |
+| response | ScopedQualityReviewResponse | 1 |
+| execution | ScopedQualityReviewExecution | 1 |
+
+## ScopedQualityReviewDefinition
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| request | ScopedQualityReviewRequest | 1 |
+| executionIntent | string | 1 |
+| profile | string | 1 |
+| ruleRevision | string | 1 |
+| prompt | string | 1 |
+| responseSchema | string | 1 |
+
+## ScopedQualityReviewResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| reviewId | string | 1 |
+| revision | long | 1 |
+| subjectId | string | 1 |
+| subjectRevision | string | 1 |
+| checks | ScopedQualityReviewCheckResult | * |
+| findings | ScopedQualityReviewFinding | * |
+
+## ScopedQualityReviewExecution
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| route | string | 1 |
+| selection | string | 1 |
+| executorId | string | ? |
+| providerId | string | ? |
+| model | string | ? |
+
+
 ## ScopedQualityReviewMaterial
 
 ### ATTRIBUTE
@@ -1066,6 +1188,7 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | purpose | string | ? |
 | model | string | ? |
 | ruleRevision | string | 1 |
+| execution | ScopedQualityReviewExecution | ? |
 
 ## ManagedEffectReviewSubject
 

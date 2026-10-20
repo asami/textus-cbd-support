@@ -53,6 +53,10 @@ records and supplies no new acceptance evidence.
 - [Phase 14](phase-14.md) — closed: CAR Review native Job integration and
   CBD-owned acceptance (DEV-CBD-004), with local release and explicit recovery
   limitations; [checklist](phase-14-checklist.md).
+- [Phase 15](phase-15.md) — planned scoped quality evaluation (SQR-01..04),
+  with existing bounded implementation/evidence retained; [checklist](phase-15-checklist.md).
+- [Phase 15.1](phase-15.1.md) — planned common ReviewRequest, external result
+  acceptance and explicit standalone execution; [checklist](phase-15.1-checklist.md).
 - [Projection follow-up](phase-9-projection-followup.md) — unchecked remote
   additions to the completed Phase 9 contract; not a reopening of Phase 9.
 

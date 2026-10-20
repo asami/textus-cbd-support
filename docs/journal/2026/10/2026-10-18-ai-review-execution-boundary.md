@@ -50,3 +50,15 @@ Therefore:
 - sm-workflow owns any deliberate transition from same-context to independent-context/model execution and records that choice as review evidence.
 
 This principle also reduces the risk that a fresh model, lacking the development history and design intent, reintroduces generic defensive recommendations or previously rejected approaches merely because it reconstructed the task from source files alone.
+
+## Planning adoption — 2026-10-18
+
+The owner adopted [Phase 15](../../../phase/phase-15.md) for scoped evaluation
+and [Phase 15.1](../../../phase/phase-15.1.md) for this execution separation.
+The stable [design](../../../design/scoped-review-execution-boundary.md) and
+[specification](../../../spec/scoped-review-execution-contract.md) now carry the
+behavioral contract. The [handoff](2026-10-18-phase-15-15.1-review-handoff.md)
+records the original P15-RR mapping, retained implementation/evidence and the
+Phase 6.1 dependency. Independent review obligations remain explicit; the default
+same-context principle does not silently remove them. This records planning,
+not implemented or accepted execution.

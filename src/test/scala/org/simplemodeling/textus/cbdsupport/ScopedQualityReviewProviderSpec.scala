@@ -41,7 +41,7 @@ final class ScopedQualityReviewProviderSpec extends AnyWordSpec with Matchers wi
       val checkschema = promptschema.hcursor.downField("properties").downField("checks").downField("items")
       Then("the prompt carries the actual required response schema, all checks are covered, and clean findings retain target and provenance")
       promptschema shouldBe parse(RecordEncoder.json(captured.schema)).toOption.get
-      promptschema.hcursor.get[Vector[String]]("required") shouldBe Right(Vector("subjectId", "subjectRevision", "checks", "findings"))
+      promptschema.hcursor.get[Vector[String]]("required") shouldBe Right(Vector("reviewId", "revision", "subjectId", "subjectRevision", "checks", "findings"))
       checkschema.get[Vector[String]]("required") shouldBe Right(Vector("checkId", "status", "paths", "modelSubjects", "limitations"))
       Vector("checks", "findings").foreach { field =>
         promptschema.hcursor.downField("properties").downField(field).get[String]("type") shouldBe Right("array")
@@ -288,7 +288,7 @@ private[cbdsupport] object ScopedQualityReviewSpecSupport {
     val findingrecords = findings.map(finding => Record.data("identity" -> finding.identity, "checkId" -> finding.checkId,
       "severity" -> finding.severity, "message" -> finding.message) ++
       Record.dataOption("path" -> finding.path, "modelSubject" -> finding.modelSubject))
-    AiRecordResponse(Record.data("subjectId" -> subjectId, "subjectRevision" -> subjectRevision,
+    AiRecordResponse(Record.data("reviewId" -> input.reviewId, "revision" -> input.revision, "subjectId" -> subjectId, "subjectRevision" -> subjectRevision,
       "checks" -> checkrecords, "findings" -> findingrecords), Some("recording-model"),
       Map("ai.execution.provider" -> "recording-provider"))
   }

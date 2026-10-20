@@ -49,7 +49,7 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- * @version Oct. 17, 2026
+ * @version Oct. 18, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -1277,6 +1277,16 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   private final class CbdReviewAdminServiceFactoryImpl
     extends CbdSupportComponent.CbdReviewAdminServiceFactory {
     import CbdReviewAdminService.*
+
+    override def createPrepareScopedQualityActionCall(
+      core: ActionCall.Core,
+      action: ScopedQualityReviewPreparation
+    ): PrepareScopedQualityActionCall = ScopedQualityReviewPreparationActionCall(core, action)
+
+    override def createAcceptScopedQualityActionCall(
+      core: ActionCall.Core,
+      action: ScopedQualityReviewAcceptance
+    ): AcceptScopedQualityActionCall = ScopedQualityReviewAcceptanceActionCall(core, action)
 
     override def createReviewScopedQualityActionCall(
       core: ActionCall.Core,

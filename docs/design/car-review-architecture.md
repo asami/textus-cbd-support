@@ -6,6 +6,11 @@ updated_at=2026-07-16
 
 ## Purpose
 
+For the scoped quality consumer route, the 2026-10-18
+[execution ownership decision](scoped-review-execution-boundary.md) separates
+CBD review semantics from caller-owned AI execution. It extends that bounded
+route and does not require migrating this historical Job/report architecture.
+
 This document fixes the ownership, authority, dependency, and execution
 boundaries for CAR Review. It is normative for Phase 5 implementation.
 Provider JSON fields, canonical report fields, compatibility ranges, and

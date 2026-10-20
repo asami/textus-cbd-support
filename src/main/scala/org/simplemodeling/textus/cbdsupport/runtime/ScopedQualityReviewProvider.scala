@@ -8,7 +8,7 @@ import org.goldenport.Consequence
 import org.goldenport.cncf.action.ActionCall
 import org.goldenport.cncf.context.ExecutionContext
 import org.goldenport.cncf.provider.{ProviderCall, ProviderEngine, ProviderRequest}
-import org.goldenport.cncf.spi.ai.runner.{AiRecordRequest, AiRecordResponse, AiRunnerRequirement, AiRunnerSocketSet}
+import org.goldenport.cncf.spi.ai.runner.{AiRecordRequest, AiRunnerRequirement, AiRunnerSocketSet}
 import org.goldenport.cncf.unitofwork.ExecUowM
 import org.goldenport.record.Record
 import org.goldenport.record.io.RecordEncoder
@@ -38,6 +38,83 @@ object ScopedQualityReviewProvider {
       val providercore = ProviderCall.Core(ProviderRequest("cbd-scoped-quality", "review", attributes),
         core.executionContext, core.component, core.correlationId)
       ProviderEngine.execute(ReviewCall(providercore, input))
+    }
+  }
+
+  def prepareC(core: ActionCall.Core, input: value.ScopedQualityReviewPreparation): Consequence[value.ScopedQualityReviewDefinition] =
+    _validate_c(input.request).flatMap { _ =>
+      ProviderEngine.execute(PrepareCall(_core(core, input.request, "prepare"), input))
+    }
+
+  def acceptC(core: ActionCall.Core, input: value.ScopedQualityReviewAcceptance): Consequence[value.ScopedQualityReviewResult] =
+    _validate_c(input.definition.request).flatMap { _ =>
+      ProviderEngine.execute(AcceptCall(_core(core, input.definition.request, "accept"), input))
+    }
+
+  private def _core(core: ActionCall.Core, input: value.ScopedQualityReviewRequest, operation: String): ProviderCall.Core =
+    ProviderCall.Core(ProviderRequest("cbd-scoped-quality", operation,
+      Map("review_id" -> input.reviewId, "check_count" -> input.checks.size.toString)),
+      core.executionContext, core.component, core.correlationId)
+
+  private def _prepare_c(input: value.ScopedQualityReviewRequest, intent: String): Consequence[value.ScopedQualityReviewDefinition] =
+    _validate_c(input).flatMap { _ =>
+      if (!Set("orchestrated", "standalone").contains(intent))
+        Consequence.argumentFormatError("executionIntent", "orchestrated or standalone", "invalid")
+      else Consequence.success(value.ScopedQualityReviewDefinition(input, intent, "scoped-quality", "cbd-scoped-quality-v1",
+        _prompt(input, _deterministic(input)), RecordEncoder.json(_schema)))
+    }
+
+  private def _deterministic(input: value.ScopedQualityReviewRequest): Assessment =
+    if (input.checks.contains("cml-contract")) _cml(input) else Assessment(Vector.empty, Vector.empty)
+
+  private final case class PrepareCall(core: ProviderCall.Core, input: value.ScopedQualityReviewPreparation)
+      extends ProviderCall[value.ScopedQualityReviewDefinition] {
+    override def calltreeResultAttributes(result: value.ScopedQualityReviewDefinition): Map[String, String] = Map.empty
+    protected def build_Program: ExecUowM[value.ScopedQualityReviewDefinition] =
+      provider_step("prepare-scoped-quality", Map("review_id" -> input.request.reviewId)) {
+        _prepare_c(input.request, input.executionIntent)
+      }
+  }
+
+  private final case class AcceptCall(core: ProviderCall.Core, input: value.ScopedQualityReviewAcceptance)
+      extends ProviderCall[value.ScopedQualityReviewResult] {
+    override def calltreeResultAttributes(result: value.ScopedQualityReviewResult): Map[String, String] = Map.empty
+    protected def build_Program: ExecUowM[value.ScopedQualityReviewResult] =
+      provider_step("accept-scoped-quality", Map("review_id" -> input.definition.request.reviewId)) {
+        _accept_c(input.definition, input.response.toRecord(), input.execution)
+      }
+  }
+
+  private def _accept_c(definition: value.ScopedQualityReviewDefinition, response: Record,
+    execution: value.ScopedQualityReviewExecution): Consequence[value.ScopedQualityReviewResult] = {
+    val routevalid = execution != null && (definition.executionIntent match {
+      case "orchestrated" => execution.route == "external" && Set("same-context", "independent").contains(execution.selection)
+      case "standalone" => execution.route == "standalone" && execution.selection == "standalone"
+      case _ => false
+    })
+    val attributionvalid = routevalid && Vector(execution.executorId, execution.providerId, execution.model)
+      .forall(x => x != null && x.forall(_id))
+    if (definition.profile != "scoped-quality" || definition.ruleRevision != "cbd-scoped-quality-v1" || !attributionvalid)
+      Consequence.argumentFormatError("scoped-quality-acceptance", "supported definition and explicit execution route", "invalid")
+    else {
+      val input = definition.request
+      val semantic = input.checks.filterNot(_ == "cml-contract")
+      val deterministic = _deterministic(input)
+      val evaluated = _semantic(input, semantic, response)
+      val assessed = evaluated match {
+        case Left(_) => _gap(deterministic, semantic, "failed", "review.response.invalid")
+        case Right(assessment) =>
+          val attributed = if (execution.route == "external") execution.executorId.nonEmpty else execution.providerId.nonEmpty
+          val checks = assessment.checks.map { check =>
+            if (!attributed && check.status == "covered") check.copy(status = "unsupported",
+              limitations = check.limitations :+ "review.provenance.unavailable")
+            else check
+          }
+          Assessment(deterministic.checks ++ checks, deterministic.findings ++ assessment.findings)
+      }
+      val result = _result(input, assessed, execution.providerId.getOrElse("cbd-scoped-quality"),
+        Option.when(semantic.nonEmpty)(_purpose), execution.model, Some(execution))
+      Consequence.success(if (evaluated.isLeft) result.copy(status = "failed") else result)
     }
   }
 
@@ -74,7 +151,7 @@ object ScopedQualityReviewProvider {
 
     protected def build_Program: ExecUowM[value.ScopedQualityReviewResult] = {
       provider_step("review-scoped-quality", Map("review_id" -> input.reviewId, "check_count" -> input.checks.size.toString)) {
-        val deterministic = if (input.checks.contains("cml-contract")) _cml(input) else Assessment(Vector.empty, Vector.empty)
+        val deterministic = _deterministic(input)
         val semantic = input.checks.filterNot(_ == "cml-contract")
         if (semantic.isEmpty) Consequence.success(_result(input, deterministic, "cbd-scoped-quality", None, None))
         else {
@@ -86,7 +163,8 @@ object ScopedQualityReviewProvider {
               case Consequence.Failure(_) => Consequence.success(_result(input,
                 _gap(deterministic, semantic, "unsupported", "ai.spi.unavailable"), "cbd-scoped-quality", Some(_purpose), None))
               case Consequence.Success(runner) =>
-                runner.generateRecord(AiRecordRequest(_prompt(input, deterministic), _schema,
+                _prepare_c(input, "standalone").flatMap { definition =>
+                runner.generateRecord(AiRecordRequest(definition.prompt, _schema,
                   requirement = AiRunnerRequirement(purpose = Some(_purpose), purposeRequired = true, tools = Vector.empty),
                   metadata = Map("cbd.review.id" -> input.reviewId))) match {
                   case Consequence.Failure(conclusion) =>
@@ -97,17 +175,9 @@ object ScopedQualityReviewProvider {
                       "cbd-scoped-quality", Some(_purpose), None))
                   case Consequence.Success(response) =>
                     val provider = response.metadata.get("ai.execution.provider").filter(_id)
-                    val evaluated = _semantic(input, semantic, response) match {
-                      case Left(_) => _gap(deterministic, semantic, "failed", "ai.response.invalid")
-                      case Right(assessment) =>
-                        val attributable = if (provider.nonEmpty) assessment else assessment.copy(checks = assessment.checks.map { check =>
-                          if (check.status == "covered") check.copy(status = "unsupported", limitations = check.limitations :+ "ai.provenance.unavailable")
-                          else check
-                        })
-                        Assessment(deterministic.checks ++ attributable.checks, deterministic.findings ++ attributable.findings)
-                    }
-                    Consequence.success(_result(input, evaluated, provider.getOrElse("cbd-scoped-quality"),
-                      Some(_purpose), response.model.filter(_id)))
+                    _accept_c(definition, response.record, value.ScopedQualityReviewExecution(
+                      "standalone", "standalone", provider, provider, response.model.filter(_id)))
+                }
                 }
             }
           }
@@ -117,21 +187,24 @@ object ScopedQualityReviewProvider {
   }
 
   private def _result(input: value.ScopedQualityReviewRequest, assessment: Assessment, provider: String,
-    purpose: Option[String], model: Option[String]): value.ScopedQualityReviewResult = {
+    purpose: Option[String], model: Option[String], execution: Option[value.ScopedQualityReviewExecution] = None): value.ScopedQualityReviewResult = {
     val checks = input.checks.flatMap(id => assessment.checks.find(_.checkId == id))
     val status = if (checks.exists(_.status == "failed")) "failed"
       else if (checks.size != input.checks.size || checks.exists(_.status != "covered")) "unavailable" else "completed"
     value.ScopedQualityReviewResult(input.reviewId, input.revision, input.subjectId, input.subjectRevision, status,
-      checks, assessment.findings, provider, purpose, model, "cbd-scoped-quality-v1")
+      checks, assessment.findings, provider, purpose, model, "cbd-scoped-quality-v1", execution)
   }
 
   private def _gap(base: Assessment, ids: Vector[String], status: String, limitation: String): Assessment =
     base.copy(checks = base.checks ++ ids.map(id => value.ScopedQualityReviewCheckResult(id, status,
       Vector.empty, Vector.empty, Vector(limitation))))
 
-  private def _semantic(input: value.ScopedQualityReviewRequest, ids: Vector[String], response: AiRecordResponse): Either[String, Assessment] = {
+  private def _semantic(input: value.ScopedQualityReviewRequest, ids: Vector[String], response: Record): Either[String, Assessment] = {
     for {
-      json <- parse(RecordEncoder.json(response.record)).left.map(_ => "record")
+      json <- parse(RecordEncoder.json(response)).left.map(_ => "record")
+      reviewid <- json.hcursor.get[String]("reviewId").left.map(_ => "review-id")
+      reviewrevision <- json.hcursor.get[Long]("revision").left.map(_ => "review-revision")
+      _ <- Either.cond(reviewid == input.reviewId && reviewrevision == input.revision, (), "review")
       subject <- json.hcursor.get[String]("subjectId").left.map(_ => "subject")
       revision <- json.hcursor.get[String]("subjectRevision").left.map(_ => "revision")
       _ <- Either.cond(subject == input.subjectId && revision == input.subjectRevision, (), "target")
@@ -248,6 +321,7 @@ object ScopedQualityReviewProvider {
 
   private def _prompt(input: value.ScopedQualityReviewRequest, deterministic: Assessment): String = {
     val payload = Json.obj(
+      "reviewId" -> Json.fromString(input.reviewId), "revision" -> Json.fromLong(input.revision),
       "subjectId" -> Json.fromString(input.subjectId), "subjectRevision" -> Json.fromString(input.subjectRevision),
       "checks" -> Json.arr(input.checks.filterNot(_ == "cml-contract").map(Json.fromString)*),
       "paths" -> Json.arr(input.paths.map(Json.fromString)*), "modelSubjects" -> Json.arr(input.modelSubjects.map(Json.fromString)*),
@@ -280,8 +354,9 @@ object ScopedQualityReviewProvider {
       "properties" -> Record.dataAuto("identity" -> string, "checkId" -> string,
         "severity" -> Record.dataAuto("type" -> "string", "enum" -> _severities.toVector.sorted),
         "path" -> string, "modelSubject" -> string, "message" -> string))
-    Record.dataAuto("type" -> "object", "required" -> Vector("subjectId", "subjectRevision", "checks", "findings"),
-      "properties" -> Record.dataAuto("subjectId" -> string, "subjectRevision" -> string,
+    Record.dataAuto("type" -> "object", "required" -> Vector("reviewId", "revision", "subjectId", "subjectRevision", "checks", "findings"),
+      "properties" -> Record.dataAuto("reviewId" -> string, "revision" -> Record.dataAuto("type" -> "integer"),
+        "subjectId" -> string, "subjectRevision" -> string,
         "checks" -> Record.dataAuto("type" -> "array", "items" -> check),
         "findings" -> Record.dataAuto("type" -> "array", "items" -> finding)))
   }

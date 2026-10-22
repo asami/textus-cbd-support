@@ -39,6 +39,29 @@ Do not solve this by growing Skills or AI directives. The observed behavior is
 treated as a recurring generation tendency that literal rules may merely
 redirect into another mechanism.
 
+Generation rules have an additional hazard: mentioning a defensive concern can
+make that concern more salient to the implementation model. A prohibition such
+as "do not use reservation files" may still teach the model that capacity
+failure deserves special treatment, causing it to invent preflight checks,
+re-checks, private ledgers, synchronization, or another substitute mechanism.
+Thus an anti-overengineering rule can itself trigger overengineering.
+
+For this class of recurring model tendency, the preferred control is
+asymmetric:
+
+1. keep generation guidance small and avoid incident-specific defensive topics;
+2. let the implementation model produce the ordinary solution without an
+   artificially expanded checklist;
+3. detect suspicious structure after generation with deterministic external
+   analysis where possible;
+4. use CBD Review for the bounded semantic question of necessity,
+   proportionality, guarantee, and residual responsibility.
+
+This is not a claim that generation guidance is never useful. Requirements and
+positive architecture contracts still belong in the implementation context.
+The caution applies to accumulating negative incident-specific rules intended
+to suppress recurring model instincts.
+
 - Cozy CAR lint: cheap deterministic structural signals and source locations.
 - CBD Support: semantic judgment, proportionality, and Human-in-the-loop
   disposition.

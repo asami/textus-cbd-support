@@ -49,7 +49,7 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- * @version Oct. 18, 2026
+ * @version Oct. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory extends CbdSupportComponent.Factory {
@@ -228,7 +228,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       active_review_id = activereviewid,
       target_digest = targetdigest,
       profile = profile,
-      created_at = createdat,
+      review_created_at = createdat,
       completed_at = completedat,
       report_id = reportid,
       report_digest = reportdigest
@@ -327,29 +327,36 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       val rootpersistent = summon[EntityPersistent[ReviewDiagnosisEntity]]
       for {
         _ <- _validate_identity(snapshot.entity, plan)
-        activeid <- snapshot.entity.active_review_id match {
-          case Some(value) => Consequence.success(value)
+        _ <- snapshot.entity.active_review_id match {
+          case Some(_) => Consequence.unit
           case None =>
             Consequence.operationInvalid(
               "review-diagnosis-terminal-run-missing"
             )
         }
+        // Conditional expectations use the same declared physical mapping as
+        // persistence, including application-value codecs for nominal fields.
+        stored <- rootpersistent.toStoreRecordC(snapshot.entity.id.collection, snapshot.entity)
+        storedstate <- stored.getAsC[String](rootpersistent.storeFieldName("state"))
+          .flatMap(value => Consequence.successOrPropertyNotFound("state", value))
+        storedactive <- stored.getAsC[String](rootpersistent.storeFieldName("active_review_id"))
+          .flatMap(value => Consequence.successOrPropertyNotFound("active_review_id", value))
         statefield <-
-          EntityTransitionField.encoded[
+          EntityTransitionField.exact[
             ReviewDiagnosisEntity,
-            EntityReviewRunState
-          ]("state", rootpersistent)(_.value)
+            String
+          ]("state", rootpersistent)
         activefield <-
-          EntityTransitionField.encoded[
+          EntityTransitionField.exact[
             ReviewDiagnosisEntity,
-            EntityReviewId
-          ]("active_review_id", rootpersistent)(_.value)
+            String
+          ]("active_review_id", rootpersistent)
         definition <- EntityTransitionDefinition.create(
           rootpersistent,
           Vector(statefield, activefield)
         )
-        expectedstate <- statefield.expected(snapshot.entity.state)
-        expectedactive <- activefield.expected(activeid)
+        expectedstate <- statefield.expected(storedstate)
+        expectedactive <- activefield.expected(storedactive)
         expectation <- definition.expectation(
           snapshot.revision,
           expectedstate,
@@ -527,7 +534,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
           .withState(EntityReviewRunState("claimed"))
           .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
           .withProfile(EntityReviewProfile(plan.request.profile.value))
-          .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
+          .withReview_created_at(EntityReviewInstant(plan.request.startedAt.value))
           .buildC()
       } yield candidate.copy(id = Some(diagnosisid), active_review_id = Some(EntityReviewId(plan.request.reviewId.value)))
 
@@ -630,7 +637,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withTarget_kind(org.simplemodeling.textus.cbdsupport.value.ReviewTargetKind(plan.request.target.kind.value))
         .withComponent_name(EntityComponentName(plan.request.target.name))
         .withTarget_digest(EntityReviewDigest(plan.request.target.digest.value))
-        .withCreated_at(EntityReviewInstant(plan.request.startedAt.value))
+        .withReview_created_at(EntityReviewInstant(plan.request.startedAt.value))
         .buildC().map(_.copy(
           organization = plan.request.target.organization.map(EntityComponentOrganization.apply),
           component_version = plan.request.target.version.map(value => org.simplemodeling.textus.cbdsupport.value.ReviewVersion(value.value))
@@ -654,7 +661,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withReport_id(EntityReviewReportId(response.report.reportId.value))
         .withReport_digest(EntityReviewDigest(response.report.reportDigest.value))
         .withReport_document(_json_document(document))
-        .withCreated_at(EntityReviewInstant(response.report.createdAt.value))
+        .withReview_created_at(EntityReviewInstant(response.report.createdAt.value))
         .buildC().map(_.copy(job_id = core.executionContext.jobContext.jobId.map(
           id => org.simplemodeling.textus.cbdsupport.value.ReviewJobId(id.value))))
 
@@ -665,7 +672,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
         .withReport_id(EntityReviewReportId(response.report.reportId.value))
         .withReport_digest(EntityReviewDigest(response.report.reportDigest.value))
         .withAttestation_document(_json_document(document))
-        .withCreated_at(EntityReviewInstant(response.attestation.createdAt.value))
+        .withReview_created_at(EntityReviewInstant(response.attestation.createdAt.value))
         .buildC()
 
     private def _diagnosis_id(plan: CarReviewExecutionPlan): Consequence[org.simplemodeling.model.datatype.EntityId] =
@@ -858,7 +865,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       effectiveat: ReviewInstant
     ): Consequence[Unit] =
       for {
-        created <- _instant(report.created_at.value, "review-history-created-at-invalid")
+        created <- _instant(report.review_created_at.value, "review-history-created-at-invalid")
         effective <- _instant(effectiveat.value, "review-retention-effective-at-invalid")
         _ <- if effective.isBefore(created.plusSeconds(_retention_policy.maxAgeDays.toLong * 24L * 60L * 60L)) then
           Consequence.operationInvalid("review-retention-not-due")
@@ -1831,7 +1838,6 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "status" -> selection.status,
       "operations" -> Vector.empty[Record],
       "references" -> Vector.empty[Record],
-      "guidance" -> Vector.empty[Record],
       "alternatives" -> selection.alternatives.map(_reference_record),
       "candidateCount" -> selection.candidateCount,
       "absences" -> selection.absences.map(_absence_record),
@@ -1843,7 +1849,6 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       "status" -> selection.status,
       "operations" -> Vector.empty[Record],
       "references" -> Vector.empty[Record],
-      "guidance" -> Vector.empty[Record],
       "alternatives" -> selection.alternatives.map(_reference_record),
       "candidateCount" -> selection.candidateCount,
       "absences" -> selection.absences.map(_absence_record),

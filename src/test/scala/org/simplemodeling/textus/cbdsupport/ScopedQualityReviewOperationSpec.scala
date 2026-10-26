@@ -249,7 +249,8 @@ final class ScopedQualityReviewOperationSpec extends AnyWordSpec with Matchers w
         }
         decoded.diagnosis_id shouldBe snapshot.diagnosis_id
         decoded.target_kind shouldBe snapshot.target_kind
-        decoded.created_at shouldBe snapshot.created_at
+        decoded.review_created_at shouldBe snapshot.review_created_at
+        decoded.review_created_at.value shouldBe "2026-10-26T01:02:03Z"
         decoded.component_name shouldBe snapshot.component_name
         decoded.organization shouldBe snapshot.organization
         decoded.component_version shouldBe snapshot.component_version

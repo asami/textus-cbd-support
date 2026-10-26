@@ -1,6 +1,6 @@
 # Phase 15: Scoped Quality Review Contract and Provider
 
-Status: IN_PROGRESS; existing bounded implementation and focused evidence retained, Phase acceptance open
+Status: IN_PROGRESS; SQR-01..04 bounded delivery accepted, whole-Phase validation and closure open
 Reconciled: 2026-10-18
 Consumer: sm-workflow Phase 10 (CBD review integration)
 Checklist: [Phase 15](phase-15-checklist.md)
@@ -89,3 +89,14 @@ checks and supported coverage, evidence references, open limitations and owner
 acceptance. Reuse the normal journal/review records; no additional receipt format
 or state store is introduced. Distinguish contract readiness, accepted delivery
 and full Phase closure in those records.
+
+## Current acceptance frontier — 2026-10-26
+
+Native focused validation `171` passed all 18 CBD and 26 producer tests. The
+independent Step review accepted the bounded delivery; native Step commit
+`15665338` preserves it. SQR-04 is available with the explicit fixture/provider
+limits in the [handoff record](../journal/2026/10/2026-10-26-phase-15-provider-acceptance.md).
+The first whole-Phase check, validation `184`, failed 12 of 1088 tests and issued
+a release repair within the original ownership. Phase acceptance, independent
+Phase review and final closure remain pending. Phase 15.1 external execution
+and RR06 are not accepted by this Step.

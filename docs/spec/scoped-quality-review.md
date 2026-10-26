@@ -164,3 +164,19 @@ qualifies the actual generated `ReviewDiagnosis.targets` binding with populated
 framework attributes, including Slug, Charset and URL. Roundtrip preserves those
 values; malformed scalar JSON fails decoding. This regression qualifies the
 generation dependency and does not claim external review execution or Admission.
+
+The internal ReviewDiagnosis, ReviewTargetSnapshot, ReviewReportSnapshot and
+ReviewAttestationSnapshot models store their review-domain creation time as
+`review_created_at: ReviewInstant`. The inherited lifecycle `createdAt` and
+its managed physical `created_at` column belong to SimpleEntity. The domain
+field must not reuse that managed name: Entity creation initializes the framework
+timestamp independently. Public review documents retain their existing
+`createdAt` contract. G1 preserves distinct domain and lifecycle timestamps
+together with the populated nested framework attributes.
+
+Existing ReviewDiagnosis successor transitions compare state and active Review
+using the physical values produced by that same declared Entity mapping, while
+retaining the persisted revision and existing atomic successor boundary. Domain
+wrapper contents are not a substitute for their mapped storage representation.
+The existing [persistence specification](../../src/test/scala/org/simplemodeling/textus/cbdsupport/impl/ReviewDiagnosisPersistenceSpec.scala)
+retains terminal history, expiry, one-owner successor and repeated-transition checks.

@@ -2511,7 +2511,7 @@ applicationDomain = "system"
 | active_review_id | ReviewId | ? |
 | target_digest | ReviewDigest | 1 |
 | profile | ReviewProfile | 1 |
-| created_at | ReviewInstant | 1 |
+| review_created_at | ReviewInstant | 1 |
 | completed_at | ReviewInstant | ? |
 | report_id | ReviewReportId | ? |
 | report_digest | ReviewDigest | ? |
@@ -2578,7 +2578,7 @@ applicationDomain = "system"
 | component_name | ComponentName | 1 |
 | component_version | ReviewVersion | ? |
 | target_digest | ReviewDigest | 1 |
-| created_at | ReviewInstant | 1 |
+| review_created_at | ReviewInstant | 1 |
 
 ## ReviewRunSnapshot
 
@@ -2643,7 +2643,7 @@ applicationDomain = "system"
 | report_id | ReviewReportId | 1 |
 | report_digest | ReviewDigest | 1 |
 | report_document | ReviewSubmissionDocument | 1 |
-| created_at | ReviewInstant | 1 |
+| review_created_at | ReviewInstant | 1 |
 
 ## ReviewAttestationSnapshot
 
@@ -2664,7 +2664,7 @@ applicationDomain = "system"
 | report_id | ReviewReportId | 1 |
 | report_digest | ReviewDigest | 1 |
 | attestation_document | ReviewSubmissionDocument | 1 |
-| created_at | ReviewInstant | 1 |
+| review_created_at | ReviewInstant | 1 |
 
 ## ReviewRetentionEvent
 

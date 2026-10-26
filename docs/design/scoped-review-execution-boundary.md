@@ -1,6 +1,6 @@
 # Scoped Review Semantics and Execution Ownership
 
-Status: accepted design; implementation/acceptance pending
+Status: accepted design; external route demonstrated, bounded owner acceptance pending
 Decision date: 2026-10-18
 
 CBD owns scoped review knowledge, selected criteria, deterministic evaluation,
@@ -33,3 +33,10 @@ gap. No hash/content comparison is request identity or execution proof.
 This is pre-release contract development. Update actual typed callers together;
 do not add compatibility aliases or fallback paths to hide incomplete migration.
 Recorded histories and applicable earlier validation remain retained evidence.
+
+The existing test-host bridge connects generated preparation and acceptance
+Operations to the real provider with a trap AiRunner. The test-only Python
+helper runs that compiled bridge from the ordinary test classpath. The owning
+caller performs the external execution between those calls and supplies actual
+executor attribution. The helper does not select a worker, synthesize findings,
+start SBT or create a second request lifecycle.

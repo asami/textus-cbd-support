@@ -90,6 +90,13 @@ an unchanged slice by default. An authored contract or fixture-only result canno
 substitute for this handoff. This plan does not add a receipt, ledger or integrity
 control, and does not waive any existing required full-validation obligation.
 
+The [2026-10-27 connected external example](../journal/2026/10/2026-10-18-phase-15-15.1-review-handoff.md#connected-external-execution--2026-10-27)
+now demonstrates the existing RR01/02/04 Operations using actual supplied source,
+an explicitly independent external executor and typed acceptance. Both Operation
+runs reported zero CBD AI calls; all five selected checks were covered with zero
+findings. RR06 awaits native focused checks and bounded owner acceptance. The
+standalone package and whole-Phase obligations remain open in the checklist.
+
 Preserve existing code and evidence as the starting point; change affected
 production callers directly and use compiler errors to expose missed updates.
 No compatibility aliases, legacy fallback or parallel policy implementation.

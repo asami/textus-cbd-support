@@ -1,7 +1,7 @@
 # Scoped ReviewRequest and External Execution Contract
 
-Status: normative target; Phase 15.1 implementation and acceptance pending
-Date: 2026-10-18
+Status: normative contract; external route demonstrated, bounded owner acceptance pending
+Date: 2026-10-27
 Design: [Execution ownership](../design/scoped-review-execution-boundary.md)
 Evaluation: [Scoped quality review](scoped-quality-review.md)
 
@@ -20,9 +20,9 @@ Preparation reuses Phase 15's deterministic evaluation and semantic criteria.
 The prompt is derived from that definition. Required facts must be available to
 the selected executor; an unresolved reference remains a gap, not a request to
 copy the worker's full conversation. Source/diff/material content remains review
-data, never tool or policy authority. Exact CML operation/value declarations are
-settled with the implementation; this specification defines their roles rather
-than claiming those new APIs already exist.
+data, never tool or policy authority. The existing CML Operation/value declarations
+implement the roles described here; E6 records their actual signatures. Their
+presence does not establish connected external execution or owner acceptance.
 
 ## E2: Prepare, execute and accept
 
@@ -119,3 +119,30 @@ Both Operations perform zero CBD AI calls. The explicit standalone
 `reviewScopedQuality` Operation uses the same definition, response schema and
 acceptance rules with its existing optional AI runner. No omitted selector starts
 standalone execution, and external preparation never falls back to that runner.
+
+## E7: Connected external verification
+
+The test-host bridge `ScopedQualityReviewExternalExecutionMain` invokes the
+generated ordinary Operation, factory ActionCall and provider/UoW route with an
+installed trap AiRunner. Each invocation reports `ai_calls=0`; a call to that
+runner makes the invocation fail. The test-only
+`scripts/test/scoped-review-execution.py` helper launches this already compiled
+bridge using the normal exported test classpath and a caller-selected Java
+executable. It starts no SBT, network client or external reviewer and creates no
+review response. Native validation owns compilation of changed source.
+
+The caller retains the actual preparation input and returned definition, issues
+that definition to its selected independent executor, and supplies the executor's
+typed response with separately observed execution attribution to acceptance.
+Preparation and acceptance output alone establish no worker independence or
+consumer Admission. The bounded real-run references and actual coverage belong
+in the existing Phase 15/15.1 handoff journal. Fixture specifications continue to
+qualify result rules and do not replace that external response.
+
+The [2026-10-27 connected example](../journal/2026/10/2026-10-18-phase-15-15.1-review-handoff.md#connected-external-execution--2026-10-27)
+records actual preparation, independently produced semantic response and normal
+Operation acceptance. Both Operation executions reported zero CBD AI calls.
+The response covered four semantic checks with zero findings; CBD added the
+selected deterministic CML result and returned `completed` with five covered
+checks. Native focused validation and bounded owner acceptance remain separate
+pending gates.

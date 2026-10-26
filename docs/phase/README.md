@@ -46,7 +46,7 @@ records and supplies no new acceptance evidence.
   for the serial `11 -> 11.1` split with independent acceptance and local release.
 - [Phase 12](phase-12.md) — IN_PROGRESS Interactive View and Model Editing,
   including Use Case Slice, Specification and Ticket trace editing;
-  bounded Stage 12.1 foundation selected, Stage 12.2+ remain OPEN;
+  Stage 12.1 foundation CLOSED; Stage 12.2+ remain OPEN;
   relocated from the remote Phase 11 proposal;
   [checklist](phase-12-checklist.md).
 - [Phase 13](phase-13.md) — planned CAR lint human-in-the-loop resolution;
@@ -66,7 +66,7 @@ records the imported refinements, current integration points and unverified
 upstream inputs. Phases 11 and 11.1 are closed. On 2026-10-16 the owner selected
 Phase 14 before planned Phases 12 and 13 to finish the transferred Job
 implementation. Phase 14 is now closed by its own acceptance and local release;
-Phase 12 Stage 12.1 is now in progress; Phase 13 remains planned. Phases 15 and
+Phase 12 Stage 12.1 is closed; Stage 12.2 is next and Phase 13 remains planned. Phases 15 and
 15.1 are closed by their own ledgers. Phase 11.1 completed the aggregate
 full-validation obligation for the Capability sequence. See the
 [Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)

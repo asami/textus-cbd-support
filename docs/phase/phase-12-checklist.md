@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stage 12.1 selected; Stage 12.2+ OPEN
+Status: IN_PROGRESS — Stage 12.1 CLOSED; Stage 12.2+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -20,37 +20,38 @@ Current predecessor truth (2026-10-27): Phase 10.7/11.1/14/15/15.1 are CLOSED
 in their own ledgers. EDIT-12-01 promotes the
 [session contract](../spec/model-edit-session-contract.md) and
 [design](../design/model-edit-session.md), with immutable typed foundation and
-pure admission authored. Checkboxes remain open pending actual native focused
-validation, independent Step/whole-run review and required full regression.
-This run cannot close parent Phase 12. The compact
+pure admission accepted. Native focused validation passed 41 tests/3 suites,
+full regression passed 1,099 tests/137 suites, independent Step and bounded
+whole-run reviews accepted, and the native run reached Terminal/completed.
+Only EDIT-12-01 closes; parent Phase 12 remains IN_PROGRESS. The compact
 [handoff](../journal/2026/10/2026-10-27-phase-12-edit-session-foundation.md)
 records the selected boundary without duplicating native execution evidence.
 
 ## EDIT-12-01: Edit Session and operation contract (Stage 12.1)
 
-- [ ] Promote design/specification for session, candidate identity/revision,
+- [x] Promote design/specification for session, candidate identity/revision,
   operations/parameters/targets, preconditions, validation, diff, typed approval
   dependencies, failure, abandonment, and concurrency, including shared Actor
   Goal and Goal-to-Use-Case semantics.
-- [ ] Define stable `UseCaseSlice` identity/lifecycle as an implementation slice
+- [x] Define stable `UseCaseSlice` identity/lifecycle as an implementation slice
   of a Use Case; explicitly prohibit treating a Slice as a UI group, generated
   hash or ticket alias.
-- [ ] Define `UseCaseDevelopmentTrace`, typed Executable Specification refs and
+- [x] Define `UseCaseDevelopmentTrace`, typed Executable Specification refs and
   external `TicketRef` (provider/repository/project + immutable ticket id).
-- [ ] Define deterministic candidate operations for create/refine Slice and
+- [x] Define deterministic candidate operations for create/refine Slice and
   link/unlink Slice-Specification and Slice-Ticket relationships.
-- [ ] Specify one-to-many cardinalities and exact-reference validation; no
+- [x] Specify one-to-many cardinalities and exact-reference validation; no
   name/description/AI-based trace construction.
-- [ ] Freeze independently attributed Slice-Specification and Slice-Ticket
+- [x] Freeze independently attributed Slice-Specification and Slice-Ticket
   edges, bounded reference resolution, complete-scope evidence for missing-link
   findings, and project-owned severity/blocking policy. Preserve unavailable,
   unauthorized and redacted evidence separately from proven dangling targets.
-- [ ] Identify the source/schema owner for new Slice/trace semantics and the
+- [x] Identify the source/schema owner for new Slice/trace semantics and the
   explicit Phase 10 payload/subject/codec/continuation extensions they require;
   retain the canonical projection prerequisite before permitting promotion.
   Stage 12.1 identifies these unadmitted source mappings and integration gaps;
   implementation remains required in 12.2/12.3 and continuation proof in 12.8.
-- [ ] Validate the pure typed foundation and existing identity/approval
+- [x] Validate the pure typed foundation and existing identity/approval
   specifications through native focused validation, independent Step and
   bounded whole-run review, and required native full regression.
 

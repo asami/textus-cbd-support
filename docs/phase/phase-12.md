@@ -15,8 +15,8 @@ This is the remote Interactive View and Model Editing proposal, originally
 numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
-checklist define the current identity. Stage 12.1 started on 2026-10-27;
-Stage 12.2 onward remain OPEN and parent Phase 12 is not closed.
+checklist define the current identity. Stage 12.1 started and closed on
+2026-10-27; Stage 12.2 onward remain OPEN and parent Phase 12 is IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
@@ -30,10 +30,13 @@ The promoted [contract](../spec/model-edit-session-contract.md) and
 [design](../design/model-edit-session.md) define immutable candidate/session
 data and deterministic pure operation admission, with
 [executable specifications](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/ModelEditSessionSpec.scala).
-This is the Stage 12.1 foundation; the Stage 12.2 mutation service, projection,
-external clients and end-to-end promotion remain outstanding. Native focused
-validation, independent review and full regression must supply actual evidence
-before this stage's ledger can close.
+Stage 12.1 is accepted: native focused validation passed 41 tests in 3 suites,
+full regression passed 1,099 tests in 137 suites, and independent Step and
+bounded whole-run reviews accepted the foundation. Native completion and the
+accepted Step commit are recorded in the
+[handoff](../journal/2026/10/2026-10-27-phase-12-edit-session-foundation.md).
+The Stage 12.2 mutation service, projection, external clients and end-to-end
+promotion remain outstanding.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
@@ -251,7 +254,7 @@ Each stage should remain within the project's normal approximately six-hour work
 ### Stage 12.1 - Edit Session and operation contract
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED on 2026-10-27
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-01 in
   [Phase 12 Checklist](phase-12-checklist.md).

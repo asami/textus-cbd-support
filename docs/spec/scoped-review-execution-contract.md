@@ -1,6 +1,6 @@
 # Scoped ReviewRequest and External Execution Contract
 
-Status: normative contract; external route demonstrated, bounded owner acceptance pending
+Status: normative contract; external handoff accepted, standalone qualification in progress
 Date: 2026-10-27
 Design: [Execution ownership](../design/scoped-review-execution-boundary.md)
 Evaluation: [Scoped quality review](scoped-quality-review.md)
@@ -128,8 +128,9 @@ installed trap AiRunner. Each invocation reports `ai_calls=0`; a call to that
 runner makes the invocation fail. The test-only
 `scripts/test/scoped-review-execution.py` helper launches this already compiled
 bridge using the normal exported test classpath and a caller-selected Java
-executable. It starts no SBT, network client or external reviewer and creates no
-review response. Native validation owns compilation of changed source.
+executable. In prepare/accept mode it starts no SBT, network client or external
+reviewer and creates no review response. Native validation owns compilation of
+changed source.
 
 The caller retains the actual preparation input and returned definition, issues
 that definition to its selected independent executor, and supplies the executor's
@@ -144,5 +145,50 @@ records actual preparation, independently produced semantic response and normal
 Operation acceptance. Both Operation executions reported zero CBD AI calls.
 The response covered four semantic checks with zero findings; CBD added the
 selected deterministic CML result and returned `completed` with five covered
-checks. Native focused validation and bounded owner acceptance remain separate
-pending gates.
+checks. Native focused validation then passed 18 examples across three suites,
+and the independent Step review accepted the bounded external handoff for
+sm-workflow Phase 10.
+
+## E8: Explicit standalone qualification
+
+`reviewScopedQuality` intentionally selects standalone execution. The provider
+already uses the common prepared prompt/schema and common acceptance; it resolves
+the installed optional AiRunner once. Operation specification O1 compares its
+captured prompt/schema to an explicitly prepared standalone definition and
+checks the returned standalone route and observed fixture metadata. That
+RecordingAiRunner example is a connection specification, not real AI execution.
+
+The test-only `ScopedQualityReviewStandaloneExecutionMain` explicitly loads the
+existing optional Textus AI public Component factory from its runtime classpath,
+configures the selected Gemma/Ollama profile, model and loopback endpoint, and
+resolves ordinary SPI with CBD's application-purpose registration. It invokes
+the generated `reviewScopedQuality` Operation with a real HTTP runtime driver.
+No production dependency, provider implementation, fallback or new review policy
+is introduced. The host retains the actual result and normal calltree; unavailable
+or failed coverage remains a failed qualification run, never a synthesized PASS.
+The test host initializes normal CNCF runtime admission from its Task-private
+`.textus/config.json`. Its HTTP execution plan grants only the actual AI component
+POST access to the explicitly selected loopback origin, with bounded connect/read
+timeouts and response bytes. AI and CBD participants inherit that host's global
+runtime scope; the HTTP runtime context belongs to the actual AI component.
+The explicit Task-private controlled `test.yaml` descriptor is passed through
+the normal `--textus.test.descriptor` bootstrap argument, as in the repository's
+existing HTTP security harness. It supplies execution-profile/user activation
+without substituting an AI response or changing production security policy.
+The host handle and embedding are closed on every initialized execution path.
+The explicit test-host output allowance is 8192 tokens; the existing 180-second
+provider/read limit, zero record retries and 262144-byte response bound remain.
+This allowance uses the existing execution-class configuration and changes no
+CBD product policy or application-purpose registration.
+
+The helper's explicit `reviewScopedQuality` mode owns one bounded loopback
+Ollama process session: readiness, ordinary Java client, terminal result and
+cleanup. Its receipt records the selected endpoint/model, actual server PID,
+start/end times, readiness, client exit and cleanup. It reads installed models
+without downloading models or changing global configuration. The actual
+standalone result and observed provider/model remain pending until this new
+test host is compiled by native validation and executed by the session runner.
+The receipt's `runDirectory` selects the retained `server-process.json` record
+(`baseUrl`, actual `pid`, `startedAt`). Successful execution requires
+`ready=true`, `clientSucceeded=true`, `cleanup=true` and
+`processCompletion=terminal`; these record runtime facts only.

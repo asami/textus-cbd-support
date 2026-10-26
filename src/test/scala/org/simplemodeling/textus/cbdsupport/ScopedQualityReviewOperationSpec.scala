@@ -32,6 +32,8 @@ final class ScopedQualityReviewOperationSpec extends AnyWordSpec with Matchers w
       val input = request()
       val runner = new RecordingAiRunner(Consequence.success(response(input)))
       val fixture = runtime(Some(runner))
+      val definition = valueOf(org.simplemodeling.textus.cbdsupport.runtime.ScopedQualityReviewProvider.prepareC(
+        fixture.core, cbdvalue.ScopedQualityReviewPreparation(input, "standalone")))
       val operation = CbdSupportComponent.CbdReviewAdminService.ReviewScopedQualityOperation
       val action = valueOf(operation.createOperationRequest(_request(input.toRecord())))
       val core = ActionCall.Core(action, fixture.context, Some(fixture.component), None)
@@ -50,8 +52,12 @@ final class ScopedQualityReviewOperationSpec extends AnyWordSpec with Matchers w
       result.subjectId shouldBe input.subjectId
       result.subjectRevision shouldBe input.subjectRevision
       result.providerId shouldBe "recording-provider"
+      result.execution shouldBe Some(cbdvalue.ScopedQualityReviewExecution(
+        "standalone", "standalone", Some("recording-provider"), Some("recording-provider"), Some("recording-model")))
       result.findings shouldBe Vector.empty
       runner.requests.size shouldBe 1
+      runner.requests.head.prompt shouldBe definition.prompt
+      org.goldenport.record.io.RecordEncoder.json(runner.requests.head.schema) shouldBe definition.responseSchema
       runner.contexts.head should be theSameInstanceAs fixture.context
       fixture.trace should include("review-scoped-quality")
     }

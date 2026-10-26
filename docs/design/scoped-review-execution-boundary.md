@@ -1,6 +1,6 @@
 # Scoped Review Semantics and Execution Ownership
 
-Status: accepted design; external route demonstrated, bounded owner acceptance pending
+Status: accepted design; external handoff accepted, standalone qualification in progress
 Decision date: 2026-10-18
 
 CBD owns scoped review knowledge, selected criteria, deterministic evaluation,
@@ -34,9 +34,17 @@ This is pre-release contract development. Update actual typed callers together;
 do not add compatibility aliases or fallback paths to hide incomplete migration.
 Recorded histories and applicable earlier validation remain retained evidence.
 
-The existing test-host bridge connects generated preparation and acceptance
+The existing external test-host bridge connects generated preparation and acceptance
 Operations to the real provider with a trap AiRunner. The test-only Python
 helper runs that compiled bridge from the ordinary test classpath. The owning
 caller performs the external execution between those calls and supplies actual
 executor attribution. The helper does not select a worker, synthesize findings,
 start SBT or create a second request lifecycle.
+
+Standalone verification explicitly loads the existing Textus AI public Component
+factory in its test host, configures the selected local provider and resolves
+ordinary SPI with CBD. This optional runtime classpath connection adds no CBD
+product dependency or fallback. The same test helper owns the selected loopback
+Ollama session only for explicit standalone verification, including readiness,
+client termination and owned-process cleanup. The native validation/runtime
+owners supply actual qualification evidence after compilation.

@@ -94,8 +94,12 @@ The [2026-10-27 connected external example](../journal/2026/10/2026-10-18-phase-
 now demonstrates the existing RR01/02/04 Operations using actual supplied source,
 an explicitly independent external executor and typed acceptance. Both Operation
 runs reported zero CBD AI calls; all five selected checks were covered with zero
-findings. RR06 awaits native focused checks and bounded owner acceptance. The
-standalone package and whole-Phase obligations remain open in the checklist.
+findings. Native focused validation and independent Step review then accepted
+RR06 for sm-workflow Phase 10 at Step commit
+`c4cc0e78162554b1ef489148f3e19bf813cdcac7`. The standalone package now retains
+the existing product route and adds explicit connection qualification through
+the actual optional Textus AI provider. Its new test host awaits native
+compilation and actual execution; whole-Phase obligations remain open.
 
 Preserve existing code and evidence as the starting point; change affected
 production callers directly and use compiler errors to expose missed updates.

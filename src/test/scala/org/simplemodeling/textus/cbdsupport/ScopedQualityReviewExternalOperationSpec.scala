@@ -1,8 +1,19 @@
 package org.simplemodeling.textus.cbdsupport
 
 import java.nio.file.{Files, Path}
+import cats.~>
+import io.circe.Json
 import org.goldenport.Consequence
 import org.goldenport.cncf.action.ActionCall
+import org.goldenport.cncf.bootstrap.BootstrapConfig
+import org.goldenport.cncf.cli.CncfRuntime
+import org.goldenport.cncf.component.{Component, ComponentCreate, ComponentOrigin}
+import org.goldenport.cncf.context.{ExecutionContext, RuntimeContext}
+import org.goldenport.cncf.http.UrlConnectionHttpDriver
+import org.goldenport.cncf.spi.SpiResolver
+import org.goldenport.cncf.subsystem.Subsystem
+import org.goldenport.cncf.unitofwork.{UnitOfWork, UnitOfWorkInterpreter, UnitOfWorkOp}
+import org.goldenport.configuration.{Configuration, ConfigurationTrace, ConfigurationValue, ResolvedConfiguration}
 import org.goldenport.protocol.{Property, Request}
 import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.record.Record
@@ -16,7 +27,7 @@ import org.simplemodeling.textus.cbdsupport.{value => cbdvalue}
 
 /*
  * @since   Oct. 18, 2026
- * @version Oct. 18, 2026
+ * @version Oct. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ScopedQualityReviewExternalOperationSpec
@@ -207,5 +218,100 @@ object ScopedQualityReviewExternalExecutionMain {
     require(runner.requests.isEmpty, "External Operation called CBD AI")
     Files.writeString(Path.of(args(2)), RecordEncoder.json(output))
     println(s"[scoped-review-external] operation=${args(0)} ai_calls=${runner.requests.size} output=${args(2)}")
+  }
+}
+
+/** Explicit test-host connection to an actual optional Textus AI runtime. */
+object ScopedQualityReviewStandaloneExecutionMain {
+  import ScopedQualityReviewSpecSupport.*
+
+  def main(args: Array[String]): Unit = {
+    require(args.length == 5, "input-json output-json endpoint model trace-json")
+    val input = valueOf(new RecordDecoder().json(Files.readString(Path.of(args(0)))))
+    val configuration = ResolvedConfiguration(Configuration(Map(
+      "textus.ai.profile" -> ConfigurationValue.StringValue("gemma"),
+      "textus.ai.gemma.endpoint" -> ConfigurationValue.StringValue(args(2)),
+      "textus.ai.gemma.model" -> ConfigurationValue.StringValue(args(3)),
+      "textus.ai.gemma.timeout-seconds" -> ConfigurationValue.StringValue("180"),
+      "textus.ai.execution-classes.advanced-thinking.model" -> ConfigurationValue.StringValue(args(3)),
+      "textus.ai.execution-classes.advanced-thinking.max-output-tokens" -> ConfigurationValue.StringValue("8192"),
+      "textus.ai.execution-classes.advanced-thinking.timeout-seconds" -> ConfigurationValue.StringValue("180"),
+      "textus.ai.execution-classes.advanced-thinking.record-retry-limit" -> ConfigurationValue.StringValue("0")
+    )), ConfigurationTrace.empty)
+    val subsystem = new Subsystem(name = "scoped-quality-standalone-test", configuration = configuration)
+    val factory = Class.forName("org.simplemodeling.textus.ai.ComponentFactory")
+      .getConstructor().newInstance().asInstanceOf[Component.Factory]
+    val ai = factory.createPrimary(ComponentCreate(subsystem, ComponentOrigin.Main))
+    val cbd = new impl.ComponentFactory().create(ComponentCreate(subsystem, ComponentOrigin.Main))
+    val cwd = Path.of(args(1)).toAbsolutePath.getParent.resolve("host-runtime")
+    val plan = Json.obj(
+      "schema" -> Json.fromString("cncf.runtime-http-execution.v1"),
+      "baseUrl" -> Json.fromString(args(2)),
+      "limits" -> Json.obj("connectTimeoutMillis" -> Json.fromInt(2000),
+        "readTimeoutMillis" -> Json.fromInt(180000), "responseBytes" -> Json.fromLong(262144)),
+      "grants" -> Json.arr(Json.obj("componentId" -> Json.fromString(ai.componentId.name),
+        "origins" -> Json.arr(Json.fromString(args(2))), "methods" -> Json.arr(Json.fromString("POST")))))
+    Files.writeString(Files.createDirectories(cwd.resolve(".textus")).resolve("config.json"),
+      Json.obj("textus.subsystem.http-execution.plan" -> Json.fromString(plan.noSpaces)).noSpaces)
+    val descriptor = cwd.resolve("test.yaml")
+    Files.writeString(descriptor,
+      """kind: test-descriptor
+        |execution:
+        |  profile: controlled
+        |  key: scoped-quality-standalone
+        |  time:
+        |    mode: manual
+        |    start-at: '2026-10-27T00:00:00Z'
+        |  random:
+        |    mode: seeded
+        |    seed: scoped-quality-standalone
+        |  ids:
+        |    mode: deterministic
+        |  scheduler:
+        |    mode: manual
+        |  ordering:
+        |    mode: deterministic
+        |""".stripMargin)
+    val host = new CncfRuntime()
+    try {
+      val handle = valueOf(host.initializeHandle(BootstrapConfig(cwd = cwd,
+        args = Array(s"--textus.test.descriptor=$descriptor"))))
+      try {
+        (ai +: cbd.participants).foreach(_.withScopeContext(handle.subsystem.globalRuntimeContext))
+        val context = _context(args(2), ai)
+        given ExecutionContext = context
+        valueOf(SpiResolver.resolve(ai +: cbd.participants, Vector.empty))
+        val envelope = Request.of(component = "CbdSupport", service = "CbdReviewAdmin", operation = "reviewScopedQuality",
+          properties = input.fields.map(field => Property(field.key, field.value.single, None)).toList)
+        val action = valueOf(CbdSupportComponent.CbdReviewAdminService.ReviewScopedQualityOperation.createOperationRequest(envelope))
+        val output = valueOf(action.createCall(ActionCall.Core(action, context, Some(cbd.primary), None)).execute()) match {
+          case OperationResponse.RecordResponse(record) => record
+          case _ => throw new IllegalStateException("Expected a normal standalone Operation record response")
+        }
+        Files.writeString(Path.of(args(1)), RecordEncoder.json(output))
+        Files.writeString(Path.of(args(4)), context.observability.callTreeContext.build()
+          .map(tree => RecordEncoder.json(tree.toRecord)).getOrElse("{}"))
+        val result = valueOf(cbdvalue.ScopedQualityReviewResult.createC(output))
+        println(s"[scoped-review-standalone] status=${result.status} provider=${result.providerId} model=${result.model.getOrElse("")}")
+        require(result.status == "completed" && result.execution.exists(_.route == "standalone"),
+          "Actual standalone execution did not cover the selected request; retain its result as a gap")
+      } finally handle.close()
+    } finally host.closeEmbedding()
+  }
+
+  private def _context(endpoint: String, component: Component): ExecutionContext = {
+    val base = ExecutionContext.withFrameworkCallTreeEnabled(ExecutionContext.create(), enabled = true)
+    lazy val context: ExecutionContext = ExecutionContext.withRuntimeContext(base, runtime)
+    lazy val unitofwork: UnitOfWork = new UnitOfWork(context)
+    lazy val interpreter: UnitOfWorkInterpreter = new UnitOfWorkInterpreter(unitofwork)
+    lazy val runtime: RuntimeContext = new RuntimeContext(
+      RuntimeContext.core("scoped-quality-standalone-test", Some(component.scopeContext), base.observability,
+        Some(new UrlConnectionHttpDriver(endpoint))),
+      () => unitofwork,
+      new (UnitOfWorkOp ~> Consequence) {
+        def apply[A](operation: UnitOfWorkOp[A]): Consequence[A] = interpreter.interpret(operation)
+      },
+      _ => (), _ => (), _ => (), "scoped-quality-standalone-test")
+    context
   }
 }

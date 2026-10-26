@@ -1,6 +1,6 @@
 # Scoped Review Semantics and Execution Ownership
 
-Status: accepted design; external handoff accepted, standalone qualification in progress
+Status: accepted design; external and standalone routes qualified within recorded scope
 Decision date: 2026-10-18
 
 CBD owns scoped review knowledge, selected criteria, deterministic evaluation,
@@ -47,4 +47,8 @@ ordinary SPI with CBD. This optional runtime classpath connection adds no CBD
 product dependency or fallback. The same test helper owns the selected loopback
 Ollama session only for explicit standalone verification, including readiness,
 client termination and owned-process cleanup. The native validation/runtime
-owners supply actual qualification evidence after compilation.
+owners supply actual qualification evidence after compilation. The
+[Phase 15.1 completion record](../journal/2026/10/2026-10-18-phase-15-15.1-review-handoff.md#standalone-qualification-and-phase-completion--2026-10-27)
+records successful actual standalone execution, observed provider/model,
+bounded coverage, native full validation and accepted independent Phase review.
+Consumer integration and acceptance remain owned by sm-workflow Phase 10.

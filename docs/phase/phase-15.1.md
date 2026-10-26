@@ -1,6 +1,6 @@
 # Phase 15.1: ReviewRequest Provider and External AI Execution Boundary
 
-Status: IN_PROGRESS
+Status: CLOSED
 Planned: 2026-10-18; relocated from the original same-day Phase 15 plan
 Depends on: accepted bounded Phase 15 scoped evaluation contract
 Consumer: sm-workflow Phase 10 (CBD review integration)
@@ -98,8 +98,22 @@ findings. Native focused validation and independent Step review then accepted
 RR06 for sm-workflow Phase 10 at Step commit
 `c4cc0e78162554b1ef489148f3e19bf813cdcac7`. The standalone package now retains
 the existing product route and adds explicit connection qualification through
-the actual optional Textus AI provider. Its new test host awaits native
-compilation and actual execution; whole-Phase obligations remain open.
+the actual optional Textus AI provider. Actual standalone attempt 04 completed
+with observed `gemma` / `qwen3.5:4b` attribution, exact selected-path coverage and
+no findings. Its explicit limitation concerns the absence of selected model
+subjects and indirect behavioral validation; it does not claim whole-provider
+or whole-repository review.
+
+Native focused revision 165 passed 18 examples in three suites; whole-Phase
+revision 176 passed all 1088 tests in 136 suites. Independent Phase review
+`cbd151-phase-independent-review-20261027@1` was accepted without blockers.
+The standalone Step is committed as
+`ef9e1379fe50ff5fb35c749c27e1c9a986ceb9e7`; Session
+`1e73a8e5a101225d3eefe2fdc8329cf2` returned `Terminal / completed`.
+The [completion record](../journal/2026/10/2026-10-18-phase-15-15.1-review-handoff.md#standalone-qualification-and-phase-completion--2026-10-27)
+retains actual evidence references, failures and execution limits. All checklist
+obligations are complete. GitHub synchronization was separately deferred and
+not attempted; consumer Phase 10 acceptance remains consumer-owned.
 
 Preserve existing code and evidence as the starting point; change affected
 production callers directly and use compiler errors to expose missed updates.

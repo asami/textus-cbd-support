@@ -1,6 +1,6 @@
 # Scoped ReviewRequest and External Execution Contract
 
-Status: normative contract; external handoff accepted, standalone qualification in progress
+Status: normative contract; external and standalone routes qualified within recorded scope
 Date: 2026-10-27
 Design: [Execution ownership](../design/scoped-review-execution-boundary.md)
 Evaluation: [Scoped quality review](scoped-quality-review.md)
@@ -185,9 +185,13 @@ The helper's explicit `reviewScopedQuality` mode owns one bounded loopback
 Ollama process session: readiness, ordinary Java client, terminal result and
 cleanup. Its receipt records the selected endpoint/model, actual server PID,
 start/end times, readiness, client exit and cleanup. It reads installed models
-without downloading models or changing global configuration. The actual
-standalone result and observed provider/model remain pending until this new
-test host is compiled by native validation and executed by the session runner.
+without downloading models or changing global configuration. Native compilation
+and actual standalone attempt 04 succeeded; the result reports observed
+`gemma` / `qwen3.5:4b` execution, completed `implementation-quality` coverage of
+the selected ActionCall source, and no findings. No model subjects were selected;
+the result retains the limitation that behavioral validation is indirect.
+The [completion record](../journal/2026/10/2026-10-18-phase-15-15.1-review-handoff.md#standalone-qualification-and-phase-completion--2026-10-27)
+references the actual result, trace, native session and retained failed attempts.
 The receipt's `runDirectory` selects the retained `server-process.json` record
 (`baseUrl`, actual `pid`, `startedAt`). Successful execution requires
 `ready=true`, `clientSucceeded=true`, `cleanup=true` and

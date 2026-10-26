@@ -1,6 +1,8 @@
 # Phase 15: Scoped Quality Review Contract and Provider
 
-Status: IN_PROGRESS; SQR-01..04 bounded delivery accepted, whole-Phase validation and closure open
+Status: COMPLETED
+Completed: 2026-10-27
+Repository synchronization: deferred by native completion; not attempted
 Reconciled: 2026-10-18
 Consumer: sm-workflow Phase 10 (CBD review integration)
 Checklist: [Phase 15](phase-15-checklist.md)
@@ -90,7 +92,7 @@ acceptance. Reuse the normal journal/review records; no additional receipt forma
 or state store is introduced. Distinguish contract readiness, accepted delivery
 and full Phase closure in those records.
 
-## Current acceptance frontier — 2026-10-26
+## Acceptance history — 2026-10-26
 
 Native focused validation `171` passed all 18 CBD and 26 producer tests. The
 independent Step review accepted the bounded delivery; native Step commit
@@ -100,3 +102,18 @@ The first whole-Phase check, validation `184`, failed 12 of 1088 tests and issue
 a release repair within the original ownership. Phase acceptance, independent
 Phase review and final closure remain pending. Phase 15.1 external execution
 and RR06 are not accepted by this Step.
+
+## Current completion — 2026-10-27
+
+The admitted corrective Step is committed as
+`69b71aa78fc3af52717e2bd2fe9c4a4c35544bb4`. Native checks `317` (Step) and `328`
+(whole Phase) each passed all 1088 tests in 136 suites. The independent Phase
+review `cbd-phase15-independent-phase-review-20261027@1` was accepted with no
+blockers, and the native Session returned `Terminal / completed`. The
+[checklist](phase-15-checklist.md) is complete, with actual results and retained
+failure history in the [acceptance record](../journal/2026/10/2026-10-26-phase-15-provider-acceptance.md).
+
+Repository synchronization is separately `deferred`: no current independently
+granted Phase closure authority was available to the runtime, so it did not
+attempt synchronization. This local completion does not establish GitHub
+convergence. Phase 15.1 external execution and RR06 remain separate work.

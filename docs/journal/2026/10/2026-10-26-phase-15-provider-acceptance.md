@@ -400,3 +400,39 @@ the identity/revision/active-run guards, root update, successor intent and atomi
 transition. No generated source, producer, datastore mechanism or persistence
 test assertion changes. Native runtime repair progress is 4/10; fresh `cbd-full`
 and independent review must qualify this correction.
+
+## Accepted corrective Step and Phase completion — 2026-10-27
+
+Native validation `317` passed all 1088 tests in 136 suites and terminated with
+SBT exit 0. Independent corrective Step review
+`cbd-phase15-corrective-step-independent-review-20261027@1` accepted the nine-path
+correction with no blockers. Ordinary native closure committed
+`69b71aa78fc3af52717e2bd2fe9c4a4c35544bb4`, retaining the original accepted provider
+Step, original base, actual failures and consumed 4/10 repair history.
+
+Fresh whole-Phase validation `328` also passed all 1088 tests in 136 suites with
+terminal SBT exit 0. All four reported TEST issues are resolved. The independent
+integrated Phase review `cbd-phase15-independent-phase-review-20261027@1` accepted
+the combined candidate with no blockers. The ordinary Submit accepted that
+review, and its paired Advance returned `Terminal`, outcome `completed`, for
+Session `b2fdd77d89d1e298d42cd65a97e34215`. The actual retained local responses are
+`call-complete-phase-review-01/response.json` and
+`call-complete-phase-review-01/advance/response.json` under this Session's existing
+`target/sm-workflow/runtime/target/sm-workflow/tasks/cbd-phase15-20261026-01/`
+task directory; actual check and independent review artifacts remain there.
+
+The native completion reports repository synchronization `deferred` because no
+current independently granted Phase closure authority was available, and states
+that synchronization was not attempted. Phase completion and repository
+convergence are separate results. No remote push or successful synchronization
+is claimed. SQR-04 remains accepted within its documented provider/Operation
+coverage; live external execution and RR06 remain Phase 15.1 obligations.
+
+### Nonblocking Hygiene
+
+`HYG-CBD-P15-COMPONENTFACTORY-SIZE`: the independent Step and Phase reviews
+identified the existing 2333-line `ComponentFactory.scala` as high-priority
+maintenance debt. It combines wiring, persistence and projections. Its separation
+belongs in coordinated future maintenance; it is not a Phase 15 blocker and does
+not expand this correction or require another acceptance cycle. No Development
+Candidate was introduced by these reviews.

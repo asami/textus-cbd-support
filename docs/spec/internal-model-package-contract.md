@@ -144,3 +144,14 @@ validation. Existing tests establish no current PASS for schema `2.0`.
 Source content/freshness, semantic state, decisions, projections, approval,
 rehydration, CML gating, security/retained-state policy, build exclusion, and
 end-to-end closure retain their separate owners. No Step or Phase is closed here.
+
+
+## Phase 12 typed candidate edit projection
+
+The Projection profile `ccdm-model-edit-session-v1`, schema `1.0`, is owned by
+[Model Edit Session](model-edit-session-contract.md). Its closed payload retains
+candidate values, exact applied history and review dependencies. Its declared
+inventory dependencies equal the candidate artifact vector; all consumed evidence
+is included. The existing projection-family selector admits the typed payload;
+unknown profile/schema pairs still reject. This is candidate state, not canonical
+CML or approval. Native validation and independent review of this extension are pending.

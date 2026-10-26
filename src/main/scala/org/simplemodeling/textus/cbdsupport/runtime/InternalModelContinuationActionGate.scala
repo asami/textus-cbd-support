@@ -8,7 +8,7 @@ import org.goldenport.Consequence
  * Eligibility of the exact recorded action; evaluation performs no action.
  *
  * @since   Oct.  1, 2026
- * @version Oct.  2, 2026
+ * @version Oct. 26, 2026
  */
 private[runtime] object InternalModelContinuationActionGate {
   import InternalModelContinuationCondition.*
@@ -61,6 +61,9 @@ private[runtime] object InternalModelContinuationActionGate {
     val action = cursor.nextPermittedAction.flatMap(token => InternalModelContinuationAction.values.find(_.token == token))
     val row = _matrix.find(value => stage.contains(value.stage))
     val problems = Vector.newBuilder[InternalModelContinuationProblem]
+    if (state.editSessions.nonEmpty && action.exists(_ != InternalModelContinuationAction.InspectProjections))
+      problems += _problem(MappingMismatch, "editSession.canonicalMapping",
+        "edit session profile has no admitted canonical CML mapping; only inspection is available")
     if (stage.isEmpty) problems += _problem(UnsupportedStage, "currentStage", "recorded stage is unsupported")
     if (cursor.nextPermittedAction.isEmpty) {
       problems += _problem(MissingPrerequisite, "nextPermittedAction", "recorded next action is missing")

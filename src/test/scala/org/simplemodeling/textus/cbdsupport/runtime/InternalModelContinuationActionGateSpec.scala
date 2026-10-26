@@ -15,7 +15,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
  * Executable recorded-action contract; authoring does not establish validation.
  *
  * @since   Oct.  1, 2026
- * @version Oct.  2, 2026
+ * @version Oct. 26, 2026
  */
 final class InternalModelContinuationActionGateSpec
     extends AnyWordSpec with Matchers with GivenWhenThen with ScalaCheckPropertyChecks {
@@ -31,6 +31,27 @@ final class InternalModelContinuationActionGateSpec
   )
 
   "Recorded continuation eligibility" should {
+    "keep a source-unmapped edit profile available for inspection while rejecting later canonical actions" in {
+      ModelEditPackageFixture.withEditPackage { (root, edit, _) =>
+        Given("a captured typed edit candidate with no admitted source-owned CML mapping")
+        val captured = _capture(root)
+        val independent = _core_request(captured)
+        val inspection = _cursor_change(captured, _.copy(currentStage = "model-ready",
+          nextPermittedAction = Some("inspect-projections"), preconditions = Vector.empty))
+        val candidate = _cursor_change(captured, _.copy(currentStage = "candidate-ready",
+          nextPermittedAction = Some("review-candidate"), preconditions = Vector.empty))
+        When("the ordinary action gate evaluates the recorded inspection and candidate-review actions")
+        val visible = _report(inspection, independent)
+        val blocked = _report(candidate, independent)
+        Then("inspection retains the edit session and the unmapped canonical action has a typed mapping problem")
+        visible.eligibility shouldBe Eligible
+        visible.state.editSessions shouldBe Vector(edit)
+        blocked.eligibility should not be Eligible
+        blocked.problems.exists(problem => problem.kind == MappingMismatch &&
+          problem.dimension == "editSession.canonicalMapping") shouldBe true
+      }
+    }
+
     "the exact closed matrix" which {
       "A1 return only the recorded action in each complete independently admitted row" in {
         Given("one complete two-target capture and independently supplied requirements, review basis and actual human input")

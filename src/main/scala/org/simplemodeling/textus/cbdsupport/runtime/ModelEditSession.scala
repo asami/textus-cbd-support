@@ -4,12 +4,14 @@ package org.simplemodeling.textus.cbdsupport.runtime
  * @since   Oct. 27, 2026
  * @version Oct. 26, 2026
  */
-/** Candidate-only inputs and pure operation admission; no mutation or promotion service. */
+/** Immutable candidate and exact declared editing history; no canonical writing. */
 final case class ModelEditSession(
   reference: InternalModelRecordReference,
   scope: ModelEditSession.Scope,
   candidate: ModelEditSession.Candidate,
-  state: ModelEditSession.SessionState
+  state: ModelEditSession.SessionState,
+  history: Vector[ModelEditSession.AppliedOperation] = Vector.empty,
+  reviews: Vector[ModelEditSession.RetainedReview] = Vector.empty
 ) {
   def abandon: ModelEditSession = copy(state = ModelEditSession.SessionState.Abandoned)
 }
@@ -22,6 +24,13 @@ object ModelEditSession {
 
   enum SessionState { case Active, Abandoned }
   enum SliceLifecycle { case Proposed, InDevelopment, Implemented, Abandoned }
+
+  final case class ActorGoal(
+    reference: UseCaseCommunicationReference,
+    actor: Option[UseCaseCommunicationReference],
+    intent: String,
+    attribution: ComponentDashboardSourceAttribution
+  )
 
   final case class RepositoryProjectReference(
     repository: InternalModelRecordId,
@@ -88,7 +97,8 @@ object ModelEditSession {
     specificationLinks: Vector[SliceSpecificationRelationship],
     ticketLinks: Vector[SliceTicketRelationship],
     goalLinks: Vector[GoalUseCaseRelationship],
-    artifacts: Vector[InternalModelArtifactReference]
+    artifacts: Vector[InternalModelArtifactReference],
+    goals: Vector[ActorGoal] = Vector.empty
   )
 
   final case class UseCaseDevelopmentTrace(
@@ -130,7 +140,8 @@ object ModelEditSession {
     case UnlinkSliceSpecification(relationship: SliceSpecificationRelationship)
     case LinkSliceTicket(relationship: SliceTicketRelationship)
     case UnlinkSliceTicket(relationship: SliceTicketRelationship)
-    case AddGoal(actor: UseCaseCommunicationReference, proposed: ComponentDashboardSemanticTargetIdentity, intent: String)
+    case AddGoal(actor: UseCaseCommunicationReference, proposed: ComponentDashboardSemanticTargetIdentity, intent: String,
+      proposedReference: Option[UseCaseCommunicationReference] = None)
     case RefineGoal(goal: UseCaseCommunicationReference, intent: String)
     case LinkGoalUseCase(relationship: GoalUseCaseRelationship)
     case UnlinkGoalUseCase(relationship: GoalUseCaseRelationship)
@@ -157,8 +168,28 @@ object ModelEditSession {
     resolutionEvidence: Vector[ResolutionEvidence]
   )
 
+  enum CommandKind {
+    case CreateUseCaseSlice, RefineUseCaseSlice, LinkSliceSpecification, UnlinkSliceSpecification
+    case LinkSliceTicket, UnlinkSliceTicket, AddGoal, RefineGoal, LinkGoalUseCase, UnlinkGoalUseCase
+  }
+  /** An upstream authorization decision, not authentication or a built-in role policy. */
+  final case class Authorization(
+    reference: InternalModelRecordReference,
+    session: InternalModelRecordReference,
+    scope: Scope,
+    permitted: Vector[CommandKind]
+  )
+  final case class AppliedOperation(
+    operation: Operation,
+    previousCandidate: InternalModelRecordReference,
+    successorCandidate: InternalModelRecordReference,
+    authorization: Authorization,
+    resolutionEvidence: Vector[ResolutionEvidence]
+  )
+
   enum Violation {
     case SessionAbandoned, SessionMismatch, CandidateMismatch, ArtifactDependencyMismatch, ScopeMismatch
+    case AuthorizationDenied, InvalidSuccessor, GoalReferenceRequired, InvalidGoalReference, OperationIdentityOccupied
     case UnknownSubject(subject: Subject)
     case IdentityOccupied(subject: Subject)
     case RelationshipMismatch(reference: InternalModelRecordReference)
@@ -211,6 +242,28 @@ object ModelEditSession {
     relationshipScope: RelationshipScopeEvidence
   )
 
+  final case class RetainedReview(dependency: ApprovalDependency, findings: Vector[UseCaseReviewFinding])
+
+  def commandKind(command: Command): CommandKind = command match {
+    case Command.CreateUseCaseSlice(_) => CommandKind.CreateUseCaseSlice
+    case Command.RefineUseCaseSlice(_, _) => CommandKind.RefineUseCaseSlice
+    case Command.LinkSliceSpecification(_) => CommandKind.LinkSliceSpecification
+    case Command.UnlinkSliceSpecification(_) => CommandKind.UnlinkSliceSpecification
+    case Command.LinkSliceTicket(_) => CommandKind.LinkSliceTicket
+    case Command.UnlinkSliceTicket(_) => CommandKind.UnlinkSliceTicket
+    case Command.AddGoal(_, _, _, _) => CommandKind.AddGoal
+    case Command.RefineGoal(_, _) => CommandKind.RefineGoal
+    case Command.LinkGoalUseCase(_) => CommandKind.LinkGoalUseCase
+    case Command.UnlinkGoalUseCase(_) => CommandKind.UnlinkGoalUseCase
+  }
+
+  def reviewApplies(session: ModelEditSession, review: RetainedReview): Boolean = {
+    val dependency = review.dependency.validation
+    session.state == SessionState.Active && dependency.session == session.reference &&
+      dependency.candidate == session.candidate.reference && dependency.operations == session.history.map(_.operation.reference) &&
+      dependency.artifacts == session.candidate.artifacts
+  }
+
   def admit(
     session: ModelEditSession,
     operation: Operation,
@@ -239,7 +292,7 @@ object ModelEditSession {
     case Command.UnlinkSliceSpecification(relationship) => Subject.Relationship(relationship.reference)
     case Command.LinkSliceTicket(relationship) => Subject.Relationship(relationship.reference)
     case Command.UnlinkSliceTicket(relationship) => Subject.Relationship(relationship.reference)
-    case Command.AddGoal(_, proposed, _) => Subject.Goal(proposed)
+    case Command.AddGoal(_, proposed, _, _) => Subject.Goal(proposed)
     case Command.RefineGoal(goal, _) => Subject.Goal(goal.semanticTargetId)
     case Command.LinkGoalUseCase(relationship) => Subject.Relationship(relationship.reference)
     case Command.UnlinkGoalUseCase(relationship) => Subject.Relationship(relationship.reference)
@@ -256,7 +309,8 @@ object ModelEditSession {
     def _slice_(identity: ComponentDashboardSemanticTargetIdentity): Vector[Violation] =
       _require(candidate.slices.exists(_.identity == identity), Violation.UnknownSubject(Subject.Slice(identity)))
     def _reference_(reference: UseCaseCommunicationReference, kind: UseCaseCommunicationReferenceKind): Vector[Violation] =
-      _require(reference.referenceKind == kind && candidate.useCases.exists(_.references.contains(reference)),
+      _require(reference.referenceKind == kind && (candidate.useCases.exists(_.references.contains(reference)) ||
+        (kind == Goal && candidate.goals.exists(_.reference == reference))),
         Violation.UnknownSubject(if (kind == Actor) Subject.Actor(reference.semanticTargetId) else Subject.Goal(reference.semanticTargetId)))
     def _new_edge_(reference: InternalModelRecordReference): Vector[Violation] =
       _require(!candidate.specificationLinks.exists(_.reference.recordId == reference.recordId) &&
@@ -284,12 +338,19 @@ object ModelEditSession {
           _resolve(ExternalReference.Ticket(relationship.ticket), resolutions, artifacts)
       case Command.UnlinkSliceTicket(relationship) =>
         _require(candidate.ticketLinks.contains(relationship), Violation.RelationshipMismatch(relationship.reference))
-      case Command.AddGoal(actor, proposed, _) =>
-        _reference_(actor, Actor) ++ _require(!_occupied(candidate, proposed), Violation.IdentityOccupied(Subject.Goal(proposed)))
+      case Command.AddGoal(actor, proposed, _, proposedreference) =>
+        _reference_(actor, Actor) ++ _require(!_occupied(candidate, proposed), Violation.IdentityOccupied(Subject.Goal(proposed))) ++
+          _require(proposedreference.forall(reference => reference.referenceKind == Goal &&
+            reference.semanticTargetId == proposed && reference.component == candidate.scope.component &&
+            reference.id.trim.nonEmpty && !candidate.useCases.flatMap(_.references).exists(existing =>
+              existing.id == reference.id || existing.semanticRelationshipId == reference.semanticRelationshipId) &&
+            !candidate.goals.exists(existing => existing.reference.id == reference.id ||
+              existing.reference.semanticRelationshipId == reference.semanticRelationshipId)), Violation.InvalidGoalReference)
       case Command.RefineGoal(goal, _) => _reference_(goal, Goal)
       case Command.LinkGoalUseCase(relationship) =>
         _use_case_(relationship.useCaseIdentity) ++ _new_edge_(relationship.reference) ++
-          _require(candidate.useCases.flatMap(_.references).exists(reference => reference.referenceKind == Goal &&
+          _require(candidate.goals.exists(_.reference.semanticTargetId == relationship.goalIdentity) ||
+            candidate.useCases.flatMap(_.references).exists(reference => reference.referenceKind == Goal &&
             reference.semanticTargetId == relationship.goalIdentity), Violation.UnknownSubject(Subject.Goal(relationship.goalIdentity)))
       case Command.UnlinkGoalUseCase(relationship) =>
         _require(candidate.goalLinks.contains(relationship), Violation.RelationshipMismatch(relationship.reference))
@@ -297,7 +358,8 @@ object ModelEditSession {
   }
 
   private def _occupied(candidate: Candidate, identity: ComponentDashboardSemanticTargetIdentity): Boolean =
-    candidate.slices.exists(_.identity == identity) || candidate.useCases.exists(_.semanticTargetId == identity) ||
+    candidate.goals.exists(_.reference.semanticTargetId == identity) ||
+      candidate.slices.exists(_.identity == identity) || candidate.useCases.exists(_.semanticTargetId == identity) ||
       candidate.useCases.flatMap(_.references).exists(_.semanticTargetId == identity)
 
   private def _consumed_resolutions(command: Command, resolutions: Vector[ResolutionEvidence]): Vector[ResolutionEvidence] =

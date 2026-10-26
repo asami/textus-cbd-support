@@ -4,7 +4,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
  * Serialized cursor fields retain their schema names and producer-declared references.
  *
  * @since   Oct.  1, 2026
- * @version Oct.  1, 2026
+ * @version Oct. 26, 2026
  */
 private[runtime] final case class InternalModelResumeCondition(
   code: String,
@@ -44,5 +44,6 @@ private[runtime] final case class InternalModelRehydratedState(
   packageContext: InternalModelVerifiedPackageContext,
   cursor: InternalModelResumeCursor,
   continuity: InternalModelProjectionContinuity,
-  artifacts: Vector[InternalModelVerifiedContinuationArtifact]
+  artifacts: Vector[InternalModelVerifiedContinuationArtifact],
+  editSessions: Vector[ModelEditSession] = Vector.empty
 )

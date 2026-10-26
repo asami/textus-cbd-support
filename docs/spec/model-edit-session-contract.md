@@ -1,7 +1,7 @@
 # Model Edit Session Contract
 
 status=target
-decision_scope=EDIT-12-01
+decision_scope=EDIT-12-01 / EDIT-12-02
 updated_at=2026-10-27
 
 This contract promotes the Phase 12 editing proposal for the bounded Stage
@@ -10,7 +10,8 @@ This contract promotes the Phase 12 editing proposal for the bounded Stage
 and [typed control contract](internal-model-typed-control-contract.md) retain
 authority over semantic scope, Actor/Goal identity, attribution and versioned
 references. [Executable behavior](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/ModelEditSessionSpec.scala)
-defines pure admission; Stage 12.2 owns subsequent candidate mutation.
+defines pure admission; the Stage 12.2 service and captured payload extension below
+are implemented pending native validation and independent review.
 
 ## Session, candidate and operations
 
@@ -44,9 +45,9 @@ edges with a matching label or endpoint. Failures return typed violations and
 no operation; supplied immutable candidate state is unchanged.
 
 Admission returns a typed proposed effect, not a computed semantic difference
-or a mutated model. A later service must apply admitted operations, allocate
-the next candidate version explicitly, project Views and produce a semantic
-diff. The foundation describes validation/diff/approval dependency records
+or a mutated model. The Stage 12.2 service applies admitted operations using the next candidate
+version explicitly supplied by the producer. Later stages project Views and
+produce a semantic diff. The foundation describes validation/diff/approval dependency records
 with exact session, candidate, operation, review, diff and artifact versions.
 Changing any dependency requires fresh validation/review and actual human
 approval through Phase 10. A matching dependency value cannot approve itself.
@@ -110,14 +111,49 @@ The current realization V3 can carry attributed generic element/relationship
 records, but the existing candidate CML profile only binds existing targets
 and explicit source-owned mappings. That does not admit Slice syntax or new
 trace semantics. The exact mapping, CML producer/parser contract, candidate
-payload/typed subject, codecs and fresh-process continuation for these values
-are not yet admitted. They remain explicit Stage 12.2/12.3 and 12.8 integration
-obligations before promotion, not a Stage 12.1 claim of serialization support.
+payload/typed subject and codecs require the extension below. Canonical mapping
+and fresh-process continuation remain explicit Stage 12.3 and 12.8 integration
+obligations before promotion; Stage 12.1 did not establish serialization support.
 
-This in-memory candidate foundation supplies no package artifact profile,
-sidecar, canonical serializer, approval bypass, Job/controller, UI/MCP adapter,
-or external effects. Unsupported data MUST remain candidate-only and MUST NOT
-be promoted or persisted via an opaque parallel sidecar. Phase 10's existing
+The Stage 12.1 foundation supplied no package artifact profile. The Stage 12.2
+typed profile below adds durable candidate data in the existing inventory; it
+supplies no canonical serializer, approval bypass, Job/controller, UI/MCP adapter
+or external effects. Source-unmapped data MUST remain candidate-only and MUST
+NOT be promoted or persisted via an opaque parallel sidecar. Phase 10's existing
 review, actual-human exact approval and canonical application gate remain
 mandatory. FU-01/FU-03/FU-07 must be admitted by their own owners before Views
 consume those inputs; foundation operation construction does not complete them.
+
+
+## Stage 12.2 immutable application and captured payload
+
+Implementation is pending native validation and independent review. `ModelEditService`
+applies one admitted command to an immutable candidate with a caller-supplied higher
+revision of the same candidate record. Authorization is an explicit caller-admitted
+grant naming its own record, exact session/scope and permitted command kinds; this
+service defines neither roles nor authentication. Rejection returns typed violations
+and no successor. Each successful operation retains its exact predecessor/successor,
+grant and consumed resolution evidence in session history. The original candidate
+and canonical CML are never written.
+
+Independent Goal records retain intent, exact producer-supplied Goal communication
+reference, optional Actor reference and source attribution. New Goals require that
+reference in addition to the semantic identity. Legacy admission-only AddGoal inputs
+without it remain constructible but cannot be applied. Refining an imported Goal
+retains an unknown Actor association rather than inferring one from a Use Case.
+
+The closed `ccdm-model-edit-session-v1` / `1.0` JSON projection payload stores the
+complete candidate, operation history and retained review dependencies/findings.
+Every nested record has a closed field set. Its inventory dependencies equal the
+candidate's exact artifacts; consumed operation/resolution/review evidence must be
+within that set. The existing package inventory and captured-byte rehydration route
+own the payload. Selected payloads and all their dependencies must be selected in the
+resume cursor. No separate persistence store or opaque sidecar is introduced.
+
+Every present edit projection is included by the existing complete review-subject
+closure together with its dependencies. Changing its producer-declared revision
+therefore invalidates the earlier subject and approval. Retained edit review records
+are applicability information, never actual human approval. This profile has no
+canonical CML mapping yet: inspection/rehydration is supported, while candidate
+review, human-decision and handoff continuation remain incomplete until the owning
+source mapping is admitted in Stage 12.3.

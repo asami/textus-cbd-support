@@ -565,3 +565,15 @@ Public/Web APIs, canonical CML writes, retained DB/provider recovery, packaging,
 publication, deployment, and successor Phase implementation remain outside
 this boundary. Phase 10.5 owns live-source change/CML gating; Phase 10.6 owns
 policy/exclusion. No legacy reader/adapter/default/version inference is added.
+
+
+## Phase 12 captured edit-session extension
+
+Captured rehydration decodes each present typed edit Projection into `editSessions`
+and checks exact inventory dependencies, selected edit/dependency references and
+scope equality with admitted canonical continuity. Captured bytes remain the sole
+read basis. The source-unmapped v1 edit profile permits inspection only; later
+candidate-review, human-decision and handoff actions report an explicit mapping
+problem until the source owner admits canonical mappings. No fresh-process proof
+or action authority is established by this implementation; native verification
+and the later Phase 12.8 continuation acceptance remain pending.

@@ -13,7 +13,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
 /*
  * @since   Sep. 29, 2026
- * @version Oct.  2, 2026
+ * @version Oct. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Executable specification of complete typed review subjects and lossless evidence. */
@@ -322,6 +322,18 @@ final class InternalModelCandidateReviewBindingValidatorSpec
         }
         Then("the original smaller subject cannot hide any additional semantic input")
         results shouldBe Vector(false, false, false, false)
+      }
+
+      "reject an earlier review subject when a typed edit payload becomes a present semantic input" in {
+        Given("an otherwise current review and a typed candidate-only edit projection outside its stored subject")
+        val initial = ModelEditSpecFixture.session()
+        val edit = initial.copy(candidate = initial.candidate.copy(artifacts = Vector.empty))
+        val extra = ("edit-session", InternalModelArtifactRole.Projection, "projections/edit.json",
+          ModelEditSessionCodec.encode(edit).toArray)
+        When("the actual package and review validator observe the additional edit payload")
+        val admitted = _validate(identity, FixtureOptions(extraartifact = Some(extra)))
+        Then("the previous complete subject cannot approve or hide that candidate state")
+        admitted shouldBe false
       }
 
       "retain control-only revision approval resume and unselected Validation changes outside the subject" in {

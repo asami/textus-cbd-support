@@ -291,3 +291,15 @@ action matrix and P10-44's actual stop/commit/checkout-transfer/resume proof.
 Required validation, independent focused review, accepted Step commits, one
 complete Phase review, and final Phase release remain with the parent.
 This documentation contract does not complete any checklist item, Step, or Phase.
+
+
+## Phase 12 edit candidate references
+
+Model Edit Sessions reuse the existing RecordReference and ArtifactReference domains
+for sessions, candidates, operations, Slices, edges, grants and consumed evidence.
+The producer supplies the successor candidate reference explicitly; the pure service
+requires the same candidate record identity and a higher declared revision. These
+are local single-writer declarations, not authentication, content-change detection,
+concurrency arbitration or recovery tokens. Complete typed payload encoding and
+captured rehydration are defined by the Model Edit Session contract. Verification
+and independent acceptance of this extension are pending.

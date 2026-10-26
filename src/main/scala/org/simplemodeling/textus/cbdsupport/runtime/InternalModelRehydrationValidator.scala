@@ -8,7 +8,7 @@ import org.goldenport.Consequence
  * Read-only reconstruction from one project-bound package capture.
  *
  * @since   Oct.  1, 2026
- * @version Oct.  1, 2026
+ * @version Oct. 26, 2026
  */
 private[runtime] object InternalModelRehydrationValidator {
   def validate(projectRoot: Path): Consequence[InternalModelRehydratedState] =
@@ -19,15 +19,36 @@ private[runtime] object InternalModelRehydrationValidator {
       val admitted = for {
         selected <- _capture_consistency(handoff)
         cursor <- _cursor(handoff, selected)
-      } yield (cursor, selected)
-      admitted.fold(Consequence.operationInvalid, { case (cursor, selected) =>
-        InternalModelProjectionContinuityValidator.validateVerified(selected).map { continuity =>
-          InternalModelRehydratedState(handoff.packageContext, cursor, continuity, handoff.artifacts)
+        edits <- _edit_sessions(handoff, cursor)
+      } yield (cursor, selected, edits)
+      admitted.fold(Consequence.operationInvalid, { case (cursor, selected, edits) =>
+        InternalModelProjectionContinuityValidator.validateVerified(selected).flatMap { continuity =>
+          if (edits.forall(session => session.scope.component.value == continuity.realization.scope.componentIdentity &&
+            session.scope.context.value == continuity.realization.scope.projectionContextIdentity))
+            Consequence.success(InternalModelRehydratedState(handoff.packageContext, cursor, continuity, handoff.artifacts, edits))
+          else Consequence.operationInvalid("edit session scope differs from captured canonical continuity")
         }
       })
     } catch {
       case NonFatal(error) => Consequence.operationInvalid(s"internal-model rehydration failed: ${Option(error.getMessage).getOrElse(error.getClass.getSimpleName)}")
     }
+
+  private def _edit_sessions(
+    handoff: InternalModelVerifiedContinuationPackage,
+    cursor: InternalModelResumeCursor
+  ): Either[String, Vector[ModelEditSession]] = {
+    val edits = handoff.artifacts.filter(artifact => artifact.context.reference.role == InternalModelArtifactRole.Projection &&
+      artifact.bytes.exists(ModelEditSessionCodec.hasProfile))
+    edits.foldLeft[Either[String, Vector[ModelEditSession]]](Right(Vector.empty)) { (result, artifact) =>
+      for {
+        sessions <- result
+        _ <- Either.cond((artifact.context.dependencies :+ artifact.context.reference).forall(cursor.selectedArtifacts.contains), (),
+          "resume selections omit an edit projection or its dependencies")
+        session <- ModelEditSessionCodec.decodeCaptured(InternalModelVerifiedProjection(artifact.context.reference,
+          artifact.context.path, artifact.context.required, artifact.context.dependencies, artifact.bytes.get))
+      } yield sessions :+ session
+    }
+  }
 
   private def _cursor(
     handoff: InternalModelVerifiedContinuationPackage,

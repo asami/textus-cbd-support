@@ -8,7 +8,7 @@ import org.goldenport.Consequence
 
 /*
  * @since   Sep. 29, 2026
- * @version Oct.  1, 2026
+ * @version Oct. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 /** Admits one complete typed subject from one capture; review state is evidence. */
@@ -188,7 +188,7 @@ private[runtime] object InternalModelCandidateReviewBindingValidator {
           _ <- _inventory(carrier, reference, true)
         } yield ()
       }
-      subject <- _complete_subject(carrier, binding.evidenceArtifacts, review.reference)
+      subject <- completeSubject(carrier, binding.evidenceArtifacts, review.reference)
       _ <- Either.cond(binding.subject.artifacts == subject, (), "review subject does not equal the complete exact semantic dependency basis")
       _ <- Either.cond(Vector(binding.candidateArtifactReference, binding.continuityArtifactReference, binding.realizationArtifactReference, binding.semanticDiffArtifactReference).forall(subject.contains), (), "review root artifacts must be present in its subject")
       _ <- Either.cond(review.dependencies == binding.subject.artifacts, (), "selected review dependencies must equal the exact ordered subject artifacts")
@@ -211,7 +211,7 @@ private[runtime] object InternalModelCandidateReviewBindingValidator {
       _ <- Either.cond(entry.reference == reference && (!present || entry.present), (), "consumed review reference has absent or mismatched revision/role")
     } yield entry
 
-  private def _complete_subject(carrier: InternalModelVerifiedPackageContext, evidence: Vector[InternalModelArtifactReference], review: InternalModelArtifactReference): Either[String, Vector[InternalModelArtifactReference]] = {
+  private[runtime] def completeSubject(carrier: InternalModelVerifiedPackageContext, evidence: Vector[InternalModelArtifactReference], review: InternalModelArtifactReference): Either[String, Vector[InternalModelArtifactReference]] = {
     val roles = Set(InternalModelArtifactRole.SourceSnapshot, InternalModelArtifactRole.Realization, InternalModelArtifactRole.Projection, InternalModelArtifactRole.Decision, InternalModelArtifactRole.OpenIssue)
     val roots = carrier.artifacts.filter(value => value.present && roles.contains(value.reference.role)).map(_.reference) ++ evidence
     def _visit_(reference: InternalModelArtifactReference, active: Set[InternalModelArtifactId], completed: Set[InternalModelArtifactReference]): Either[String, Set[InternalModelArtifactReference]] = {

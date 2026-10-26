@@ -171,3 +171,14 @@ distinguish cursor-only carrier changes from changed selected semantic inputs,
 retain all invalidation dimensions and explicit supersession, and forbid
 rewriting old approval. Prior tests are historical evidence only.
 No code/test PASS, accepted Step, or Phase closure is claimed here.
+
+
+## Phase 12 complete edit subject
+
+The complete semantic subject already roots every present Projection and closes
+its inventory dependencies. A typed Model Edit Session projection therefore belongs
+to the same subject with its exact producer-declared artifact revision and all
+consumed dependencies. It cannot be hidden by a smaller stored review subject.
+Changing that revision requires a fresh subject/review and the existing exact
+actual-human approval route. Retained edit-session review values grant no approval.
+The executable extension is authored pending native validation and independent review.

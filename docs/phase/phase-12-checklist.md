@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stage 12.1 CLOSED; Stage 12.2+ OPEN
+Status: IN_PROGRESS — Stage 12.1 CLOSED; Stage 12.2 IN_PROGRESS; Stage 12.3+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -56,6 +56,11 @@ records the selected boundary without duplicating native execution evidence.
   bounded whole-run review, and required native full regression.
 
 ## EDIT-12-02: Candidate Model Edit Service (Stage 12.2)
+
+Implementation is in progress under the issued native Step. Immutable application,
+closed typed edit payload, captured rehydration and complete-subject integration
+are authored; native validation and independent review are pending. No item below
+is accepted by this authoring record. Canonical source mapping remains Stage 12.3.
 
 - [ ] Implement common candidate mutation and prove stable identities,
   authorization, and unchanged canonical CML during provisional editing.

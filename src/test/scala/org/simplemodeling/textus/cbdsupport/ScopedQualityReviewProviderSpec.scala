@@ -20,7 +20,7 @@ import org.simplemodeling.textus.cbdsupport.{value => cbdvalue}
 
 /*
  * @since   Oct. 17, 2026
- * @version Oct. 18, 2026
+ * @version Oct. 26, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ScopedQualityReviewProviderSpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -172,6 +172,8 @@ final class ScopedQualityReviewProviderSpec extends AnyWordSpec with Matchers wi
           Vector(checkrecord.removeKeys(Set("modelSubjects"))))), "failed"),
         "wrong-target" -> (response(input, subjectId = "other"), "failed"),
         "wrong-revision" -> (response(input, subjectRevision = "other-revision"), "failed"),
+        "wrong-review" -> (cleanreply.copy(record = cleanreply.record.upsertSingle("reviewId", "other-review")), "failed"),
+        "wrong-review-revision" -> (cleanreply.copy(record = cleanreply.record.upsertSingle("revision", input.revision + 1)), "failed"),
         "missing-check" -> (response(input, checks = Some(Vector.empty)), "failed"),
         "duplicate-check" -> (response(input, checks = Some(Vector(check, check))), "failed"),
         "extra-check" -> (response(input, checks = Some(Vector(check.copy(checkId = "integration")))), "failed"),

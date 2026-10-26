@@ -1,6 +1,6 @@
 # Scoped quality review
 
-Author: ASAMI, Tomoharu. Since: Oct. 17, 2026. Version: Oct. 18, 2026.
+Author: ASAMI, Tomoharu. Since: Oct. 17, 2026. Version: Oct. 26, 2026.
 
 ## Evaluation ownership and execution separation — adopted 2026-10-18
 
@@ -107,8 +107,11 @@ Executable examples: [S1, S1a, S3 and S5](../../src/test/scala/org/simplemodelin
 
 ## R4: Findings, coverage and failure
 
-Semantic output echoes subject identity/revision and accounts for exactly the
-selected semantic check IDs. Each check uses `covered`, `unsupported` or
+Semantic output echoes `reviewId`, `revision`, `subjectId` and
+`subjectRevision` and accounts for exactly the selected semantic check IDs.
+These are the references of the current request, including a request for
+affected-scope re-evaluation. A response for a previous review revision cannot
+complete that current request. Each check uses `covered`, `unsupported` or
 `failed`, with scope within the request. Covered semantic checks must account
 for all selected paths and model subjects; partial scope becomes unsupported
 with an explicit limitation. Unsupported/failed output may carry limitations.
@@ -124,7 +127,15 @@ every requested check is covered, `failed` if any check failed, otherwise
 coverage even when blocker findings exist. It grants no Admission or commit
 permission and has no evidence-trust bit or workflow state.
 
-Executable examples: [S1–S4](../../src/test/scala/org/simplemodeling/textus/cbdsupport/ScopedQualityReviewProviderSpec.scala).
+Affected-scope re-evaluation uses the same ordinary Operation with the caller's
+current review/subject references and explicitly selected checks and materials.
+CBD returns only those checks and preserves the supplied finding identity and
+scope when that finding remains applicable. It does not reconstruct prior
+results, invalidate unrelated findings, or decide which earlier evidence the
+consumer may reuse.
+
+Executable examples: [S1–S4](../../src/test/scala/org/simplemodeling/textus/cbdsupport/ScopedQualityReviewProviderSpec.scala)
+and [O4](../../src/test/scala/org/simplemodeling/textus/cbdsupport/ScopedQualityReviewOperationSpec.scala).
 
 ## R5: Private operation and consumer responsibility
 
@@ -146,3 +157,10 @@ parser, or separate audit store. Existing historical review APIs are separate
 and are not a fallback for this contract.
 
 Executable examples: [O1–O3](../../src/test/scala/org/simplemodeling/textus/cbdsupport/ScopedQualityReviewOperationSpec.scala).
+
+The component's ordinary generated model must compile and preserve nested Entity
+values through its declared-store bindings. G1 in the same Operation specification
+qualifies the actual generated `ReviewDiagnosis.targets` binding with populated
+framework attributes, including Slug, Charset and URL. Roundtrip preserves those
+values; malformed scalar JSON fails decoding. This regression qualifies the
+generation dependency and does not claim external review execution or Admission.

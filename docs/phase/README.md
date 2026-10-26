@@ -44,8 +44,9 @@ records and supplies no new acceptance evidence.
   and real producer/consumer acceptance (DEV-CBD-003);
   [checklist](phase-11.1-checklist.md). Completed aggregate full-SBT validation
   for the serial `11 -> 11.1` split with independent acceptance and local release.
-- [Phase 12](phase-12.md) — planned Interactive View and Model Editing,
+- [Phase 12](phase-12.md) — IN_PROGRESS Interactive View and Model Editing,
   including Use Case Slice, Specification and Ticket trace editing;
+  bounded Stage 12.1 foundation selected, Stage 12.2+ remain OPEN;
   relocated from the remote Phase 11 proposal;
   [checklist](phase-12-checklist.md).
 - [Phase 13](phase-13.md) — planned CAR lint human-in-the-loop resolution;
@@ -53,9 +54,9 @@ records and supplies no new acceptance evidence.
 - [Phase 14](phase-14.md) — closed: CAR Review native Job integration and
   CBD-owned acceptance (DEV-CBD-004), with local release and explicit recovery
   limitations; [checklist](phase-14-checklist.md).
-- [Phase 15](phase-15.md) — planned scoped quality evaluation (SQR-01..04),
-  with existing bounded implementation/evidence retained; [checklist](phase-15-checklist.md).
-- [Phase 15.1](phase-15.1.md) — planned common ReviewRequest, external result
+- [Phase 15](phase-15.md) — CLOSED scoped quality evaluation (SQR-01..04),
+  with accepted implementation/evidence retained; [checklist](phase-15-checklist.md).
+- [Phase 15.1](phase-15.1.md) — CLOSED common ReviewRequest, external result
   acceptance and explicit standalone execution; [checklist](phase-15.1-checklist.md).
 - [Projection follow-up](phase-9-projection-followup.md) — unchecked remote
   additions to the completed Phase 9 contract; not a reopening of Phase 9.
@@ -65,7 +66,8 @@ records the imported refinements, current integration points and unverified
 upstream inputs. Phases 11 and 11.1 are closed. On 2026-10-16 the owner selected
 Phase 14 before planned Phases 12 and 13 to finish the transferred Job
 implementation. Phase 14 is now closed by its own acceptance and local release;
-Phases 12 and 13 remain planned. Phase 11.1 completed the aggregate
+Phase 12 Stage 12.1 is now in progress; Phase 13 remains planned. Phases 15 and
+15.1 are closed by their own ledgers. Phase 11.1 completed the aggregate
 full-validation obligation for the Capability sequence. See the
 [Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)
 for its original deferred handoff and the

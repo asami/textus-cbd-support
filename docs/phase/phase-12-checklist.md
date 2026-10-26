@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: OPEN / NOT STARTED
+Status: IN_PROGRESS — Stage 12.1 selected; Stage 12.2+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -15,6 +15,16 @@ Phase 10.7/11.1 handoffs, including the accepted Phase 11 query contract, and
 the selected FU-01/FU-03/FU-07 projection inputs must
 be admitted for the scenarios that consume them; no existing closed Phase 9
 item proves those additions.
+
+Current predecessor truth (2026-10-27): Phase 10.7/11.1/14/15/15.1 are CLOSED
+in their own ledgers. EDIT-12-01 promotes the
+[session contract](../spec/model-edit-session-contract.md) and
+[design](../design/model-edit-session.md), with immutable typed foundation and
+pure admission authored. Checkboxes remain open pending actual native focused
+validation, independent Step/whole-run review and required full regression.
+This run cannot close parent Phase 12. The compact
+[handoff](../journal/2026/10/2026-10-27-phase-12-edit-session-foundation.md)
+records the selected boundary without duplicating native execution evidence.
 
 ## EDIT-12-01: Edit Session and operation contract (Stage 12.1)
 
@@ -37,7 +47,12 @@ item proves those additions.
   unauthorized and redacted evidence separately from proven dangling targets.
 - [ ] Identify the source/schema owner for new Slice/trace semantics and the
   explicit Phase 10 payload/subject/codec/continuation extensions they require;
-  establish canonical projection support before permitting promotion.
+  retain the canonical projection prerequisite before permitting promotion.
+  Stage 12.1 identifies these unadmitted source mappings and integration gaps;
+  implementation remains required in 12.2/12.3 and continuation proof in 12.8.
+- [ ] Validate the pure typed foundation and existing identity/approval
+  specifications through native focused validation, independent Step and
+  bounded whole-run review, and required native full regression.
 
 ## EDIT-12-02: Candidate Model Edit Service (Stage 12.2)
 
@@ -45,6 +60,8 @@ item proves those additions.
   authorization, and unchanged canonical CML during provisional editing.
 - [ ] Implement Use Case Slice candidate mutation through the same service; no
   view-local Slice store or ticket-owned model state.
+- [ ] Admit the source-owned Slice/trace payload, typed-subject and codec
+  extensions required for durable candidate support; no opaque sidecar.
 - [ ] Prove failed/dangling Specification or Ticket refs are typed validation
   failures and do not partially mutate candidate state.
 - [ ] Prove unavailable reference resolution retains its distinct outcome and
@@ -55,6 +72,8 @@ item proves those additions.
 - [ ] Admit the required projection follow-up contracts and project candidate
   Actor Goal List/Event Storming through shared Views; clearly distinguish
   candidate/canonical state and confirm accumulated candidate edits.
+- [ ] Establish source-authorized Slice/trace projection and CML mappings before
+  permitting those semantics through the existing Phase 10 promotion gate.
 - [ ] Add Use Case development trace projection:
   Actor Goal -> Use Case -> Use Case Slice, with independent Slice links to
   Executable Specifications and Tickets.

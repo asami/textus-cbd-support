@@ -1,7 +1,7 @@
 # Phase 12 - Interactive View and Model Editing
 
 Stage Status:
-- Current status: PLANNED
+- Current status: IN_PROGRESS
 - Predecessor: Phase 11.1 Capability Views, Web/MCP, and Acceptance
 - Required inputs: accepted Phase 9 model/view contracts, the Phase 10 sequence,
   and the admitted Actor Goal / Event Storming projection follow-up contracts
@@ -15,7 +15,35 @@ This is the remote Interactive View and Model Editing proposal, originally
 numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
-checklist define the current planned identity. No stage has started.
+checklist define the current identity. Stage 12.1 started on 2026-10-27;
+Stage 12.2 onward remain OPEN and parent Phase 12 is not closed.
+
+## Current bounded execution — 2026-10-27
+
+EDIT-12-01 is the selected first implementation scope. Phase 10.7 and Phase
+11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
+quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
+CLOSED; their existing owners are reused where applicable, without introducing
+another persistence/Job/controller or reopening their acceptance histories.
+
+The promoted [contract](../spec/model-edit-session-contract.md) and
+[design](../design/model-edit-session.md) define immutable candidate/session
+data and deterministic pure operation admission, with
+[executable specifications](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/ModelEditSessionSpec.scala).
+This is the Stage 12.1 foundation; the Stage 12.2 mutation service, projection,
+external clients and end-to-end promotion remain outstanding. Native focused
+validation, independent review and full regression must supply actual evidence
+before this stage's ledger can close.
+
+The original canonical integration obligation is retained: new Slice/trace
+syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
+codecs and continuation are not established by generic realization V3 records.
+Stage 12.1 identifies these gaps; Stage 12.2/12.3 must admit the required source
+and payload integration before supported projection/promotion, and Stage 12.8
+must prove durable continuation. Until then these new values are in-memory
+candidate-only, with no opaque persistence sidecar or Phase 10 gate bypass.
+FU-01/FU-03/FU-07 remain dependencies of consuming Views, not prerequisites
+fictionally completed by foundation construction.
 
 ## Local execution preparation
 
@@ -31,7 +59,7 @@ Start EDIT-12-01 with source ownership, typed session/operation contracts, and
 design/specification promotion. Use the
 [local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 to connect the existing candidate, package, approval and CML application owners.
-Confirm each stage's bounded execution scope before implementation; no new
+The selected Stage 12.1 scope is recorded above; no new
 Phase numbering or completed checklist item is introduced by this preparation.
 
 ## Purpose
@@ -223,7 +251,7 @@ Each stage should remain within the project's normal approximately six-hour work
 ### Stage 12.1 - Edit Session and operation contract
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-01 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -238,11 +266,15 @@ deterministic operations equivalent to `createUseCaseSlice`,
 All operations target candidate state and require typed subject references.
 
 Identify the source owner and supported projection/schema for each new Slice
-and relationship before freezing edits. Extend the admitted Phase 10 semantic
-payload, typed subject, codecs and continuation contract where needed, preserving
-existing identities. Do not hide new semantics in opaque sidecars or assume the
-current closed schema already supports them. Unsupported canonical projection
-stays explicit candidate work until the upstream/source contract is admitted.
+and relationship before freezing edits. The foundation explicitly records that
+canonical Slice/trace support is unadmitted. The existing obligation to extend
+the admitted Phase 10 semantic payload, typed subject, codecs and continuation
+contract where needed remains required before canonical promotion, preserving
+existing identities. Its service/projection integration is tracked by Stages
+12.2/12.3 and durable proof by Stage 12.8. Do not hide new semantics in opaque
+sidecars or assume the current closed schema already supports them. Unsupported
+canonical projection stays explicit candidate work until the upstream/source
+contract is admitted.
 
 ### Stage 12.2 - Candidate Model Edit Service
 
@@ -253,6 +285,10 @@ Stage Status:
   [Phase 12 Checklist](phase-12-checklist.md).
 
 Implement the service boundary over candidate object-model state. Prove that provisional mutations preserve stable identities, including shared Actor identity, without modifying canonical CML.
+
+Admit the source-owned Slice/trace payload and typed-subject contract with the
+required codecs before supporting durable candidate data. Keep unsupported
+operations candidate-only until their canonical source mapping is admitted.
 
 ### Stage 12.3 - Candidate projection and confirmation
 
@@ -382,8 +418,8 @@ Storming are still planned in
 [Projection follow-up planning](phase-9-projection-followup.md); they must be
 admitted through their own design/specification and executable evidence before
 Phase 12 can consume them as implemented contracts. The Phase 10 sequence
-supplies durability, exact typed identity/revision approval, drift handling,
-and the CML change gate as its remaining ledgers close. Phase 12 plans Edit
+supplies accepted durability, exact typed identity/revision approval, drift
+handling and the CML change gate, as recorded by CLOSED Phase 10.7. Phase 12 plans Edit
 Sessions, interactive candidate mutation, candidate View confirmation, and
 external AI client access. Planning does not claim any of these new inputs
 implemented or accepted.

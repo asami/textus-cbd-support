@@ -26,6 +26,12 @@ object ModelEditWebView {
         "<li>" + _escape(goal.identity.value) + ": " + _escape(goal.intent) + "; Actors: " +
           goal.actors.map(value => _escape(value.value)).mkString(", ") + "; Use Cases: " +
           goal.useCases.map(value => _escape(value.value)).mkString(", ") + "</li>"
+      }.mkString + "</ul><h3>Event Storming</h3><ul>" + view.eventStorming.nodes.map { node =>
+        "<li>" + _escape(node.kind) + " " + _escape(node.identity.value) + ": " + _escape(node.title) +
+          node.intent.map(value => " — " + _escape(value)).getOrElse("") + "</li>"
+      }.mkString + "</ul><ul>" + view.eventStorming.edges.map { edge =>
+        "<li>" + _escape(edge.kind) + " " + _escape(edge.reference.identity) + ": " +
+          _escape(edge.from.toString) + " → " + _escape(edge.to.toString) + "</li>"
       }.mkString + "</ul><h3>Development traces</h3><ul>" + view.traces.map { trace =>
         "<li>Use Case " + _escape(trace.useCaseIdentity.value) + "<ul>" + trace.slices.map { slice =>
           "<li>Slice " + _escape(slice.identity.value) + ": " + _escape(slice.title) + " — " + _escape(slice.intent) +
@@ -36,6 +42,8 @@ object ModelEditWebView {
             trace.ticketLinks.filter(_.sliceIdentity == slice.identity).map(edge => "<li>Ticket reference " +
               _escape(edge.ticket.toString) + " (" + _escape(_reference(edge.reference)) + ")</li>").mkString + "</ul></li>"
         }.mkString + "</ul></li>"
+      }.mkString + "</ul><h3>Capability demand evidence</h3><ul>" + view.capabilityDemands.map { demand =>
+        "<li>" + _escape(demand.useCase.value) + ": " + _escape(demand.evidence.toString) + "</li>"
       }.mkString + "</ul><p>Confirmation grants no canonical write or external ticket mutation.</p></section>"
   }
 

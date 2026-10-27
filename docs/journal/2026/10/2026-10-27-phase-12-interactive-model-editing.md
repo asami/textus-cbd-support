@@ -548,3 +548,289 @@ compilation progress is retained, not presented as suite proof. This owner ran n
 tests, SBT, producer, native/runtime command or Git mutation. Prior generation and
 Test compile failures and the accepted prefix remain retained; Stage12.6 is still
 IN_PROGRESS pending fresh native qualification and independent review.
+
+
+## Native Stage12.6 acceptance and Stage12.7 preparation
+
+The actual continued ImplementStep retains native Stage12.6 commit
+`66a20813a92b8749a5ef406d5d283a08dbbb2580`, parent `63f9ddd`, with independent
+review `cbd-phase12-edit12-06-independent-review-01`. Native qualification passed
+71 tests in 16 suites. Prior generation/Test compile failures and repairs remain
+historical evidence; the accepted prefix and Session are unchanged. Stage12.7 is
+the actual current scope and remains unqualified.
+
+The parent registered the already selected check15 normal caller environment
+with `textus.cbd.modelEditProducerRoot=/Users/asami/src/dev2026/cozy` and
+`textus.cbd.modelEditE2eRoot=/Users/asami/src/dev2026/textus-cbd-support/target/model-edit-e2e`.
+Its identity, test class, target, limits/grants, old CAR generator, Session and private
+rows are unchanged. Backup: task `caller-config-before-edit12-07-e2e-host.json`.
+Registration is not execution, approval, Plan adoption or qualification. No worker
+producer, test, SBT, native, canonical-write or Git mutation was performed.
+
+## User-directed provisional Ticket boundary and proposed Plan3
+
+The actual user answered the pending existing-Ticket question:
+“今の所まだ運用していないので、仮実装までにしておける？”
+The attributable message is `01a17b03-fe49-7891-8d12-8b236e1ffee0` in thread
+`01a104a8-a1a7-77b0-aa89-6b539d074c2e`, active turn
+`01a17a9b-0219-7282-ad82-254d57e2b060`, event time
+`2026-10-27T01:40:21.705Z`. It requests provisional Ticket implementation, not a
+fabricated existing Ticket or remote Ticket operation.
+
+The complete task-owned Plan3 proposal changes only EDIT12-07/08 purposes.
+Declared sample-reference identity, link/unlink, ordinary authorization, Review and
+persistence remain required; actual operational Ticket read/existence/permission
+and end-to-end confirmation are relocated explicitly to proposed
+`P12-TICKET-OPERATIONS`. All owned paths, checks, dependencies, accepted Steps,
+phase checks and repairLimit10 are preserved. Product review, exact actual-human
+approval, canonical application and actual re-projection remain current obligations.
+Plan adoption is pending through the public runtime route; this source note is not
+an adoption receipt. Current no-write preparation source is retained, incomplete
+and unqualified. No concrete product approval target has been executed or approved.
+
+## Accepted proposal and unavailable public continuation
+
+The parent submitted actual result
+`cbd-phase12-edit12-07-ticket-plan-revision-01@1` once. Native Submit returned
+`accepted=true`, `outcome=accepted`, accepting the decision-needed result, not the
+proposed Plan. The paired Advance terminated unsuccessfully with HTTP409:
+`Plan adoption may revise the current Step or append exactly one corrective Step
+within the unchanged completed Plan scope and acceptance`. The proposal changed
+both unaccepted Step purposes; that normal revision route only permits the current
+Step. The caller should have checked that restriction before selecting this route.
+
+Retained task-relative outputs:
+
+- `call-complete-edit12-07-ticket-plan-revision-01/response.json`: accepted Submit.
+- `call-complete-edit12-07-ticket-plan-revision-01/advance/stderr.log`: terminal
+  Advance conflict; its response file is empty and contains no Human request.
+- `call-describe-edit12-07-remaining-plan-01/response.json`: empty response from the
+  separate public `describeGoalPhaseRemainingPlan` diagnostic. The actual command
+  tool returned exit1 and HTTP409: `remaining Plan adoption requires its actual
+  unanswered semantic Human frontier`.
+
+Task root is
+`target/sm-workflow/runtime/target/sm-workflow/tasks/cbd-phase12-20261027-01`.
+The failed normal projection did not issue the Human frontier required by the
+separate remaining-Plan adoption operation. A supported correction must preserve
+this accepted result and let the same Session reach an admissible current-Step or
+remaining-Plan direction. There is no observed public continuation for this exact
+frontier in the installed runtime. This is a runtime continuation gap, not missing
+user direction: the actual user already requested the provisional Ticket boundary.
+No additional Ticket URL or operational integration is requested from the user.
+
+Session `0e18bbc58dc2fbfbe3fec1246d91b931`, selected Plan2, original base, accepted
+Steps through EDIT12-06, commits, independent reviews, all failures, counters and
+working-tree changes remain retained. No accepted Submit was replayed, no private
+native row was edited, and no replacement Session, alternate SBT validation,
+canonical source application or external Ticket mutation was performed. No new
+producer-chat request was sent. Stage12.7 preparation files remain incomplete and
+unvalidated; there is no concrete executed product approval target. Stage12.8 and
+Phase12 remain open. The provisional follow-up is still proposed, not natively
+adopted or accepted. The existing temporary assembly setting remains unchanged.
+
+## Installed-runtime recheck after the reported new build
+
+The user requested a test with the new sm-workflow build. The normal executable
+still selects installation `69c1a8b1-2eaf-4731-aef5-bd25035edf18`, update
+`84e170a7-7b93-48a9-9ec7-6b29e196d76b`. Its manifest pins the installation-local
+`components/textus-sm-workflow.car`; the producer CAR under sm-workflow/target
+has changed, but diagnostic byte comparison confirms different contents from the
+selected installed copy (93,898,287 versus 93,767,388 bytes). A newly generated
+CAR therefore does not establish that this consumer executes that build.
+
+The parent retried only the public `describeGoalPhaseRemainingPlan` operation
+against the same Session and proposal, through the installed executable. The
+command terminated with exit1 and the same HTTP409: `remaining Plan adoption
+requires its actual unanswered semantic Human frontier`. Retained outputs are
+task-relative `call-describe-edit12-07-remaining-plan-02/response.json` (empty)
+and `call-describe-edit12-07-remaining-plan-02/command-tool-terminal.json`.
+This is a new diagnostic observation, not a replay of the accepted Submit or
+the failed Advance. No Plan adoption, work issuance or Phase acceptance occurred.
+
+Under the user's existing explicit authorization to contact sm-workflow
+development, the parent sent this result to the existing development chat and
+requested qualification plus normal installed delivery within the original
+recovery scope. The producer owns that delivery; no manual CAR replacement,
+development-classpath launch, local publication or installation mutation was
+performed by CBD. All existing Session, worktree and evidence remain retained.
+
+## Qualified runtime delivery and actual Plan3 continuation
+
+The document-based reassessment retained accepted Stages12.1–12.6 and identified
+Stage12.7's incomplete preparation/promotion connection as the primary remaining
+work. The Phase index's obsolete Stage12.2-next statements were reconciled with
+the authoritative checklist. Conditional Phase11 availability remains conditional.
+
+The producer's qualified handoff is retained at task-relative
+`cbd12-plan-continuation-delivery-20261027/handoff.md`. It records 27 distinct
+source successes, one pre-existing optional cancellation, one actual installed
+CLI success, normal LocalPublicationService Completed/Activated receipts and
+independent source/final delivery PASS reviews. Earlier failed checks, the
+fixture-host correction and unstarted transport continuation remain recorded.
+This is qualification of the continuation repair, not CBD product acceptance.
+The source repair is uncommitted over producer HEAD e3bf444; no producer commit
+or broader regression claim is inferred from the delivered immutable runtime.
+
+The parent selected the qualified private installation through the normal
+`SM_WORKFLOW_INSTALLATIONS` setting, without changing global selection:
+installation `375cc33b-780a-4e32-ad77-4c22152394f1`, update
+`68a1df69-ecab-4b57-be7f-e07732836744`, under sm-workflow's
+`target/skill-compatibility/cbd12-runtime/installations`. The existing CBD runtime
+host, actual assembly, storage and Session were preserved.
+
+Actual ordinary Advance terminated with exit0 and issued Human
+`ordered-human:1090`, exposing `revision_scope=remaining-purpose` and the whole
+captured Plan3. Receipt:
+`call-advance-edit12-07-recovered-runtime-01/response.json`. The accepted semantic
+result was not resubmitted. The parent then registered the existing actual
+Ticket-provisional user direction from message
+`01a17b03-fe49-7891-8d12-8b236e1ffee0` at its original occurrence time through
+normal prepareEvidence and the issued Human completion. Detailed Plan wording
+remains parent-selected; technical repair permission was not used as the answer.
+
+The finite caller terminated with exit0. Actual accepted Human Submit is in
+`call-complete-edit12-07-ticket-plan-human-01/response.json`; the paired ordinary
+Advance in its `advance/response.json` reissues ImplementStep EDIT12-07 under
+`cbd-phase12-remaining-20261027@3`, continuation `ordered-implementation:1092`,
+expected revision1093. Original base and accepted commits through EDIT12-06 are
+retained. The current repair window still reports automatic0/ordinary0/limit10.
+P12-TICKET-OPERATIONS is now an explicit deferred operational boundary, not an
+unadopted proposal or proof of live Ticket existence.
+
+Stage12.7 implementation resumed with the existing semantic owner. No Stage12.7
+check, product review, exact candidate approval, canonical application or source
+re-projection is claimed by Plan adoption. Stage12.8 and Phase12 remain open.
+
+### Existing post-application validation host selection
+
+The retained Stage12.7 implementation now connects actual input admission,
+application and source re-production; source readiness and execution remain
+separate. The existing P10-54 contract additionally requires real Cozy lint and
+independently refreshed owner validation before accepted promotion. The semantic
+owner is completing this connection in the same declared E2E JVM, retaining the
+real ApplicationReport through validation rather than inventing a later report.
+
+The parent selected the existing installed Cozy executable through ordinary host
+property `textus.cbd.modelEditCozyExecutable`, only on existing native E2E program
+`cbd12-check-15`. Its path contains a space. The installed SBT script splits
+SBT_OPTS on whitespace, so the property is selected with quoted JAVA_TOOL_OPTIONS;
+a Java settings inspection observed the complete correct property value. This
+inspection executed neither Cozy nor SBT and supplies no product-check evidence.
+The earlier SBT_OPTS, selected classes/task/target, limits and grants remain
+unchanged. The prior host config is retained task-relative at
+`caller-config-before-edit12-07-cozy-lint-host-01.json`. The selected executable is
+`/Users/asami/Library/Application Support/Coursier/bin/cozy`; the qualified
+model-edit producer root is separately selected as before. Actual lint execution
+and its result remain pending the native check and genuine exact candidate input.
+
+### First Stage12.7 qualification and host-path correction
+
+The worker returned source readiness for actual1092/1093 in
+`edit12-07-implementation-result-01.json` and the corresponding submission.
+Normal complete accepted that result and paired Advance completed with caller
+exit0; this does not mean all selected checks succeeded. The actual validation
+at `call-complete-edit12-07-implementation-01/advance/response.json` reports
+ordinary-06 and producer-focused exited0. E2E exited1 before entering the Spec:
+the SBT launcher also split the quoted JAVA_TOOL_OPTIONS path and attempted to
+load class `Support.Coursier.bin.cozy"`. The preceding direct Java settings
+inspection proved Java's own parsing, not the SBT launcher's additional handling.
+No candidate preparation or canonical application occurred in this attempt.
+
+Native TEST issue-8 remains OPEN and the runtime issued RepairStep
+`ordered-repair:1143`, expected1144, current window automatic1/ordinary1/limit10.
+The original Submit/check failures, actual result, base and accepted prefix remain.
+The existing semantic owner received the actual repair for the build handoff.
+
+The parent restored the prior JAVA_TOOL_OPTIONS field and selected the same
+installed Cozy path as raw normal environment value
+`TEXTUS_CBD_MODEL_EDIT_COZY_EXECUTABLE` on existing program cbd12-check-15.
+The owned build setting will pass it as the existing Test JVM property via a
+proper argument vector. No compatibility fallback, alternate launcher, symlink,
+new check or publication is introduced. SBT_OPTS, task/target/classes, grants and
+limits are unchanged; the pre-correction config is retained at
+`caller-config-before-edit12-07-cozy-env-repair-01.json`. Fresh native validation
+remains pending; the earlier failure is not relabeled as success.
+
+
+## Retained concrete Stage12.7 target and missing product inputs
+
+After the executable handoff correction, native Submit accepted the repair and
+ordinary Advance returned RepairStep `ordered-repair:1194`, expected revision
+1195, preserving Plan3, the accepted prefix and repair window 2/10. Actual
+ordinary-06 passed 155 tests in 16 suites and producer-focused passed one test.
+The E2E check now executed preparation and failed only at the missing separately
+supplied product inputs. No canonical application or passing whole-E2E is claimed.
+Retained receipt: task-relative
+`call-complete-edit12-07-repair-01/advance/response.json`. The original command
+collection handles were unavailable after caller interruption; the response and
+actual terminal check outcomes were recovered without replaying Submit/Advance.
+An outer command-tool exit receipt was not recovered and is not invented.
+
+Actual target: `target/model-edit-e2e/actual-16328960651806247047`. It retains the
+existing predecessor `models/order.cml`, proposed `candidate.cml`, readable
+`candidate.html`, full seven-change semantic diff, nine-command edit history,
+complete typed subject, captured existing Specification, actual producer and
+authorized external-operation observations, ordinary product ReviewRequest and
+`confirmation.json`. Required independent product review, execution basis,
+actual-human approval/input and exact mutation authority were absent.
+
+The parent selected this existing root through the already declared check15
+`textus.cbd.modelEditE2ePreparedRoot` setting; backup is task-relative
+`caller-config-before-edit12-07-retained-root-01.json`. This host selection runs
+no check and grants no approval or canonical write. An independent product review
+was assigned to the existing reviewer `/root/cbd12_foundation_reviewer`, configured
+GPT-6.1 Sol/high. Actual execution metadata remains unavailable. The review covers
+the complete retained subject and required effect assessments before a concrete
+Human decision. Native Step review and acceptance retain their separate owner.
+
+
+## Independent product review before exact Human consideration
+
+The existing independent reviewer returned `reviewed-with-limitations` for actual
+retained candidate@10 / subject `phase12-product-subject@1` / review
+`phase12-product-review@1`, covering all four requested checks with no blocking
+findings. Actual report: task-relative `product-review-edit12-07-01/report.md`;
+existing closed binding and matching separately admitted execution basis are in
+the retained target's `admitted-inputs/review.json` and `execution-basis.json`.
+The reviewer identity is `/root/cbd12_foundation_reviewer`. Configured preference
+was GPT-6.1 Sol/high; actual model/provider build metadata is unavailable.
+
+The review assessed all seven additions, nine operations, nine-artifact complete
+subject, actual captured Specification, source mapping, Views/diff and native
+155+1 successes. Compatibility/migration remain explicitly unknown in the candidate;
+the report records additive static-model and selected-producer assessments without
+claiming deployed-consumer or business-data safety. Existing Specification linkage
+proves reference/service mechanics, not repeat-order business implementation.
+Provisional Ticket and unavailable Phase11 limits are retained. No package or CML
+was changed by review; this is not native Step review or acceptance.
+
+The parent presented the exact candidate View and review and asked the actual user
+to decide whether to approve candidate@10 with its full dependency/diff/review
+revision and authorize only existing `models/order.cml` in the retained target,
+r1 to r2, followed by actual lint/re-projection. No answer is recorded here. No
+Human input, Approved record or mutation authority has been manufactured. The same
+Session remains at its issued repair frontier; canonical application, E2E success,
+Stage12.7/12.8 and Phase acceptance remain pending.
+
+
+## Actual Human approval of the concrete Stage12.7 target
+
+The actual user answered the pending exact-candidate question with approval to
+apply and continue validation. Question identity:
+`request_user_input_async/call_b5b9735973584ff98173af71e502e750/0`. The original
+question and verbatim answer are retained at task-relative
+`edit12-07-actual-product-human-direction-01.json`. This is a new actual Human
+decision for candidate@10, its complete dependency/diff subject and independent
+review `phase12-product-review@1`; it is not inferred from broad Phase authority.
+
+The parent recorded this actual input and the matching selected approval through
+the existing V2 human codec shape, with attributable Human provenance, and
+registered exact source mutation authority for the one existing target
+`models/order.cml`, r1 to r2, only within
+`target/model-edit-e2e/actual-16328960651806247047`. Existing independent review
+and execution basis remain separate. The three ordinary records are under that
+root's `admitted-inputs`. Provisional Ticket and unknown operational effect
+assessments remain visible and unchanged. No canonical write or qualification
+success has yet been executed by this preparation; native validation owns the
+existing admission, application, actual lint and source-backed post-validation.

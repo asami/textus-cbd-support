@@ -16,13 +16,13 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.5 are CLOSED; Stage 12.6 is IN_PROGRESS, later stages remain
+2026-10-27; Stages 12.1–12.6 are CLOSED; Stage 12.7 is IN_PROGRESS and Stage 12.8 remains
 OPEN and parent Phase 12 is IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
-EDIT-12-01 through EDIT12-04 are accepted; EDIT12-05 is the current
-issued implementation scope. Phase 10.7 and Phase
+EDIT-12-01 through EDIT12-06 are accepted; EDIT12-07 is the current
+issued repair scope. Phase 10.7 and Phase
 11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
 quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
 CLOSED; their existing owners are reused where applicable, without introducing
@@ -65,9 +65,15 @@ Stage 12.5 is accepted at native commit
 passed and independent review `cbd-phase12-edit12-05-independent-review-01`
 accepted the [conversational adapter](../spec/model-edit-conversational-contract.md).
 Typed intent specifications do not claim a live external AI invocation.
-Stage 12.6 authors the [ordinary external Operations](../spec/model-edit-external-operations-contract.md)
-and shared host-owned application; native ordinary-05 qualification and
-independent review remain pending.
+Stage 12.6 is accepted at native commit
+`66a20813a92b8749a5ef406d5d283a08dbbb2580`: native qualification passed
+71 tests in 16 suites and independent review
+`cbd-phase12-edit12-06-independent-review-01` accepted the
+[ordinary external Operations](../spec/model-edit-external-operations-contract.md)
+and shared host-owned application. Stage12.7 has produced its concrete no-write
+candidate and passed 155 ordinary checks plus one producer integration check;
+independent product review, exact actual-human approval and the complete
+approved application/post-validation route remain unqualified.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
@@ -88,12 +94,41 @@ with the applicable FU-07 evidence for the initial Actor Goal/Event Storming
 scenario. Other follow-up items are dependencies only where a selected view
 consumes them; completion is recorded in their own ledger.
 
-Start EDIT-12-01 with source ownership, typed session/operation contracts, and
-design/specification promotion. Use the
+The accepted EDIT-12-01 foundation established source ownership, typed
+session/operation contracts, and design/specification promotion. Use the
 [local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 to connect the existing candidate, package, approval and CML application owners.
-The selected Stage 12.1 scope is recorded above; no new
-Phase numbering or completed checklist item is introduced by this preparation.
+Resume from EDIT-12-07 and the document-based reassessment below; the accepted
+Stages 12.1–12.6 are not restarted.
+
+## Document-based reassessment — 2026-10-27
+
+The owner requested reassessment from `docs/phase`. Read this Phase's purpose,
+scope and acceptance scenario together with the
+[completion ledger](phase-12-checklist.md). The ledger's accepted prefix and
+actual validation evidence govern reuse; an old index entry, unfinished test or
+workflow proposal does not supersede them.
+
+The primary work remains completion of Interactive View and Model Editing.
+Reuse the accepted session/service, source mapping, Views/Review, Palette,
+conversational adapter and external Operations from Stages 12.1–12.6. Preserve
+their commits, independent reviews, successful checks, failures and repair
+history. Preserve the unfinished Stage 12.7 files for completion, without
+claiming them qualified.
+
+| Remaining boundary | Current evidence and required outcome |
+| --- | --- |
+| Stage 12.7 candidate preparation | Actual native preparation connected the delivered Cozy producer to direct, conversational and generated external edits and retained a concrete shared candidate with trace findings and Views. Ordinary validation passed 155 tests and producer integration passed one; preparation alone is not an accepted E2E run. |
+| Stage 12.7 promotion | Prepare a concrete complete subject, obtain independent product review and exact actual-human approval, then use the existing Phase 10 application owner and actual source re-projection. The unfinished check currently stops after preparation; complete the promotion path rather than treating that stop as success. |
+| Conditional Phase 11 input | Consume available demand evidence read-only. Preserve `Unavailable` when no admitted input exists; the conditional acceptance item does not require fabricating a positive upstream mapping. |
+| Ticket references | Plan3 now adopts the owner's provisional-integration direction. Prove explicit sample identity, links, authorization, Review and persistence; retain live operational acceptance as P12-TICKET-OPERATIONS. |
+| Stage 12.8 and Phase closure | Complete Mono-Koto plus an engineering View, actual fresh-process continuation and exact edge preservation through promotion, then required integrated validation and independent review. Keep the ledger open until the corresponding evidence exists. |
+
+The first implementation outcome is the complete Stage 12.7 path above. The
+existing sm-workflow Session remains the execution owner. The qualified Plan
+continuation repair has resumed that Session under Plan3 without reopening
+accepted Steps. A new runtime build alone supplies no product acceptance. Do not
+re-Start the Session or resubmit the accepted Plan proposal.
 
 ## Purpose
 
@@ -284,7 +319,7 @@ Each stage should remain within the project's normal approximately six-hour work
 ### Stage 12.1 - Edit Session and operation contract
 
 Stage Status:
-- Current status: CLOSED on 2026-10-27
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-01 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -309,7 +344,7 @@ sidecar or generic schema claim supplies a missing mapping.
 ### Stage 12.2 - Candidate Model Edit Service
 
 Stage Status:
-- Current status: CLOSED on 2026-10-27
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-02 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -323,7 +358,7 @@ operations candidate-only until their canonical source mapping is admitted.
 ### Stage 12.3 - Candidate projection and confirmation
 
 Stage Status:
-- Current status: CLOSED on 2026-10-27
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-03 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -338,7 +373,7 @@ distinguish absent upstream data from an explicitly empty relationship.
 ### Stage 12.4 - Update Palette and direct commands
 
 Stage Status:
-- Current status: CLOSED on 2026-10-27
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-04 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -363,7 +398,7 @@ Translate conversational edit intent into candidate Model Edit Operations. Suppo
 ### Stage 12.6 - Plugin/MCP external editing boundary
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-06 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -373,7 +408,7 @@ Expose semantic inspection, candidate-session operations, applicable-operation d
 ### Stage 12.7 - Actor Goal -> solo Event Storming end-to-end validation
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-07 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -473,3 +508,18 @@ The invariant remains:
 
 Approval binds explicit typed candidate identity, revision, dependencies, and
 state. No management hash or content-derived approval token is introduced.
+
+## Provisional Ticket acceptance boundary — 2026-10-27
+
+The actual user requests provisional Ticket integration because Ticket operations
+are not yet in use. Adopted native Plan3 changes only remaining Stage12.7/12.8
+purposes: declared sample references prove identity, link/unlink, authorization,
+Review and persistence mechanics; they do not prove a real Ticket or operational
+provider delivery. The same Session accepted the existing user direction and
+reissued EDIT12-07 under Plan3; the [journal](../journal/2026/10/2026-10-27-phase-12-interactive-model-editing.md#qualified-runtime-delivery-and-actual-plan3-continuation)
+links the actual receipts. Named follow-up
+[P12-TICKET-OPERATIONS](phase-12-checklist.md#relocation-p12-ticket-operations)
+contains the explicit future operational acceptance. No remote Ticket creation or
+update is authorized. All other Phase obligations, including independently
+attributable product review, exact actual-human approval, canonical application
+and actual source re-projection, remain unchanged and required.

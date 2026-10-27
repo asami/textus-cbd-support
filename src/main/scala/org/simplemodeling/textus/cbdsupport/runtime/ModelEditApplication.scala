@@ -27,6 +27,10 @@ final class ModelEditApplication private (
 ) {
   import ModelEditApplication.*
 
+  /** Existing package owners capture the same authorized session; no new persistence. */
+  private[runtime] def capture()(using ctx: ExecutionContext): Consequence[ModelEditSession] =
+    ModelEditAuthorization.authorize(_bindings, _session, false).map(_ => _session)
+
   def execute(operation: String, requestJson: String)(using ctx: ExecutionContext): Consequence[Response] =
     for {
       binding <- ModelEditAuthorization.authorize(_bindings, _session, operation == "applyModelEdit")

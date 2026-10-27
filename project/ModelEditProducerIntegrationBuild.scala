@@ -11,6 +11,10 @@ object ModelEditProducerIntegrationBuild {
   val selectedModelEditProducerRoot = settingKey[Option[File]]("Explicit independently delivered model-edit producer")
   val settings: Seq[Def.Setting[_]] = Seq(
     selectedModelEditProducerRoot := None,
+    Test / javaOptions ++= Vector("textus.cbd.modelEditE2eRoot", "textus.cbd.modelEditE2ePreparedRoot")
+      .flatMap(key => sys.props.get(key).map(value => "-D" + key + "=" + value)),
+    Test / javaOptions ++= sys.env.get("TEXTUS_CBD_MODEL_EDIT_COZY_EXECUTABLE")
+      .toVector.map(value => "-Dtextus.cbd.modelEditCozyExecutable=" + value),
     Test / javaOptions ++= selectedModelEditProducerRoot.value.toSeq.flatMap { directory =>
       Seq("-Dtextus.cbd.modelEditProducerRoot=" + directory.getCanonicalPath,
         "-Dtextus.cbd.modelEditProducerVersion=" + CbdSupportProjectYamlBuild.requiredValue(cozyProjectMetadata.value, "build.modelEditProducerVersion"),

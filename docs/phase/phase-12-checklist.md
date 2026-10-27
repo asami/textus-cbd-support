@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.5 CLOSED; Stage 12.6 IN_PROGRESS; Stage 12.7+ OPEN
+Status: IN_PROGRESS — Stages 12.1–12.6 CLOSED; Stage 12.7 IN_PROGRESS; Stage 12.8 OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -157,23 +157,54 @@ same-service application. This is not live external AI execution evidence.
 
 ## EDIT-12-06: External client boundary (Stage 12.6)
 
-IN_PROGRESS under the current issued native ImplementStep. The source-owned
-`CbdModelEdit` Operations, supported typed embedding constructor, shared application,
-principal bindings and executable specifications are authored. Existing Phase10
-mapping/admission owns semantic diff evidence; missing/stale evidence is explicit.
-Native ordinary-05 and independent review remain pending. The production host must
-select an already admitted application before normal component creation; the default
-plugin constructor remains unbound. See the
-[external contract](../spec/model-edit-external-operations-contract.md).
+CLOSED by native Step acceptance and commit
+`66a20813a92b8749a5ef406d5d283a08dbbb2580` (parent `63f9ddd`). Native
+qualification passed 71 tests in 16 suites and independent review
+`cbd-phase12-edit12-06-independent-review-01` accepted the repaired boundary.
+The source-owned Operations, typed production embedding constructor, shared
+application and principal bindings are accepted. The default plugin constructor
+remains explicitly unbound; a production host supplies the admitted application.
+Existing Phase10 mapping/admission retains semantic diff authority and explicit
+missing/stale evidence. Earlier generation and Test compile failures are retained.
+See the [external contract](../spec/model-edit-external-operations-contract.md).
 
-- [ ] Expose semantic inspection, applicable operations, candidate read/edit,
+- [x] Expose semantic inspection, applicable operations, candidate read/edit,
   and View/diff inspection through Plugin/MCP; validate ChatGPT and Codex as
   ordinary authorized clients with no privileged canonical mutation path.
-- [ ] Expose Use Case development trace, Review findings and applicable Slice
+- [x] Expose Use Case development trace, Review findings and applicable Slice
   operations through the same typed API; do not expose arbitrary ticket-system
   mutation as part of the core Model Edit Service.
 
 ## EDIT-12-07: Actor Goal to solo Event Storming E2E (Stage 12.7)
+
+IN_PROGRESS under Plan3 and the current native RepairStep. Actual no-write
+preparation produced a retained concrete candidate. Native ordinary-06 passed
+155 tests in 16 suites and producer-focused passed one actual integration test.
+The E2E check stopped after preparation because independent product review and
+exact actual-human input were absent; the full E2E is not accepted.
+The user requested provisional Ticket integration on 2026-10-27 because it is not
+in operation. Complete Plan3 was adopted through the actual decision-needed route;
+it changes only remaining Stage12.7/12.8 purposes, preserving exact sample-reference
+mechanics/persistence and all non-Ticket obligations. The existing actual user
+direction was registered against the complete newly issued scoped Human target.
+Live Ticket existence is not proven by declared sample refs. Operational Ticket
+confirmation is relocated to the named follow-up below, not silently marked done.
+
+The earlier continuation failed before qualification: normal Advance rejected
+changing two remaining Step purposes, and public remaining-Plan description
+required an unissued Human frontier. The qualified dedicated runtime now issues
+that actual scoped Human; ordinary independent evidence/adoption and Advance
+resumed the same Session under Plan3. The journal retains the original failures,
+accepted-result reference and successful continuation receipts.
+Stage12.7 remains unaccepted pending independent product review, exact actual-human
+approval, canonical application, source-backed post-validation and native Step
+review. Stage12.8 and Phase12 remain open. Preserve the same Session and prefix.
+
+The owner's document-based reassessment retains this state and the accepted
+Stages 12.1–12.6. See the [remaining-work assessment](phase-12.md#document-based-reassessment--2026-10-27)
+for the implementation order and evidence gaps. The unfinished E2E check's
+deliberate post-preparation failure is not a passing integration result; available
+Phase 11 demand remains a conditional input, not a new mandatory upstream delivery.
 
 - [ ] Prove shared Actor identity, provisional goals and Use Case links,
   cross-view direct/AI edits, Review/refinement/confirmation, explicit approval
@@ -200,3 +231,18 @@ plugin constructor remains unbound. See the
   a finding solely from display-name/text similarity.
 - [ ] Complete independent review and close only when every required item is
   checked or explicitly relocated; no synchronization commit closes Phase 12.
+
+## Relocation: P12-TICKET-OPERATIONS
+
+Status: DEFERRED from Phase12 by adopted Plan3; operational work is not completed.
+Owner: Textus CBD Support development.
+Attributable user direction: 2026-10-27, “今の所まだ運用していないので、仮実装までにしておける？”
+Complete Plan3 carries this direction through actual native admission. Phase12
+Ticket acceptance is limited to explicit provisional sample
+reference identity, link/unlink, ordinary authorization, Review and persistence.
+The follow-up must select an actual provider/repository/immutable Ticket identity,
+obtain source-owned authorized read/existence/permission evidence, and qualify the
+same link/unlink, Review and continuation route against that live evidence before
+claiming operational Ticket integration. It grants no external creation/update.
+Genuine product review, exact actual-human approval and canonical promotion remain
+current Phase12 obligations. Sample references never establish live existence.

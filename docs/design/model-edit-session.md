@@ -1,5 +1,10 @@
 # Model Edit Session Design
 
+The [contextual Palette adapter](model-edit-palette.md) reuses this service and
+shared candidate projection without extending the stored session model. Its
+subject checks restrict a direct action to the exact selected candidate context;
+normal authorization, admission and canonical approval retain their owners.
+
 decision_scope=EDIT-12-01 / EDIT-12-02
 updated_at=2026-10-27
 
@@ -91,4 +96,8 @@ Source-rendered content then enters existing Phase 10 candidate and semantic-dif
 admission. A closed source-mapping Projection retains the typed confirmation and
 exact captured dependencies. Continuation consumes that mapping alongside the
 existing independent review and approval owners; no new application gate is created.
-The bridge, views and review specifications are authored pending native qualification.
+The bridge, Views and Review are accepted at native Stage 12.3 commit
+`a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b` after 448 tests in 33 suites and
+independent accepted review. Actual canonical application and fresh-process
+continuation retain their later Stage owners. The contextual Palette is authored
+under Stage 12.4 and has not yet received native validation or independent review.

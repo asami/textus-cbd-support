@@ -1,5 +1,9 @@
 # Model Edit Session Contract
 
+The direct [Update Palette](model-edit-palette-contract.md) is another client of
+the same candidate service. Its contextual applicability never replaces command
+admission, supplied successor identities, external resolution or approval gates.
+
 status=target
 decision_scope=EDIT-12-01 / EDIT-12-02
 updated_at=2026-10-27

@@ -16,12 +16,12 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.2 are CLOSED; Stage 12.3 is IN_PROGRESS, later stages remain
+2026-10-27; Stages 12.1–12.3 are CLOSED; Stage 12.4 is IN_PROGRESS, later stages remain
 OPEN and parent Phase 12 is IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
-EDIT-12-01 and EDIT12-02 are accepted foundations; EDIT12-03 is the current
+EDIT-12-01, EDIT12-02 and EDIT12-03 are accepted; EDIT12-04 is the current
 issued implementation scope. Phase 10.7 and Phase
 11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
 quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
@@ -42,28 +42,31 @@ Stage 12.2 is accepted at native commit
 passed, independent review accepted the repaired candidate, and original REVIEW
 `issue-1` is RESOLVED. The immutable mutation service, typed edit payload,
 captured rehydration and complete review subject are within that accepted scope.
-Stage 12.3 now owns source-authorized projection and deterministic review;
-external clients and end-to-end promotion remain outstanding.
+Stage 12.3 is accepted at native commit
+`a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b`: fresh native validation passed
+448 tests in 33 suites and independent review
+`cbd-phase12-edit12-03-independent-review-02` accepted the repaired candidate.
+The accepted source-owner JSON production/read/candidate-v2 connection, shared
+Views and complete-scope Review retain exact identities, independent Actors,
+typed Slice fields and Phase 11 unavailable-versus-empty evidence. Plan revision 2
+was adopted through the genuine Human answer and retains the accepted prefix.
+The actual separate-JVM producer Spec connects delivered Cozy output to existing
+Phase 10 admission. This consuming acceptance does not close the broader FU-07
+work, supply a positive upstream Use Case demand mapping or prove canonical
+application/fresh-process continuation. Those existing later boundaries remain.
 
-The Stage 12.3 implementation is authored against the actual delivered Cozy JSON
-production/read/candidate-v2 contract. Shared Views and complete-scope project-policy
-findings retain exact candidate/source evidence, independent Actors and typed Slice
-fields. The producer-focused executable Spec connects actual CML/JVM production to
-existing Phase 10 admission. Execution and independent review remain pending.
-A proposed Plan revision 2 adds existing `cbd-phase12-ordinary-01` to this current
-Step for affected v1/v2 core compatibility; it changes no accepted Step, source
-ownership or later acceptance and is not yet adopted.
+Stage 12.4 now authors the contextual direct Palette, same-service mutation
+adapter and candidate confirmation. Its native checks and independent review
+remain pending. See the [Palette contract](../spec/model-edit-palette-contract.md).
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
 codecs and continuation are not established by generic realization V3 records.
-Stage 12.2 accepts the candidate payload integration. Stage 12.3 must admit
-the required source mapping before supported projection/promotion; Stage 12.8
-must prove durable continuation. Stage 12.2 carries these values as typed candidate-only package projections;
-canonical source mapping remains outstanding, with no opaque persistence sidecar
-or Phase 10 gate bypass.
-FU-01/FU-03/FU-07 remain dependencies of consuming Views, not prerequisites
-fictionally completed by foundation construction.
+Stage 12.2 accepts candidate payload integration and Stage 12.3 accepts the
+required source mapping through existing Phase 10 validators. Stage 12.8 must
+prove durable continuation; actual approval/application remains with its later
+Stage. No opaque persistence sidecar or Phase 10 gate bypass is introduced.
+The consumed FU-01/FU-03/FU-07 portions do not close their broader follow-ups.
 
 ## Local execution preparation
 
@@ -286,20 +289,17 @@ deterministic operations equivalent to `createUseCaseSlice`,
 All operations target candidate state and require typed subject references.
 
 Identify the source owner and supported projection/schema for each new Slice
-and relationship before freezing edits. The foundation explicitly records that
-canonical Slice/trace support is unadmitted. The existing obligation to extend
-the admitted Phase 10 semantic payload, typed subject, codecs and continuation
-contract where needed remains required before canonical promotion, preserving
-existing identities. Its service/projection integration is tracked by Stages
-12.2/12.3 and durable proof by Stage 12.8. Do not hide new semantics in opaque
-sidecars or assume the current closed schema already supports them. Unsupported
-canonical projection stays explicit candidate work until the upstream/source
-contract is admitted.
+and relationship before freezing edits. At foundation acceptance, canonical
+Slice/trace support was unadmitted. Stages 12.2/12.3 subsequently accepted the typed
+payload and qualified source mapping through existing Phase 10 owners, preserving
+identities. Actual approval/application and durable proof retain their later
+Stages. Unsupported canonical projection stays explicit candidate work; no opaque
+sidecar or generic schema claim supplies a missing mapping.
 
 ### Stage 12.2 - Candidate Model Edit Service
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED on 2026-10-27
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-02 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -313,7 +313,7 @@ operations candidate-only until their canonical source mapping is admitted.
 ### Stage 12.3 - Candidate projection and confirmation
 
 Stage Status:
-- Current status: OPEN
+- Current status: CLOSED on 2026-10-27
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-03 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -328,7 +328,7 @@ distinguish absent upstream data from an explicitly empty relationship.
 ### Stage 12.4 - Update Palette and direct commands
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-04 in
   [Phase 12 Checklist](phase-12-checklist.md).

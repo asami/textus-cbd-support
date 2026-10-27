@@ -384,3 +384,46 @@ The current four issue dispositions retain the authored fixes awaiting native
 requalification and focused independent re-review. No test, producer, SBT, native
 workflow, runtime action or Git mutation was executed by this repair owner.
 Stage 12.3 and Phase 12 remain open.
+
+### Stage 12.3 accepted; contextual Palette implementation issued
+
+Native fresh validation passed 448 tests in 33 suites and independent review
+`cbd-phase12-edit12-03-independent-review-02` accepted the corrected Stage 12.3
+candidate. TEST issue-6 and REVIEW issues 3–5 are resolved; previous resolved
+issues 1–2, failed checks, evidence-preparation/submission metadata failures,
+header normalization history, genuine Plan revision adoption and four repairs
+remain retained. Native commit `a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b`
+(parent `f6f2f354b6e2ef2767ee1737adfc8858bf5eead7`) is the accepted Step receipt.
+The same Session's `call-advance-edit12-03-close-01/response.json` issues
+EDIT12-04 at `ordered-implementation:819`, expected revision 820. The canonical
+Phase/checklist now record Stages 12.1–12.3 CLOSED, Stage 12.4 IN_PROGRESS and
+Phase 12 IN_PROGRESS. Broader FU-07 and upstream positive Use Case demand mappings,
+actual canonical approval/application and fresh-process proofs remain open under
+their existing owners. The temporary assembly setting remains operational context,
+not a new prerequisite or framework change.
+
+The Stage 12.4 contract/design now describe a contextual Palette over exact typed
+Actor, Goal, Use Case, Slice and relationship subjects. Authored `ModelEditPalette`
+filters deterministic command metadata by the caller-admitted session/scope grant
+and exact subject applicability. Existing typed Mono-Koto and Event Storming
+projections supply exact contexts without name matching. `ModelEditModelMutation`
+checks command/subject correspondence, calls the same accepted immutable service,
+and projects the returned candidate through the shared View.
+`ModelEditWebView` renders escaped Palette metadata and candidate confirmation,
+including Goal intent, Slice details and independent external edges. TicketRef
+linking has no external client or ticket mutation path; source-only event/causal
+editing retains its accepted source-owner boundary.
+
+The two selected ordinary-03 executable specs author meaningful coverage of all
+ten commands across Actor Goal, Mono-Koto and Event Storming, stable Slice
+refinement, independent exact Specification/Ticket linking and unlinking,
+caller-supplied successor/property cases, permission filtering, contextual
+mismatches, unresolved targets and escaped confirmation. They compare the direct
+adapter with the same service and retain exact history and read-only source
+attribution. No stored session schema, authorization policy, canonical writer,
+source producer, Job or AI framework changes.
+
+This owner ran no tests, SBT, producer, native workflow, runtime or Git mutation.
+Stage 12.4's compile/checks, independent review and acceptance are pending under
+the existing native workflow. Prior 448/33 proof qualifies accepted Stage 12.3,
+not the newly authored Palette.

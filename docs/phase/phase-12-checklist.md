@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.2 CLOSED; Stage 12.3 IN_PROGRESS; Stage 12.4+ OPEN
+Status: IN_PROGRESS — Stages 12.1–12.3 CLOSED; Stage 12.4 IN_PROGRESS; Stage 12.5+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -83,57 +83,49 @@ retains this commit and review.
 
 ## EDIT-12-03: Candidate projection and confirmation (Stage 12.3)
 
-IN_PROGRESS; the runtime accepted the user's selected-check Plan revision and
-issued the continued ImplementStep with the retained authored work. The required Cozy
-source-owner parse/publication/candidate-rendering delivery was received at
-Cozy commit `da61cb223a1df16a9b6cbacd4498ba8134cf3a22`, including candidate-v2
-creation, from the independent Cozy development chat under the
-[Usage Contract](../spec/model-edit-source-projection-contract.md). Cozy owns
-producer implementation, validation, independent review, commit and any local
-publication; CBD owns qualified consumption and native acceptance. The earlier
-internal dependency-scope proposal was rejected through the supported Human
-route in favor of independent supplier delivery. Correct selection of the existing
-assembly through `textus.assembly.descriptor`, retained as a temporary recovery,
-enabled the installed runtime to
-accept that direction and issue the next EDIT12-03 ImplementStep in the same
-Session, retaining the accepted prefix and repair history. No sm-workflow-dev
-correction was required for this continuation. Supplier delivery alone does not
-establish CBD integration.
-Source-unmapped data remains inspection-only until its qualified CBD integration
-is admitted. The existing journal retains both startup failures and the successful
-supported continuation.
+CLOSED by native Step acceptance and commit
+`a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b` (parent `f6f2f35`). Fresh native
+validation passed 448 tests in 33 selected suites. Independent review
+`cbd-phase12-edit12-03-independent-review-02` accepted the repaired candidate;
+current TEST/REVIEW issues 2–6 are resolved. Accepted supplier Cozy commit
+`da61cb223a1df16a9b6cbacd4498ba8134cf3a22` is consumed through its actual
+production/read/render-candidate-v2/re-production JVM route, qualified against
+existing Phase 10 validators. Plan revision 2 was genuinely adopted and retained
+the accepted prefix. The earlier rejected internal dependency proposal, startup
+recovery, check failures and four repair batches remain in native/journal history.
 
-Authored integration now includes typed source publication/read binding, source-owned
-canonical facts, candidate-v2 rendering confirmation, shared Views, deterministic
-complete-scope policy findings and a genuine producer-focused executable Spec.
-Independent source Actors and declared Slice fields require the explicit v2 session
-profile; accepted v1 shape/read behavior is preserved. No authored Spec has been run
-by the implementation owner. Native qualification and independent review remain
-pending. The existing current Step selection (ordinary-02 and producer-focused)
-omits affected core service/codec/package/rehydration/action-gate compatibility
-regressions in declared ordinary-01. A complete Plan revision 2 proposal adds that
-existing check to EDIT12-03 only. The user selected `AdoptPlanRevision`; native
-admission accepted Plan revision 2 and issued the continued Step with ordinary-01,
-ordinary-02 and producer-focused. Qualification and independent review remain pending. No
-checked item or accepted prefix is changed by that proposal.
+Source-authorized candidate projection, same-candidate Actor Goal/Event Storming
+and independent development trace, complete-scope project-policy Review, and
+explicit Phase 11 unavailable-versus-empty evidence are accepted here. The Use
+Case demand owner mapping remains upstream unavailable; broader FU-07 lifecycle/
+Observed/Phase 87 work is not closed by this consuming portion. Canonical
+approval/application and fresh-process continuation retain their later Stages.
+The temporary runtime assembly recovery is not a new Phase prerequisite.
 
-- [ ] Admit the required projection follow-up contracts and project candidate
+- [x] Admit the required projection follow-up contracts and project candidate
   Actor Goal List/Event Storming through shared Views; clearly distinguish
   candidate/canonical state and confirm accumulated candidate edits.
-- [ ] Establish source-authorized Slice/trace projection and CML mappings before
+- [x] Establish source-authorized Slice/trace projection and CML mappings before
   permitting those semantics through the existing Phase 10 promotion gate.
-- [ ] Add Use Case development trace projection:
+- [x] Add Use Case development trace projection:
   Actor Goal -> Use Case -> Use Case Slice, with independent Slice links to
   Executable Specifications and Tickets.
-- [ ] Join Phase 11 Use Case/Application Capability demand trace as read-only
+- [x] Join Phase 11 Use Case/Application Capability demand trace as read-only
   evidence when admitted; distinguish unavailable projection from empty demand.
-- [ ] Add deterministic Review findings at least for GoalWithoutUseCase,
+- [x] Add deterministic Review findings at least for GoalWithoutUseCase,
   UseCaseWithoutSlice, SliceWithoutExecutableSpecification, SliceWithoutTicket,
   dangling Specification/Ticket and admitted behavioral/capability coverage gaps.
-- [ ] Cover policy-required UseCaseWithoutGoal and MissingCapabilityDemandTrace;
+- [x] Cover policy-required UseCaseWithoutGoal and MissingCapabilityDemandTrace;
   distinguish unavailable Phase 11 evidence from a proven missing demand edge.
 
 ## EDIT-12-04: Update Palette and direct commands (Stage 12.4)
+
+IN_PROGRESS under the actual native ImplementStep after Stage 12.3 acceptance.
+The [Palette contract](../spec/model-edit-palette-contract.md) and
+[design](../design/model-edit-palette.md) describe authored contextual inspection,
+direct same-service commands and shared candidate confirmation. Native selected
+ordinary-03 validation and independent review remain pending; the following items
+are not accepted by implementation authorship.
 
 - [ ] Implement contextual deterministic Actor Goal List, Mono-Koto, and
   Event Storming operations through the same candidate Edit Session service.

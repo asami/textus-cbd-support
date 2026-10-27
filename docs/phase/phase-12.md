@@ -16,12 +16,12 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.7 are CLOSED; Stage 12.8 and parent Phase12 are IN_PROGRESS.
+2026-10-27; Stages 12.1–12.8 are CLOSED; parent Phase12 remains IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
-EDIT-12-01 through EDIT12-07 are accepted; EDIT12-08 is the current
-issued implementation scope. Phase 10.7 and Phase
+EDIT-12-01 through EDIT12-08 are accepted. The current issued scope is the
+first whole-Phase Release repair under the unchanged Plan3. Phase 10.7 and Phase
 11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
 quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
 CLOSED; their existing owners are reused where applicable, without introducing
@@ -74,16 +74,23 @@ actually Human-approved candidate@10 and passed 155 ordinary checks, one produce
 integration and one complete effectful E2E. Actual approved application, real Cozy
 lint and source-backed re-projection succeeded; native Step review/admission
 completed with commit `c5d55e0e813c40f499d84b5685db0db1b0978f68` and accepted
-review `cbd-phase12-edit12-07-independent-review-01`. Stage12.8 is current and
-Phase12 remains open.
+review `cbd-phase12-edit12-07-independent-review-01`. Stage12.8 is accepted at commit
+`6e10ec3ec672d607537727a638aed5c737ff3abc`: native ordinary qualification
+passed83tests/16suites and actual separate-JVM continuation passed1test/1suite.
+Independent review `cbd-phase12-edit12-08-independent-review-01` accepted without
+findings. Whole-Phase ordinary validation and independent Phase review remain
+required; the first full-run check identified a legacy service-inventory
+expectation that omitted the new CbdModelEdit service. Native issued an ordinary
+Release repair and retained every accepted Step; Phase12 remains open.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
 codecs and continuation are not established by generic realization V3 records.
 Stage 12.2 accepts candidate payload integration and Stage 12.3 accepts the
 required source mapping through existing Phase10 validators. Stage12.7 has
-proved actual exact approval/application; Stage12.8 must now prove durable
-continuation across the original approved history and refreshed canonical model. No opaque persistence sidecar or Phase 10 gate bypass is introduced.
+proved actual exact approval/application; Stage12.8 proved durable continuation across the original approved history
+and independently inspected the refreshed canonical model, preserving its absent
+Resume boundary. No opaque persistence sidecar or Phase 10 gate bypass is introduced.
 The consumed FU-01/FU-03/FU-07 portions do not close their broader follow-ups.
 
 ## Local execution preparation
@@ -100,8 +107,8 @@ The accepted EDIT-12-01 foundation established source ownership, typed
 session/operation contracts, and design/specification promotion. Use the
 [local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 to connect the existing candidate, package, approval and CML application owners.
-Resume from EDIT12-08 and the document-based reassessment below; the accepted
-Stages12.1–12.7 are not restarted.
+Continue the issued whole-Phase Release repair and document-based reassessment
+below; the accepted Stages12.1–12.8 are not restarted.
 
 ## Document-based reassessment — 2026-10-27
 
@@ -116,7 +123,7 @@ Reuse the accepted session/service, source mapping, Views/Review, Palette,
 conversational adapter and external Operations from Stages 12.1–12.6. Preserve
 their commits, independent reviews, successful checks, failures and repair
 history. Stage12.7 has now completed its exact reviewed/Human-approved
-application and native qualification; reuse it for Stage12.8 continuation.
+application and native qualification; Stage12.8 has now qualified its fresh-process continuation and cross-view reuse.
 
 | Remaining boundary | Current evidence and required outcome |
 | --- | --- |
@@ -124,10 +131,10 @@ application and native qualification; reuse it for Stage12.8 continuation.
 | Stage 12.7 promotion | The concrete complete subject received independent product review and exact actual-human approval. Existing Phase10 application changed the retained target to r2; actual lint and source-backed post-validation succeeded. Native Step review/admission and commit `c5d55e0` completed; the prior missing-input failure remains in history. |
 | Conditional Phase 11 input | Consume available demand evidence read-only. Preserve `Unavailable` when no admitted input exists; the conditional acceptance item does not require fabricating a positive upstream mapping. |
 | Ticket references | Plan3 now adopts the owner's provisional-integration direction. Prove explicit sample identity, links, authorization, Review and persistence; retain live operational acceptance as P12-TICKET-OPERATIONS. |
-| Stage 12.8 and Phase closure | Complete Mono-Koto plus an engineering View, actual fresh-process continuation and exact edge preservation through promotion, then required integrated validation and independent review. Keep the ledger open until the corresponding evidence exists. |
+| Stage 12.8 and Phase closure | Mono-Koto/Structure reuse and actual fresh-process identity/edge/Review preservation passed84tests/17suites and independent Step review, committed as `6e10ec3`. Whole-Phase regression and independent Phase review remain pending; the current Release repair addresses the observed legacy service inventory expectation. |
 
-The Stage12.7 path above is now accepted. The first remaining implementation
-outcome is Stage12.8 cross-view and fresh-process continuation. The existing
+The Stage12.7/12.8 paths above are accepted. The remaining outcome is
+whole-Phase qualification, independent integrated review and native closure. The existing
 sm-workflow Session remains the execution owner. The qualified Plan
 continuation repair has resumed that Session under Plan3 without reopening
 accepted Steps. A new runtime build alone supplies no product acceptance. Do not
@@ -440,7 +447,7 @@ Support a session in which the user can:
 ### Stage 12.8 - Cross-view reuse and closure
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-08 in
   [Phase 12 Checklist](phase-12-checklist.md).

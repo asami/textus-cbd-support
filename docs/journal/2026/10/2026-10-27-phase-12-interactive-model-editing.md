@@ -944,3 +944,25 @@ to `/Users/asami/src/dev2026/cozy`, `/Users/asami/src/dev2026/sbt-cozy` and
 suite, argv, grant, limit, product or supplier source was changed. This corrects
 host preparation only; native requalification and independent review remain
 pending. The failure and previous accepted work remain retained.
+
+
+## Stage12.8 acceptance and first whole-Phase Release repair
+
+After the existing source-root host correction, native validation passed83tests
+in16ordinary suites plus one actual fresh-process test. Independent review
+`cbd-phase12-edit12-08-independent-review-01` accepted without findings; TEST
+issue9 is resolved. The parent registered that actual review and existing ordinary
+Step closure authority through prepareEvidence/prepareAuthority and StartupImport.
+No validated worktree content was changed during Review admission. Native Advance
+committed `6e10ec3ec672d607537727a638aed5c737ff3abc`, parent `c5d55e0`,
+then started the ten declared whole-Phase ordinary checks.
+
+The first check executed264tests/16suites;263passed and the X2 service inventory
+in InternalModelContinuationApiSpec failed because its exact expected service list
+omitted the existing new CbdModelEdit service. Actual request and terminal receipt
+are retained at `call-advance-edit12-08-closure-01/response.json`. Native issued
+Phase-level RepairStep1347/1348, without Step identity, Release window1/10.
+The accepted Stage12.1–12.8 prefix remains intact. The owner is diagnosing and
+correcting this actual failure within original ownership; the parent updates
+Stage12.8's ledger only now, after actual accepted commit. Whole-Phase validation,
+independent integrated review and final closure remain pending.

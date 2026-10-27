@@ -17,7 +17,7 @@ import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
  * Authenticated internal operations and package-only continuation; authored, not validated.
  *
  * @since   Oct.  3, 2026
- * @version Oct.  4, 2026
+ * @version Oct. 27, 2026
  */
 final class InternalModelContinuationApiSpec
     extends AnyWordSpec with Matchers with GivenWhenThen with ScalaCheckPropertyChecks {
@@ -636,9 +636,9 @@ final class InternalModelContinuationApiSpec
       }
 
       "X2 preserve catalog and representative Entity Aggregate View operations and service metadata" in {
-        Given("the same actual Factory assembly, six generated service specifications and an independent empty-protocol framework baseline")
+        Given("the same actual Factory assembly, seven generated service specifications and an independent empty-protocol framework baseline")
         withActualComponent { component =>
-          val originals = Vector(CbdSupportComponent.CbdRetrievalService, CbdSupportComponent.CbdCatalogAdminService,
+          val originals = Vector(CbdSupportComponent.CbdRetrievalService, CbdSupportComponent.CbdModelEditService, CbdSupportComponent.CbdCatalogAdminService,
             CbdSupportComponent.CbdReviewAdminService, CbdSupportComponent.AggregateService,
             CbdSupportComponent.ViewService, CbdSupportComponent.EntityService)
           val baseline = Component.Core.create(CbdSupportComponent.name, CbdSupportComponent.componentId,
@@ -647,7 +647,7 @@ final class InternalModelContinuationApiSpec
           val defaults = baseline.protocol.services.services
           val assembled = component.core.protocol.services.services
           val listed = assembled.map(service => service.name -> service.operations.operations.toVector.map(_.name)).toMap
-          Then("the six generated services and unchanged meta/system defaults retain exact order, content, metadata and operations")
+          Then("the seven generated services and unchanged meta/system defaults retain exact order, content, metadata and operations")
           defaults.map(_.name) shouldBe Vector("meta", "system")
           assembled.map(_.name) shouldBe originals.map(_.name) ++ defaults.map(_.name)
           assembled.take(originals.size).zip(originals).foreach { case (actual, original) =>

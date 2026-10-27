@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.7 CLOSED; Stage 12.8 IN_PROGRESS
+Status: IN_PROGRESS — Stages 12.1–12.8 CLOSED; whole-Phase validation/acceptance pending
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -204,7 +204,7 @@ resumed the same Session under Plan3. The journal retains the original failures,
 accepted-result reference and successful continuation receipts.
 The earlier missing-input E2E failure and native repair count2/10 remain retained.
 Actual product review, Human decision, application and post-validation now exist;
-Stage12.7 is accepted. Stage12.8 is the current issued ImplementStep; Phase12
+Stages12.7/12.8 are accepted. Whole-Phase validation is current; Phase12
 remains open.
 
 The owner's document-based reassessment retains this state and the accepted
@@ -227,21 +227,31 @@ not a new mandatory upstream delivery.
 
 ## EDIT-12-08: Cross-view reuse and closure (Stage 12.8)
 
-IN_PROGRESS under the issued Plan3 ImplementStep. Required cross-view and
-fresh-process evidence, native Step review and Phase closure remain pending.
+CLOSED by native Step acceptance and commit
+`6e10ec3ec672d607537727a638aed5c737ff3abc`, parent `c5d55e0`.
+Native qualification passed83 ordinary tests/16suites and one actual
+fresh-process test, total84tests/17suites, with independent review
+`cbd-phase12-edit12-08-independent-review-01` accepted without findings.
+The actual historical approved handoff is Eligible in the distinct JVM and the
+refreshed canonical revision2 preserves the source-owned endpoints and independent
+trace relationships. Current canonical Resume absence remains explicit; historical
+approval is not rebound or treated as another source permission. Same-candidate
+Mono-Koto/Structure, audit, abandonment, restart and stale/unsupported boundaries
+are accepted. Whole-Phase regression and independent Phase review remain pending;
+this Stage acceptance alone does not close Phase12.
 
-- [ ] Apply the same session/candidate foundation to Mono-Koto and at least
+- [x] Apply the same session/candidate foundation to Mono-Koto and at least
   one engineering view such as Workflow or Structure.
-- [ ] Validate governance, durable continuation, auditability, abandonment,
+- [x] Validate governance, durable continuation, auditability, abandonment,
   failure recovery, and consistent documentation with executable evidence.
-- [ ] Prove Use Case/Slice/Specification/Ticket identities and Review state
+- [x] Prove Use Case/Slice/Specification/Ticket identities and Review state
   survive Phase 10 package continuation/resume and canonical promotion.
-- [ ] Verify new relationships survive a fresh process with their exact endpoint
+- [x] Verify new relationships survive a fresh process with their exact endpoint
   attribution; changed candidate/trace revisions invalidate previous approval,
   and an unsupported source projection cannot pass canonical promotion.
-- [ ] Prove cross-view Review uses explicit semantic identities and never closes
+- [x] Prove cross-view Review uses explicit semantic identities and never closes
   a finding solely from display-name/text similarity.
-- [ ] Complete independent review and close only when every required item is
+- [x] Complete independent review and close only when every required item is
   checked or explicitly relocated; no synchronization commit closes Phase 12.
 
 ## Relocation: P12-TICKET-OPERATIONS

@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.8 CLOSED; whole-Phase validation/acceptance pending
+Status: CLOSED
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -28,6 +28,21 @@ That run closed EDIT-12-01. EDIT12-02 is now separately accepted at
 IN_PROGRESS. The compact
 [handoff](../journal/2026/10/2026-10-27-phase-12-edit-session-foundation.md)
 records the selected boundary without duplicating native execution evidence.
+
+## Current completion — 2026-10-27
+
+All eight Stages are CLOSED. The same native Session
+`0e18bbc58dc2fbfbe3fec1246d91b931` reached Terminal/completed after
+whole-Phase qualification, independent Phase acceptance and the actual local
+Release commit `24ef023ce33c7b2d6aa799bf7a66a0f9edbbd32d`.
+Authoritative local completion is separate from GitHub synchronization, which
+is deferred and was not attempted. Original accepted work, failures, repair
+history and the actual candidate-specific Human decision are retained.
+The execution material remains outside Git at the task-relative
+`call-advance-phase12-closure-01/response.json` and associated local artifacts.
+The named P12-TICKET-OPERATIONS relocation below remains future work; current
+canonical Resume absence and conditional Phase11 Unavailable are explicit
+accepted boundaries, not positive operational claims.
 
 ## EDIT-12-01: Edit Session and operation contract (Stage 12.1)
 
@@ -237,8 +252,8 @@ refreshed canonical revision2 preserves the source-owned endpoints and independe
 trace relationships. Current canonical Resume absence remains explicit; historical
 approval is not rebound or treated as another source permission. Same-candidate
 Mono-Koto/Structure, audit, abandonment, restart and stale/unsupported boundaries
-are accepted. Whole-Phase regression and independent Phase review remain pending;
-this Stage acceptance alone does not close Phase12.
+are accepted. Whole-Phase regression and independent Phase review subsequently accepted the
+combined result, followed by actual native completion recorded above.
 
 - [x] Apply the same session/candidate foundation to Mono-Koto and at least
   one engineering view such as Workflow or Structure.

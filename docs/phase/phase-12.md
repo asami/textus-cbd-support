@@ -1,7 +1,7 @@
 # Phase 12 - Interactive View and Model Editing
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED
 - Predecessor: Phase 11.1 Capability Views, Web/MCP, and Acceptance
 - Required inputs: accepted Phase 9 model/view contracts, the Phase 10 sequence,
   and the admitted Actor Goal / Event Storming projection follow-up contracts
@@ -16,7 +16,19 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.8 are CLOSED; parent Phase12 remains IN_PROGRESS.
+2026-10-27; Stages 12.1–12.8 are CLOSED; parent Phase12 is CLOSED.
+
+## Current completion — 2026-10-27
+
+Phase12 is CLOSED. The [completion ledger](phase-12-checklist.md) records the
+accepted Stages and the final native Terminal/completed outcome under the same
+Session and adopted Plan3. Whole-Phase qualification and independent Phase review
+accepted the integrated result, followed by local Release commit
+`24ef023ce33c7b2d6aa799bf7a66a0f9edbbd32d`. GitHub synchronization is deferred
+and was not attempted. The implementation and its accepted scope are described
+in the existing contracts, User Guide and manual. The following dated execution
+narrative preserves the earlier frontier and is superseded only for current
+status by this completion section; failures and repair history are not rewritten.
 
 ## Current bounded execution — 2026-10-27
 

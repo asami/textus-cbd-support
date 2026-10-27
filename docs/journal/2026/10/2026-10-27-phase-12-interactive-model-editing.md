@@ -834,3 +834,113 @@ root's `admitted-inputs`. Provisional Ticket and unknown operational effect
 assessments remain visible and unchanged. No canonical write or qualification
 success has yet been executed by this preparation; native validation owns the
 existing admission, application, actual lint and source-backed post-validation.
+
+
+## Actual Stage12.7 canonical application and complete E2E qualification
+
+The current1194/1195 repair was submitted once with the supplied independent
+review, actual Human decision and exact target authority. Native Submit accepted
+it; the paired ordinary Advance terminated with command-tool exit0 and issued
+ReviewStep `ordered-review:1245`, expected revision1246. Receipt: task-relative
+`call-complete-edit12-07-repair-02/advance/response.json`; the actual outer
+terminal receipt is retained beside it. Repair history remains2/10.
+
+Fresh native qualification passed155tests/16suites for ordinary-06, one producer
+integration test and one complete E2E, each with exit0, no failures/cancellations
+or aborted suites. The actual approved target in retained root
+`target/model-edit-e2e/actual-16328960651806247047` now declares source r2.
+`post-validation.json` records ReprojectedPendingAcceptance, no problems and
+actual selected Cozy argv `--runtime 0.3.3-SNAPSHOT lint cml <absolute target>
+--format json`, exit0, findings empty. Actual source-backed projection refreshed
+carrier revision2; the exact original reviewed edit/history carrier remains intact
+at `review-materials/approved-candidate`. No report was reconstructed as write
+permission. Native Step review, admission and commit remain separate and pending.
+
+The three Stage12.7 checklist observations reflect these actual outcomes. The
+conditional Phase11 input remains unavailable; positive demand is not fabricated
+and the accepted read-only boundary remains applicable. Ticket references remain
+provisional. Required Stage12.8 fresh-process/cross-view work and Phase closure
+are not claimed by this E2E success.
+
+
+## Native Stage12.7 acceptance and Stage12.8 implementation
+
+Independent Step review returned accept with no findings, reusing the applicable
+actual product review and accepted prior boundaries while assessing157 fresh
+native tests across18 suites, actual Human direction, canonical application and
+source-backed post-validation. Initial Submit was rejected before acceptance
+with HTTP409 because the parent had edited three owned progress documents after
+validation. The parent retained those own notes at task-relative
+`caller-post-validation-progress-notes-01`, restored only those worktree files to
+the already validated index without modifying that index or any other work, and
+submitted the still-unaccepted review. It was accepted. No accepted Submit was
+replayed, no successful check repeated, and no native private record changed.
+
+The accepted review produced ordinary Closing Wait with current authority_context.
+The parent registered already-authorized local Step closure through normal
+prepareAuthority and trusted StartupImport. Ordinary Advance committed
+`c5d55e0e813c40f499d84b5685db0db1b0978f68`, parent `66a20813`, retaining review
+`cbd-phase12-edit12-07-independent-review-01`. Actual closure receipt:
+`call-advance-edit12-07-closure-01/response.json`, command-tool exit0.
+It issued EDIT12-08 ImplementStep `ordered-implementation:1251`, expected1252,
+under the same Plan3 and Session. Native reset the new Step window to0/10 only
+after this actual accepted commit. Historical two repairs remain retained.
+
+At this ordinary implementation frontier, the parent merged its preserved notes
+and recorded Stage12.7 CLOSED/Stage12.8 IN_PROGRESS. The existing semantic owner
+`/root/cbd12_remaining_owner`, configured GPT-6.1 Sol/high, owns the required
+cross-view and fresh-process work within the actual issued paths. Actual
+execution model metadata remains unavailable. Phase12 is not complete; Stage12.8
+qualification, independent Step/Phase review and final closure remain required.
+
+
+## Selected Stage12.8 continuation host input
+
+The parent selected the accepted Stage12.7 root through the existing
+`textus.cbd.modelEditE2ePreparedRoot` property on declared native check16
+(continuation-focused). The existing build already forwards this property; no
+new setting, check, cursor, authority or operation was introduced. Backup is
+task-relative `caller-config-before-edit12-08-retained-root-01.json`. The owner
+will inspect the original actual approved carrier and the refreshed canonical
+carrier through their existing typed readers in a separate JVM. Historical
+approval remains historical, and the current carrier's absent Resume artifact
+is preserved unless an actual ordinary owner produces one. This host selection
+executes no validation and establishes no Stage12.8 completion.
+
+
+## Stage12.8 authored implementation submitted for native qualification
+
+The existing semantic owner returned authored readiness in nine issued owned
+paths, retained as task-relative `edit12-08-implementation-submission-01.json`.
+The cross-view adapter reuses the immutable candidate, ordinary authorization,
+Palette, audit and review applicability in Mono-Koto and Structure. The focused
+fresh-process specification uses the accepted Stage12.7 root and existing closed
+continuation readers to distinguish the actual historical approved handoff from
+the refreshed canonical carrier. It preserves exact Slice, Specification and
+provisional Ticket attribution; the current carrier has no Resume artifact and
+no current resume or renewed approval is claimed. Source-only unsupported
+projection, stale dependencies, abandonment and fresh-session restart remain
+explicitly specified. The worker executed no validation or canonical effects.
+Native selected qualification and independent Step/Phase review remain pending.
+
+
+## Stage12.8 first native validation and selected source-root correction
+
+Native Submit accepted the authored result. Ordinary-07 compiled and executed
+83tests in16suites:82passed and one existing Phase5 executable-coverage
+observation failed because its historical Cozy path has no selected source file.
+The continuation-focused operation did not run. Actual request is retained at
+`call-complete-edit12-08-implementation-01/advance/response.json`, validation
+source1289, issue9, issued repair1292/1293, current window1/10. The command
+terminated with exit0 while the selected SBT check exited1; these are distinct.
+
+Before correction, the owner froze
+`edit12-08-diagnostic-repair-manifest-01.json`. The parent verified every declared
+sibling Scala file and exact anchor in the existing Phase5 coverage manifest.
+Through its existing explicit source-root settings, selected check10 now points
+to `/Users/asami/src/dev2026/cozy`, `/Users/asami/src/dev2026/sbt-cozy` and
+`/Users/asami/src/dev2026/textus-ai-core`. Backup is task-relative
+`caller-config-before-edit12-08-coverage-root-01.json`. No declared path, anchor,
+suite, argv, grant, limit, product or supplier source was changed. This corrects
+host preparation only; native requalification and independent review remain
+pending. The failure and previous accepted work remain retained.

@@ -16,13 +16,12 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.6 are CLOSED; Stage 12.7 is IN_PROGRESS and Stage 12.8 remains
-OPEN and parent Phase 12 is IN_PROGRESS.
+2026-10-27; Stages 12.1–12.7 are CLOSED; Stage 12.8 and parent Phase12 are IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
-EDIT-12-01 through EDIT12-06 are accepted; EDIT12-07 is the current
-issued repair scope. Phase 10.7 and Phase
+EDIT-12-01 through EDIT12-07 are accepted; EDIT12-08 is the current
+issued implementation scope. Phase 10.7 and Phase
 11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
 quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
 CLOSED; their existing owners are reused where applicable, without introducing
@@ -70,18 +69,21 @@ Stage 12.6 is accepted at native commit
 71 tests in 16 suites and independent review
 `cbd-phase12-edit12-06-independent-review-01` accepted the
 [ordinary external Operations](../spec/model-edit-external-operations-contract.md)
-and shared host-owned application. Stage12.7 has produced its concrete no-write
-candidate and passed 155 ordinary checks plus one producer integration check;
-independent product review, exact actual-human approval and the complete
-approved application/post-validation route remain unqualified.
+and shared host-owned application. Stage12.7 now has independently reviewed,
+actually Human-approved candidate@10 and passed 155 ordinary checks, one producer
+integration and one complete effectful E2E. Actual approved application, real Cozy
+lint and source-backed re-projection succeeded; native Step review/admission
+completed with commit `c5d55e0e813c40f499d84b5685db0db1b0978f68` and accepted
+review `cbd-phase12-edit12-07-independent-review-01`. Stage12.8 is current and
+Phase12 remains open.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
 codecs and continuation are not established by generic realization V3 records.
 Stage 12.2 accepts candidate payload integration and Stage 12.3 accepts the
-required source mapping through existing Phase 10 validators. Stage 12.8 must
-prove durable continuation; actual approval/application remains with its later
-Stage. No opaque persistence sidecar or Phase 10 gate bypass is introduced.
+required source mapping through existing Phase10 validators. Stage12.7 has
+proved actual exact approval/application; Stage12.8 must now prove durable
+continuation across the original approved history and refreshed canonical model. No opaque persistence sidecar or Phase 10 gate bypass is introduced.
 The consumed FU-01/FU-03/FU-07 portions do not close their broader follow-ups.
 
 ## Local execution preparation
@@ -98,8 +100,8 @@ The accepted EDIT-12-01 foundation established source ownership, typed
 session/operation contracts, and design/specification promotion. Use the
 [local preparation note](../notes/phase-11-12-local-execution-preparation.md)
 to connect the existing candidate, package, approval and CML application owners.
-Resume from EDIT-12-07 and the document-based reassessment below; the accepted
-Stages 12.1–12.6 are not restarted.
+Resume from EDIT12-08 and the document-based reassessment below; the accepted
+Stages12.1–12.7 are not restarted.
 
 ## Document-based reassessment — 2026-10-27
 
@@ -113,19 +115,20 @@ The primary work remains completion of Interactive View and Model Editing.
 Reuse the accepted session/service, source mapping, Views/Review, Palette,
 conversational adapter and external Operations from Stages 12.1–12.6. Preserve
 their commits, independent reviews, successful checks, failures and repair
-history. Preserve the unfinished Stage 12.7 files for completion, without
-claiming them qualified.
+history. Stage12.7 has now completed its exact reviewed/Human-approved
+application and native qualification; reuse it for Stage12.8 continuation.
 
 | Remaining boundary | Current evidence and required outcome |
 | --- | --- |
 | Stage 12.7 candidate preparation | Actual native preparation connected the delivered Cozy producer to direct, conversational and generated external edits and retained a concrete shared candidate with trace findings and Views. Ordinary validation passed 155 tests and producer integration passed one; preparation alone is not an accepted E2E run. |
-| Stage 12.7 promotion | Prepare a concrete complete subject, obtain independent product review and exact actual-human approval, then use the existing Phase 10 application owner and actual source re-projection. The unfinished check currently stops after preparation; complete the promotion path rather than treating that stop as success. |
+| Stage 12.7 promotion | The concrete complete subject received independent product review and exact actual-human approval. Existing Phase10 application changed the retained target to r2; actual lint and source-backed post-validation succeeded. Native Step review/admission and commit `c5d55e0` completed; the prior missing-input failure remains in history. |
 | Conditional Phase 11 input | Consume available demand evidence read-only. Preserve `Unavailable` when no admitted input exists; the conditional acceptance item does not require fabricating a positive upstream mapping. |
 | Ticket references | Plan3 now adopts the owner's provisional-integration direction. Prove explicit sample identity, links, authorization, Review and persistence; retain live operational acceptance as P12-TICKET-OPERATIONS. |
 | Stage 12.8 and Phase closure | Complete Mono-Koto plus an engineering View, actual fresh-process continuation and exact edge preservation through promotion, then required integrated validation and independent review. Keep the ledger open until the corresponding evidence exists. |
 
-The first implementation outcome is the complete Stage 12.7 path above. The
-existing sm-workflow Session remains the execution owner. The qualified Plan
+The Stage12.7 path above is now accepted. The first remaining implementation
+outcome is Stage12.8 cross-view and fresh-process continuation. The existing
+sm-workflow Session remains the execution owner. The qualified Plan
 continuation repair has resumed that Session under Plan3 without reopening
 accepted Steps. A new runtime build alone supplies no product acceptance. Do not
 re-Start the Session or resubmit the accepted Plan proposal.
@@ -408,7 +411,7 @@ Expose semantic inspection, candidate-session operations, applicable-operation d
 ### Stage 12.7 - Actor Goal -> solo Event Storming end-to-end validation
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-07 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -437,7 +440,7 @@ Support a session in which the user can:
 ### Stage 12.8 - Cross-view reuse and closure
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-08 in
   [Phase 12 Checklist](phase-12-checklist.md).

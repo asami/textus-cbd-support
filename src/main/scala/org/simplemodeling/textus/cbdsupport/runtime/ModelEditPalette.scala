@@ -8,7 +8,7 @@ import ModelEditSession.*
  */
 /** Contextual client metadata; authorization and mutation retain their existing owners. */
 object ModelEditPalette {
-  enum Surface { case ActorGoal, MonoKoto, EventStorming, UseCaseDetail }
+  enum Surface { case ActorGoal, MonoKoto, EventStorming, UseCaseDetail, Structure }
   final case class Context(surface: Surface, scope: Scope, subject: Subject)
   final case class Entry(kind: CommandKind, label: String, inputs: Vector[String])
   final case class View(session: InternalModelRecordReference, candidate: InternalModelRecordReference,
@@ -44,6 +44,14 @@ object ModelEditPalette {
     Either.cond(projection.candidate == session.candidate.reference && projection.scope == session.scope &&
       _identity(subject).exists(identity => projection.nodes.exists(_.identity == identity)) && _known(session.candidate, subject),
       Context(Surface.EventStorming, session.scope, subject), Failure.ProjectionMismatch)
+
+  def structureContext(session: ModelEditSession, projection: StructureViewProjection, subject: Subject): Either[Failure, Context] = {
+    val identities = projection.relations.flatMap(value => Vector(value.sourceRelation.sourceEndpointId,
+      value.sourceRelation.targetEndpointId)) ++ projection.gaps.flatMap(_.sourceGap.affectedEndpointId)
+    Either.cond(projection.context == session.scope.context && projection.component == session.scope.component &&
+      _identity(subject).exists(identities.contains) && _known(session.candidate, subject),
+      Context(Surface.Structure, session.scope, subject), Failure.ProjectionMismatch)
+  }
 
   private def _identity(subject: Subject): Option[ComponentDashboardSemanticTargetIdentity] = subject match {
     case Subject.Actor(identity) => Some(identity)

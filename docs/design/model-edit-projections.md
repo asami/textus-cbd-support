@@ -55,3 +55,20 @@ The normal canonical adapter emits existing model-context and realization record
 including explicit external endpoint mappings. Assertion/source-reference identities
 are supplied by the caller. The source-mapping capsule is a typed Projection in the
 existing package and complete review subject, not a second store.
+
+## Stage12.8 cross-view composition
+
+ModelEditCrossView wraps the existing host-admitted Mono-Koto and Structure DTOs
+with the shared candidate View. It checks the exact session/candidate represented
+by the wrapper before deriving either contextual Palette, then delegates edits to
+ModelEditModelMutation. Existing source facts and engineering classifications remain
+host-owned. Typed operation history and retained review applicability are projected
+from the same session; no second editor state is introduced.
+
+Its runtime-internal readPromotion operation composes the existing historical
+ContinuationActionGate with the current package/continuity validators. A historical
+approved edit carrier and the independently refreshed canonical carrier retain their
+own full references and lifecycle purposes. The latter's lack of a Resume cursor is
+explicit, not repaired by copying old selections. Fresh-JVM evidence transports
+existing typed records and inventories only for observation. It grants no approval
+or source effect and never reconstructs the previous ApplicationReport.

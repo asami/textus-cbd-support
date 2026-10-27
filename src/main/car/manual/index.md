@@ -522,3 +522,18 @@ lifetime. Existing package/history owners provide durable continuation.
 Phase10 source mapping and semantic diff admission remain authoritative; absent
 or stale evidence is explicit. See the repository external Operations contract
 and User Guide for host construction and request shapes.
+
+Embedding Mono-Koto and Structure clients can use `ModelEditCrossView` with their
+existing admitted typed projections. Both contexts share the same immutable
+candidate, contextual Palette, mutation service, ordinary grant, typed audit and
+review applicability. Exact endpoint identity governs selection and trace findings.
+Abandonment is explicit; a fresh session starts with its own declared references
+and grant.
+
+Durable continuation retains historical approved edit evidence separately from
+the newly projected canonical carrier. Existing continuation owners reevaluate an
+actual recorded historical cursor with independent caller evidence. A current
+carrier without Resume supports projection inspection and grants no new action.
+Old approval is never rebound to new dependencies. Phase12 Ticket references remain
+provisional samples; live operational confirmation is `P12-TICKET-OPERATIONS` and
+no external Ticket mutation is exposed. Absent Phase11 evidence remains Unavailable.

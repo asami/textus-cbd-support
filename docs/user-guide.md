@@ -140,6 +140,31 @@ or stale admission is `UNAVAILABLE`. Candidate changes never imply approval,
 canonical promotion or external ticket mutation. Administrative Review/catalog
 operations retain their existing private exposure.
 
+For an embedding Mono-Koto and Structure editor, `ModelEditCrossView.project`
+combines the host's existing admitted projection DTOs with that same session and
+shared confirmation/traces. `applyOperation` derives the contextual Palette and
+uses the ordinary mutation service and grant. Exact projected endpoints select
+subjects; labels do not supply missing identities or trace links. The returned
+View exposes typed operation history and retained review applicability. Abandoning
+a session prevents further edits; restarting requires a separately declared fresh
+session/candidate and its own ordinary authorization.
+
+After approved source promotion, retain the historical complete approved edit
+package and the new canonical carrier for their different purposes. Existing
+continuation admission can reevaluate a historical cursor with separately supplied
+review execution and actual Human input. The runtime-internal
+`ModelEditCrossView.readPromotion` also reads the current source-backed projection.
+A canonical carrier without a Resume artifact supports inspection; copying an old
+cursor or rebinding old approval would not create current continuation permission.
+The [continuation contract](spec/model-edit-continuation-contract.md) documents
+this boundary and the actual-carrier fresh-JVM specification.
+
+Phase12 Ticket references are provisional declared samples: exact link/unlink,
+authorization and durable attribution are supported, while live provider existence
+and operational confirmation remain `P12-TICKET-OPERATIONS`. No external Ticket
+mutation is performed. Missing Phase11 capability evidence remains explicitly
+Unavailable; it is never replaced with an asserted empty or positive result.
+
 ## Review Run Operations
 
 Use the private `CbdReviewAdmin.startReview` command with `targetKind`, `name`,

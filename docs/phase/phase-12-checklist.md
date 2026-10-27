@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.6 CLOSED; Stage 12.7 IN_PROGRESS; Stage 12.8 OPEN
+Status: IN_PROGRESS — Stages 12.1–12.7 CLOSED; Stage 12.8 IN_PROGRESS
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -177,11 +177,17 @@ See the [external contract](../spec/model-edit-external-operations-contract.md).
 
 ## EDIT-12-07: Actor Goal to solo Event Storming E2E (Stage 12.7)
 
-IN_PROGRESS under Plan3 and the current native RepairStep. Actual no-write
-preparation produced a retained concrete candidate. Native ordinary-06 passed
-155 tests in 16 suites and producer-focused passed one actual integration test.
-The E2E check stopped after preparation because independent product review and
-exact actual-human input were absent; the full E2E is not accepted.
+CLOSED by native Step acceptance and commit
+`c5d55e0e813c40f499d84b5685db0db1b0978f68` (parent `66a20813`). Independent
+Step review `cbd-phase12-edit12-07-independent-review-01` accepted without
+findings. Under the same Plan3 Session,
+actual independent product review covered all four selected checks without blocking
+findings, and the actual user approved candidate@10 and exact retained-file effects.
+Native ordinary-06 passed 155 tests in 16 suites, producer-focused passed one test
+and the complete E2E passed one test. Actual canonical application changed the
+approved target r1 to r2; real Cozy lint exited0 and source-backed post-validation
+returned ReprojectedPendingAcceptance with no problems. The actual native
+closure receipt retains the accepted review,157 tests/18 suites and Step commit.
 The user requested provisional Ticket integration on 2026-10-27 because it is not
 in operation. Complete Plan3 was adopted through the actual decision-needed route;
 it changes only remaining Stage12.7/12.8 purposes, preserving exact sample-reference
@@ -196,27 +202,33 @@ required an unissued Human frontier. The qualified dedicated runtime now issues
 that actual scoped Human; ordinary independent evidence/adoption and Advance
 resumed the same Session under Plan3. The journal retains the original failures,
 accepted-result reference and successful continuation receipts.
-Stage12.7 remains unaccepted pending independent product review, exact actual-human
-approval, canonical application, source-backed post-validation and native Step
-review. Stage12.8 and Phase12 remain open. Preserve the same Session and prefix.
+The earlier missing-input E2E failure and native repair count2/10 remain retained.
+Actual product review, Human decision, application and post-validation now exist;
+Stage12.7 is accepted. Stage12.8 is the current issued ImplementStep; Phase12
+remains open.
 
 The owner's document-based reassessment retains this state and the accepted
 Stages 12.1–12.6. See the [remaining-work assessment](phase-12.md#document-based-reassessment--2026-10-27)
-for the implementation order and evidence gaps. The unfinished E2E check's
-deliberate post-preparation failure is not a passing integration result; available
-Phase 11 demand remains a conditional input, not a new mandatory upstream delivery.
+for the implementation order and evidence gaps. The earlier missing-input failure remains a failure; the later complete E2E success
+is separately recorded in the journal. Available Phase11 demand remains conditional,
+not a new mandatory upstream delivery.
 
-- [ ] Prove shared Actor identity, provisional goals and Use Case links,
+- [x] Prove shared Actor identity, provisional goals and Use Case links,
   cross-view direct/AI edits, Review/refinement/confirmation, explicit approval
   of the exact typed candidate revision, and promotion only through the
   canonical gate.
-- [ ] Create/refine at least one stable Use Case Slice, link it to an executable
+- [x] Create/refine at least one stable Use Case Slice, link it to an executable
   specification and external ticket reference, intentionally exercise and clear
   a missing trace Review finding, and preserve exact identities through approval.
-- [ ] When Phase 11 demand evidence is available, display it in the same Use Case
-  context and prove Phase 12 cannot mutate that evidence.
+- [x] When Phase 11 demand evidence is available, display it in the same Use Case
+  context and prove Phase 12 cannot mutate that evidence. No admitted positive
+  input is available in this scenario; actual E2E preserves typed Unavailable,
+  and the previously accepted read-only boundary remains applicable.
 
 ## EDIT-12-08: Cross-view reuse and closure (Stage 12.8)
+
+IN_PROGRESS under the issued Plan3 ImplementStep. Required cross-view and
+fresh-process evidence, native Step review and Phase closure remain pending.
 
 - [ ] Apply the same session/candidate foundation to Mono-Koto and at least
   one engineering view such as Workflow or Structure.

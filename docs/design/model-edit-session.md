@@ -66,4 +66,29 @@ edit profile. Rehydration decodes captured bytes, binds exact inventory dependen
 and exposes typed edit sessions. The existing complete-subject algorithm includes
 projection roots automatically; no approval mechanism is added. The action gate
 keeps this source-unmapped profile at inspection until Stage 12.3 supplies its
-canonical projection contract. Implementation remains pending native validation.
+canonical projection contract. Native Stage 12.2 accepted this implementation at
+`f6f2f354b6e2ef2767ee1737adfc8858bf5eead7`, after 261 tests in 16 selected suites
+and independent review resolving original issue-1. This acceptance does not
+establish the Stage 12.3 canonical mapping or Stage 12.8 continuation proof.
+
+## Stage 12.3 source-owned bridge
+
+Independent Actor records allow a source-declared Actor to precede Goal creation;
+placing it in a Use Case's reference list would invent a relationship. V2 session
+payloads add that explicit collection and typed Slice fields, so source-declared
+fields are part of candidate command/history state. Actor/field-empty v1 shape and reading remain
+supported, and both use the same package inventory and rehydration owner.
+
+`ModelEditSourceProjection` consumes the delivered producer's typed JSON and
+caller-supplied source/CBD identity and external-owner mappings. Caller-admitted
+conditions remain separate from source production; the bridge creates no roles or
+authentication decision. Its canonical adapter emits the existing model-context and
+realization records using explicitly supplied assertion/source-reference identities.
+External endpoints retain explicit caller mappings rather than inferred local nodes.
+
+The candidate-v2 planner checks proposed meaning against the exact editing candidate.
+Source-rendered content then enters existing Phase 10 candidate and semantic-diff
+admission. A closed source-mapping Projection retains the typed confirmation and
+exact captured dependencies. Continuation consumes that mapping alongside the
+existing independent review and approval owners; no new application gate is created.
+The bridge, views and review specifications are authored pending native qualification.

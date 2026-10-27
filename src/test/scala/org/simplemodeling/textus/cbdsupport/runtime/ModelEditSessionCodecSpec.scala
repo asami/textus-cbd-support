@@ -1,6 +1,6 @@
 /**
  * @since   Oct. 26, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  */
 package org.simplemodeling.textus.cbdsupport.runtime
 
@@ -18,6 +18,35 @@ import ModelEditSession.*
 final class ModelEditSessionCodecSpec extends AnyWordSpec with Matchers with GivenWhenThen
     with ScalaCheckDrivenPropertyChecks {
   import ModelEditSpecFixture.*
+
+  "Independent Actor session profile" should {
+    "preserve v1 shape and round-trip an explicit source Actor in the distinct v2 profile" in {
+      Given("the accepted actor-empty candidate and a source basis with an independent Actor")
+      val old = session()
+      val publication = ModelEditProjectionSpecFixture.proposedPublication()
+      When("both profiles are encoded and decoded through the same supported reader")
+      val current = ModelEditProjectionSpecFixture.session(publication)
+      val oldbytes = ModelEditSessionCodec.encode(old)
+      val currentbytes = ModelEditSessionCodec.encode(current)
+      val oldresult = ModelEditSessionCodec.decode(oldbytes)
+      val currentresult = ModelEditSessionCodec.decode(currentbytes)
+      val oldjson = io.circe.parser.parse(new String(oldbytes.toArray, StandardCharsets.UTF_8)).toOption.get
+      val currentjson = io.circe.parser.parse(new String(currentbytes.toArray, StandardCharsets.UTF_8)).toOption.get
+      val malformed = currentjson.hcursor.downField("session").downField("candidate").downField("slices").withFocus(value =>
+        Json.fromValues(value.asArray.get.map(_.mapObject(_.remove("fields"))))).top.get
+      val missingfields = ModelEditSessionCodec.decode(malformed.noSpaces.getBytes(StandardCharsets.UTF_8).toVector)
+      Then("v1 retains its original candidate fields while v2 has explicit independent Actor state")
+      oldresult shouldBe Right(old)
+      currentresult shouldBe Right(current)
+      oldjson.hcursor.get[String]("profile").toOption.get shouldBe "ccdm-model-edit-session-v1"
+      oldjson.hcursor.downField("session").downField("candidate").downField("actors").focus shouldBe None
+      currentjson.hcursor.get[String]("profile").toOption.get shouldBe "ccdm-model-edit-session-v2"
+      currentresult.toOption.get.candidate.actors.map(_.semanticTargetId.value) shouldBe Vector("customer")
+      currentresult.toOption.get.candidate.useCases.head.references shouldBe empty
+      currentresult.toOption.get.candidate.slices.head.fields shouldBe Vector(SliceField("requestId", "string", "1"))
+      missingfields.isLeft shouldBe true
+    }
+  }
 
   "Captured model edit payload" should {
     "round-trip independent Goals, external edges, observations, review findings and exact applied history" in {

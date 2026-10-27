@@ -18,6 +18,8 @@ project:
 build:
   scalaVersion: "3.3.8"
   cozyVersion: "0.3.3-SNAPSHOT"
+  modelEditProducerVersion: "0.3.3-SNAPSHOT"
+  modelEditProducerRevision: "da61cb223a1df16a9b6cbacd4498ba8134cf3a22"
   dependencies:
     compile:
       - "org.goldenport::goldenport-cncf:0.5.3-SNAPSHOT"

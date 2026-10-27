@@ -2,7 +2,7 @@ package org.simplemodeling.textus.cbdsupport.runtime
 
 /*
  * @since   Oct. 27, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  */
 /** Immutable candidate and exact declared editing history; no canonical writing. */
 final case class ModelEditSession(
@@ -54,6 +54,8 @@ object ModelEditSession {
     version: Option[InternalModelRecordId]
   )
 
+  final case class SliceField(name: String, datatype: String, multiplicity: String)
+
   final case class UseCaseSlice(
     reference: InternalModelRecordReference,
     identity: ComponentDashboardSemanticTargetIdentity,
@@ -63,7 +65,8 @@ object ModelEditSession {
     scopeRefs: Vector[InternalModelRecordReference],
     acceptanceRefs: Vector[InternalModelRecordReference],
     lifecycle: SliceLifecycle,
-    attribution: ComponentDashboardSourceAttribution
+    attribution: ComponentDashboardSourceAttribution,
+    fields: Vector[SliceField] = Vector.empty
   )
 
   final case class SliceSpecificationRelationship(
@@ -98,7 +101,8 @@ object ModelEditSession {
     ticketLinks: Vector[SliceTicketRelationship],
     goalLinks: Vector[GoalUseCaseRelationship],
     artifacts: Vector[InternalModelArtifactReference],
-    goals: Vector[ActorGoal] = Vector.empty
+    goals: Vector[ActorGoal] = Vector.empty,
+    actors: Vector[UseCaseCommunicationReference] = Vector.empty
   )
 
   final case class UseCaseDevelopmentTrace(
@@ -194,6 +198,7 @@ object ModelEditSession {
     case IdentityOccupied(subject: Subject)
     case RelationshipMismatch(reference: InternalModelRecordReference)
     case InvalidRefinement(reference: InternalModelRecordReference)
+    case InvalidSliceFields(identity: ComponentDashboardSemanticTargetIdentity)
     case ResolutionAbsent(target: ExternalReference)
     case ResolutionAmbiguous(target: ExternalReference)
     case ProvenDangling(target: ExternalReference)
@@ -309,7 +314,7 @@ object ModelEditSession {
     def _slice_(identity: ComponentDashboardSemanticTargetIdentity): Vector[Violation] =
       _require(candidate.slices.exists(_.identity == identity), Violation.UnknownSubject(Subject.Slice(identity)))
     def _reference_(reference: UseCaseCommunicationReference, kind: UseCaseCommunicationReferenceKind): Vector[Violation] =
-      _require(reference.referenceKind == kind && (candidate.useCases.exists(_.references.contains(reference)) ||
+      _require(reference.referenceKind == kind && (candidate.actors.contains(reference) || candidate.useCases.exists(_.references.contains(reference)) ||
         (kind == Goal && candidate.goals.exists(_.reference == reference))),
         Violation.UnknownSubject(if (kind == Actor) Subject.Actor(reference.semanticTargetId) else Subject.Goal(reference.semanticTargetId)))
     def _new_edge_(reference: InternalModelRecordReference): Vector[Violation] =
@@ -318,13 +323,17 @@ object ModelEditSession {
         !candidate.goalLinks.exists(_.reference.recordId == reference.recordId),
         Violation.IdentityOccupied(Subject.Relationship(reference)))
 
+    def _slice_fields_(slice: UseCaseSlice): Vector[Violation] =
+      _require(slice.fields.map(_.name).distinct.size == slice.fields.size && slice.fields.forall(field =>
+        field.name.trim.nonEmpty && field.datatype.trim.nonEmpty && Set("1", "?", "*", "+")(field.multiplicity)), Violation.InvalidSliceFields(slice.identity))
+
     command match {
       case Command.CreateUseCaseSlice(proposed) =>
-        _use_case_(proposed.useCaseIdentity) ++
+        _slice_fields_(proposed) ++ _use_case_(proposed.useCaseIdentity) ++
           _require(!_occupied(candidate, proposed.identity) && !candidate.slices.exists(_.reference.recordId == proposed.reference.recordId),
             Violation.IdentityOccupied(Subject.Slice(proposed.identity)))
       case Command.RefineUseCaseSlice(existing, proposed) =>
-        _require(candidate.slices.exists(slice => slice.reference == existing && slice.identity == proposed.identity &&
+        _slice_fields_(proposed) ++ _require(candidate.slices.exists(slice => slice.reference == existing && slice.identity == proposed.identity &&
           slice.useCaseIdentity == proposed.useCaseIdentity) && proposed.reference.recordId == existing.recordId &&
           proposed.reference.recordRevision.value > existing.recordRevision.value,
           Violation.InvalidRefinement(existing))
@@ -342,7 +351,8 @@ object ModelEditSession {
         _reference_(actor, Actor) ++ _require(!_occupied(candidate, proposed), Violation.IdentityOccupied(Subject.Goal(proposed))) ++
           _require(proposedreference.forall(reference => reference.referenceKind == Goal &&
             reference.semanticTargetId == proposed && reference.component == candidate.scope.component &&
-            reference.id.trim.nonEmpty && !candidate.useCases.flatMap(_.references).exists(existing =>
+            reference.id.trim.nonEmpty && !candidate.actors.exists(existing => existing.id == reference.id ||
+              existing.semanticRelationshipId == reference.semanticRelationshipId) && !candidate.useCases.flatMap(_.references).exists(existing =>
               existing.id == reference.id || existing.semanticRelationshipId == reference.semanticRelationshipId) &&
             !candidate.goals.exists(existing => existing.reference.id == reference.id ||
               existing.reference.semanticRelationshipId == reference.semanticRelationshipId)), Violation.InvalidGoalReference)
@@ -360,7 +370,7 @@ object ModelEditSession {
   private def _occupied(candidate: Candidate, identity: ComponentDashboardSemanticTargetIdentity): Boolean =
     candidate.goals.exists(_.reference.semanticTargetId == identity) ||
       candidate.slices.exists(_.identity == identity) || candidate.useCases.exists(_.semanticTargetId == identity) ||
-      candidate.useCases.flatMap(_.references).exists(_.semanticTargetId == identity)
+      candidate.actors.exists(_.semanticTargetId == identity) || candidate.useCases.flatMap(_.references).exists(_.semanticTargetId == identity)
 
   private def _consumed_resolutions(command: Command, resolutions: Vector[ResolutionEvidence]): Vector[ResolutionEvidence] =
     command match {

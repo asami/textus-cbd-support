@@ -1,6 +1,6 @@
 /**
  * @since   Oct. 26, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  */
 package org.simplemodeling.textus.cbdsupport.runtime
 
@@ -52,12 +52,30 @@ private[runtime] object ModelEditCandidateCodec {
   given Codec.AsObject[SpecificationReference] = closed[SpecificationReference]("owner", "specificationIdentity", "sourceRevision")(using deriveDecoder[SpecificationReference], deriveEncoder[SpecificationReference])
   given Codec.AsObject[TicketRef] = closed[TicketRef]("provider", "owner", "ticketIdentity")(using deriveDecoder[TicketRef], deriveEncoder[TicketRef])
   given Codec.AsObject[TicketObservation] = closed[TicketObservation]("state", "version")(using deriveDecoder[TicketObservation], deriveEncoder[TicketObservation])
-  given Codec.AsObject[UseCaseSlice] = closed[UseCaseSlice]("reference", "identity", "useCaseIdentity", "title", "intent", "scopeRefs", "acceptanceRefs", "lifecycle", "attribution")(using deriveDecoder[UseCaseSlice], deriveEncoder[UseCaseSlice])
+  given Codec.AsObject[SliceField] = closed[SliceField]("name", "datatype", "multiplicity")(using deriveDecoder, deriveEncoder)
+  private val _slice_fields = Set("reference", "identity", "useCaseIdentity", "title", "intent", "scopeRefs", "acceptanceRefs", "lifecycle", "attribution")
+  private val _slice_decoder: Decoder[UseCaseSlice] = deriveDecoder[UseCaseSlice]
+  given Codec.AsObject[UseCaseSlice] = Codec.AsObject.from(Decoder.instance { cursor =>
+    cursor.value.asObject match {
+      case Some(value) if value.keys.toSet == _slice_fields => _slice_decoder.decodeJson(Json.fromJsonObject(value.add("fields", Json.arr())))
+      case Some(value) if value.keys.toSet == _slice_fields + "fields" => _slice_decoder(cursor)
+      case _ => Left(DecodingFailure("unexpected or missing Slice fields", cursor.history))
+    }
+  }, deriveEncoder[UseCaseSlice])
   given Codec.AsObject[SliceSpecificationRelationship] = closed[SliceSpecificationRelationship]("reference", "sliceIdentity", "specification", "attribution")(using deriveDecoder[SliceSpecificationRelationship], deriveEncoder[SliceSpecificationRelationship])
   given Codec.AsObject[SliceTicketRelationship] = closed[SliceTicketRelationship]("reference", "sliceIdentity", "ticket", "observation", "attribution")(using deriveDecoder[SliceTicketRelationship], deriveEncoder[SliceTicketRelationship])
   given Codec.AsObject[GoalUseCaseRelationship] = closed[GoalUseCaseRelationship]("reference", "goalIdentity", "useCaseIdentity", "attribution")(using deriveDecoder[GoalUseCaseRelationship], deriveEncoder[GoalUseCaseRelationship])
   given Codec.AsObject[ActorGoal] = closed[ActorGoal]("reference", "actor", "intent", "attribution")(using deriveDecoder[ActorGoal], deriveEncoder[ActorGoal])
-  given Codec.AsObject[Candidate] = closed[Candidate]("reference", "scope", "useCases", "slices", "specificationLinks", "ticketLinks", "goalLinks", "artifacts", "goals")(using deriveDecoder[Candidate], deriveEncoder[Candidate])
+  private val _candidate_fields = Set("reference", "scope", "useCases", "slices", "specificationLinks", "ticketLinks", "goalLinks", "artifacts", "goals")
+  private val _candidate_decoder: Decoder[Candidate] = deriveDecoder[Candidate]
+  given Codec.AsObject[Candidate] = Codec.AsObject.from(Decoder.instance { cursor =>
+    cursor.value.asObject match {
+      case Some(value) if value.keys.toSet == _candidate_fields =>
+        _candidate_decoder.decodeJson(Json.fromJsonObject(value.add("actors", Json.arr())))
+      case Some(value) if value.keys.toSet == _candidate_fields + "actors" => _candidate_decoder(cursor)
+      case _ => Left(DecodingFailure("unexpected or missing candidate fields", cursor.history))
+    }
+  }, deriveEncoder[Candidate])
   given Codec.AsObject[ExternalReference.Specification] = closed[ExternalReference.Specification]("reference")(using deriveDecoder[ExternalReference.Specification], deriveEncoder[ExternalReference.Specification])
   given Codec.AsObject[ExternalReference.Ticket] = closed[ExternalReference.Ticket]("reference")(using deriveDecoder[ExternalReference.Ticket], deriveEncoder[ExternalReference.Ticket])
   given Codec[ExternalReference] = sum[ExternalReference](using deriveDecoder[ExternalReference], deriveEncoder[ExternalReference])

@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stage 12.1 CLOSED; Stage 12.2 IN_PROGRESS; Stage 12.3+ OPEN
+Status: IN_PROGRESS — Stages 12.1–12.2 CLOSED; Stage 12.3 IN_PROGRESS; Stage 12.4+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -23,7 +23,9 @@ in their own ledgers. EDIT-12-01 promotes the
 pure admission accepted. Native focused validation passed 41 tests/3 suites,
 full regression passed 1,099 tests/137 suites, independent Step and bounded
 whole-run reviews accepted, and the native run reached Terminal/completed.
-Only EDIT-12-01 closes; parent Phase 12 remains IN_PROGRESS. The compact
+That run closed EDIT-12-01. EDIT12-02 is now separately accepted at
+`f6f2f354b6e2ef2767ee1737adfc8858bf5eead7`; parent Phase 12 remains
+IN_PROGRESS. The compact
 [handoff](../journal/2026/10/2026-10-27-phase-12-edit-session-foundation.md)
 records the selected boundary without duplicating native execution evidence.
 
@@ -57,23 +59,63 @@ records the selected boundary without duplicating native execution evidence.
 
 ## EDIT-12-02: Candidate Model Edit Service (Stage 12.2)
 
-Implementation is in progress under the issued native Step. Immutable application,
-closed typed edit payload, captured rehydration and complete-subject integration
-are authored; native validation and independent review are pending. No item below
-is accepted by this authoring record. Canonical source mapping remains Stage 12.3.
+CLOSED by native Step acceptance and commit
+`f6f2f354b6e2ef2767ee1737adfc8858bf5eead7` (parent `9739cb9`). The native
+focused check passed 261 tests in 16 selected suites. Independent review
+`cbd-phase12-edit12-02-independent-review-02` accepted the repaired candidate
+and recorded original REVIEW `issue-1` RESOLVED. Immutable application, typed
+candidate payload, captured rehydration and complete-subject integration are
+accepted at this boundary. Canonical source mappings and consuming Views remain
+Stage 12.3; this Step does not close FU-01/FU-03/FU-07 or prove fresh-process
+continuation. The native accepted prefix in the current Stage 12.3 assignment
+retains this commit and review.
 
-- [ ] Implement common candidate mutation and prove stable identities,
+- [x] Implement common candidate mutation and prove stable identities,
   authorization, and unchanged canonical CML during provisional editing.
-- [ ] Implement Use Case Slice candidate mutation through the same service; no
+- [x] Implement Use Case Slice candidate mutation through the same service; no
   view-local Slice store or ticket-owned model state.
-- [ ] Admit the source-owned Slice/trace payload, typed-subject and codec
+- [x] Admit the source-owned Slice/trace payload, typed-subject and codec
   extensions required for durable candidate support; no opaque sidecar.
-- [ ] Prove failed/dangling Specification or Ticket refs are typed validation
+- [x] Prove failed/dangling Specification or Ticket refs are typed validation
   failures and do not partially mutate candidate state.
-- [ ] Prove unavailable reference resolution retains its distinct outcome and
+- [x] Prove unavailable reference resolution retains its distinct outcome and
   cannot silently create an admitted link or be reported as a nonexistent target.
 
 ## EDIT-12-03: Candidate projection and confirmation (Stage 12.3)
+
+IN_PROGRESS; the runtime accepted the user's selected-check Plan revision and
+issued the continued ImplementStep with the retained authored work. The required Cozy
+source-owner parse/publication/candidate-rendering delivery was received at
+Cozy commit `da61cb223a1df16a9b6cbacd4498ba8134cf3a22`, including candidate-v2
+creation, from the independent Cozy development chat under the
+[Usage Contract](../spec/model-edit-source-projection-contract.md). Cozy owns
+producer implementation, validation, independent review, commit and any local
+publication; CBD owns qualified consumption and native acceptance. The earlier
+internal dependency-scope proposal was rejected through the supported Human
+route in favor of independent supplier delivery. Correct selection of the existing
+assembly through `textus.assembly.descriptor`, retained as a temporary recovery,
+enabled the installed runtime to
+accept that direction and issue the next EDIT12-03 ImplementStep in the same
+Session, retaining the accepted prefix and repair history. No sm-workflow-dev
+correction was required for this continuation. Supplier delivery alone does not
+establish CBD integration.
+Source-unmapped data remains inspection-only until its qualified CBD integration
+is admitted. The existing journal retains both startup failures and the successful
+supported continuation.
+
+Authored integration now includes typed source publication/read binding, source-owned
+canonical facts, candidate-v2 rendering confirmation, shared Views, deterministic
+complete-scope policy findings and a genuine producer-focused executable Spec.
+Independent source Actors and declared Slice fields require the explicit v2 session
+profile; accepted v1 shape/read behavior is preserved. No authored Spec has been run
+by the implementation owner. Native qualification and independent review remain
+pending. The existing current Step selection (ordinary-02 and producer-focused)
+omits affected core service/codec/package/rehydration/action-gate compatibility
+regressions in declared ordinary-01. A complete Plan revision 2 proposal adds that
+existing check to EDIT12-03 only. The user selected `AdoptPlanRevision`; native
+admission accepted Plan revision 2 and issued the continued Step with ordinary-01,
+ordinary-02 and producer-focused. Qualification and independent review remain pending. No
+checked item or accepted prefix is changed by that proposal.
 
 - [ ] Admit the required projection follow-up contracts and project candidate
   Actor Goal List/Event Storming through shared Views; clearly distinguish

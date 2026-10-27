@@ -8,7 +8,7 @@ import org.goldenport.Consequence
  * Eligibility of the exact recorded action; evaluation performs no action.
  *
  * @since   Oct.  1, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  */
 private[runtime] object InternalModelContinuationActionGate {
   import InternalModelContinuationCondition.*
@@ -61,9 +61,6 @@ private[runtime] object InternalModelContinuationActionGate {
     val action = cursor.nextPermittedAction.flatMap(token => InternalModelContinuationAction.values.find(_.token == token))
     val row = _matrix.find(value => stage.contains(value.stage))
     val problems = Vector.newBuilder[InternalModelContinuationProblem]
-    if (state.editSessions.nonEmpty && action.exists(_ != InternalModelContinuationAction.InspectProjections))
-      problems += _problem(MappingMismatch, "editSession.canonicalMapping",
-        "edit session profile has no admitted canonical CML mapping; only inspection is available")
     if (stage.isEmpty) problems += _problem(UnsupportedStage, "currentStage", "recorded stage is unsupported")
     if (cursor.nextPermittedAction.isEmpty) {
       problems += _problem(MissingPrerequisite, "nextPermittedAction", "recorded next action is missing")
@@ -95,6 +92,32 @@ private[runtime] object InternalModelContinuationActionGate {
     val required = row.toVector.flatMap(_.required).toSet ++ recognized.map(_._1)
     val evidence = InternalModelContinuationEvidenceAdmission.admit(state, continuity, request, required)
     problems ++= evidence.problems.map(_.problem)
+    if (action.exists(_ != InternalModelContinuationAction.InspectProjections)) {
+      state.editSessions.foreach { session =>
+        val mappings = state.artifacts.flatMap { artifact =>
+          artifact.bytes.toVector.flatMap { bytes =>
+            ModelEditCmlProjection.decodeMapping(InternalModelVerifiedProjection(artifact.context.reference,
+              artifact.context.path, artifact.context.required, artifact.context.dependencies, bytes)).toOption
+              .filter(mapping => mapping.session == session.reference).map(mapping => (artifact, mapping))
+          }
+        }
+        val admitted = for {
+          selected <- mappings match {
+            case Vector(value) => Right(value)
+            case _ => Left("edit session requires one exact captured source-owned mapping")
+          }
+          (artifact, mapping) = selected
+          _ <- Either.cond((artifact.context.dependencies :+ artifact.context.reference).forall(state.cursor.selectedArtifacts.contains),
+            (), "source mapping and dependencies must be exact cursor selections")
+          _ <- Either.cond(state.artifacts.exists(value => value.context.reference == mapping.editArtifact &&
+            value.bytes.exists(bytes => ModelEditSessionCodec.decode(bytes).contains(session))),
+            (), "source mapping does not select the captured edit session")
+          candidate <- evidence.candidate.toRight("source mapping requires the selected admitted Phase 10 candidate")
+          _ <- ModelEditCmlProjection.validateMapping(mapping, session, candidate)
+        } yield ()
+        admitted.left.foreach(reason => problems += _problem(MappingMismatch, "editSession.canonicalMapping", reason))
+      }
+    }
     recognized.foreach { case (code, attribution) =>
       if (!_condition_owner(code, attribution.condition.artifactId, state, evidence, continuity, request)) {
         val reference = attribution.condition.artifactId.flatMap(id => state.cursor.selectedArtifacts.find(_.artifactId.value == id))

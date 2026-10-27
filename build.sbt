@@ -39,6 +39,15 @@ lazy val capabilityProducerRoot = sys.props.get("textus.cbd.capabilityProducerRo
     directory
   }.orElse(if (cncfSourceRoot.nonEmpty) cozyGeneratorRoot else None)
 
+// Independent Scala 2 model-edit JSON producer; does not select the CAR generator.
+lazy val modelEditProducerRoot = sys.props.get("textus.cbd.modelEditProducerRoot").map { selected =>
+  require(selected.trim.nonEmpty, "textus.cbd.modelEditProducerRoot requires an explicit producer directory")
+  val directory = file(selected).getCanonicalFile
+  require(directory.isDirectory && (directory / "target/cozy.d/runtime-classpath.txt").isFile,
+    "Model-edit producer requires its existing exported runtime classpath")
+  directory
+}
+
 lazy val root = project
   .in(file("."))
   .enablePlugins(org.goldenport.cozy.CozyPlugin)
@@ -85,6 +94,8 @@ lazy val root = project
   .settings(InternalModelExclusionBuild.selectedCncfSourceRoot := cncfSourceRoot)
   .settings(CapabilityProducerIntegrationBuild.settings)
   .settings(CapabilityProducerIntegrationBuild.selectedProducerRoot := capabilityProducerRoot)
+  .settings(ModelEditProducerIntegrationBuild.settings)
+  .settings(ModelEditProducerIntegrationBuild.selectedModelEditProducerRoot := modelEditProducerRoot)
 
 lazy val internalModelExclusionFixture = project
   .in(file("src/test/fixtures/internal-model-output-exclusion"))

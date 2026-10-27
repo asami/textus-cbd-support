@@ -1,6 +1,6 @@
 # Post-Phase 9 Projection Follow-up Planning
 
-Status: PLANNED / NOT STARTED
+Status: IN_PROGRESS for Phase 12 consuming FU-01/FU-03/FU-07 portions; remaining work OPEN
 Owner: Textus CBD Support development
 Predecessor: accepted [Phase 9](phase-9.md)
 Consumer: [Phase 12](phase-12.md), where its editing scenarios need these views
@@ -20,6 +20,18 @@ commit `06ef9367dc883db36497297ea3dbdc663bf89028` at
 `docs/phase/phase-9.md` and `docs/phase/phase-9-checklist.md`. Existing composition,
 Dashboard, evidence, Usage, Operation, Quality/Review, candidate-design, and
 Phase 10 responsibilities retain their accepted owners and meaning.
+
+## Phase 12 consuming implementation — 2026-10-27
+
+EDIT12-03 has authored shared Actor Goal, cross-model Event Storming and independent
+Use Case/Slice/Specification/Ticket trace projections against the independently
+delivered Cozy source contract. The candidate-v2 bridge retains source ownership
+and existing Phase 10 diff/review/approval boundaries. Native validation and
+independent review remain pending, so the follow-up items below remain unchecked.
+The current contribution does not close the whole FU-07 set: CNCF lifecycle,
+Observed Model/Phase 87, broader change-impact/navigation and other follow-ups
+retain their own open boundaries. Phase 11's unavailable Use Case demand mapping
+is preserved as read-only unresolved evidence, not an empty demand trace.
 
 ## Open follow-up checklist
 

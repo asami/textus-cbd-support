@@ -11,7 +11,7 @@ and [typed control contract](internal-model-typed-control-contract.md) retain
 authority over semantic scope, Actor/Goal identity, attribution and versioned
 references. [Executable behavior](../../src/test/scala/org/simplemodeling/textus/cbdsupport/runtime/ModelEditSessionSpec.scala)
 defines pure admission; the Stage 12.2 service and captured payload extension below
-are implemented pending native validation and independent review.
+are accepted by native Stage 12.2 commit `f6f2f354b6e2ef2767ee1737adfc8858bf5eead7`.
 
 ## Session, candidate and operations
 
@@ -127,7 +127,9 @@ consume those inputs; foundation operation construction does not complete them.
 
 ## Stage 12.2 immutable application and captured payload
 
-Implementation is pending native validation and independent review. `ModelEditService`
+Native Stage 12.2 accepted this implementation at `f6f2f354b6e2ef2767ee1737adfc8858bf5eead7`
+after 261 tests in 16 suites and independent review with original issue-1 RESOLVED.
+`ModelEditService`
 applies one admitted command to an immutable candidate with a caller-supplied higher
 revision of the same candidate record. Authorization is an explicit caller-admitted
 grant naming its own record, exact session/scope and permitted command kinds; this
@@ -157,3 +159,35 @@ are applicability information, never actual human approval. This profile has no
 canonical CML mapping yet: inspection/rehydration is supported, while candidate
 review, human-decision and handoff continuation remain incomplete until the owning
 source mapping is admitted in Stage 12.3.
+
+## Stage 12.3 source binding and independent Actors
+
+The Cozy source contract admits an Actor before any Goal or Use Case edge exists.
+Candidate `actors` therefore stores independently selected Actor references. Actor
+selection does not fabricate communication relationships. The original v1 session
+wire shape remains readable and is emitted for actor-empty candidates. Sessions
+with independent Actors or explicit Slice fields use `ccdm-model-edit-session-v2` /
+`2.0`; its closed candidate adds `actors`, and each Slice carries typed
+`SliceField(name, datatype, multiplicity)` values. V1 preserves its original
+Actor/field-empty shape, including historical command payloads. Both profiles retain exact package dependencies and captured
+rehydration. The command service admits an explicit independent Actor for AddGoal
+under the same caller-admitted scoped grant.
+
+The [source usage contract](model-edit-source-projection-contract.md),
+[Actor Goal contract](actor-goal-projection-contract.md),
+[Event Storming contract](event-storming-projection-contract.md) and
+[review contract](model-edit-review-contract.md) govern Stage 12.3 consumption.
+`ModelEditCmlProjection` plans distinct candidate-v2 requests against the exact edit
+candidate and confirms typed re-production. Its closed source-mapping Projection
+retains the qualified source, executing producer, complete typed confirmation,
+exact candidate/history and source/edit/candidate artifact dependencies.
+
+A source mapping alone grants no permission. Non-inspection continuation requires
+that mapping to bind the selected admitted Phase 10 candidate and captured edit
+session. Existing semantic diff, complete review subject, actual-human approval,
+freshness and canonical application owners remain mandatory. Missing or unsupported
+mappings retain inspection. All present mapping payloads and dependencies belong to
+the existing complete review-subject closure.
+
+Stage 12.3 implementation is authored; native checks and independent review remain
+pending. This does not close the Stage, Phase or broader FU-07 work.

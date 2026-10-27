@@ -16,7 +16,7 @@ import org.yaml.snakeyaml.constructor.SafeConstructor
 /*
  * @since   Sep. 27, 2026
  *  version Sep. 29, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 private[runtime] final case class InternalModelVerifiedSourceSnapshot(
@@ -652,7 +652,8 @@ object InternalModelPackageValidator {
         case ("ccdm-projection-binding-v3", "3.0") => Right("continuity")
         case ("ccdm-candidate-cml-projection-v2", "2.0") => Right("candidate")
         case ("ccdm-semantic-diff-v2", "2.0") => Right("semantic-diff")
-        case ("ccdm-model-edit-session-v1", "1.0") => ModelEditSessionCodec.decodeCaptured(projection).map(_ => "edit-session")
+        case ("ccdm-model-edit-session-v1", "1.0") | ("ccdm-model-edit-session-v2", "2.0") => ModelEditSessionCodec.decodeCaptured(projection).map(_ => "edit-session")
+        case ("ccdm-model-edit-source-mapping-v1", "1.0") => ModelEditCmlProjection.decodeMapping(projection).map(_ => "edit-source-mapping")
         case _ => Left(s"projection artifact ${projection.reference.artifactId.value} has an unknown profile/schemaVersion pair")
       }
     } yield family

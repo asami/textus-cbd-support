@@ -1,6 +1,6 @@
 /**
  * @since   Oct. 26, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  */
 package org.simplemodeling.textus.cbdsupport.runtime
 
@@ -15,6 +15,42 @@ import ModelEditSession.*
 final class ModelEditServiceSpec extends AnyWordSpec with Matchers with GivenWhenThen
     with ScalaCheckDrivenPropertyChecks {
   import ModelEditSpecFixture.*
+
+  "Independent source Actor selection" should {
+    "admit AddGoal without inventing a communication edge in a Goal-empty source basis" in {
+      Given("a source-owned Actor and Use Case with no Actor-Goal or Goal-UseCase links")
+      val publication = ModelEditProjectionSpecFixture.basisPublication()
+      When("the source basis is imported and an explicit Goal is added through normal authorization")
+      val initial = ModelEditProjectionSpecFixture.session(publication)
+      val reference = ModelEditProjectionSpecFixture.session(ModelEditProjectionSpecFixture.proposedPublication()).candidate.goals.head.reference
+      val updated = applyCommand(initial, Command.AddGoal(initial.candidate.actors.head, reference.semanticTargetId, "Independent intent", Some(reference)))
+      Then("the explicit Actor remains selectable without a fabricated Use Case relationship")
+      updated.candidate.goals.head.actor shouldBe Some(initial.candidate.actors.head)
+      updated.candidate.useCases shouldBe initial.candidate.useCases
+      updated.candidate.goalLinks shouldBe empty
+      updated.history.size shouldBe 1
+    }
+  }
+
+  "Declared Slice fields" should {
+    "preserve explicit fields through creation and refinement and reject malformed fields without a successor" in {
+      Given("an existing Use Case and a producer-selected Slice field declaration")
+      val initial = session()
+      val proposed = sliceRecord().copy(fields = Vector(SliceField("requestId", "string", "1")))
+      When("the field is created, refined and an invalid duplicate is submitted")
+      val created = applyCommand(initial, Command.CreateUseCaseSlice(proposed))
+      val revised = proposed.copy(reference = record("slice", 2), fields = Vector(SliceField("requestId", "string", "1"), SliceField("note", "string", "?")))
+      val refined = applyCommand(created, Command.RefineUseCaseSlice(proposed.reference, revised))
+      val invalid = revised.copy(reference = record("slice", 3), fields = revised.fields :+ revised.fields.head)
+      val rejected = ModelEditService.applyOperation(refined, operationFor(refined, Command.RefineUseCaseSlice(revised.reference, invalid)),
+        record("candidate", 4), authorization(refined), Vector.empty)
+      Then("the declared shape is typed candidate state and invalid fields cannot partially alter it")
+      created.candidate.slices.head.fields shouldBe proposed.fields
+      refined.candidate.slices.head.fields shouldBe revised.fields
+      rejected.left.toOption.get.violations should contain(Violation.InvalidSliceFields(identity("slice")))
+      refined.candidate.slices.head.reference shouldBe revised.reference
+    }
+  }
 
   "Candidate edit application" should {
     "apply all ten commands through one immutable service and preserve independent Goal intent" in {

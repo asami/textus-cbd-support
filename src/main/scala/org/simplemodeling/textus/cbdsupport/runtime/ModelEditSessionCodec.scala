@@ -1,6 +1,6 @@
 /**
  * @since   Oct. 26, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  */
 package org.simplemodeling.textus.cbdsupport.runtime
 
@@ -21,21 +21,36 @@ private[runtime] object ModelEditSessionCodec {
   private val _parser = JawnParser(allowDuplicateKeys = false)
   private given Codec.AsObject[ModelEditSession] = closed[ModelEditSession]("reference", "scope", "candidate", "state", "history", "reviews")(using deriveDecoder[ModelEditSession], deriveEncoder[ModelEditSession])
 
-  def encode(session: ModelEditSession): Vector[Byte] =
-    (Printer.noSpacesSortKeys.print(Json.obj("profile" -> Json.fromString(profile),
-      "schemaVersion" -> Json.fromString(schemaVersion), "session" -> session.asJson)) + "\n")
+  def encode(session: ModelEditSession): Vector[Byte] = {
+    val current = session.candidate.actors.nonEmpty || session.candidate.slices.exists(_.fields.nonEmpty) ||
+      session.history.exists(entry => entry.operation.command match {
+        case Command.CreateUseCaseSlice(slice) => slice.fields.nonEmpty
+        case Command.RefineUseCaseSlice(_, slice) => slice.fields.nonEmpty
+        case _ => false
+      })
+    val payload = if (current) session.asJson else _legacy_shape(session.asJson)
+    (Printer.noSpacesSortKeys.print(Json.obj("profile" -> Json.fromString(if (current) "ccdm-model-edit-session-v2" else profile),
+      "schemaVersion" -> Json.fromString(if (current) "2.0" else schemaVersion), "session" -> payload)) + "\n")
       .getBytes(StandardCharsets.UTF_8).toVector
+  }
 
   def hasProfile(bytes: Vector[Byte]): Boolean =
-    _json(bytes).toOption.flatMap(_.hcursor.get[String]("profile").toOption).contains(profile)
+    _json(bytes).toOption.flatMap(_.hcursor.get[String]("profile").toOption).exists(value =>
+      value == profile || value == "ccdm-model-edit-session-v2")
 
   def decode(bytes: Vector[Byte]): Either[String, ModelEditSession] = for {
     json <- _json(bytes)
     root <- json.asObject.toRight("edit projection must be an object")
     _ <- Either.cond(root.keys.toSet == Set("profile", "schemaVersion", "session"), (), "edit projection fields must match its closed shape")
     _ <- Either.cond(root("profile").contains(Json.fromString(profile)) &&
-      root("schemaVersion").contains(Json.fromString(schemaVersion)), (), "unsupported edit projection profile/schema")
-    session <- root("session").toRight("edit session missing").flatMap(_.as[ModelEditSession].left.map(_.message))
+      root("schemaVersion").contains(Json.fromString(schemaVersion)) ||
+      root("profile").contains(Json.fromString("ccdm-model-edit-session-v2")) &&
+      root("schemaVersion").contains(Json.fromString("2.0")), (), "unsupported edit projection profile/schema")
+    payload <- root("session").toRight("edit session missing")
+    _ <- Either.cond(!root("profile").contains(Json.fromString("ccdm-model-edit-session-v2")) || _current_shape(payload), (), "v2 requires explicit independent Actor and Slice field collections")
+    session <- payload.as[ModelEditSession].left.map(_.message)
+    _ <- Either.cond(!root("profile").contains(Json.fromString(profile)) ||
+      root("session").exists(value => _legacy_shape(value) == value), (), "v1 preserves its original Actor/field-empty wire shape")
     _ <- validate(session)
   } yield session
 
@@ -73,18 +88,25 @@ private[runtime] object ModelEditSessionCodec {
       _ <- UseCaseCommunicationProjection.create(session.scope.context, session.scope.component, candidate.useCases).left.map(_.violations.mkString("; "))
       _ <- Either.cond(sliceids.distinct.size == sliceids.size && goalids.distinct.size == goalids.size &&
         candidate.slices.map(_.reference.recordId).distinct.size == candidate.slices.size &&
+        candidate.goals.map(_.reference.id).distinct.size == candidate.goals.size &&
         edges.map(_.recordId).distinct.size == edges.size, (), "candidate semantic or relationship identity is occupied")
-      _ <- Either.cond(candidate.slices.forall(slice => usecaseids.contains(slice.useCaseIdentity)) &&
+      _ <- Either.cond(candidate.slices.forall(slice => usecaseids.contains(slice.useCaseIdentity) && slice.fields.map(_.name).distinct.size == slice.fields.size &&
+          slice.fields.forall(field => field.name.trim.nonEmpty && field.datatype.trim.nonEmpty && Set("1", "?", "*", "+")(field.multiplicity))) &&
         candidate.specificationLinks.forall(edge => sliceids.contains(edge.sliceIdentity)) &&
         candidate.ticketLinks.forall(edge => sliceids.contains(edge.sliceIdentity)) &&
         candidate.goalLinks.forall(edge => usecaseids.contains(edge.useCaseIdentity) &&
           (goalids ++ importedgoals).contains(edge.goalIdentity)), (), "candidate contains an unknown relationship endpoint")
       _ <- Either.cond(candidate.goals.forall(goal => goal.reference.referenceKind == Goal &&
-        goal.reference.component == session.scope.component && goal.actor.forall(actor =>
-          actor.referenceKind == Actor && candidate.useCases.exists(_.references.contains(actor))) &&
+        goal.reference.component == session.scope.component && !candidate.actors.exists(actor => actor.id == goal.reference.id ||
+          actor.semanticRelationshipId == goal.reference.semanticRelationshipId) && goal.actor.forall(actor =>
+          actor.referenceKind == Actor && (candidate.actors.contains(actor) || candidate.useCases.exists(_.references.contains(actor)))) &&
         !sliceids.contains(goal.reference.semanticTargetId) && !usecaseids.contains(goal.reference.semanticTargetId) &&
         candidate.useCases.flatMap(_.references).filter(_.semanticTargetId == goal.reference.semanticTargetId)
           .forall(_ == goal.reference)), (), "independent Goal reference or Actor attribution is invalid")
+      _ <- Either.cond(candidate.actors.map(_.semanticTargetId).distinct.size == candidate.actors.size &&
+        candidate.actors.forall(actor => actor.referenceKind == Actor && actor.component == session.scope.component &&
+          actor.id.nonEmpty && !sliceids.contains(actor.semanticTargetId) && !goalids.contains(actor.semanticTargetId) &&
+          !usecaseids.contains(actor.semanticTargetId)), (), "independent Actor records are invalid")
       _ <- Either.cond(candidate.artifacts.distinct.size == candidate.artifacts.size, (), "duplicate candidate artifact dependencies")
       _ <- Either.cond(chain && history.lastOption.forall(_.successorCandidate == candidate.reference) &&
         history.map(_.operation.reference.recordId).distinct.size == history.size, (), "edit history does not bind the exact session/candidate chain")
@@ -97,6 +119,15 @@ private[runtime] object ModelEditSessionCodec {
         })), (), "retained review evidence is outside candidate dependencies")
     } yield ()
   }
+
+  private def _current_shape(value: Json): Boolean = value.arrayOrObject(true,
+    values => values.forall(_current_shape),
+    values => (!values.contains("useCases") || values.contains("actors")) &&
+      (!values.contains("acceptanceRefs") || values.contains("fields")) && values.values.forall(_current_shape))
+
+  private def _legacy_shape(value: Json): Json = value.arrayOrObject(value,
+    values => Json.fromValues(values.map(_legacy_shape)),
+    values => Json.fromJsonObject(values.remove("actors").remove("fields").mapValues(_legacy_shape)))
 
   private def _resolution_binding(entry: AppliedOperation): Boolean = {
     val target = entry.operation.command match {

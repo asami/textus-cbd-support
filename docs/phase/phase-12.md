@@ -16,13 +16,13 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stage 12.2 is IN_PROGRESS, later stages remain OPEN and parent Phase 12 is
-IN_PROGRESS.
+2026-10-27; Stages 12.1–12.2 are CLOSED; Stage 12.3 is IN_PROGRESS, later stages remain
+OPEN and parent Phase 12 is IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
-EDIT-12-01 is the accepted foundation; EDIT-12-02 is the current issued
-implementation scope. Phase 10.7 and Phase
+EDIT-12-01 and EDIT12-02 are accepted foundations; EDIT12-03 is the current
+issued implementation scope. Phase 10.7 and Phase
 11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
 quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
 CLOSED; their existing owners are reused where applicable, without introducing
@@ -37,15 +37,28 @@ full regression passed 1,099 tests in 137 suites, and independent Step and
 bounded whole-run reviews accepted the foundation. Native completion and the
 accepted Step commit are recorded in the
 [handoff](../journal/2026/10/2026-10-27-phase-12-edit-session-foundation.md).
-The Stage 12.2 immutable mutation service, typed edit payload and captured
-rehydration are authored pending native validation and independent review.
-Projection, external clients and end-to-end promotion remain outstanding.
+Stage 12.2 is accepted at native commit
+`f6f2f354b6e2ef2767ee1737adfc8858bf5eead7`: 261 tests in 16 selected suites
+passed, independent review accepted the repaired candidate, and original REVIEW
+`issue-1` is RESOLVED. The immutable mutation service, typed edit payload,
+captured rehydration and complete review subject are within that accepted scope.
+Stage 12.3 now owns source-authorized projection and deterministic review;
+external clients and end-to-end promotion remain outstanding.
+
+The Stage 12.3 implementation is authored against the actual delivered Cozy JSON
+production/read/candidate-v2 contract. Shared Views and complete-scope project-policy
+findings retain exact candidate/source evidence, independent Actors and typed Slice
+fields. The producer-focused executable Spec connects actual CML/JVM production to
+existing Phase 10 admission. Execution and independent review remain pending.
+A proposed Plan revision 2 adds existing `cbd-phase12-ordinary-01` to this current
+Step for affected v1/v2 core compatibility; it changes no accepted Step, source
+ownership or later acceptance and is not yet adopted.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
 codecs and continuation are not established by generic realization V3 records.
-Stage 12.1 identifies these gaps; Stage 12.2/12.3 must admit the required source
-and payload integration before supported projection/promotion, and Stage 12.8
+Stage 12.2 accepts the candidate payload integration. Stage 12.3 must admit
+the required source mapping before supported projection/promotion; Stage 12.8
 must prove durable continuation. Stage 12.2 carries these values as typed candidate-only package projections;
 canonical source mapping remains outstanding, with no opaque persistence sidecar
 or Phase 10 gate bypass.

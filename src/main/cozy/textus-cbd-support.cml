@@ -8,7 +8,7 @@ org.simplemodeling.textus.cbdsupport
 
 ### DESCRIPTION
 
-Textus CBD Support aggregates authoritative CAR and SAR catalogs and exposes component discovery, exact component detail, dependency, operation, and usage guidance for Component-Based Development.
+Textus CBD Support aggregates authoritative CAR and SAR catalogs and exposes component discovery, exact component detail, dependency, operation, and usage guidance for Component-Based Development. A separately host-admitted Model Edit application exposes ordinary authorized candidate inspection and editing without canonical promotion or arbitrary ticket mutation.
 
 # SERVICE
 
@@ -448,6 +448,190 @@ CapabilityReadResponse
 
 Diagnose seven typed static Capability gaps without inferring runtime observations.
 
+## CbdModelEdit
+
+### DESCRIPTION
+
+Ordinary authorized candidate editing for Plugin and MCP clients. The embedding host supplies one admitted session; clients cannot install model facts, policy or grants.
+
+### OPERATION
+
+#### inspectModelEdit
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+InspectModelEditRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Inspect the exact current candidate semantics using the shared Actor Goal and Event Storming Views.
+
+#### listModelEditOperations
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+ListModelEditOperationsRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+List contextual applicable Model Edit commands filtered by the server-admitted exact principal grant.
+
+#### getModelEditCandidate
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetModelEditCandidateRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Read the exact current immutable candidate, preserving independent Slice, Specification and Ticket identities.
+
+#### applyModelEdit
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ApplyModelEditRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Apply one contextual candidate command through ordinary authorization and the shared Model Edit Service; no canonical or ticket-system mutation.
+
+#### getModelEditView
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetModelEditViewRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Inspect the shared candidate View and canonical-basis confirmation.
+
+#### getModelEditDiff
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetModelEditDiffRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Inspect operation history and exact admitted Phase10 semantic diff, or explicit absent/stale evidence.
+
+#### getModelEditTraces
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetModelEditTracesRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Read exact Use Case development traces and explicit capability-demand availability.
+
+#### getModelEditReview
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetModelEditReviewRequest
+
+##### OUTPUT
+
+###### TYPE
+
+ModelEditResponse
+
+##### DESCRIPTION
+
+Read deterministic complete-scope project-policy findings and unresolved evidence for the exact candidate.
+
 ## CbdCatalogAdmin
 
 ### DESCRIPTION
@@ -781,6 +965,14 @@ Private HTTP gateway envelope for one exact Review submission document.
 |------|------|--------------|
 | submissionDocument | ReviewSubmissionDocument | 1 |
 
+## ApplyModelEditRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
 # QUERY
 
 ## ScopedQualityReviewPreparation
@@ -1058,6 +1250,62 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | itemKind | CbdWarning | 1 |
 | itemId | CbdWarning | 1 |
 
+## InspectModelEditRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## ListModelEditOperationsRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## GetModelEditCandidateRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## GetModelEditViewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## GetModelEditDiffRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## GetModelEditTracesRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## GetModelEditReviewRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
 # VALUE
 
 ## ScopedQualityReviewPreparation
@@ -1236,6 +1484,16 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | reviewId | string | 1 |
 | revision | long | 1 |
 | observations | ManagedEffectReviewObservation | * |
+
+## ModelEditResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | string | 1 |
+| resultJson | string | 1 |
+| html | string | 1 |
 
 ## CapabilityReadResponse
 

@@ -19,7 +19,7 @@ import org.scalatest.wordspec.AnyWordSpec
  * @since   Jul. 14, 2026
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
- * @version Oct. 16, 2026
+ * @version Oct. 27, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhenThen {
@@ -33,15 +33,17 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val retrieval = factory.CbdRetrieval
       val catalogadmin = factory.CbdCatalogAdmin
       val reviewadmin = factory.CbdReviewAdmin
+      val modeledit = factory.CbdModelEdit
 
       Then("the retrieval, catalog administration, and private Review boundaries are available")
       factory.primaryFactory should not be null
       retrieval should not be null
       catalogadmin should not be null
       reviewadmin should not be null
+      modeledit should not be null
     }
 
-    "publish only the retrieval service through MCP" in {
+    "publish retrieval and ordinary Model Edit while keeping administrative services private" in {
       Given("the component instance constructed by the handwritten factory")
       val component = new impl.ComponentFactory()._create_uninitialized_component()
 
@@ -58,6 +60,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val cancelready = component.isMcpReady("CbdReviewAdmin", "cancelReview")
       val submissionready = component.isMcpReady("CbdReviewAdmin", "submitReviewDocuments")
       val httppostready = component.isMcpReady("CbdReviewAdmin", "post")
+      val modeleditready = component.isMcpReady("CbdModelEdit", "applyModelEdit")
 
       Then("CBD read operations are ready while catalog and Review commands remain private")
       searchready shouldBe true
@@ -72,6 +75,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       cancelready shouldBe false
       submissionready shouldBe false
       httppostready shouldBe false
+      modeleditready shouldBe true
     }
 
     "project the CBD detail operations as distinct CNCF MCP tools" in {
@@ -88,10 +92,15 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       val usageschema = tools.find(_.name.endsWith(".getUsage")).map(_.inputSchema).get
       val dependencyschema = tools.find(_.name.endsWith(".resolveDependencies")).map(_.inputSchema).get
       val toolprefix = s"${CbdSupportComponent.name}.CbdRetrieval"
-      val descriptions = component.protocol.services.services.filter(_.name == "CbdRetrieval").flatMap(_.operations.operations.toVector).flatMap { operation =>
-        val toolname = s"$toolprefix.${operation.name}"
+      val descriptions = component.protocol.services.services.filter(service => Set("CbdRetrieval", "CbdModelEdit")(service.name)).flatMap { service => service.operations.operations.toVector.flatMap { operation =>
+        val toolname = s"${CbdSupportComponent.name}.${service.name}.${operation.name}"
         operation.specification.summary.map(_.displayMessage.trim).filter(_.nonEmpty).map(toolname -> _)
-      }.toMap
+      }}.toMap
+      val modeleditnames = org.simplemodeling.textus.cbdsupport.runtime.ModelEditApplication.operations.map(name => s"${CbdSupportComponent.name}.CbdModelEdit.$name")
+      val capabilitynames = Set("getCapabilityOverview", "getCapability", "findProviders", "findRequirements",
+        "traceComponentUsageCapability", "traceUseCaseDemand", "diagnoseCapabilityDemand")
+      val capabilitytools = tools.filter(tool => capabilitynames.contains(tool.name.split('.').last))
+      val capabilitydefinitions = component.operationDefinitions.filter(operation => capabilitynames.contains(operation.name))
 
       Then("all retrieval tools are visible and administrative refresh is absent")
       names shouldBe Set(
@@ -114,7 +123,7 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
         s"$toolprefix.traceComponentUsageCapability",
         s"$toolprefix.traceUseCaseDemand",
         s"$toolprefix.diagnoseCapabilityDemand"
-      )
+      ) ++ modeleditnames
       tools.map(x => x.name -> x.description).toMap shouldBe descriptions
       searchschema.hcursor.downField("properties").keys.get.toSet should contain allOf (
         "sourceId",
@@ -126,16 +135,12 @@ final class ComponentFactorySpec extends AnyWordSpec with Matchers with GivenWhe
       )
       usageschema.hcursor.downField("properties").keys.get.toSet should contain("intent")
       dependencyschema.hcursor.downField("properties").downField("maxDepth").get[String]("type") shouldBe Right("integer")
-      val capabilitynames = Set("getCapabilityOverview", "getCapability", "findProviders", "findRequirements",
-        "traceComponentUsageCapability", "traceUseCaseDemand", "diagnoseCapabilityDemand")
-      val capabilitytools = tools.filter(t => capabilitynames.contains(t.name.split('.').last))
       capabilitytools.size shouldBe 7
       capabilitytools.foreach { tool =>
         tool.inputSchema.hcursor.downField("properties").keys.get.toSet shouldBe Set("selector")
         tool.inputSchema.hcursor.downField("properties").downField("selector").get[String]("type") shouldBe Right("string")
         tool.inputSchema.hcursor.get[Vector[String]]("required") shouldBe Right(Vector("selector"))
       }
-      val capabilitydefinitions = component.operationDefinitions.filter(o => capabilitynames.contains(o.name))
       capabilitydefinitions.size shouldBe 7
       capabilitydefinitions.map(_.kind).toSet shouldBe Set("QUERY")
       capabilitydefinitions.map(o => o.name -> o.inputType).toMap shouldBe Map(

@@ -110,6 +110,36 @@ The prerequisite coordinate correction above carries forward
 `HYG-P9-70-USER-GUIDE-COZY-COORDINATE-001`; this accepted documentation does
 not retrospectively close that Phase 9 finding.
 
+## Ordinary candidate editing
+
+An embedding host can admit a Model Edit session and expose the generated
+`CbdModelEdit` service through its normal Plugin/MCP transport. The host uses
+`ModelEditApplication.create(admittedSession, sourceSelection, principalBindings,
+projectPolicy, resolutionEvidence, behaviorCoverage, capabilityDemands)`, then
+`new impl.ComponentFactory(application).create(ComponentCreate(subsystem,
+ComponentOrigin.Embed))`. It retains that factory/application for the local
+single-writer editing session. A default reflection-loaded plugin has no selected
+session and returns `UNAVAILABLE`. Durable restart still uses the existing
+package/continuation admission; the application adds no persistence.
+
+MCP tools use prefix `org.simplemodeling.textus.CbdSupport.CbdModelEdit`:
+`inspectModelEdit`, `listModelEditOperations`, `getModelEditCandidate`,
+`applyModelEdit`, `getModelEditView`, `getModelEditDiff`, `getModelEditTraces`,
+`getModelEditReview`. Each accepts the required `requestJson` string. A read
+selector contains exact `session` and `candidate` record references; applicable
+operations wrap it as `selection` with the typed Palette `context`. Editing adds
+an existing typed `operation` and explicit `successorCandidate`. The
+[contract](spec/model-edit-external-operations-contract.md) describes these closed
+shapes, authentication and host ownership. No client can supply grants or source
+facts. ChatGPT and Codex use the same ordinary authorized route.
+
+A successful edit returns candidate JSON and shared escaped confirmation HTML.
+Read the successor using its returned exact reference. Diff inspection retains
+operation history and separately reports exact Phase10 semantic evidence; missing
+or stale admission is `UNAVAILABLE`. Candidate changes never imply approval,
+canonical promotion or external ticket mutation. Administrative Review/catalog
+operations retain their existing private exposure.
+
 ## Review Run Operations
 
 Use the private `CbdReviewAdmin.startReview` command with `targetKind`, `name`,
@@ -220,9 +250,10 @@ CNCF_VERSION=0.5.3-SNAPSHOT scripts/test/check-cbd-sie-sar.sh
 
 The command resolves four locally published snapshot CARs, creates a temporary
 descriptor-only `textus-cbd-sie` SAR for each policy profile, and checks each
-through a separately owned loopback CNCF server. Success requires exact CBD/SIE
-counts of baseline `19/7`, global disable `0/0`, SIE service disable `19/0`, and
-status-operation disable `18/6`. Representative disabled calls must return
+through a separately owned loopback CNCF server. That retained script describes the pre-Stage12.6 CBD/SIE
+baseline `19/7`, global disable `0/0`, SIE service disable `19/0`, and
+status-operation disable `18/6`; it has not yet qualified the eight newly declared
+Model Edit tools. New Stage12.6 qualification is owned by native ordinary-05. Representative disabled calls must return
 JSON-RPC `-32602`. CBD catalog administration, SIE mutation/administration, the
 legacy SIE MCP facade, and all other unexpected tools must remain absent. Each
 server and temporary SAR is removed on exit.

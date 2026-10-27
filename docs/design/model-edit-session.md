@@ -105,4 +105,11 @@ independent accepted review. Actual canonical application and fresh-process
 continuation retain their later Stage owners. The contextual Palette is accepted
 at native Stage 12.4 commit `004e5eb43d1fdce5dec8c97e419b984cc00dde1a` after
 73 tests in 16 suites and independent accepted review. Stage 12.5's conversational
-adapter is authored and pending native validation and independent review.
+adapter is accepted at native commit `63f9ddd08989d42746d2f33ac9a2d89f3f9e93c3`
+after 56 tests in 16 suites and independent review01.
+
+The [external application design](model-edit-external-operations.md) defines one
+host-admitted session shared by generated Operations. Source CML owns generated
+contracts; ComponentFactory owns supported typed host construction and ActionCalls.
+Existing source mapping/Phase10 admission retains exact semantic diff binding.
+Current Stage12.6 code is authored, pending native checks and independent review.

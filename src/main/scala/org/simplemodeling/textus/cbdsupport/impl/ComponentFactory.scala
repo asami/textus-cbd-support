@@ -1,7 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.impl
 
 import java.time.Instant
-import org.simplemodeling.textus.cbdsupport.runtime.CapabilityReadApplication
+import org.simplemodeling.textus.cbdsupport.runtime.{CapabilityReadApplication, ModelEditApplication}
 
 import cats.syntax.all.*
 import org.goldenport.Consequence
@@ -28,7 +28,7 @@ import org.goldenport.protocol.operation.OperationResponse
 import org.goldenport.protocol.spec.{OperationDefinition, OperationDefinitionGroup, ServiceDefinition}
 import org.goldenport.record.Record
 import org.simplemodeling.textus.cbdsupport.CbdSupportComponent
-import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService}
+import org.simplemodeling.textus.cbdsupport.CbdSupportComponent.{CbdCatalogAdminService, CbdRetrievalService, CbdReviewAdminService, CbdModelEditService}
 import org.simplemodeling.textus.cbdsupport.runtime.{CbdHttp, CbdRuntime, CbdRuntimeInvocation, ComponentDependency, ComponentDependencyConflict, ComponentEvidenceAbsence, ComponentKnowledgeDetail, ComponentKnowledgeResourceDetail, ComponentMatch, ComponentObservation, ComponentProfile, ComponentUsage, ComponentUsageGuidance, ExactComponentSelection, InformationSourceState, ResolvedComponentDependency}
 import org.simplemodeling.textus.cbdsupport.runtime.{ReconciliationIssue, ReconciliationObservation, ReconciliationPrecedenceTier, SemanticRequirementEvidence, SourceAwareComponentSearchQuery}
 import org.simplemodeling.textus.cbdsupport.runtime.{CarReviewArtifactBundle, CarReviewAuthorization, CarReviewDeliveryDocument, CarReviewDevelopmentTemplateProvider, CarReviewItemDiagnosis, CarReviewMcpReadApplication, CarReviewMcpObservation, CarReviewMcpReport, CarReviewMcpSummary, CarReviewProviderDocumentSubmissionApplication, CarReviewRepository, CarReviewRunApplication, CarReviewSubmissionBoundedAdapter, CarReviewSubmissionWireApplication, CarReviewViewItem, CarReviewViewProjection, CarReviewWebDeliveryApplication, CarReviewWebDiagnosis, CncfCarReviewJobGateway, ReviewDigest, ReviewId, ReviewInstant, ReviewLimitation, ReviewLocation, ReviewProfile, ReviewReportId, ReviewRunAdmission, ReviewStartRequest as RuntimeReviewStartRequest, ReviewTarget, ReviewTargetKind, ReviewVersion}
@@ -49,14 +49,22 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- * @version Oct. 26, 2026
+ * @version Oct. 27, 2026
  * @author  ASAMI, Tomoharu
  */
-final class ComponentFactory extends CbdSupportComponent.Factory {
+final class ComponentFactory private (
+  private val _model_edit_application: Option[ModelEditApplication]
+) extends CbdSupportComponent.Factory {
+  /** Normal reflection/plugin construction has no implicitly selected editing session. */
+  def this() = this(None)
+  /** Embedding hosts select one admitted application before normal component creation. */
+  def this(application: ModelEditApplication) = this(Some(application))
+
   override protected def create_Core(params: ComponentCreate, comp: Component): Component.Core = {
     import CbdSupportComponent.{AggregateService, EntityService, ViewService}
     spec_create(CbdSupportComponent.name, CbdSupportComponent.componentId, Vector(
       CbdRetrievalService,
+      CbdModelEditService,
       CbdCatalogAdminService,
       CbdReviewAdminService,
       _without_history_operations(AggregateService, Vector(
@@ -237,6 +245,9 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
   private def _json_document(document: String): EntityReviewSubmissionDocument =
     EntityReviewSubmissionDocument(org.simplemodeling.model.value.ContentBody(document))
 
+  override val CbdModelEdit: CbdSupportComponent.CbdModelEditServiceFactory =
+    org.simplemodeling.textus.cbdsupport.runtime.ModelEditOperationJson.serviceFactory(_model_edit_application)
+
   override val CbdRetrieval: CbdSupportComponent.CbdRetrievalServiceFactory =
     new CbdRetrievalServiceFactoryImpl()
 
@@ -258,7 +269,7 @@ final class ComponentFactory extends CbdSupportComponent.Factory {
       )
     ))
     val component = new CbdSupportComponent {
-      override def mcpReadyServices: Set[String] = Set("CbdRetrieval")
+      override def mcpReadyServices: Set[String] = Set("CbdRetrieval", "CbdModelEdit")
     }
     component.withPort(Component.Port.input(socket)
       .orElse(Component.Port.output(registration))

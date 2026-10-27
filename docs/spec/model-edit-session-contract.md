@@ -196,5 +196,12 @@ freshness and canonical application owners remain mandatory. Missing or unsuppor
 mappings retain inspection. All present mapping payloads and dependencies belong to
 the existing complete review-subject closure.
 
-Stage 12.3 implementation is authored; native checks and independent review remain
-pending. This does not close the Stage, Phase or broader FU-07 work.
+Stage 12.3 is accepted at native commit `a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b`
+after 448 tests in 33 suites and independent review02. This does not close the
+Phase or broader FU-07 work.
+
+The [external Operations contract](model-edit-external-operations-contract.md)
+defines the ordinary generated Plugin/MCP route and server-owned principal binding.
+It delegates contextual editing to the same accepted service. No external request
+installs a session, source fact, policy, grant, semantic diff or canonical writer.
+Stage12.6 remains pending native qualification and independent review.

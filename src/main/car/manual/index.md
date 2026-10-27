@@ -3,11 +3,14 @@
 ## Component Contract
 
 `CbdSupport` reads external Cozy component catalogs and serves read-only CBD
-information. It owns no catalog publication and does not write into SIE.
+information and explicitly authorized candidate model editing. It owns no catalog publication and does not write into SIE.
 
-The component contains three services:
+The component contains four services:
 
 - `CbdRetrieval`: read-only, MCP-ready discovery and inspection.
+- `CbdModelEdit`: ordinary authorized candidate inspection/editing, MCP ready;
+  the embedding host must select an admitted ModelEditApplication before normal
+  component creation. The default unbound plugin returns unavailable.
 - `CbdCatalogAdmin`: explicit refresh administration, not MCP ready.
 - `CbdReviewAdmin`: authorized Review start and cancellation, not MCP ready.
 
@@ -503,3 +506,19 @@ Exact usage input:
 The returned `ComponentReference` can be retained as evidence while the
 detailed `ComponentProfile`, operations, dependencies, and references are used
 for implementation planning.
+
+## Candidate Model Editing
+
+`CbdModelEdit` declares semantic inspection, contextual applicable operations,
+candidate reads/edits, shared Views, exact development traces, Review and diff
+inspection. It accepts closed `requestJson` selectors with exact session/candidate
+references. Host-owned principal bindings govern reads and the existing typed
+mutation grant. No client receives canonical promotion or ticket-system mutation.
+
+Embedding hosts construct `ModelEditApplication` from admitted session/source and
+bounded policy/evidence, then use `new impl.ComponentFactory(application)` with
+normal `ComponentCreate`. One factory owns one local single-writer application
+lifetime. Existing package/history owners provide durable continuation.
+Phase10 source mapping and semantic diff admission remain authoritative; absent
+or stale evidence is explicit. See the repository external Operations contract
+and User Guide for host construction and request shapes.

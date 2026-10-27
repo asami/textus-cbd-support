@@ -468,3 +468,83 @@ with their existing boundaries.
 This owner ran no tests, SBT, producer, native workflow, runtime action or Git
 mutation. Stage 12.5 native compile/ordinary-04 checks and independent review remain
 pending. Prior 73/16 evidence qualifies accepted Stage 12.4, not this new adapter.
+
+
+## Native Stage12.5 acceptance and current Stage12.6 authorship
+
+The new issued EDIT12-06 request retains completed EDIT12-05 at commit
+`63f9ddd08989d42746d2f33ac9a2d89f3f9e93c3`, parent
+`004e5eb43d1fdce5dec8c97e419b984cc00dde1a`, with independent accepted review
+`cbd-phase12-edit12-05-independent-review-01@1`. Native ordinary-04 passed
+56 tests in 16 suites. Stage12.5 is CLOSED; this does not claim live AI execution.
+
+The current source-owned CML declares eight ordinary `CbdModelEdit` Operations.
+Supported embedding construction supplies one admitted ModelEditApplication to
+ComponentFactory before normal ComponentCreate/transport registration; no default
+session, facts, grant or bootstrap persistence is invented. The application owns
+only the current immutable session during its local single-writer lifetime.
+Current ExecutionContext principal bindings authorize ordinary reads and the
+accepted scoped command grant. Contextual mutation, same-candidate Views, exact
+trace references and complete-scope Review reuse their accepted owners.
+Semantic diff inspection requires the existing source-mapping validation and
+Phase10 admission and marks it stale after another edit. Missing evidence remains
+explicit. Canonical promotion, independent approval and arbitrary ticket mutation
+are absent from this service. Existing private Review/catalog exposure remains.
+
+Authored executable specifications select actual generated request/ActionCall and
+provider-UoW dispatch using the supported host constructor, MCP catalog projection,
+identical ordinary ChatGPT/Codex semantics, exact successor reads, negative request
+admission, server-principal property coverage, and captured Phase10 diff/staleness.
+They do not claim a remote ChatGPT/Codex connection or a new producer execution.
+This semantic owner ran no tests, SBT, producer, native workflow, runtime command
+or Git mutation. Native ordinary-05 generation/compile/tests and independent review
+remain pending. Stages12.7/12.8 and the whole Phase remain open; prior failures,
+accepted prefix and temporary startup recovery history are retained.
+
+
+## Stage12.6 native generation failure and first repair
+
+Native selected ordinary-05 stopped during source generation before compilation
+or suite execution. The retained failure is `Operation 'inspectModelEdit' INPUT
+Value 'InspectModelEditRequest' requires input-kind=COMMAND|QUERY`. Actual repair
+context is ordered-repair:964, expected revision965, automatic count1/10;
+original current TEST issue-7 remains OPEN pending native qualification.
+
+The authored request records had incorrectly been placed under CML `VALUE`.
+The selected historical generator's ModelServiceOperationProjector requires an
+explicit input kind and checks it against each Operation kind. Existing source
+inputs use the top-level `QUERY`/`COMMAND` declarations. This repair moves the
+seven read inputs to `QUERY` and `ApplyModelEditRequest` to `COMMAND`; response
+values, exact request fields, operation names, query/command meaning, read/private
+exposure, supported host wiring and accepted session behavior are unchanged.
+No generated output or supplier source is edited. The historical selected Cozy
+root and prior failure remain retained. This owner ran no generation, compilation,
+tests, SBT, producer, native/runtime command or Git mutation. Native requalification
+and independent review remain pending; no Stage12.6 suite pass is claimed.
+
+
+## Stage12.6 native Test compile failure and second repair
+
+After the first input-kind repair, native ordinary-05 advanced through CML
+generation and main-source compilation. It then stopped at Test compilation
+with 23 errors before any suite ran. The retained compiler output identifies
+two causes: unqualified fixture `value(...)` calls in ModelEditApplicationSpec
+resolved to ScalaTest's value matcher, so downstream locals had
+ResultOfValueWordApplication instead of application Response; unqualified fixture
+`execute(...)` calls in ModelEditExternalOperationsSpec resolved to ScalaTest's
+Suite.execute(testName, ConfigMap, Boolean).
+
+Actual repair context is ordered-repair:1023, expected revision1024, automatic
+count2/10. This repair renames the public fixture helpers and their intended
+call sites to `successfulValue` and `executeOperation`. Those names follow the
+public helper naming rule and cannot select the inherited ScalaTest members.
+All application calls, generated ActionCall dispatch, negative requests, expected
+outcomes, GWT boundaries and scenarios remain unchanged. No assertion is removed
+or weakened. All 23 retained diagnostics are consequences of these two observed
+name collisions; no other compiler failure class was present in that output.
+
+Current TEST issue-7 remains OPEN pending native requalification. Generation/main
+compilation progress is retained, not presented as suite proof. This owner ran no
+tests, SBT, producer, native/runtime command or Git mutation. Prior generation and
+Test compile failures and the accepted prefix remain retained; Stage12.6 is still
+IN_PROGRESS pending fresh native qualification and independent review.

@@ -16,7 +16,7 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.4 are CLOSED; Stage 12.5 is IN_PROGRESS, later stages remain
+2026-10-27; Stages 12.1–12.5 are CLOSED; Stage 12.6 is IN_PROGRESS, later stages remain
 OPEN and parent Phase 12 is IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
@@ -60,9 +60,14 @@ Stage 12.4 is accepted at native commit
 passed and independent review `cbd-phase12-edit12-04-independent-review-01`
 accepted the contextual Palette, same-service direct adapter and candidate
 confirmation. See the [Palette contract](../spec/model-edit-palette-contract.md).
-Stage 12.5 authors the [conversational adapter](../spec/model-edit-conversational-contract.md)
-over that same path. Its native checks and independent review remain pending;
-typed intent specs do not claim a live external AI invocation.
+Stage 12.5 is accepted at native commit
+`63f9ddd08989d42746d2f33ac9a2d89f3f9e93c3`: 56 tests in 16 selected suites
+passed and independent review `cbd-phase12-edit12-05-independent-review-01`
+accepted the [conversational adapter](../spec/model-edit-conversational-contract.md).
+Typed intent specifications do not claim a live external AI invocation.
+Stage 12.6 authors the [ordinary external Operations](../spec/model-edit-external-operations-contract.md)
+and shared host-owned application; native ordinary-05 qualification and
+independent review remain pending.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
@@ -348,7 +353,7 @@ must never occur as an implicit side effect of linking a model reference.
 ### Stage 12.5 - Conversational edit adapter
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-05 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -358,7 +363,7 @@ Translate conversational edit intent into candidate Model Edit Operations. Suppo
 ### Stage 12.6 - Plugin/MCP external editing boundary
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-06 in
   [Phase 12 Checklist](phase-12-checklist.md).

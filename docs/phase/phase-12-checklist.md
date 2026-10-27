@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.4 CLOSED; Stage 12.5 IN_PROGRESS; Stage 12.6+ OPEN
+Status: IN_PROGRESS — Stages 12.1–12.5 CLOSED; Stage 12.6 IN_PROGRESS; Stage 12.7+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -140,21 +140,31 @@ External ticket mutation is a separate adapter and is not introduced here.
 
 ## EDIT-12-05: Conversational adapter (Stage 12.5)
 
-IN_PROGRESS under the current native ImplementStep. The
-[conversational contract](../spec/model-edit-conversational-contract.md) and
-[design](../design/model-edit-conversational-adapter.md) define typed interpreted
-intent, retained unresolved requests, independent bounded reference evidence and
-same-service candidate application. The authored executable spec covers that
-adapter; no live AI invocation, native qualification or independent acceptance is
-claimed yet. Native ordinary-04 and independent review remain pending.
+CLOSED by the native completed receipt: commit
+`63f9ddd08989d42746d2f33ac9a2d89f3f9e93c3`, parent
+`004e5eb43d1fdce5dec8c97e419b984cc00dde1a`, 56 tests in 16 selected suites
+and independent accepted review `cbd-phase12-edit12-05-independent-review-01@1`.
+The [conversational contract](../spec/model-edit-conversational-contract.md) and
+[design](../design/model-edit-conversational-adapter.md) retain typed interpreted
+intent, original unresolved requests, independent bounded reference evidence and
+same-service application. This is not live external AI execution evidence.
 
-- [ ] Convert conversational intent into authorized candidate operations and
+- [x] Convert conversational intent into authorized candidate operations and
   validation without implying canonical promotion or fabricating model facts.
-- [ ] Allow AI to propose Slice structure/links only as candidate operations;
+- [x] Allow AI to propose Slice structure/links only as candidate operations;
   require explicit existing Specification/Ticket identities for links and reject
   fabricated external identities.
 
 ## EDIT-12-06: External client boundary (Stage 12.6)
+
+IN_PROGRESS under the current issued native ImplementStep. The source-owned
+`CbdModelEdit` Operations, supported typed embedding constructor, shared application,
+principal bindings and executable specifications are authored. Existing Phase10
+mapping/admission owns semantic diff evidence; missing/stale evidence is explicit.
+Native ordinary-05 and independent review remain pending. The production host must
+select an already admitted application before normal component creation; the default
+plugin constructor remains unbound. See the
+[external contract](../spec/model-edit-external-operations-contract.md).
 
 - [ ] Expose semantic inspection, applicable operations, candidate read/edit,
   and View/diff inspection through Plugin/MCP; validate ChatGPT and Codex as

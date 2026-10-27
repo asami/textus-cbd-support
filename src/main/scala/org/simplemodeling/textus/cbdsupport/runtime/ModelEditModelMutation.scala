@@ -24,13 +24,14 @@ object ModelEditModelMutation {
       palette <- ModelEditPalette.inspect(session, context, authorization).left.map(Failure.Palette(_))
       kind = ModelEditSession.commandKind(operation.command)
       _ <- Either.cond(palette.entries.exists(_.kind == kind), (), Failure.Palette(ModelEditPalette.Failure.CommandUnavailable(kind)))
-      _ <- Either.cond(_targets(session.candidate, context.subject, operation.command), (),
+      _ <- Either.cond(matchesSubject(session.candidate, context.subject, operation.command), (),
         Failure.Palette(ModelEditPalette.Failure.SubjectMismatch(context.subject)))
       updated <- ModelEditService.applyOperation(session, operation, successorCandidate, authorization, resolutions).left.map(Failure.Validation(_))
       view <- ModelEditViewProjection.project(updated, source, capabilityDemands).left.map(Failure.Projection(_))
     } yield Applied(updated, context, operation, view)
 
-  private def _targets(candidate: Candidate, subject: Subject, command: Command): Boolean = {
+  /** Shared read-only contextual predicate; it supplies no mutation or authorization. */
+  def matchesSubject(candidate: Candidate, subject: Subject, command: Command): Boolean = {
     def _slice_(identity: ComponentDashboardSemanticTargetIdentity): Boolean = subject match {
       case Subject.Slice(selected) => selected == identity
       case Subject.UseCase(selected) => candidate.slices.exists(value => value.identity == identity && value.useCaseIdentity == selected)

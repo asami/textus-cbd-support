@@ -3,6 +3,9 @@
 The direct [Update Palette](model-edit-palette-contract.md) is another client of
 the same candidate service. Its contextual applicability never replaces command
 admission, supplied successor identities, external resolution or approval gates.
+The [conversational adapter](model-edit-conversational-contract.md) translates
+explicit interpreted intent into those same typed operations, retaining unresolved
+intent and separate host-owned evidence without granting AI any additional authority.
 
 status=target
 decision_scope=EDIT-12-01 / EDIT-12-02

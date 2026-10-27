@@ -4,6 +4,9 @@ The [contextual Palette adapter](model-edit-palette.md) reuses this service and
 shared candidate projection without extending the stored session model. Its
 subject checks restrict a direct action to the exact selected candidate context;
 normal authorization, admission and canonical approval retain their owners.
+The [conversational adapter](model-edit-conversational-adapter.md) reuses this
+direct path for explicit interpreted intent; it adds neither a stored editing
+model nor an AI-provider framework.
 
 decision_scope=EDIT-12-01 / EDIT-12-02
 updated_at=2026-10-27
@@ -99,5 +102,7 @@ existing independent review and approval owners; no new application gate is crea
 The bridge, Views and Review are accepted at native Stage 12.3 commit
 `a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b` after 448 tests in 33 suites and
 independent accepted review. Actual canonical application and fresh-process
-continuation retain their later Stage owners. The contextual Palette is authored
-under Stage 12.4 and has not yet received native validation or independent review.
+continuation retain their later Stage owners. The contextual Palette is accepted
+at native Stage 12.4 commit `004e5eb43d1fdce5dec8c97e419b984cc00dde1a` after
+73 tests in 16 suites and independent accepted review. Stage 12.5's conversational
+adapter is authored and pending native validation and independent review.

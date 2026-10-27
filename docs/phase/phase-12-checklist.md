@@ -1,6 +1,6 @@
 # Phase 12 Checklist: Interactive View and Model Editing
 
-Status: IN_PROGRESS — Stages 12.1–12.3 CLOSED; Stage 12.4 IN_PROGRESS; Stage 12.5+ OPEN
+Status: IN_PROGRESS — Stages 12.1–12.4 CLOSED; Stage 12.5 IN_PROGRESS; Stage 12.6+ OPEN
 phase=[Phase 12](phase-12.md)
 predecessor=[Phase 11.1](phase-11.1.md)
 
@@ -120,21 +120,33 @@ The temporary runtime assembly recovery is not a new Phase prerequisite.
 
 ## EDIT-12-04: Update Palette and direct commands (Stage 12.4)
 
-IN_PROGRESS under the actual native ImplementStep after Stage 12.3 acceptance.
+CLOSED by native Step acceptance and commit
+`004e5eb43d1fdce5dec8c97e419b984cc00dde1a` (parent `a08c774`). Native ordinary-03
+validation passed 73 tests in 16 selected suites and independent review
+`cbd-phase12-edit12-04-independent-review-01` accepted the current candidate.
 The [Palette contract](../spec/model-edit-palette-contract.md) and
-[design](../design/model-edit-palette.md) describe authored contextual inspection,
-direct same-service commands and shared candidate confirmation. Native selected
-ordinary-03 validation and independent review remain pending; the following items
-are not accepted by implementation authorship.
+[design](../design/model-edit-palette.md) define contextual inspection, direct
+same-service commands and shared candidate confirmation. The accepted bounded
+surface covers the existing ten commands across shared views; source-only
+causal/event CRUD remains with its existing read-only source-owner boundary.
+External ticket mutation is a separate adapter and is not introduced here.
 
-- [ ] Implement contextual deterministic Actor Goal List, Mono-Koto, and
+- [x] Implement contextual deterministic Actor Goal List, Mono-Koto, and
   Event Storming operations through the same candidate Edit Session service.
-- [ ] Add Use Case detail commands for create/refine Slice and explicit
+- [x] Add Use Case detail commands for create/refine Slice and explicit
   Specification/Ticket link/unlink operations.
-- [ ] Keep external ticket creation/update behind a separate authorized adapter;
+- [x] Keep external ticket creation/update behind a separate authorized adapter;
   linking a TicketRef has no implicit external side effect.
 
 ## EDIT-12-05: Conversational adapter (Stage 12.5)
+
+IN_PROGRESS under the current native ImplementStep. The
+[conversational contract](../spec/model-edit-conversational-contract.md) and
+[design](../design/model-edit-conversational-adapter.md) define typed interpreted
+intent, retained unresolved requests, independent bounded reference evidence and
+same-service candidate application. The authored executable spec covers that
+adapter; no live AI invocation, native qualification or independent acceptance is
+claimed yet. Native ordinary-04 and independent review remain pending.
 
 - [ ] Convert conversational intent into authorized candidate operations and
   validation without implying canonical promotion or fabricating model facts.

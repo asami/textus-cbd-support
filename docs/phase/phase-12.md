@@ -16,12 +16,12 @@ numbered Phase 11, relocated by the repository owner's 2026-10-03 sync decision.
 Phase 11 remains Capability Catalog, Discovery, and Traceability. Historical
 journal references retain their original numbering; this document and its
 checklist define the current identity. Stage 12.1 started and closed on
-2026-10-27; Stages 12.1–12.3 are CLOSED; Stage 12.4 is IN_PROGRESS, later stages remain
+2026-10-27; Stages 12.1–12.4 are CLOSED; Stage 12.5 is IN_PROGRESS, later stages remain
 OPEN and parent Phase 12 is IN_PROGRESS.
 
 ## Current bounded execution — 2026-10-27
 
-EDIT-12-01, EDIT12-02 and EDIT12-03 are accepted; EDIT12-04 is the current
+EDIT-12-01 through EDIT12-04 are accepted; EDIT12-05 is the current
 issued implementation scope. Phase 10.7 and Phase
 11.1 are CLOSED predecessors. Phase 14's Job integration, Phase 15's scoped
 quality evaluation and Phase 15.1's ReviewRequest/external acceptance are also
@@ -55,9 +55,14 @@ Phase 10 admission. This consuming acceptance does not close the broader FU-07
 work, supply a positive upstream Use Case demand mapping or prove canonical
 application/fresh-process continuation. Those existing later boundaries remain.
 
-Stage 12.4 now authors the contextual direct Palette, same-service mutation
-adapter and candidate confirmation. Its native checks and independent review
-remain pending. See the [Palette contract](../spec/model-edit-palette-contract.md).
+Stage 12.4 is accepted at native commit
+`004e5eb43d1fdce5dec8c97e419b984cc00dde1a`: 73 tests in 16 selected suites
+passed and independent review `cbd-phase12-edit12-04-independent-review-01`
+accepted the contextual Palette, same-service direct adapter and candidate
+confirmation. See the [Palette contract](../spec/model-edit-palette-contract.md).
+Stage 12.5 authors the [conversational adapter](../spec/model-edit-conversational-contract.md)
+over that same path. Its native checks and independent review remain pending;
+typed intent specs do not claim a live external AI invocation.
 
 The original canonical integration obligation is retained: new Slice/trace
 syntax, source-owned CML mappings, Phase 10 payload/typed-subject extensions,
@@ -328,7 +333,7 @@ distinguish absent upstream data from an explicitly empty relationship.
 ### Stage 12.4 - Update Palette and direct commands
 
 Stage Status:
-- Current status: IN_PROGRESS
+- Current status: CLOSED on 2026-10-27
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-04 in
   [Phase 12 Checklist](phase-12-checklist.md).
@@ -343,7 +348,7 @@ must never occur as an implicit side effect of linking a model reference.
 ### Stage 12.5 - Conversational edit adapter
 
 Stage Status:
-- Current status: OPEN
+- Current status: IN_PROGRESS
 - Owner: Textus CBD Support development
 - Update rule: record completion only from EDIT-12-05 in
   [Phase 12 Checklist](phase-12-checklist.md).

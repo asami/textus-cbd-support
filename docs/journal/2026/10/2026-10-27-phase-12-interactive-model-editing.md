@@ -427,3 +427,44 @@ This owner ran no tests, SBT, producer, native workflow, runtime or Git mutation
 Stage 12.4's compile/checks, independent review and acceptance are pending under
 the existing native workflow. Prior 448/33 proof qualifies accepted Stage 12.3,
 not the newly authored Palette.
+
+### Stage 12.4 accepted; conversational adapter implementation issued
+
+Native ordinary-03 passed 73 tests in 16 suites and independent review
+`cbd-phase12-edit12-04-independent-review-01` revision 1 accepted the current
+Palette/direct adapter. Native commit
+`004e5eb43d1fdce5dec8c97e419b984cc00dde1a` (parent
+`a08c7745748d32e7549ebd35da0d3cfa1e9b2d5b`) is recorded in the accepted prefix.
+The same Session's `call-advance-edit12-04-close-01/response.json` now issues
+EDIT12-05 at `ordered-implementation:866`, expected revision 867. The authorized
+Phase/checklist records Stages 12.1–12.4 CLOSED, Stage 12.5 IN_PROGRESS and
+Phase 12 IN_PROGRESS. All earlier failures, actual reviews, repairs, producer
+qualification and accepted commits remain retained.
+
+The authored conversational contract/design separates client interpretation from
+host authority. `ModelEditConversationalAdapter` retains original text plus typed
+intent, translates exact selected Actor/Goal and stable Slice subjects, and
+constructs normal candidate operation proposals using explicit caller references.
+Clarification and candidate admission failures retain the original request/context
+with typed reasons. Bounded external reference evidence is supplied separately by
+the host: a proposed Specification revision or Ticket identity cannot be proven by
+prose or an AI claim. Application revalidates ordinary authorization, exact context,
+preconditions and references through the accepted direct mutation adapter and
+shared candidate View. Its existing subject predicate is exposed read-only for
+reuse during proposal preparation; the predicate and direct application semantics
+are unchanged.
+
+The new selected ordinary-04 spec authors all ten admitted command translations,
+exact independent Specification/Ticket links, stable Slice refinement, retained
+ambiguity, fabricated external identity rejection including manually constructed
+proposal values, all bounded unresolved source states, current authorization and
+candidate applicability, subject mismatch and supplied revision/intent properties.
+Those are typed adapter specifications, not evidence of a live external AI call.
+No new provider framework, persistence, canonical writer, external ticket client,
+source facts or session wire schema is introduced. Source-only causal/event CRUD,
+external client exposure and genuine E2E approval/application/continuation remain
+with their existing boundaries.
+
+This owner ran no tests, SBT, producer, native workflow, runtime action or Git
+mutation. Stage 12.5 native compile/ordinary-04 checks and independent review remain
+pending. Prior 73/16 evidence qualifies accepted Stage 12.4, not this new adapter.

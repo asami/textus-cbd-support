@@ -50,7 +50,9 @@ records and supplies no new acceptance evidence.
   relocated from the remote Phase 11 proposal;
   [checklist](phase-12-checklist.md).
 - [Phase 13](phase-13.md) — in-progress CAR lint human-in-the-loop resolution;
-  import/proposal/admission core first; producer delivery and real re-lint pending;
+  core natively closed at `03702f4`; ordinary operation/principal wiring
+  implemented pending native checks and acceptance under Plan revision 2;
+  producer delivery, source application and real re-lint pending;
   [checklist](phase-13-checklist.md).
 - [Phase 14](phase-14.md) — closed: CAR Review native Job integration and
   CBD-owned acceptance (DEV-CBD-004), with local release and explicit recovery

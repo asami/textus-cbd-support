@@ -68,4 +68,54 @@ The actionable metric remains CNCF's unresolved backlog, separately from raw
 finding count and deferred follow-up. A proposed/admitted workflow state does
 not replace an existing deterministic disposition or reduce that backlog.
 
-Executable specification: `runtime.FindingResolutionSpec`.
+## Ordinary operations and authenticated host selection
+
+`CbdFindingResolution` exposes `importFindingInspection`,
+`groupFindingResolutions`, `proposeFindingResolution`,
+`decideFindingResolution` and `getFindingResolution` through generated
+Operation/ActionCall DTOs. Each DTO contains `requestJson`. Closed JSON records
+reject duplicate, unknown and missing fields, including nested key/reference
+records. Kind and choice are explicit enum strings.
+
+The embedding host installs an application with typed inspection imports and
+principal bindings. A binding names allowed import references and independently
+supplied developer directions. Import JSON selects only `imported`; it cannot
+supply an Inspection, declarations, coverage, principal, grant or Human evidence.
+Every operation uses the shared Phase 12 authenticated-principal/time policy,
+then selects the exact host principal binding before decoding request JSON.
+A valid principal requires a non-anonymous, non-unspecified subject, a nonempty
+principal identity, no future authentication time and an unexpired session.
+
+The import operation retains one Working value per explicit imported reference;
+re-import cannot replace its proposals or decisions. Grouping returns exact
+supplied assignments and unassigned keys without installing a decision. Proposal
+JSON selects `imported`, `proposal`, `keys`, `kind`, `reason` and `provenance`.
+Decision JSON selects `imported`, `proposal`, `decision`, `keys`, `choice` and
+`reason`. The application selects host direction by the exact import and proposal
+references, including revisions; the core checks the allowed kind and exact
+selected subset. No direction field is accepted from a client.
+
+Responses retain inspection, completed coverage, gaps, original declarations,
+CNCF report, raw/actionable counts, proposals and decisions. Group responses also
+return the grouping. Admission changes only workflow decisions; the imported
+CNCF report and actionable backlog remain unchanged. An unconfigured normal
+ComponentFactory returns `UNAVAILABLE`, with no fabricated application or grant.
+A configured application reports an import not yet retained as `UNAVAILABLE`.
+No operation exposes canonical-source mutation, AI execution or persistence.
+
+For example, an import/get request is:
+
+```json
+{"imported":{"recordId":"inspection","recordRevision":1}}
+```
+
+A proposal uses the same explicit record-reference shape for `imported` and
+`proposal`, a `keys` array of `{"rule":"car.host-access","finding":"host-1","target":{"scope":"operation","identity":"orders:submit"}}`,
+`kind: "Accept"`, a reason and provenance. An explicit decision supplies its own
+`decision` reference, that proposal reference, the selected `keys`,
+`choice: "Admit"` or `"Reject"`, and a reason. Host direction remains independent
+of these examples. Fixture wiring proves neither a real Human transaction nor
+qualified external producer delivery.
+
+Executable specifications: `runtime.FindingResolutionSpec`,
+`runtime.FindingResolutionApplicationSpec`, and `FindingResolutionOperationSpec`.

@@ -1,7 +1,7 @@
 package org.simplemodeling.textus.cbdsupport.impl
 
 import java.time.Instant
-import org.simplemodeling.textus.cbdsupport.runtime.{CapabilityReadApplication, ModelEditApplication}
+import org.simplemodeling.textus.cbdsupport.runtime.{CapabilityReadApplication, FindingResolutionApplication, ModelEditApplication}
 
 import cats.syntax.all.*
 import org.goldenport.Consequence
@@ -49,22 +49,28 @@ import org.simplemodeling.model.value.{AuditAttributesUpdate, ContentAttributesU
  *  version Jul. 26, 2026
  *  version Aug. 15, 2026
  *  version Sep. 27, 2026
- * @version Oct. 27, 2026
+ *  version Oct. 27, 2026
+ * @version Nov.  5, 2026
  * @author  ASAMI, Tomoharu
  */
 final class ComponentFactory private (
-  private val _model_edit_application: Option[ModelEditApplication]
+  private val _model_edit_application: Option[ModelEditApplication],
+  private val _finding_resolution_application: Option[FindingResolutionApplication]
 ) extends CbdSupportComponent.Factory {
   /** Normal reflection/plugin construction has no implicitly selected editing session. */
-  def this() = this(None)
+  def this() = this(None, None)
   /** Embedding hosts select one admitted application before normal component creation. */
-  def this(application: ModelEditApplication) = this(Some(application))
+  def this(application: ModelEditApplication) = this(Some(application), None)
+  def this(application: FindingResolutionApplication) = this(None, Some(application))
+  def this(modelEdit: ModelEditApplication, findingResolution: FindingResolutionApplication) =
+    this(Some(modelEdit), Some(findingResolution))
 
   override protected def create_Core(params: ComponentCreate, comp: Component): Component.Core = {
     import CbdSupportComponent.{AggregateService, EntityService, ViewService}
     spec_create(CbdSupportComponent.name, CbdSupportComponent.componentId, Vector(
       CbdRetrievalService,
       CbdModelEditService,
+      CbdSupportComponent.CbdFindingResolutionService,
       CbdCatalogAdminService,
       CbdReviewAdminService,
       _without_history_operations(AggregateService, Vector(
@@ -248,6 +254,9 @@ final class ComponentFactory private (
   override val CbdModelEdit: CbdSupportComponent.CbdModelEditServiceFactory =
     org.simplemodeling.textus.cbdsupport.runtime.ModelEditOperationJson.serviceFactory(_model_edit_application)
 
+  override val CbdFindingResolution: CbdSupportComponent.CbdFindingResolutionServiceFactory =
+    FindingResolutionActionCall.serviceFactory(_finding_resolution_application)
+
   override val CbdRetrieval: CbdSupportComponent.CbdRetrievalServiceFactory =
     new CbdRetrievalServiceFactoryImpl()
 
@@ -269,7 +278,7 @@ final class ComponentFactory private (
       )
     ))
     val component = new CbdSupportComponent {
-      override def mcpReadyServices: Set[String] = Set("CbdRetrieval", "CbdModelEdit")
+      override def mcpReadyServices: Set[String] = Set("CbdRetrieval", "CbdModelEdit", "CbdFindingResolution")
     }
     component.withPort(Component.Port.input(socket)
       .orElse(Component.Port.output(registration))

@@ -632,6 +632,124 @@ ModelEditResponse
 
 Read deterministic complete-scope project-policy findings and unresolved evidence for the exact candidate.
 
+## CbdFindingResolution
+
+### DESCRIPTION
+
+Ordinary authenticated finding preparation and explicit developer decisions. The embedding host supplies inspection facts and independent developer directions; no source mutation or AI execution.
+
+### OPERATION
+
+#### importFindingInspection
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ImportFindingInspectionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+FindingResolutionResponse
+
+##### DESCRIPTION
+
+Import only the exact host-owned inspection facts selected by reference.
+
+#### groupFindingResolutions
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GroupFindingResolutionsRequest
+
+##### OUTPUT
+
+###### TYPE
+
+FindingResolutionResponse
+
+##### DESCRIPTION
+
+Group exact findings by explicit rule and remediation meaning without admission.
+
+#### proposeFindingResolution
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+ProposeFindingResolutionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+FindingResolutionResponse
+
+##### DESCRIPTION
+
+Prepare a reasoned proposal without AI execution, admission or source mutation.
+
+#### decideFindingResolution
+
+##### TYPE
+
+COMMAND
+
+##### INPUT
+
+###### TYPE
+
+DecideFindingResolutionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+FindingResolutionResponse
+
+##### DESCRIPTION
+
+Record explicit admit or reject scope under independent authenticated host developer direction.
+
+#### getFindingResolution
+
+##### TYPE
+
+QUERY
+
+##### INPUT
+
+###### TYPE
+
+GetFindingResolutionRequest
+
+##### OUTPUT
+
+###### TYPE
+
+FindingResolutionResponse
+
+##### DESCRIPTION
+
+Read retained CNCF evidence, coverage gaps, proposal and decision state without changing actionable backlog.
+
 ## CbdCatalogAdmin
 
 ### DESCRIPTION
@@ -973,6 +1091,30 @@ Private HTTP gateway envelope for one exact Review submission document.
 |------|------|--------------|
 | requestJson | string | 1 |
 
+## ImportFindingInspectionRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## ProposeFindingResolutionRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## DecideFindingResolutionRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
 # QUERY
 
 ## ScopedQualityReviewPreparation
@@ -1250,6 +1392,22 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | itemKind | CbdWarning | 1 |
 | itemId | CbdWarning | 1 |
 
+## GroupFindingResolutionsRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
+## GetFindingResolutionRequest
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| requestJson | string | 1 |
+
 ## InspectModelEditRequest
 
 ### ATTRIBUTE
@@ -1484,6 +1642,15 @@ Private Web request for one exact Observation or capability diagnosis from one e
 | reviewId | string | 1 |
 | revision | long | 1 |
 | observations | ManagedEffectReviewObservation | * |
+
+## FindingResolutionResponse
+
+### ATTRIBUTE
+
+| name | type | multiplicity |
+|------|------|--------------|
+| status | string | 1 |
+| resultJson | string | 1 |
 
 ## ModelEditResponse
 

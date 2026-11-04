@@ -6,17 +6,17 @@ Stage Status:
 - Required inputs: CAR lint structured findings, goldenport-cncf Phase 99 Finding Disposition ABI, Cozy Phase 77 CML properties
 - Owner: Textus CBD Support development
 
-## Current execution plan — 2026-10-31
+## Current execution plan — 2026-11-05
 
 Phase 12 remains CLOSED at completion record `6239082`, with its accepted
 implementation, validation, review and Ticket-operations follow-up retained.
 Phase 13 uses native GoalPhase Session `82224a6340ff32f987271a2bf69ca53b`,
-Plan `cbd-phase13-finding-resolution-20261031`, revision `1`.
+Plan `cbd-phase13-finding-resolution-20261031`, revision `2`.
 
 | Step | Scope | Current boundary |
 | --- | --- | --- |
-| LINT13-01 | Import CNCF findings and existing dispositions; group exact occurrences; propose reasoned choices; explicitly admit/reject selected scope | In progress; pure core and executable specification, not yet accepted |
-| LINT13-02 | Ordinary generated Operation/ActionCall and authenticated host bindings | Pending LINT13-01 acceptance |
+| LINT13-01 | Import CNCF findings and existing dispositions; group exact occurrences; propose reasoned choices; explicitly admit/reject selected scope | Closed; independent native review and eight native tests accepted at `03702f4225ad4ca8b73899d198d87a8ce8b20b03` |
+| LINT13-02 | Ordinary generated Operation/ActionCall and authenticated host bindings | Source and executable specifications implemented; native validation and independent acceptance pending |
 | LINT13-03 | Apply admitted work through CML properties or handwritten Scala annotations | Pending qualified CNCF Phase 99 / Cozy Phase 77 delivery |
 | LINT13-04 | Actual re-lint, deterministic disposition projection and integrated review | Pending source application and actual producer/consumer evidence |
 
@@ -35,6 +35,15 @@ As of this planning update, neither request has been dispatched: the installed
 DelegateTask Start rejected missing execution profiles/origin. Prepared request
 text and the actual failed invocation are retained; no transport acknowledgment
 or completed producer delivery is claimed.
+
+LINT13-02 now implements the ordinary generated `CbdFindingResolution`
+operations, an explicitly embedded host-owned application and the shared Phase 12
+principal/session-time policy. Plan revision 2 adds the authentication-policy
+owner and the actual runtime continuation specification to the Step inventory.
+The application retains imported CNCF evidence and exact developer decisions;
+preparation and admission perform no AI execution or canonical source write.
+The executable specifications are authored for native checks; no Step 02
+validation, review or acceptance is claimed by this implementation update.
 
 See the [finding resolution contract](../spec/finding-resolution-contract.md)
 and [design](../design/finding-resolution.md). Foundational checks qualify only

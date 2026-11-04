@@ -49,7 +49,8 @@ records and supplies no new acceptance evidence.
   Stages 12.1–12.8 CLOSED; native whole-Phase acceptance completed;
   relocated from the remote Phase 11 proposal;
   [checklist](phase-12-checklist.md).
-- [Phase 13](phase-13.md) — planned CAR lint human-in-the-loop resolution;
+- [Phase 13](phase-13.md) — in-progress CAR lint human-in-the-loop resolution;
+  import/proposal/admission core first; producer delivery and real re-lint pending;
   [checklist](phase-13-checklist.md).
 - [Phase 14](phase-14.md) — closed: CAR Review native Job integration and
   CBD-owned acceptance (DEV-CBD-004), with local release and explicit recovery
@@ -66,7 +67,8 @@ records the imported refinements, current integration points and unverified
 upstream inputs. Phases 11 and 11.1 are closed. On 2026-10-16 the owner selected
 Phase 14 before planned Phases 12 and 13 to finish the transferred Job
 implementation. Phase 14 is now closed by its own acceptance and local release;
-Phase 12 is closed after native whole-Phase acceptance; Phase 13 remains planned. Phases 15 and
+Phase 12 is closed after native whole-Phase acceptance; Phase 13 is in progress under
+its 2026-10-31 execution plan. Phases 15 and
 15.1 are closed by their own ledgers. Phase 11.1 completed the aggregate
 full-validation obligation for the Capability sequence. See the
 [Phase 11 closure](phase-11.md#current-phase-closure-and-successor-handoff--2026-10-16)

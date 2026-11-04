@@ -1,10 +1,46 @@
 # Phase 13 - CAR Lint Human-in-the-Loop Resolution
 
 Stage Status:
-- Current status: PLANNED
+- Current status: IN_PROGRESS
 - Predecessor: Phase 12 Interactive View and Model Editing
 - Required inputs: CAR lint structured findings, goldenport-cncf Phase 99 Finding Disposition ABI, Cozy Phase 77 CML properties
 - Owner: Textus CBD Support development
+
+## Current execution plan — 2026-10-31
+
+Phase 12 remains CLOSED at completion record `6239082`, with its accepted
+implementation, validation, review and Ticket-operations follow-up retained.
+Phase 13 uses native GoalPhase Session `82224a6340ff32f987271a2bf69ca53b`,
+Plan `cbd-phase13-finding-resolution-20261031`, revision `1`.
+
+| Step | Scope | Current boundary |
+| --- | --- | --- |
+| LINT13-01 | Import CNCF findings and existing dispositions; group exact occurrences; propose reasoned choices; explicitly admit/reject selected scope | In progress; pure core and executable specification, not yet accepted |
+| LINT13-02 | Ordinary generated Operation/ActionCall and authenticated host bindings | Pending LINT13-01 acceptance |
+| LINT13-03 | Apply admitted work through CML properties or handwritten Scala annotations | Pending qualified CNCF Phase 99 / Cozy Phase 77 delivery |
+| LINT13-04 | Actual re-lint, deterministic disposition projection and integrated review | Pending source application and actual producer/consumer evidence |
+
+The installed local CNCF `0.5.3-SNAPSHOT` artifact contains the public
+`FindingDispositionV1` type, so core development can reuse that ABI immediately.
+Class presence is not producer delivery, consumer qualification or successful
+source application. Existing Phase 12 projection/review/authorization machinery
+and Phase 15/15.1 evaluation contracts remain intact.
+
+CNCF must return qualified Phase 99 source/artifact selection, actual checks and
+review, and integration examples for exact finding keys, annotations and
+reinspection evidence. Cozy must deliver Phase 77 CML properties that map to
+that ABI, preserve CML authority through generation, and expose actual structured
+lint findings/coverage. Each producer owns its development and local publication.
+As of this planning update, neither request has been dispatched: the installed
+DelegateTask Start rejected missing execution profiles/origin. Prepared request
+text and the actual failed invocation are retained; no transport acknowledgment
+or completed producer delivery is claimed.
+
+See the [finding resolution contract](../spec/finding-resolution-contract.md)
+and [design](../design/finding-resolution.md). Foundational checks qualify only
+their actual scope; ordinary transport, real Human provenance and end-to-end
+source/reinspection evidence remain later acceptance obligations. The original
+Phase acceptance criteria below remain unchanged.
 
 ## Purpose
 
